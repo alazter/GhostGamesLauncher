@@ -1614,7 +1614,7 @@ export default memo(function Library(): JSX.Element {
             .gameList {
               grid-template-columns: repeat(auto-fill, minmax(${cardZoom}px, 1fr)) !important;
               gap: 30px !important; 
-              padding: 20px !important;
+              padding: 5px 20px 20px 20px !important;
             }
             .gameCard {
               scroll-margin-top: 150px !important;
@@ -1624,8 +1624,8 @@ export default memo(function Library(): JSX.Element {
               z-index: 100 !important;
             }
             
-            /* Indicador de foco brutal para Dropdowns, Inputs e Checkboxes */
-            select:focus, [role="combobox"]:focus, input:focus, [role="checkbox"]:focus {
+            /* Indicador de foco brutal para Dropdowns, Inputs e Checkboxes (excluindo a barra de pesquisa) */
+            select:focus, [role="combobox"]:focus, input:focus:not(.searchBarInput), [role="checkbox"]:focus {
               outline: 3px solid #4CAF50 !important;
               outline-offset: 2px !important;
               box-shadow: 0 0 10px rgba(76, 175, 80, 0.8) !important;

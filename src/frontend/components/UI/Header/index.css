@@ -24,6 +24,10 @@
   z-index: 20;
 }
 
+.Header__filters button:not(.selectStyle) {
+  border-radius: 20px !important;
+}
+
 /* Garante que os botões flutuantes respeitem os controles da janela no Windows */
 .frameless:not(.fullscreen) .Header__filters {
   right: calc(var(--overlay-controls-width) - env(titlebar-area-x, 0px) + 10px);

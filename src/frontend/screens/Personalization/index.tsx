@@ -45,6 +45,15 @@ export default function PersonalizationScreen() {
     return saved !== null ? (JSON.parse(saved) as boolean) : false
   })
 
+  const [hideSearchSuggestions, setHideSearchSuggestions] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_hide_search_suggestions')
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
+  })
+
+  const [alphabetAlignment, setAlphabetAlignment] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_alignment') || 'center'
+  })
+
   // ==============================================================
   // DRAG & DROP PARA ORDENAÇÃO DAS LOJAS
   // ==============================================================
@@ -152,6 +161,19 @@ export default function PersonalizationScreen() {
     const newVal = !hideIconsMouse
     setHideIconsMouse(newVal)
     localStorage.setItem('heroic_hide_icons_mouse', JSON.stringify(newVal))
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleToggleSearchSuggestions = () => {
+    const newVal = !hideSearchSuggestions
+    setHideSearchSuggestions(newVal)
+    localStorage.setItem('heroic_hide_search_suggestions', JSON.stringify(newVal))
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleToggleAlphabetAlignment = (val: string) => {
+    setAlphabetAlignment(val)
+    localStorage.setItem('heroic_alphabet_alignment', val)
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
   // ==============================================================
@@ -647,6 +669,99 @@ export default function PersonalizationScreen() {
                   style={styles.checkbox}
                 />
               </label>
+
+              {/* Opção Sugestões de Busca */}
+              <label
+                style={styles.toggleRow}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background =
+                    'rgba(255, 255, 255, 0.05)')
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.2)')
+                }
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Ocultar sugestões na busca
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Deixa a barra de busca limpa ao pesquisar por jogos
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hideSearchSuggestions}
+                  onChange={handleToggleSearchSuggestions}
+                  style={styles.checkbox}
+                />
+              </label>
+
+              {/* Opção Alinhamento do Alfabeto */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '12px 15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Alinhamento do Filtro de Alfabeto
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Escolha como o filtro de A-Z é posicionado na tela
+                  </span>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    borderRadius: '6px',
+                    padding: '3px',
+                    gap: '4px',
+                    marginTop: '4px'
+                  }}
+                >
+                  {(
+                    [
+                      { id: 'left', label: 'Esquerda' },
+                      { id: 'center', label: 'Centro' },
+                      { id: 'right', label: 'Direita' },
+                      { id: 'fill', label: 'Preencher' }
+                    ] as const
+                  ).map((opt) => {
+                    const isSelected = alphabetAlignment === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => handleToggleAlphabetAlignment(opt.id)}
+                        style={{
+                          flex: 1,
+                          height: '28px',
+                          background: isSelected ? '#4CAF50' : 'transparent',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'background 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>

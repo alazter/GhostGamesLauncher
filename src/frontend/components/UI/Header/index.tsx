@@ -135,8 +135,7 @@ export default function Header() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   backdropFilter: 'blur(5px)',
-                  transition: 'all 0.2s',
-                  marginRight: '10px'
+                  transition: 'all 0.2s'
                 }}
               >
                 {isUnclassifiedActive
@@ -165,7 +164,6 @@ export default function Header() {
                 justifyContent: 'center',
                 backdropFilter: 'blur(5px)',
                 transition: 'all 0.2s ease',
-                marginRight: '10px',
                 boxShadow: isMassEditMode
                   ? '0 0 10px rgba(229, 57, 53, 0.4)'
                   : 'none'

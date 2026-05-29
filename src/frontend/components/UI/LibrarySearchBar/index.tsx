@@ -23,17 +23,17 @@ const RUNNER_TO_STORE: Partial<Record<Runner, string>> = {
 
 const DISPLAY_MODE: string = 'icon-text'
 
-const BRAND_COLORS: Record<string, string> = {
-  steam: '#1b2838',
-  epic: '#333333',
-  gog: '#5c2d91',
-  amazon: '#232f3e',
-  zoom: '#009aeb',
-  sideloaded: '#555555',
-  xbox: '#107c10',
-  ubisoft: '#000000',
-  ea: '#f56c2d',
-}
+// const BRAND_COLORS: Record<string, string> = {
+//   steam: '#1b2838',
+//   epic: '#333333',
+//   gog: '#5c2d91',
+//   amazon: '#232f3e',
+//   zoom: '#009aeb',
+//   sideloaded: '#555555',
+//   xbox: '#107c10',
+//   ubisoft: '#000000',
+//   ea: '#f56c2d',
+// }
 
 
 interface CustomStore {
@@ -72,6 +72,11 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
     return localStorage.getItem('heroic_active_store_filter')
   })
 
+  const [hideSearchSuggestions, setHideSearchSuggestions] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_hide_search_suggestions')
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
+  })
+
   useEffect(() => {
     const handleStoresChange = () => {
       const saved = localStorage.getItem('heroic_custom_stores')
@@ -80,6 +85,16 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
     window.addEventListener('customStoresChanged', handleStoresChange)
     return () =>
       window.removeEventListener('customStoresChanged', handleStoresChange)
+  }, [])
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      const saved = localStorage.getItem('heroic_hide_search_suggestions')
+      setHideSearchSuggestions(saved !== null ? (JSON.parse(saved) as boolean) : false)
+    }
+    window.addEventListener('heroicSettingsChanged', handleSettingsChange)
+    return () =>
+      window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
   }, [])
 
   // Função que é disparada ao clicar numa loja
@@ -152,7 +167,7 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
       }}
     >
       {/* A MÁGICA 1: Mantive a barra de pesquisa fixa em 450px 
-        para que ela não esmague os botões que vêm ao lado! 
+        para que o campo de busca de jogos tenha bastante espaço! 
       */}
       <style>
         {`
@@ -175,7 +190,7 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
       >
         <div data-tour="library-search">
           <SearchBar
-            suggestionsListItems={suggestions}
+            suggestionsListItems={hideSearchSuggestions ? [] : suggestions}
             onInputChanged={(text) => handleSearch(text)}
             value={filterText}
             placeholder={t('search', 'Search for Games')}
@@ -219,7 +234,6 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
               ? store.icon
               : `/images/${store.id}.png`
             const isActive = activeFilter === store.id
-            const brandColor = BRAND_COLORS[store.id] || '#444'
 
             return (
               <button
@@ -229,13 +243,13 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '10px',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
+                  gap: '8px',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
                   backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                   border: 'none',
                   color: '#fff',
-                  fontSize: '15px',
+                  fontSize: '20px',
                   fontWeight: isActive ? '500' : '400',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -262,8 +276,8 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
                     src={imageSource}
                     alt={store.name}
                     style={{
-                      width: '20px',
-                      height: '20px',
+                      width: '34px',
+                      height: '34px',
                       objectFit: 'contain'
                     }}
                     onError={(e) => {

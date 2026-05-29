@@ -1,6 +1,7 @@
 .FormControl {
   position: relative;
   display: inline-flex;
+  align-items: center;
 }
 
 .FormControl__button,
@@ -73,6 +74,10 @@
   text-transform: uppercase;
   font-weight: var(--semibold);
   color: var(--action-icon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 .FormControl--segmented > button:not(:disabled):hover {

@@ -1,4 +1,6 @@
 .ActionIcons {
   grid-area: action;
   justify-self: flex-end;
+  position: relative;
+  top: 2px;
 }

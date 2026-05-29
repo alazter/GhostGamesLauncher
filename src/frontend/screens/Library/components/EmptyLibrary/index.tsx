@@ -25,14 +25,15 @@ function EmptyLibraryMessage() {
     </Trans>
   )
 
-  if (
+  const hasGames =
     epic.library.length +
       gog.library.length +
       amazon.library.length +
       zoom.library.length +
       sideloadedLibrary.length >
     0
-  ) {
+
+  if (hasGames) {
     message = (
       <Trans i18n={i18n} i18nKey="emptyLibrary.noResults">
         The current filters produced no results.
@@ -40,7 +41,11 @@ function EmptyLibraryMessage() {
     )
   }
 
-  return <p className="noResultsMessage">{message}</p>
+  return (
+    <p className={`noResultsMessage ${hasGames ? 'noResultsFiltered' : ''}`}>
+      {message}
+    </p>
+  )
 }
 
 export default EmptyLibraryMessage

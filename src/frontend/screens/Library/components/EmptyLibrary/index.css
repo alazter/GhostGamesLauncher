@@ -12,3 +12,15 @@
     text-decoration: underline;
   }
 }
+
+.noResultsFiltered {
+  max-width: none !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: calc(100vh - 320px) !important;
+  margin: 0 auto !important;
+  padding-bottom: 0 !important; /* Remove bottom padding to ensure perfect vertical center */
+  color: rgba(255, 255, 255, 0.5) !important; /* Elegant soft gray color */
+}

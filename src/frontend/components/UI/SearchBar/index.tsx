@@ -63,13 +63,13 @@ export default function SearchBar({
       />
       {value.length > 0 && (
         <>
-          <ul className="autoComplete">
-            {suggestionsListItems &&
-              suggestionsListItems.length > 0 &&
-              suggestionsListItems.map((li, idx) => (
+          {suggestionsListItems && suggestionsListItems.length > 0 && (
+            <ul className="autoComplete">
+              {suggestionsListItems.map((li, idx) => (
                 <Fragment key={idx}>{li}</Fragment>
               ))}
-          </ul>
+            </ul>
+          )}
 
           <button className="clearSearchButton" onClick={onClear} tabIndex={-1}>
             <FontAwesomeIcon icon={faXmark} />
