@@ -37,8 +37,7 @@ import { hasHelp } from 'frontend/hooks/hasHelp'
 import EmptyLibraryMessage from './components/EmptyLibrary'
 import CategoriesManager from './components/CategoriesManager'
 import LibraryTour from './components/LibraryTour'
-import { openInstallGameModal } from 'frontend/state/InstallGameModal'
-
+import HeroPanel from './components/HeroPanel'
 const storage = window.localStorage
 
 type SearchableGame = {
@@ -932,12 +931,20 @@ export default memo(function Library(): JSX.Element {
     }
   }
 
+  const [selectedInlineGame, setSelectedInlineGame] = useState<GameInfo | null>(null)
+
   function handleModal(
     appName: string,
     runner: Runner,
-    gameInfo: GameInfo | null
+    gameInfo?: GameInfo
   ) {
-    openInstallGameModal({ appName, runner, gameInfo })
+    if (gameInfo) {
+      if (selectedInlineGame?.app_name === appName) {
+        setSelectedInlineGame(null)
+      } else {
+        setSelectedInlineGame(gameInfo)
+      }
+    }
   }
 
   const installing: string[] = useMemo(
@@ -1374,7 +1381,7 @@ export default memo(function Library(): JSX.Element {
         setShowUpdatesOnly: handleShowUpdatesOnly,
         sortDescending,
         sortInstalled,
-        handleAddGameButtonClick: () => handleModal('', 'sideload', null),
+        handleAddGameButtonClick: () => handleModal('', 'sideload', undefined),
         setShowCategories,
         showAlphabetFilter: showAlphabetFilter,
         onToggleAlphabetFilter: handleToggleAlphabetFilter,
@@ -1398,65 +1405,74 @@ export default memo(function Library(): JSX.Element {
           data-sn-section="main-games-grid"
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'row',
             flex: 1,
             minHeight: 0
           }}
         >
-          <div style={{ flexShrink: 0 }}>
-            {showRecentGames && (
-              <RecentlyPlayed
-                handleModal={handleModal}
-                onlyInstalled={libraryTopSection.endsWith('installed')}
-                showHidden={showHidden}
-              />
-            )}
+          {selectedInlineGame && (
+            <HeroPanel 
+              game={selectedInlineGame} 
+              onClose={() => setSelectedInlineGame(null)} 
+            />
+          )}
 
-            {showFavourites && !showFavouritesLibrary && (
-              <>
-                <div
-                  className="library-section-header"
-                  data-tour="library-header"
-                >
-                  <h3 className="libraryHeader">
-                    {t('favourites', 'Favourites')}
-                  </h3>
-                </div>
-                <GamesList
-                  library={favourites}
-                  handleGameCardClick={handleModal}
-                  isFavourite
-                  isFirstLane
-                />
-              </>
-            )}
-
-            <LibraryHeader list={libraryToShow} />
-          </div>
-
-          <div
-            id="games-scroll-area"
-            data-sn-section="main-games-grid"
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              minHeight: 0,
-              paddingBottom: '30px',
-              paddingRight: '8px'
-            }}
-          >
-            <span id="top" />
-            {refreshing && !refreshingInTheBackground && <UpdateComponent />}
-            {libraryToShow.length === 0 && <EmptyLibraryMessage />}
-            {libraryToShow.length > 0 &&
-              (!refreshing || refreshingInTheBackground) && (
-                <GamesList
-                  library={libraryToShow}
-                  layout={layout}
-                  handleGameCardClick={handleModal}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+            <div style={{ flexShrink: 0 }}>
+              {showRecentGames && (
+                <RecentlyPlayed
+                  handleModal={handleModal}
+                  onlyInstalled={libraryTopSection.endsWith('installed')}
+                  showHidden={showHidden}
                 />
               )}
+
+              {showFavourites && !showFavouritesLibrary && (
+                <>
+                  <div
+                    className="library-section-header"
+                    data-tour="library-header"
+                  >
+                    <h3 className="libraryHeader">
+                      {t('favourites', 'Favourites')}
+                    </h3>
+                  </div>
+                  <GamesList
+                    library={favourites}
+                    handleGameCardClick={handleModal}
+                    isFavourite
+                    isFirstLane
+                  />
+                </>
+              )}
+
+              <LibraryHeader list={libraryToShow} />
+            </div>
+
+            <div
+              id="games-scroll-area"
+              data-sn-section="main-games-grid"
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                minHeight: 0,
+                paddingBottom: '30px',
+                paddingRight: '8px'
+              }}
+            >
+              <span id="top" />
+            {refreshing && !refreshingInTheBackground && <UpdateComponent />}
+            {libraryToShow.length === 0 && <EmptyLibraryMessage />}
+              {libraryToShow.length > 0 &&
+                (!refreshing || refreshingInTheBackground) && (
+                  <GamesList
+                    library={libraryToShow}
+                    layout={layout}
+                    handleGameCardClick={handleModal}
+                  />
+                )}
+            </div>
           </div>
         </div>
       </div>
@@ -1487,7 +1503,7 @@ export default memo(function Library(): JSX.Element {
             alignItems: 'center',
             gap: '6px',
             boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-            border: '1px solid #4CAF50',
+            border: '1px solid rgba(0, 255, 255, 0.3)',
             color: '#fff',
             transition: 'all 0.3s ease'
           }}

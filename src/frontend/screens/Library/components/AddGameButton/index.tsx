@@ -1,5 +1,7 @@
 import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import LibraryContext from '../../LibraryContext'
 
 interface AddGameButtonProps {
@@ -16,6 +18,7 @@ function AddGameButton({ 'data-tour': dataTour }: AddGameButtonProps = {}) {
       onClick={handleAddGameButtonClick}
       data-tour={dataTour || 'library-add-game'}
     >
+      <FontAwesomeIcon icon={faPlus} style={{ marginRight: '8px' }} />
       {t('add_game', 'Add Game')}
     </button>
   )

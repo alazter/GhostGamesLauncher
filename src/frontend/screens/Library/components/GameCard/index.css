@@ -133,17 +133,11 @@
 
 .gameCard:hover .gameTitle,
 .titlesAlwaysVisible .gameTitle {
-  display: block;
-  transform: translateY(0);
+  display: none !important; /* Esconde para ficar igual ao mockup */
 }
 
 .gameCard > .icons {
-  background: var(--icons-background);
-  justify-content: space-around;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-areas: 'update settings play';
-  padding: var(--space-xs-fixed);
+  display: none !important; /* Esconde permanentemente */
 }
 
 .gameCard.justPlayed > .icons {

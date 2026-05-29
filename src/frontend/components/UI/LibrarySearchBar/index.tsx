@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState, useEffect } from 'react'
+import { useContext, useMemo, useState, useEffect, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ContextProvider from 'frontend/state/ContextProvider'
 import { GameInfo, Runner } from 'common/types'
@@ -30,7 +30,7 @@ interface CustomStore {
   isVisible?: boolean
 }
 
-export default function LibrarySearchBar() {
+export default function LibrarySearchBar({ children }: { children?: ReactNode }) {
   const { epic, gog, sideloadedLibrary, amazon, zoom } =
     useContext(ContextProvider)
   const { handleSearch, filterText } = useContext(LibraryContext)
@@ -181,6 +181,9 @@ export default function LibrarySearchBar() {
           <AddGameButton data-tour="library-add-game" />
           <ActionIcons />
         </div>
+
+        {/* Inject Header__filters here so it stays on the right */}
+        {children}
       </div>
 
       {/* BARRA DE PLATAFORMAS INTERATIVA */}
@@ -216,18 +219,16 @@ export default function LibrarySearchBar() {
                   padding:
                     DISPLAY_MODE === 'icon-only' ? '8px 12px' : '8px 16px',
                   borderRadius: '8px',
-                  backgroundColor: isActive
-                    ? 'rgba(76, 175, 80, 0.2)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  border: isActive
-                    ? '1px solid #4CAF50'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
-                  color: isActive ? '#4CAF50' : '#fff',
-                  fontSize: '14px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: isActive ? '#fff' : 'rgba(255, 255, 255, 0.4)',
+                  fontSize: '16px',
+                  fontWeight: isActive ? '600' : '400',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  opacity: isActive ? 1 : 0.6
                 }}
               >
                 {(DISPLAY_MODE === 'icon-text' ||
@@ -236,9 +237,10 @@ export default function LibrarySearchBar() {
                     src={imageSource}
                     alt={store.name}
                     style={{
-                      width: '18px',
-                      height: '18px',
-                      objectFit: 'contain'
+                      width: '20px',
+                      height: '20px',
+                      objectFit: 'contain',
+                      filter: isActive ? 'brightness(2)' : 'grayscale(100%) opacity(0.7)'
                     }}
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'

@@ -108,24 +108,51 @@ export default function Header() {
       window.removeEventListener('heroicToggleMassEdit', handleExternalCancel)
   }, [isUnclassifiedActive])
 
+
   return (
     <>
-      <div className="Header">
-        <div className="Header__search">
-          <LibrarySearchBar />
-        </div>
-        <span className="Header__filters">
-          {isMassEditMode && hasUnclassifiedGames && (
+      <div className="Header" style={{ display: 'block' }}>
+        <LibrarySearchBar>
+          <span className="Header__filters">
+            {isMassEditMode && hasUnclassifiedGames && (
+              <button
+                onClick={toggleUnclassifiedFilter}
+                style={{
+                  background: isUnclassifiedActive
+                    ? 'rgba(255, 152, 0, 0.8)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  color: '#fff',
+                  border: isUnclassifiedActive
+                    ? '1px solid rgba(255, 152, 0, 1)'
+                    : '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '0 18px',
+                  height: '42px',
+                  borderRadius: '20px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(5px)',
+                  transition: 'all 0.2s',
+                  marginRight: '10px'
+                }}
+              >
+                {isUnclassifiedActive
+                  ? 'Mostrar Todos'
+                  : 'Jogos Sem Classificação'}
+              </button>
+            )}
+
             <button
-              onClick={toggleUnclassifiedFilter}
+              onClick={toggleMassEdit}
               style={{
-                background: isUnclassifiedActive
-                  ? 'rgba(255, 152, 0, 0.8)'
+                background: isMassEditMode
+                  ? 'rgba(198, 40, 40, 0.8)'
                   : 'rgba(255, 255, 255, 0.05)',
                 color: '#fff',
-                border: isUnclassifiedActive
-                  ? '1px solid rgba(255, 152, 0, 1)'
-                  : '1px solid rgba(255, 255, 255, 0.25)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
                 padding: '0 18px',
                 height: '42px',
                 borderRadius: '20px',
@@ -136,43 +163,16 @@ export default function Header() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 backdropFilter: 'blur(5px)',
-                transition: 'all 0.2s',
-                marginRight: '10px'
+                transition: 'all 0.2s'
               }}
             >
-              {isUnclassifiedActive
-                ? 'Mostrar Todos'
-                : 'Jogos Sem Classificação'}
+              {isMassEditMode ? 'Cancelar Edição' : 'Edição em Massa'}
             </button>
-          )}
 
-          <button
-            onClick={toggleMassEdit}
-            style={{
-              background: isMassEditMode
-                ? 'rgba(198, 40, 40, 0.8)'
-                : 'rgba(255, 255, 255, 0.05)',
-              color: '#fff',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              padding: '0 18px',
-              height: '42px',
-              borderRadius: '20px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backdropFilter: 'blur(5px)',
-              transition: 'all 0.2s'
-            }}
-          >
-            {isMassEditMode ? 'Cancelar Edição' : 'Edição em Massa'}
-          </button>
-
-          <CategoryFilter />
-          <LibraryFilters />
-        </span>
+            <CategoryFilter />
+            <LibraryFilters />
+          </span>
+        </LibrarySearchBar>
       </div>
     </>
   )
