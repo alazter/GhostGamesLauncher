@@ -38,6 +38,7 @@ import EmptyLibraryMessage from './components/EmptyLibrary'
 import CategoriesManager from './components/CategoriesManager'
 import LibraryTour from './components/LibraryTour'
 import HeroPanel from './components/HeroPanel'
+import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 const storage = window.localStorage
 
 type SearchableGame = {
@@ -1381,7 +1382,8 @@ export default memo(function Library(): JSX.Element {
         setShowUpdatesOnly: handleShowUpdatesOnly,
         sortDescending,
         sortInstalled,
-        handleAddGameButtonClick: () => handleModal('', 'sideload', undefined),
+        handleAddGameButtonClick: () =>
+          openInstallGameModal({ appName: '', runner: 'sideload', gameInfo: null }),
         setShowCategories,
         showAlphabetFilter: showAlphabetFilter,
         onToggleAlphabetFilter: handleToggleAlphabetFilter,
