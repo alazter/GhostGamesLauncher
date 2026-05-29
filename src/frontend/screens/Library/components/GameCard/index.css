@@ -137,7 +137,7 @@
 }
 
 .gameCard > .icons {
-  display: none !important; /* Esconde permanentemente */
+  display: flex;
 }
 
 .gameCard.justPlayed > .icons {

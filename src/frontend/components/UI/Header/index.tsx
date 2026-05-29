@@ -144,15 +144,16 @@ export default function Header() {
                   : 'Jogos Sem Classificação'}
               </button>
             )}
-
             <button
               onClick={toggleMassEdit}
               style={{
                 background: isMassEditMode
-                  ? 'rgba(198, 40, 40, 0.8)'
+                  ? 'rgba(229, 57, 53, 0.85)'
                   : 'rgba(255, 255, 255, 0.05)',
                 color: '#fff',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
+                border: isMassEditMode
+                  ? '1px solid #ef5350'
+                  : '1px solid rgba(255, 255, 255, 0.15)',
                 padding: '0 18px',
                 height: '42px',
                 borderRadius: '20px',
@@ -163,14 +164,34 @@ export default function Header() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 backdropFilter: 'blur(5px)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s ease',
+                marginRight: '10px',
+                boxShadow: isMassEditMode
+                  ? '0 0 10px rgba(229, 57, 53, 0.4)'
+                  : 'none'
+              }}
+              onMouseOver={(e) => {
+                if (!isMassEditMode) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                } else {
+                  e.currentTarget.style.background = 'rgba(229, 57, 53, 0.95)'
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isMassEditMode) {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+                } else {
+                  e.currentTarget.style.background = 'rgba(229, 57, 53, 0.85)'
+                }
               }}
             >
               {isMassEditMode ? 'Cancelar Edição' : 'Edição em Massa'}
             </button>
 
-            <CategoryFilter />
-            <LibraryFilters />
+             <CategoryFilter />
+             <LibraryFilters />
           </span>
         </LibrarySearchBar>
       </div>

@@ -1,11 +1,9 @@
 import {
-  faBookOpen,
   faGamepad,
   faSlidersH,
   faStore,
   faUser,
   faUniversalAccess,
-  faCoffee,
   faUserAlt,
   faWineGlass,
   faBarsProgress,
@@ -14,8 +12,7 @@ import {
 import { useLocation } from 'react-router-dom'
 import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import { faDiscord, faPatreon } from '@fortawesome/free-brands-svg-icons'
-import { openDiscordLink } from 'frontend/helpers'
+
 
 import ContextProvider from 'frontend/state/ContextProvider'
 import QuitButton from '../QuitButton'
@@ -263,37 +260,6 @@ export default function SidebarLinks() {
       />
 
       <div className="divider" />
-
-      {/* 9. DOCUMENTAÇÃO E COMUNIDADE */}
-      <SidebarItem
-        url="/wiki"
-        icon={faBookOpen}
-        label={t('docs', 'Documentation')}
-        dataTour="sidebar-docs"
-      />
-
-      <div data-tour="sidebar-community">
-        <SidebarItem
-          elementType="button"
-          onClick={() => handleExternalLink(openDiscordLink)}
-          icon={faDiscord}
-          label={t('userselector.discord', 'Discord')}
-        />
-
-        <SidebarItem
-          elementType="button"
-          onClick={() => handleExternalLink(window.api.openPatreonPage)}
-          icon={faPatreon}
-          label="Patreon"
-        />
-
-        <SidebarItem
-          elementType="button"
-          onClick={() => handleExternalLink(window.api.openKofiPage)}
-          icon={faCoffee}
-          label="Ko-fi"
-        />
-      </div>
 
       <QuitButton dataTour="sidebar-quit" />
     </div>

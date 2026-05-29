@@ -1,9 +1,6 @@
-import { useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlay, faCog, faStore, faUsers, faDownload, faNewspaper, faUser } from '@fortawesome/free-solid-svg-icons'
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import { faPlay, faCog } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo } from 'common/types'
 
 interface Props {
@@ -14,15 +11,11 @@ interface Props {
 export default function HeroPanel({ game, onClose }: Props) {
   const navigate = useNavigate()
 
-  // O mock mostra playtime em horas, vou tentar formatar o que tiver em `game.playtime` ou colocar 0
-  const playTimeStr = '125h' // Mockado pois playtime real não vem direto no GameInfo
+  // O mock mostra playtime em horas, vou usar game.playtime ou valor fictício para teste
+  const playTimeStr = '125h' 
 
   const handlePlay = () => {
-    // Isso deve chamar a api de launch real se estivéssemos integrando profundamente,
-    // mas o Heroic gerencia isso via GameCardPlayButton.
-    // Para simplificar no mockup:
     console.log('Launch game: ', game.app_name)
-    // window.api.launch({ appName: game.app_name, runner: game.runner }) // Exemplo de uso real
   }
 
   const handleSettings = () => {
@@ -37,11 +30,18 @@ export default function HeroPanel({ game, onClose }: Props) {
     navigate(`/store/${storeParam}`)
   }
 
+  // Obter o ID da loja correspondente ao runner para carregar o ícone
+  let storeId = 'epic'
+  if (game.runner === 'gog') storeId = 'gog'
+  else if (game.runner === 'nile') storeId = 'amazon'
+  else if (game.runner === 'zoom') storeId = 'zoom'
+  else if (game.platform === 'steam' || game.runner === 'steam') storeId = 'steam'
+
   return (
     <div style={{
       width: '280px',
       flexShrink: 0,
-      background: 'rgba(20, 25, 30, 0.7)',
+      background: 'rgba(30, 34, 40, 0.4)',
       backdropFilter: 'blur(10px)',
       borderRadius: '16px',
       padding: '20px',
@@ -49,8 +49,8 @@ export default function HeroPanel({ game, onClose }: Props) {
       display: 'flex',
       flexDirection: 'column',
       gap: '15px',
-      border: '1px solid rgba(0, 255, 255, 0.2)',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)'
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
     }}>
       {/* Imagem */}
       <img
@@ -69,98 +69,169 @@ export default function HeroPanel({ game, onClose }: Props) {
 
       {/* Titulo */}
       <h2 style={{
-        fontSize: '20px',
-        fontWeight: 'bold',
+        fontSize: '18px',
+        fontWeight: '700',
         color: '#fff',
-        margin: '0 0 5px 0',
+        margin: '0',
         textAlign: 'center'
       }}>
         {game.title}
       </h2>
 
-      {/* Ações primárias */}
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+      {/* Ações primárias (Botoes Redondos do Mockup) */}
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '5px 0' }}>
+        {/* 1. Botão da Loja */}
+        <button
+          onClick={handleStore}
+          style={{
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '50%',
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            padding: '10px'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+          }}
+        >
+          <img
+            src={`/images/${storeId}.png`}
+            alt={storeId}
+            style={{ width: '22px', height: '22px', objectFit: 'contain', filter: 'brightness(1.5)' }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+            }}
+          />
+        </button>
+
+        {/* 2. Botão de Configurações do Jogo */}
         <button
           onClick={handleSettings}
           style={{
-            background: 'rgba(255,255,255,0.1)',
-            border: 'none',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '50%',
-            width: '40px',
-            height: '40px',
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             color: '#fff',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
           }}
         >
-          <FontAwesomeIcon icon={faCog} />
+          <FontAwesomeIcon icon={faCog} style={{ fontSize: '18px' }} />
         </button>
+
+        {/* 3. Botão de Play */}
         <button
           onClick={handlePlay}
           style={{
             background: '#00ffff',
             border: 'none',
             borderRadius: '50%',
-            width: '40px',
-            height: '40px',
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             color: '#000',
             cursor: 'pointer',
-            fontSize: '16px'
+            transition: 'all 0.2s ease',
+            boxShadow: '0 0 10px rgba(0, 255, 255, 0.4)'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)'
+            e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.6)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)'
           }}
         >
-          <FontAwesomeIcon icon={faPlay} />
+          <FontAwesomeIcon icon={faPlay} style={{ fontSize: '16px', marginLeft: '2px' }} />
         </button>
       </div>
 
-      {/* Infos */}
-      <div style={{ color: '#aaa', fontSize: '14px' }}>
-        <p style={{ margin: '5px 0' }}><strong>Tempo de jogo:</strong> {playTimeStr}</p>
-        <p style={{ margin: '5px 0' }}><strong>Última jogada:</strong> Ontem</p>
+      {/* Infos de tempo */}
+      <div style={{
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: '13px',
+        textAlign: 'center',
+        margin: '5px 0',
+        lineHeight: '1.6'
+      }}>
+        <div>Tempo de jogo: {playTimeStr}</div>
+        <div>Última jogada: Ontem</div>
       </div>
 
-      <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.1)', margin: '10px 0' }} />
+      <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.1)', margin: '5px 0' }} />
 
-      {/* Links de Sistema (do Mockup) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <HeroLink icon={faStore} label="Loja" onClick={handleStore} />
-        <HeroLink icon={faUsers} label="Comunidade" onClick={() => window.api.openExternalUrl('https://discord.gg/heroicgameslauncher')} />
-        <HeroLink icon={faDownload} label="Downloads" onClick={() => navigate('/download-manager')} />
-        <HeroLink icon={faNewspaper} label="Notícias" onClick={() => {}} />
-        <HeroLink icon={faUser} label="Perfil do Usuário" onClick={() => navigate('/login')} />
-        <HeroLink icon={faCog} label="Configurações do Launcher" onClick={() => navigate('/settings/general')} />
+      {/* Links de Sistema com Emojis (do Mockup) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <HeroLink emoji="🛒" label="Loja" onClick={handleStore} />
+        <HeroLink emoji="👥" label="Comunidade" onClick={() => window.api.openExternalUrl('https://discord.gg/heroicgameslauncher')} />
+        <HeroLink emoji="📥" label="Downloads" onClick={() => navigate('/download-manager')} />
+        <HeroLink emoji="📰" label="Notícias" onClick={() => {}} />
+        <HeroLink emoji="👤" label="Perfil do Usuário" onClick={() => navigate('/login')} />
+        <HeroLink emoji="⚙️" label="Configurações do Launcher" onClick={() => navigate('/settings/general')} />
       </div>
     </div>
   )
 }
 
-function HeroLink({ icon, label, onClick }: { icon: IconDefinition, label: string, onClick: () => void }) {
+function HeroLink({ emoji, label, onClick }: { emoji: string, label: string, onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       style={{
         background: 'transparent',
         border: 'none',
-        color: '#ccc',
+        color: 'rgba(255, 255, 255, 0.7)',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        padding: '8px',
+        padding: '8px 12px',
         cursor: 'pointer',
         fontSize: '14px',
+        fontWeight: '500',
         textAlign: 'left',
-        borderRadius: '6px',
-        transition: 'all 0.2s ease'
+        borderRadius: '8px',
+        transition: 'all 0.2s ease',
+        width: '100%'
       }}
       onMouseOver={(e) => {
-        e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)'
-        e.currentTarget.style.color = '#00ffff'
+        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+        e.currentTarget.style.color = '#fff'
       }}
       onMouseOut={(e) => {
         e.currentTarget.style.background = 'transparent'
-        e.currentTarget.style.color = '#ccc'
+        e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'
       }}
     >
-      <FontAwesomeIcon icon={icon} style={{ width: '16px' }} />
-      {label}
+      <span style={{ fontSize: '16px', display: 'inline-flex', alignItems: 'center', width: '20px', justifyContent: 'center' }}>{emoji}</span>
+      <span>{label}</span>
     </button>
   )
 }
+

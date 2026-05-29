@@ -44,7 +44,37 @@ export default function PersonalizationScreen() {
     const saved = localStorage.getItem('heroic_hide_icons_mouse')
     return saved !== null ? (JSON.parse(saved) as boolean) : false
   })
+
   // ==============================================================
+  // DRAG & DROP PARA ORDENAÇÃO DAS LOJAS
+  // ==============================================================
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    if (draggedIndex === null || draggedIndex === index) return
+
+    const updatedStores = [...stores]
+    const draggedItem = updatedStores[draggedIndex]
+    
+    // Rearranja os itens
+    updatedStores.splice(draggedIndex, 1)
+    updatedStores.splice(index, 0, draggedItem)
+
+    setDraggedIndex(index)
+    setStores(updatedStores)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null)
+  }
+  // ==============================================================
+
 
   useEffect(() => {
     localStorage.setItem('heroic_custom_stores', JSON.stringify(stores))
@@ -428,15 +458,24 @@ export default function PersonalizationScreen() {
           </div>
 
           <div style={styles.storeListContext}>
-            {stores.map((store) => {
+            {stores.map((store, index) => {
               const isStoreVisible = store.isVisible ?? true
+              const isDragged = draggedIndex === index
 
               return (
                 <div
                   key={store.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
                   style={{
                     ...styles.storeBlockCompact,
-                    opacity: isStoreVisible ? 1 : 0.5
+                    opacity: isDragged ? 0.35 : (isStoreVisible ? 1 : 0.5),
+                    transform: isDragged ? 'scale(0.98)' : 'none',
+                    border: isDragged ? '1px dashed #00ffff' : '1px solid rgba(255,255,255,0.05)',
+                    cursor: 'grab',
+                    transition: 'transform 0.1s ease, border 0.1s ease'
                   }}
                 >
                   <input

@@ -23,6 +23,19 @@ const RUNNER_TO_STORE: Partial<Record<Runner, string>> = {
 
 const DISPLAY_MODE: string = 'icon-text'
 
+const BRAND_COLORS: Record<string, string> = {
+  steam: '#1b2838',
+  epic: '#333333',
+  gog: '#5c2d91',
+  amazon: '#232f3e',
+  zoom: '#009aeb',
+  sideloaded: '#555555',
+  xbox: '#107c10',
+  ubisoft: '#000000',
+  ea: '#f56c2d',
+}
+
+
 interface CustomStore {
   id: string
   name: string
@@ -206,6 +219,7 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
               ? store.icon
               : `/images/${store.id}.png`
             const isActive = activeFilter === store.id
+            const brandColor = BRAND_COLORS[store.id] || '#444'
 
             return (
               <button
@@ -215,20 +229,31 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
-                  padding:
-                    DISPLAY_MODE === 'icon-only' ? '8px 12px' : '8px 16px',
-                  borderRadius: '8px',
-                  backgroundColor: 'transparent',
+                  gap: '10px',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                   border: 'none',
-                  color: isActive ? '#fff' : 'rgba(255, 255, 255, 0.4)',
-                  fontSize: '16px',
-                  fontWeight: isActive ? '600' : '400',
+                  color: '#fff',
+                  fontSize: '15px',
+                  fontWeight: isActive ? '500' : '400',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
                   flexShrink: 0,
-                  opacity: isActive ? 1 : 0.6
+                  opacity: isActive ? 1.0 : 0.55,
+                }}
+                onMouseOver={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.opacity = '0.9'
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)'
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.opacity = '0.55'
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }
                 }}
               >
                 {(DISPLAY_MODE === 'icon-text' ||
@@ -239,8 +264,7 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
                     style={{
                       width: '20px',
                       height: '20px',
-                      objectFit: 'contain',
-                      filter: isActive ? 'brightness(2)' : 'grayscale(100%) opacity(0.7)'
+                      objectFit: 'contain'
                     }}
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'

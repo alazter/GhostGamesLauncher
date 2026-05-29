@@ -29,14 +29,14 @@
 }
 
 .alphabet-filter-button {
-  background-color: var(--alphabet-filter-bg);
-  border: 1px solid transparent;
-  color: var(--alphabet-filter-text-available);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
     sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 
   flex-shrink: 0;
@@ -56,9 +56,10 @@
 .alphabet-filter-button:not(.alphabet-filter-button--active):not(
     .alphabet-filter-button--disabled
   ):hover {
-  background-color: var(--alphabet-filter-bg-hover);
-  color: var(--alphabet-filter-text-hover);
-  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  transform: scale(1.08);
 }
 
 .alphabet-filter-button:focus-visible {
@@ -66,23 +67,25 @@
 }
 
 .alphabet-filter-button--active {
-  background-color: transparent;
-  color: var(--alphabet-filter-accent-color);
+  background-color: rgba(0, 255, 255, 0.08);
+  color: #ffffff;
   font-weight: 700;
-  border: 1px solid var(--alphabet-filter-accent-color);
-  box-shadow: 0 0 8px var(--alphabet-filter-shadow-color);
+  border: 2px solid var(--alphabet-filter-accent-color);
+  box-shadow: 0 0 12px var(--alphabet-filter-shadow-color);
   transform: scale(1.1);
 }
 
 .alphabet-filter-button--active:hover {
-  background-color: rgba(0, 255, 255, 0.1);
+  background-color: rgba(0, 255, 255, 0.15);
   border-color: var(--alphabet-filter-accent-hover);
-  color: var(--alphabet-filter-accent-hover);
+  color: #ffffff;
 }
 
 .alphabet-filter-button--disabled {
-  color: var(--alphabet-filter-text-disabled);
-  background-color: transparent;
+  color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   cursor: auto;
   opacity: 0.4;
 }
+
