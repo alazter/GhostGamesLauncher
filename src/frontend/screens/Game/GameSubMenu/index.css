@@ -1,7 +1,7 @@
 .subMenuContainer {
   flex-direction: column;
   justify-content: space-between;
-  background-color: rgba(16, 22, 34, 0.85) !important;
+  background-color: rgba(16, 22, 34, 0.95) !important;
   backdrop-filter: blur(15px) !important;
   -webkit-backdrop-filter: blur(15px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
