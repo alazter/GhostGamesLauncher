@@ -9,7 +9,7 @@
     pointer-events: all;
     opacity: 1;
     max-height: 70vh;
-    box-shadow: 4px 5px 5px 7px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45) !important;
     overflow-y: auto;
   }
 
@@ -19,13 +19,14 @@
     right: 0px;
     min-width: 250px;
     display: flex;
-    border-radius: var(--space-xs);
+    border-radius: 16px !important;
     flex-direction: column;
-    background: var(--search-bar-background, var(--input-background));
+    background: rgba(16, 22, 34, 0.85) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     opacity: 0;
     transition: all 200ms;
     pointer-events: none;
-    opacity: 0;
     max-height: 0;
     overflow: hidden;
     gap: 0.3rem;
