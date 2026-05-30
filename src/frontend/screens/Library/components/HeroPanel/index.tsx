@@ -35,7 +35,7 @@ export default function HeroPanel({ game, onClose }: Props) {
   if (game.runner === 'gog') storeId = 'gog'
   else if (game.runner === 'nile') storeId = 'amazon'
   else if (game.runner === 'zoom') storeId = 'zoom'
-  else if (game.platform === 'steam' || game.runner === 'steam') storeId = 'steam'
+  else if ((game as any).platform === 'steam' || (game as any).runner === 'steam') storeId = 'steam'
 
   return (
     <div style={{
