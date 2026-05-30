@@ -17,11 +17,15 @@
   flex-wrap: nowrap;
   overflow-x: auto;
   justify-content: flex-start;
-  gap: 0px;
+  gap: 6px;
   margin: 0;
-  padding: 8px 6px;
+  padding: 6px 12px;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  background-color: rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), var(--alphabet-filter-container-bg-opacity, 0.08));
+  border-radius: 20px;
+  border: 1px solid rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), calc(var(--alphabet-filter-container-bg-opacity, 0.08) * 0.8));
+  transition: all var(--alphabet-filter-transition-speed);
 }
 
 .alphabet-filter-container::-webkit-scrollbar {
@@ -29,9 +33,9 @@
 }
 
 .alphabet-filter-button {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.6);
+  background-color: rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), var(--alphabet-filter-button-bg-opacity, 0.05));
+  border: 1px solid rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), calc(var(--alphabet-filter-button-bg-opacity, 0.05) * 3));
+  color: var(--alphabet-filter-button-text-color, rgba(255, 255, 255, 0.6));
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
     sans-serif;
@@ -56,9 +60,9 @@
 .alphabet-filter-button:not(.alphabet-filter-button--active):not(
     .alphabet-filter-button--disabled
   ):hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  background-color: rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), calc(var(--alphabet-filter-button-bg-opacity, 0.05) + 0.08));
+  border-color: rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), calc(var(--alphabet-filter-button-bg-opacity, 0.05) * 3 + 0.15));
+  color: var(--alphabet-filter-button-hover-text-color, #ffffff);
   transform: scale(1.08);
 }
 
@@ -67,7 +71,7 @@
 }
 
 .alphabet-filter-button--active {
-  background-color: rgba(0, 255, 255, 0.08);
+  background-color: var(--alphabet-filter-active-btn-bg, rgba(0, 255, 255, 0.08));
   color: #ffffff;
   font-weight: 700;
   border: 2px solid var(--alphabet-filter-accent-color);
@@ -82,9 +86,9 @@
 }
 
 .alphabet-filter-button--disabled {
-  color: rgba(255, 255, 255, 0.18);
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--alphabet-filter-button-disabled-text-color, rgba(255, 255, 255, 0.18));
+  background-color: rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), var(--alphabet-filter-button-bg-opacity, 0.05));
+  border: 1px solid rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), calc(var(--alphabet-filter-button-bg-opacity, 0.05) * 3));
   cursor: default;
   opacity: 1;
 }

@@ -256,17 +256,15 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
                   flexShrink: 0,
-                  opacity: isActive ? 1.0 : 0.55,
+                  opacity: 1,
                 }}
                 onMouseOver={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.opacity = '0.9'
                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)'
                   }
                 }}
                 onMouseOut={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.opacity = '0.55'
                     e.currentTarget.style.backgroundColor = 'transparent'
                   }
                 }}
