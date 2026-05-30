@@ -19,7 +19,7 @@
   justify-content: flex-start;
   gap: 0px;
   margin: 0;
-  padding: 8px 0;
+  padding: 8px 6px;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
