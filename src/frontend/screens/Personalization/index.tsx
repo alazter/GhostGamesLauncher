@@ -1392,10 +1392,6 @@ export default function PersonalizationScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '15px' }}>
                   {/* Lado Esquerdo: Navegação, Busca, Botão Adicionar e Ícones */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ display: 'flex', gap: '12px', color: 'rgba(255,255,255,0.4)', fontSize: '20px', cursor: 'default', fontWeight: 'bold' }}>
-                      <span>⟨</span>
-                      <span>⟩</span>
-                    </div>
                     <div className="preview-search-wrapper">
                       <div className="preview-search-bar">
                         <svg aria-hidden="true" focusable="false" className="preview-search-icon-svg" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
