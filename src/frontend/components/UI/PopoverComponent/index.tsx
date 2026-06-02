@@ -4,11 +4,13 @@ import './index.scss'
 interface PopoverComponentProps {
   item: React.ReactElement
   children: React.ReactElement | React.ReactNode | React.ReactNode[]
+  align?: 'left' | 'right'
 }
 
 const PopoverComponent: React.FC<PopoverComponentProps> = ({
   item,
-  children
+  children,
+  align
 }) => {
   const [open, setOpen] = useState(false)
   const wrapper = useRef<HTMLDivElement>(null)
@@ -44,7 +46,32 @@ const PopoverComponent: React.FC<PopoverComponentProps> = ({
         style: { cursor: 'pointer' }
       })}
       {open && (
-        <div id={item.props.id} className="popover">
+        <div
+          id={item.props.id}
+          className="popover"
+          style={{
+            background: 'rgba(20, 26, 32, 0.98)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
+            padding: '16px',
+            width: '320px',
+            maxWidth: '320px',
+            color: '#fff',
+            fontSize: '13px',
+            lineHeight: '1.5',
+            zIndex: 100,
+            ...(align === 'right' ? {
+              right: 'calc(100% + 12px)',
+              top: '50%',
+              transform: 'translateY(-50%)'
+            } : {
+              left: 0,
+              top: 'calc(100% + 8px)'
+            })
+          }}
+        >
           {children}
         </div>
       )}

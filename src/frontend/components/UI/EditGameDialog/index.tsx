@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
+import { gameOverridesStore } from 'frontend/helpers/electronStores'
+import useGlobalState from 'frontend/state/GlobalStateV2'
 import classNames from 'classnames'
 import ContentPaste from '@mui/icons-material/ContentPaste'
 import Clear from '@mui/icons-material/Clear'
@@ -49,15 +51,38 @@ export default function EditGameDialog({ gameInfo, backdropClick }: Props) {
   }, [])
 
   const handleSave = () => {
+    const finalTitle = title === gameInfo.title ? '' : title
+    const finalCover = artCover === gameInfo.art_cover ? '' : artCover
+    const finalSquare = artSquare === gameInfo.art_square ? '' : artSquare
+
     // Drop fields that match the original game info — the backend deletes
     // the override entry when all three are empty, which is what we want
     // after the user resets.
     window.api.setGameMetadataOverride({
       appName: gameInfo.app_name,
-      title: title === gameInfo.title ? '' : title,
-      art_cover: artCover === gameInfo.art_cover ? '' : artCover,
-      art_square: artSquare === gameInfo.art_square ? '' : artSquare
+      title: finalTitle,
+      art_cover: finalCover,
+      art_square: finalSquare
     })
+
+    try {
+      const overrides = gameOverridesStore.get('overrides', {})
+      if (!finalTitle && !finalCover && !finalSquare) {
+        delete overrides[gameInfo.app_name]
+      } else {
+        overrides[gameInfo.app_name] = {
+          ...overrides[gameInfo.app_name],
+          title: finalTitle,
+          art_cover: finalCover,
+          art_square: finalSquare
+        }
+      }
+      gameOverridesStore.set('overrides', overrides)
+      useGlobalState.getState().setGameOverrides(overrides)
+    } catch (err) {
+      console.error('Error syncing frontend overrides in EditGameDialog:', err)
+    }
+
     backdropClick()
   }
 
@@ -88,17 +113,6 @@ export default function EditGameDialog({ gameInfo, backdropClick }: Props) {
       <DialogContent>
         <div className="editGameGrid">
           <div className="editGameForm">
-            <TextInputField
-              label={t('sideload.info.title', 'Game/App Title')}
-              placeholder={t(
-                'sideload.placeholder.title',
-                'Add a title to your Game/App'
-              )}
-              onChange={setTitle}
-              htmlId="edit-game-title"
-              value={title}
-              maxLength={40}
-            />
             <details className="advancedFields">
               <summary>{t('edit-game.advanced', 'Advanced')}</summary>
               <TextInputWithIconField

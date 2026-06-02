@@ -142,6 +142,33 @@ const GameCard = ({
       window.removeEventListener('heroicSelectedGameChanged', handleSelectedChange)
   }, [appName, runner])
 
+  const [cardTitle, setCardTitle] = useState<string>(
+    () => gameInfoFromProps.overrides?.title || gameInfoFromProps.title
+  )
+
+  // Keep card title synchronized with props
+  useEffect(() => {
+    setCardTitle(gameInfoFromProps.overrides?.title || gameInfoFromProps.title)
+  }, [gameInfoFromProps.title, gameInfoFromProps.overrides?.title])
+
+  // Listen to real-time title changes dispatched from settings panel
+  useEffect(() => {
+    const handleTitleChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        appName: string
+        runner: Runner
+        title: string
+      }>
+      const { appName: eventAppName, runner: eventRunner, title: eventTitle } = customEvent.detail
+      if (eventAppName === appName && eventRunner === runner) {
+        setCardTitle(eventTitle)
+      }
+    }
+    window.addEventListener('heroicGameTitleChanged', handleTitleChanged)
+    return () =>
+      window.removeEventListener('heroicGameTitleChanged', handleTitleChanged)
+  }, [appName, runner])
+
   // ESTADOS DAS CONFIGURAÇÕES DE PERSONALIZAÇÃO
   const [hideIconsGamepad, setHideIconsGamepad] = useState<boolean>(() => {
     const saved = storage.getItem('heroic_hide_icons_gamepad')
@@ -198,7 +225,7 @@ const GameCard = ({
     is_installed: isInstalled,
     install: gameInstallInfo
   } = { ...gameInfoFromProps }
-  const title = gameInfoFromProps.overrides?.title || gameInfoFromProps.title
+  const title = cardTitle
   const art_cover =
     gameInfoFromProps.overrides?.art_cover || gameInfoFromProps.art_cover
   const cover =
@@ -274,6 +301,11 @@ const GameCard = ({
     }
     void updateGameInfo()
   }, [status, appName, runner])
+
+  // Sync gameInfo state with new props when library updates
+  useEffect(() => {
+    setGameInfo(gameInfoFromProps)
+  }, [gameInfoFromProps])
 
   async function handleUpdate() {
     if (gameInfo.runner !== 'sideload')

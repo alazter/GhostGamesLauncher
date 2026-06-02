@@ -45,6 +45,7 @@ async function prepareImagesForSteam(props: {
   gameInfo: GameInfo
   steamID: string | undefined
 }) {
+  const errors: string[] = []
   const gridFolder = join(props.steamUserConfigDir, 'grid')
   const coverArt = join(gridFolder, props.appID.otherGridAppID + coverArtSufix)
   const headerArt = join(gridFolder, props.appID.otherGridAppID + pictureExt)
@@ -72,7 +73,6 @@ async function prepareImagesForSteam(props: {
       )
   }
 
-  const errors: string[] = []
   const images = new Map<string, string>([
     [
       coverArt,

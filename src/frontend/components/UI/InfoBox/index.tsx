@@ -8,9 +8,10 @@ import PopoverComponent from '../PopoverComponent'
 interface Props {
   children: React.ReactElement | React.ReactNode | React.ReactNode[]
   text: string
+  align?: 'left' | 'right'
 }
 
-export default function InfoBox({ children, text }: Props) {
+export default function InfoBox({ children, text, align }: Props) {
   const { t } = useTranslation()
 
   /*
@@ -22,6 +23,7 @@ export default function InfoBox({ children, text }: Props) {
 
   return (
     <PopoverComponent
+      align={align}
       item={
         <span className="helpLink">
           <Info />

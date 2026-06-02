@@ -399,23 +399,7 @@ export default function SideloadDialog({
               />
             ) : (
               <>
-                <InfoBox
-                  text={t(
-                    'sideload.import-hint.title',
-                    'Important! Are you adding a game from Epic/GOG/Amazon? Click here!'
-                  )}
-                >
-                  <div className="sideloadImportHint">
-                    <Trans i18n={i18n} key="sideload.import-hint.content">
-                      Do NOT use this feature for that.
-                      <br />
-                      Instead, <NavLink to={'/login'}>log into</NavLink> the
-                      store, look for the game in your library, open the
-                      installation dialog, and click the &quot;Import Game&quot;
-                      button
-                    </Trans>
-                  </div>
-                </InfoBox>
+
                 <TextInputField
                   label={t('sideload.info.title', 'Game/App Title')}
                   placeholder={t(
@@ -488,19 +472,42 @@ export default function SideloadDialog({
                   </WarningMessage>
                 )}
                 {!editMode && children}
-                {showSideloadExe && (
-                  <PathSelectionBox
-                    type="file"
-                    onPathChange={setSelectedExe}
-                    path={selectedExe}
-                    placeholder={t('sideload.info.exe', 'Select Executable')}
-                    pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
-                    pathDialogDefaultPath={winePrefix}
-                    pathDialogFilters={fileFilters(platformToInstall)}
-                    htmlId="sideload-exe"
-                    label={t('sideload.info.exe', 'Select Executable')}
-                    noDeleteButton
-                  />
+                {showSideloadExe && !editMode && (
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      <label htmlFor="sideload-exe" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-default)' }}>
+                        {t('sideload.info.exe', 'Select Executable')}
+                      </label>
+                      <InfoBox
+                        text={t(
+                          'sideload.import-hint.title',
+                          'Important! Are you adding a game from Epic/GOG/Amazon? Click here!'
+                        )}
+                      >
+                        <div className="sideloadImportHint">
+                          <Trans i18n={i18n} ns="gamepage" i18nKey="sideload.import-hint.content">
+                            Do NOT use this feature for that.
+                            <br />
+                            Instead, <NavLink to={'/login'}>log into</NavLink> the
+                            store, look for the game in your library, open the
+                            installation dialog, and click the &quot;Import Game&quot;
+                            button
+                          </Trans>
+                        </div>
+                      </InfoBox>
+                    </div>
+                    <PathSelectionBox
+                      type="file"
+                      onPathChange={setSelectedExe}
+                      path={selectedExe}
+                      placeholder={t('sideload.info.exe', 'Select Executable')}
+                      pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
+                      pathDialogDefaultPath={winePrefix}
+                      pathDialogFilters={fileFilters(platformToInstall)}
+                      htmlId="sideload-exe"
+                      noDeleteButton
+                    />
+                  </div>
                 )}
                 {!showSideloadExe && (
                   <>

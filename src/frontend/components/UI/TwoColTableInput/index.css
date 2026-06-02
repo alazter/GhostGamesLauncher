@@ -20,6 +20,14 @@
   padding: var(--space-xs-fixed);
   text-align: start;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tableFieldWrapper th .helpLink {
+  margin: 0;
+  height: auto;
 }
 
 /* using max and min width on purpose, width doesn't work as expected on these */

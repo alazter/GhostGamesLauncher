@@ -16,7 +16,7 @@
   line-height: 19px;
   color: var(--text-secondary);
   text-indent: 22px;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   margin: 0;
@@ -24,10 +24,25 @@
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   min-width: 100px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  &:focus:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    outline: none !important;
+    background: rgba(255, 255, 255, 0.07);
+    border-color: #00ffff !important;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.25), 0px 4px 4px rgba(0, 0, 0, 0.25) !important;
+    color: #fff;
   }
 }
 
@@ -50,6 +65,17 @@
   background: none;
   color: var(--text-default);
   padding: var(--space-3xs) var(--space-2xs);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover:not(:disabled) {
+    color: #00ffff;
+    transform: scale(1.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
   &:disabled {
     opacity: 0.7;
     .MuiSvgIcon-root {

@@ -965,15 +965,34 @@ export default memo(function Library(): JSX.Element {
   }, [])
 
   // Notify cards when active selection changes
+  const prevSelectedRef = useRef<{ appName: string | null; runner: Runner | null }>({
+    appName: null,
+    runner: null
+  })
+
   useEffect(() => {
+    const currentAppName = selectedInlineGame?.app_name || null
+    const currentRunner = selectedInlineGame?.runner || null
+
     window.dispatchEvent(new CustomEvent('heroicSelectedGameChanged', {
       detail: {
-        appName: selectedInlineGame?.app_name || null,
-        runner: selectedInlineGame?.runner || null
+        appName: currentAppName,
+        runner: currentRunner
       }
     }))
-    setShowInlineSettings(false)
+
+    // Only close settings if the selected game has actually changed to a DIFFERENT game (or null)
+    if (
+      currentAppName !== prevSelectedRef.current.appName ||
+      currentRunner !== prevSelectedRef.current.runner
+    ) {
+      setShowInlineSettings(false)
+    }
+
+    prevSelectedRef.current = { appName: currentAppName, runner: currentRunner }
   }, [selectedInlineGame])
+
+
 
   function handleModal(
     appName: string,
@@ -1133,6 +1152,29 @@ export default memo(function Library(): JSX.Element {
       ...zoomLibrary
     ]
   }, [storesFilters, epic, gog, amazon, zoom, sideloadedLibrary])
+
+  // Keep selectedInlineGame synchronized with the latest library data
+  useEffect(() => {
+    if (!selectedInlineGame) return
+
+    const allGames = makeLibrary()
+    const latestGame = allGames.find(
+      (g) => g.app_name === selectedInlineGame.app_name && g.runner === selectedInlineGame.runner
+    )
+
+    if (latestGame) {
+      if (
+        latestGame.title !== selectedInlineGame.title ||
+        latestGame.overrides?.title !== selectedInlineGame.overrides?.title ||
+        latestGame.art_cover !== selectedInlineGame.art_cover ||
+        latestGame.overrides?.art_cover !== selectedInlineGame.overrides?.art_cover ||
+        latestGame.is_installed !== selectedInlineGame.is_installed ||
+        JSON.stringify(latestGame.install) !== JSON.stringify(selectedInlineGame.install)
+      ) {
+        setSelectedInlineGame(latestGame)
+      }
+    }
+  }, [epic, gog, sideloadedLibrary, amazon, zoom, selectedInlineGame, makeLibrary])
 
   const gamesForAlphabetFilter = useMemo(() => {
     let library: Array<GameInfo> = makeLibrary()

@@ -37,7 +37,7 @@ const LauncherArgs = () => {
   }
 
   const launcherArgsInfo = (
-    <InfoBox text="infobox.help">
+    <InfoBox text="infobox.help" align="right">
       <span>
         {t('help.other.part4')}
         <strong>{t('help.other.part5')}</strong>
@@ -54,19 +54,21 @@ const LauncherArgs = () => {
   }
 
   return (
-    <TextInputField
-      label={t('options.gameargs.title')}
-      htmlId="launcherArgs"
-      placeholder={t('options.gameargs.placeholder')}
-      value={launcherArgs}
-      onChange={handleLauncherArgs}
-      afterInput={
-        <>
-          {errorDiv}
-          {launcherArgsInfo}
-        </>
-      }
-    />
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <label htmlFor="launcherArgs" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-default)' }}>
+          {t('options.gameargs.title')}
+        </label>
+        {launcherArgsInfo}
+      </div>
+      <TextInputField
+        htmlId="launcherArgs"
+        placeholder={t('options.gameargs.placeholder')}
+        value={launcherArgs}
+        onChange={handleLauncherArgs}
+        afterInput={errorDiv}
+      />
+    </div>
   )
 }
 

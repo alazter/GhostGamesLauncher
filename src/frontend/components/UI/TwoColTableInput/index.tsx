@@ -31,6 +31,7 @@ interface Props {
   inputPlaceHolder?: ColumnProps
   warning?: ReactNode
   afterInput?: ReactNode
+  headerExtra?: ReactNode
   validation?: (key: string, value: string) => [string, string]
   connector?: string
 }
@@ -47,6 +48,7 @@ export function TableInput({
   inputPlaceHolder = EMPTY_INPUTS,
   warning,
   afterInput,
+  headerExtra,
   validation,
   connector = ''
 }: Props) {
@@ -140,7 +142,10 @@ export function TableInput({
         <tbody>
           <tr>
             <th>{header.key}</th>
-            <th>{header.value}</th>
+            <th>
+              <span>{header.value}</span>
+              {headerExtra}
+            </th>
             <th></th>
           </tr>
           {!!rowData.length &&

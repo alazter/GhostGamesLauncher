@@ -88,7 +88,7 @@ const EnvVariablesTable = () => {
           'E.g.: Path/To/ExtraFiles'
         )
       }}
-      afterInput={envVariablesInfo}
+      headerExtra={envVariablesInfo}
     />
   )
 }

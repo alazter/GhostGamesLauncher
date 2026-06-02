@@ -168,7 +168,8 @@ const timestampStore = new TypeCheckedStoreFrontend('timestampStore', {
 
 const sideloadLibrary = new TypeCheckedStoreFrontend('sideloadedStore', {
   cwd: 'sideload_apps',
-  name: 'library'
+  name: 'library',
+  watch: true
 })
 
 const downloadManagerStore = new TypeCheckedStoreFrontend('downloadManager', {
@@ -178,7 +179,8 @@ const downloadManagerStore = new TypeCheckedStoreFrontend('downloadManager', {
 
 const gameOverridesStore = new TypeCheckedStoreFrontend('gameOverridesStore', {
   cwd: 'store',
-  name: 'game-overrides'
+  name: 'game-overrides',
+  watch: true
 })
 
 export {

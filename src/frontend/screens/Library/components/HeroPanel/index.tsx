@@ -1,7 +1,15 @@
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlay, faCog } from '@fortawesome/free-solid-svg-icons'
-import { GameInfo } from 'common/types'
+import { faPlay, faCog, faStop, faDownload, faSpinner, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { GameInfo, Runner } from 'common/types'
+import { useContext, useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import ContextProvider from 'frontend/state/ContextProvider'
+import { hasStatus } from 'frontend/hooks/hasStatus'
+import { launch, sendKill } from 'frontend/helpers'
+import { openInstallGameModal } from 'frontend/state/InstallGameModal'
+import { timestampStore } from 'frontend/helpers/electronStores'
+import StoreLogos from 'frontend/components/UI/StoreLogos'
 
 interface Props {
   game: GameInfo
@@ -11,12 +19,100 @@ interface Props {
 
 export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   const navigate = useNavigate()
+  const { t } = useTranslation('gamepage')
+  const { showDialogModal, connectivity, gameUpdates } = useContext(ContextProvider)
 
-  // O mock mostra playtime em horas, vou usar game.playtime ou valor fictício para teste
-  const playTimeStr = '125h' 
+  const { status } = hasStatus(game)
+  const [isLaunching, setIsLaunching] = useState(false)
 
-  const handlePlay = () => {
-    console.log('Launch game: ', game.app_name)
+  const [tsInfo, setTsInfo] = useState(() => timestampStore.get_nodefault(game.app_name))
+  const [panelTitle, setPanelTitle] = useState<string>(
+    () => game.overrides?.title || game.title
+  )
+
+  useEffect(() => {
+    setTsInfo(timestampStore.get_nodefault(game.app_name))
+    setPanelTitle(game.overrides?.title || game.title)
+  }, [game.app_name, status, game.title, game.overrides?.title])
+
+  useEffect(() => {
+    const handleTitleChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<{
+        appName: string
+        runner: Runner
+        title: string
+      }>
+      const { appName: eventAppName, runner: eventRunner, title: eventTitle } = customEvent.detail
+      if (eventAppName === game.app_name && eventRunner === game.runner) {
+        setPanelTitle(eventTitle)
+      }
+    }
+    window.addEventListener('heroicGameTitleChanged', handleTitleChanged)
+    return () =>
+      window.removeEventListener('heroicGameTitleChanged', handleTitleChanged)
+  }, [game.app_name, game.runner])
+
+  const playTimeStr = useMemo(() => {
+    if (!tsInfo || !tsInfo.totalPlayed) return t('game.neverPlayed', 'Never')
+    const hours = Math.floor(tsInfo.totalPlayed / 60)
+    if (hours > 0) {
+      return `${hours}h`
+    }
+    return `${tsInfo.totalPlayed}m`
+  }, [tsInfo, t])
+
+  const lastPlayedStr = useMemo(() => {
+    if (!tsInfo || !tsInfo.lastPlayed) return t('game.neverPlayed', 'Never')
+    try {
+      const date = new Date(tsInfo.lastPlayed)
+      return new Intl.DateTimeFormat(undefined, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }).format(date)
+    } catch {
+      return t('game.neverPlayed', 'Never')
+    }
+  }, [tsInfo, t])
+
+  const handlePlay = async () => {
+    if (isLaunching) return
+
+    const appName = game.app_name
+    const runner = game.runner
+
+    if (!game.is_installed && status !== 'queued' && runner !== 'sideload') {
+      openInstallGameModal({ appName, runner, gameInfo: game })
+      return
+    }
+
+    if (status === 'playing' || status === 'updating' || status === 'installing') {
+      await sendKill(appName, runner)
+      return
+    }
+
+    if (status === 'queued') {
+      window.localStorage.removeItem(appName)
+      await window.api.removeFromDMQueue(appName)
+      return
+    }
+
+    if (game.is_installed) {
+      setIsLaunching(true)
+      const isOffline = connectivity.status !== 'online'
+      const notPlayableOffline = isOffline && !game.canRunOffline
+      const hasUpdate = game.is_installed && gameUpdates?.includes(appName)
+
+      await launch({
+        appName,
+        t,
+        runner,
+        hasUpdate,
+        showDialogModal,
+        notPlayableOffline
+      })
+      setIsLaunching(false)
+    }
   }
 
   const handleSettings = () => {
@@ -35,12 +131,33 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     navigate(`/store/${storeParam}`)
   }
 
-  // Obter o ID da loja correspondente ao runner para carregar o ícone
-  let storeId = 'epic'
-  if (game.runner === 'gog') storeId = 'gog'
-  else if (game.runner === 'nile') storeId = 'amazon'
-  else if (game.runner === 'zoom') storeId = 'zoom'
-  else if ((game as any).platform === 'steam' || (game as any).runner === 'steam') storeId = 'steam'
+  const playButtonTitle = useMemo(() => {
+    if (isLaunching) return t('label.launching', 'Launching...')
+    if (status === 'playing') return t('label.playing.stop', 'Stop Game')
+    if (status === 'installing' || status === 'updating') return t('button.cancel', 'Cancel')
+    if (status === 'queued') return t('button.queue.remove', 'Remove from Queue')
+    if (!game.is_installed && game.runner !== 'sideload') return t('button.install', 'Install')
+    return t('label.playing.start', 'Play')
+  }, [status, isLaunching, game.is_installed, game.runner, t])
+
+  const renderPlayIcon = () => {
+    if (isLaunching) {
+      return <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '16px' }} />
+    }
+    if (status === 'playing') {
+      return <FontAwesomeIcon icon={faStop} style={{ fontSize: '16px' }} />
+    }
+    if (status === 'installing' || status === 'updating') {
+      return <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
+    }
+    if (status === 'queued') {
+      return <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
+    }
+    if (!game.is_installed && game.runner !== 'sideload') {
+      return <FontAwesomeIcon icon={faDownload} style={{ fontSize: '16px' }} />
+    }
+    return <FontAwesomeIcon icon={faPlay} style={{ fontSize: '16px', marginLeft: '2px' }} />
+  }
 
   return (
     <div style={{
@@ -65,7 +182,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       {/* Imagem */}
       <img
         src={game.art_cover || ''}
-        alt={game.title}
+        alt={panelTitle}
         style={{
           width: 'calc(100% + 30px)',
           height: '460px',
@@ -91,7 +208,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         margin: '6px 0',
         textAlign: 'center'
       }}>
-        {game.title}
+        {panelTitle}
       </h2>
 
       {/* Ações primárias (Botoes Redondos do Mockup) */}
@@ -110,7 +227,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             justifyContent: 'center',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            padding: '10px'
+            padding: '10px',
+            color: '#fff'
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
@@ -120,15 +238,11 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
             e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
           }}
+          title={t('button.store', 'Store')}
         >
-          <img
-            src={`/images/${storeId}.png`}
-            alt={storeId}
-            style={{ width: '22px', height: '22px', objectFit: 'contain', filter: 'brightness(1.5)' }}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
+          <div style={{ width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <StoreLogos runner={game.runner} />
+          </div>
         </button>
 
         {/* 2. Botão de Configurações do Jogo */}
@@ -155,6 +269,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
             e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
           }}
+          title={t('submenu.settings', 'Settings')}
         >
           <FontAwesomeIcon icon={faCog} style={{ fontSize: '18px' }} />
         </button>
@@ -162,6 +277,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         {/* 3. Botão de Play */}
         <button
           onClick={handlePlay}
+          disabled={isLaunching}
           style={{
             background: '#00ffff',
             border: 'none',
@@ -172,20 +288,26 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             alignItems: 'center',
             justifyContent: 'center',
             color: '#000',
-            cursor: 'pointer',
+            cursor: isLaunching ? 'default' : 'pointer',
+            opacity: isLaunching ? 0.7 : 1,
             transition: 'all 0.2s ease',
             boxShadow: '0 0 10px rgba(0, 255, 255, 0.4)'
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)'
-            e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.6)'
+            if (!isLaunching) {
+              e.currentTarget.style.transform = 'scale(1.05)'
+              e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.6)'
+            }
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)'
+            if (!isLaunching) {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)'
+            }
           }}
+          title={playButtonTitle}
         >
-          <FontAwesomeIcon icon={faPlay} style={{ fontSize: '16px', marginLeft: '2px' }} />
+          {renderPlayIcon()}
         </button>
       </div>
 
@@ -197,8 +319,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         margin: '6px 0',
         lineHeight: '1.4'
       }}>
-        <div>Tempo de jogo: {playTimeStr}</div>
-        <div>Última jogada: Ontem</div>
+        <div>{t('game.totalPlayed', 'Time Played')}: {playTimeStr}</div>
+        <div>{t('game.lastPlayed', 'Last Played')}: {lastPlayedStr}</div>
       </div>
 
       <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.1)', margin: '2px 0' }} />
@@ -274,4 +396,3 @@ function HeroLink({ emoji, label, onClick, center }: { emoji: string, label: str
     </button>
   )
 }
-
