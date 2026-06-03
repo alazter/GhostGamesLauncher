@@ -7,12 +7,14 @@ interface InstallGameModalState {
   runner?: Runner
   gameInfo: GameInfo | null
   action?: 'install' | 'import'
+  initialSgdbTarget?: 'cover' | 'square' | null
 }
 
 export const useInstallGameModal = create<InstallGameModalState>()(() => ({
   isOpen: false,
   gameInfo: null,
-  action: 'install'
+  action: 'install',
+  initialSgdbTarget: null
 }))
 
 interface OpenInstallGameModalParams {
@@ -20,19 +22,22 @@ interface OpenInstallGameModalParams {
   runner: Runner
   gameInfo: GameInfo | null
   action?: 'install' | 'import'
+  initialSgdbTarget?: 'cover' | 'square' | null
 }
 export const openInstallGameModal = ({
   appName,
   runner,
   gameInfo,
-  action = 'install'
+  action = 'install',
+  initialSgdbTarget = null
 }: OpenInstallGameModalParams) => {
   useInstallGameModal.setState({
     isOpen: true,
     appName,
     runner,
     gameInfo,
-    action
+    action,
+    initialSgdbTarget
   })
 }
 

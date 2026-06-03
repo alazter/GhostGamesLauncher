@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTimes } from '@fortawesome/free-solid-svg-icons'
-import { faSteam } from '@fortawesome/free-brands-svg-icons'
+import { faTimes, faGlobe, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { faSteam, faApple, faLinux, faWindows } from '@fortawesome/free-brands-svg-icons'
+import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import { CircularProgress } from '@mui/material'
 import { useTranslation, Trans } from 'react-i18next'
 import { GameInfo } from 'common/types'
-import { UpdateComponent, PathSelectionBox, InfoBox, TextInputField } from 'frontend/components/UI'
+import { UpdateComponent, PathSelectionBox, InfoBox, TextInputField, SteamGridDBPicker, CachedImage, WarningMessage } from 'frontend/components/UI'
 import useSettingsContext from 'frontend/hooks/useSettingsContext'
 import SettingsContext from 'frontend/screens/Settings/SettingsContext'
 import useSetting from 'frontend/hooks/useSetting'
@@ -126,6 +127,17 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   useEffect(() => {
     setSideloadExe(game.install?.executable || '')
   }, [game])
+
+  const [inlineSgdbTarget, setInlineSgdbTarget] = useState<'cover' | 'square' | null>(null)
+  const [editCover, setEditCover] = useState('')
+  const [editSquare, setEditSquare] = useState('')
+
+  useEffect(() => {
+    if (inlineSgdbTarget) {
+      setEditCover(game.overrides?.art_cover || game.art_cover || '')
+      setEditSquare(game.overrides?.art_square || game.art_square || '')
+    }
+  }, [inlineSgdbTarget, game])
 
   const handleSideloadExeChange = async (newPath: string) => {
     setSideloadExe(newPath)
@@ -321,21 +333,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   }
 
   const handleEdit = () => {
-    if (game.runner === 'sideload') {
-      openInstallGameModal({ appName: game.app_name, runner: game.runner, gameInfo: game })
-      return
-    }
-
-    showDialogModal({
-      showDialog: true,
-      title: t('edit-game.title', 'Edit Game'),
-      message: (
-        <EditGameDialog
-          gameInfo={game}
-          backdropClick={() => showDialogModal({ showDialog: false })}
-        />
-      )
-    })
+    // Para a interface nova e linda, a página de capas do SteamGridDB ocupará toda a interface
+    setInlineSgdbTarget('square')
   }
 
   const handleDeleteCover = async () => {
@@ -618,6 +617,263 @@ export default function InlineGameSettings({ game, onClose }: Props) {
     )
   }
 
+  if (inlineSgdbTarget) {
+    const platformIcon = () => {
+      const appPlatform = (game.install?.platform || 'windows').toLowerCase()
+      let icon = faGlobe
+      if (appPlatform.includes('win')) icon = faWindows
+      else if (appPlatform.includes('linux')) icon = faLinux
+      else if (appPlatform.includes('mac') || appPlatform.includes('osx')) icon = faApple
+      
+      return (
+        <FontAwesomeIcon
+          style={{ opacity: 0.6, fontSize: '16px' }}
+          icon={icon}
+        />
+      )
+    }
+
+    return (
+      <div 
+        className="inline-game-settings-container"
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'rgba(20, 24, 30, 0.45)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
+          padding: '16px',
+          marginTop: '-9px',
+          marginRight: '15px',
+          marginBottom: '20px',
+          height: 'calc(100% - 11px)',
+          minHeight: 0,
+          boxSizing: 'border-box'
+        }}
+      >
+        <div style={{ display: 'flex', gap: '0px', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {/* Coluna Esquerda: Previews (Imagem 1) */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '180px',
+            flexShrink: 0,
+            borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+            paddingRight: '12px',
+            height: '100%',
+            overflowY: 'auto'
+          }}>
+            {/* Capa Vertical */}
+            <div style={{ marginBottom: '16px' }}>
+              <span style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
+                Capa Vertical
+              </span>
+              <div
+                style={{
+                  position: 'relative',
+                  cursor: 'pointer',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  border: inlineSgdbTarget === 'square' ? '3px solid #3cf2e6' : '3px solid rgba(255, 255, 255, 0.08)',
+                  transition: 'all 0.2s ease',
+                  transform: inlineSgdbTarget === 'square' ? 'scale(1.02)' : 'none',
+                  boxShadow: inlineSgdbTarget === 'square' ? '0 0 15px rgba(60, 242, 230, 0.35)' : 'none'
+                }}
+                onClick={() => setInlineSgdbTarget('square')}
+              >
+                <CachedImage
+                  style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', display: 'block' }}
+                  src={editSquare || fallbackImage}
+                />
+              </div>
+            </div>
+
+            {/* Banner Horizontal */}
+            <div style={{ marginBottom: '16px' }}>
+              <span style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
+                Banner Horizontal
+              </span>
+              <div
+                style={{
+                  position: 'relative',
+                  cursor: 'pointer',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  border: inlineSgdbTarget === 'cover' ? '3px solid #3cf2e6' : '3px solid rgba(255, 255, 255, 0.08)',
+                  transition: 'all 0.2s ease',
+                  transform: inlineSgdbTarget === 'cover' ? 'scale(1.02)' : 'none',
+                  boxShadow: inlineSgdbTarget === 'cover' ? '0 0 15px rgba(60, 242, 230, 0.35)' : 'none'
+                }}
+                onClick={() => setInlineSgdbTarget('cover')}
+              >
+                <CachedImage
+                  style={{ width: '100%', aspectRatio: '1600/650', objectFit: 'cover', display: 'block' }}
+                  src={editCover || editSquare || fallbackImage}
+                />
+              </div>
+            </div>
+
+            {/* Informações do Jogo */}
+            <div style={{
+              marginTop: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: '16px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <span style={{ fontSize: '15px', fontWeight: '600', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }}>
+                {currentTitle}
+              </span>
+              {platformIcon()}
+            </div>
+          </div>
+
+          {/* Coluna Direita: SteamGridDBPicker */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%' }}>
+            <SteamGridDBPicker
+              initialTitle={currentTitle}
+              mode={inlineSgdbTarget === 'cover' ? 'heroes' : 'grids'}
+              hideCloseButton={true}
+              onClose={() => setInlineSgdbTarget(null)}
+              onSelect={(url: string) => {
+                if (inlineSgdbTarget === 'cover') {
+                  setEditCover(url)
+                } else {
+                  setEditSquare(url)
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Footer com botões Terminar / Cancelar */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '12px',
+          marginTop: '16px',
+          width: '100%',
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          paddingTop: '16px'
+        }}>
+          <button
+            onClick={() => setInlineSgdbTarget(null)}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              color: 'rgba(255, 255, 255, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              padding: '10px 24px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)'
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                if (game.runner === 'sideload') {
+                  const updatedGame: GameInfo = {
+                    runner: 'sideload',
+                    app_name: game.app_name,
+                    title: game.title,
+                    install: {
+                      executable: game.install?.executable || '',
+                      platform: game.install?.platform || 'windows',
+                      is_dlc: false
+                    },
+                    art_cover: editCover || game.art_cover || '',
+                    is_installed: true,
+                    art_square: editSquare || game.art_square || '',
+                    canRunOffline: true,
+                    browserUrl: game.browserUrl || '',
+                    customUserAgent: game.customUserAgent || '',
+                    launchFullScreen: game.launchFullScreen || false
+                  }
+
+                  syncFrontendStoreForSideload(updatedGame)
+                  await window.api.addNewApp(updatedGame)
+
+                  await window.api.setGameMetadataOverride({
+                    appName: game.app_name,
+                    title: game.overrides?.title || game.title,
+                    art_cover: editCover,
+                    art_square: editSquare
+                  })
+                } else {
+                  const finalCover = editCover === game.art_cover ? '' : editCover
+                  const finalSquare = editSquare === game.art_square ? '' : editSquare
+
+                  syncFrontendStoreForOverride(
+                    game.app_name,
+                    game.overrides?.title || '',
+                    finalCover,
+                    finalSquare
+                  )
+
+                  await window.api.setGameMetadataOverride({
+                    appName: game.app_name,
+                    title: game.overrides?.title || '',
+                    art_cover: finalCover,
+                    art_square: finalSquare
+                  })
+                }
+
+                if (refreshLibrary) {
+                  await refreshLibrary({
+                    library: game.runner,
+                    runInBackground: true,
+                    checkForUpdates: true
+                  })
+                }
+              } catch (err) {
+                console.error('Error saving inline SteamGridDB art:', err)
+              } finally {
+                setInlineSgdbTarget(null)
+              }
+            }}
+            style={{
+              backgroundColor: '#50e3c2',
+              color: '#12161a',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 24px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              transition: 'transform 0.2s, background-color 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'scale(1.03)'
+              e.currentTarget.style.backgroundColor = '#40d3b2'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.backgroundColor = '#50e3c2'
+            }}
+          >
+            Terminar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <SettingsContext.Provider value={settingsContextValues}>
       <div 
@@ -631,7 +887,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           borderRadius: '16px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
-          padding: '24px',
+          padding: '16px',
           marginTop: '-9px',
           marginRight: '15px',
           marginBottom: '20px',

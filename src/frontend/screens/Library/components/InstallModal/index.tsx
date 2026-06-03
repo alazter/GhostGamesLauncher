@@ -44,7 +44,7 @@ export type AvailablePlatforms = {
 function InstallModal({ appName, runner, gameInfo = null }: Props) {
   const { platform } = useContext(ContextProvider)
   const { t } = useTranslation('gamepage')
-  const { action = 'install' } = useInstallGameModal()
+  const { action = 'install', initialSgdbTarget = null } = useInstallGameModal()
 
   const [winePrefix, setWinePrefix] = useState('...')
   const [wineVersion, setWineVersion] = useState<WineInstallation>()
@@ -259,6 +259,7 @@ function InstallModal({ appName, runner, gameInfo = null }: Props) {
             platformToInstall={platformToInstall}
             appName={appName}
             crossoverBottle={crossoverBottle}
+            initialSgdbTarget={initialSgdbTarget}
           >
             {platformSelection()}
             {hasWine ? (

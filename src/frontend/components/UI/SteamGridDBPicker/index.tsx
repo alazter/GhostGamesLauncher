@@ -19,6 +19,7 @@ interface Props {
   mode?: 'grids' | 'heroes'
   dimensions?: string[]
   styles?: string[]
+  hideCloseButton?: boolean
 }
 
 const DEFAULT_GRID_DIMENSIONS = ['600x900', '342x482', '660x930']
@@ -30,7 +31,8 @@ export default function SteamGridDBPicker({
   onClose,
   mode = 'grids',
   dimensions,
-  styles
+  styles,
+  hideCloseButton = false
 }: Props) {
   const { t } = useTranslation()
   const [query, setQuery] = useState(initialTitle)
@@ -119,40 +121,75 @@ export default function SteamGridDBPicker({
     }
   }, [initialTitle, searchGames])
 
+  useEffect(() => {
+    if (selectedGameId !== null) {
+      void handleSelectGame(selectedGameId)
+    }
+  }, [mode, selectedGameId, handleSelectGame])
+
   return (
     <div className={`SteamGridDBPicker SteamGridDBPicker--${mode}`}>
       <div className="SteamGridDBPicker__header">
-        <div className="SteamGridDBPicker__title-group">
-          {selectedGameId && (
-            <button className="button is-ghost" onClick={goBack}>
-              <FontAwesomeIcon icon={faArrowLeft} />
+        <div className="SteamGridDBPicker__title-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {(selectedGameId || hideCloseButton) && (
+            <button 
+              className="button is-ghost" 
+              onClick={selectedGameId ? goBack : onClose}
+              style={{
+                backgroundColor: 'var(--accent, #3cf2e6)',
+                color: '#12161a',
+                border: 'none',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: 0,
+                transition: 'transform 0.2s, background-color 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'scale(1.08)'
+                e.currentTarget.style.backgroundColor = 'var(--accent-hover, #2ad1c5)'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.backgroundColor = 'var(--accent, #3cf2e6)'
+              }}
+            >
+              <FontAwesomeIcon icon={faArrowLeft} style={{ color: '#12161a', fontSize: '14px' }} />
             </button>
           )}
-          <h3>{t('steamgriddb.picker.title', 'SteamGridDB Covers')}</h3>
-          <button
-            className="SteamGridDBPicker__back-btn"
-            onClick={onClose}
-            title={t('button.back', 'Go Back')}
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
+          <h3 style={{ margin: 0 }}>{t('steamgriddb.picker.title', 'SteamGridDB Covers')}</h3>
+          {!hideCloseButton && (
+            <button
+              className="SteamGridDBPicker__back-btn"
+              onClick={onClose}
+              title={t('button.back', 'Go Back')}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          )}
         </div>
       </div>
 
       {!selectedGameId && (
-        <TextInputWithIconField
-          htmlId="steamgriddb-search"
-          label={t('steamgriddb.picker.search', 'Search Game')}
-          value={query}
-          onChange={setQuery}
-          icon={<FontAwesomeIcon icon={faSearch} />}
-          onIconClick={() => void searchGames(query)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              void searchGames(query)
-            }
-          }}
-        />
+        <div style={{ paddingLeft: '12px', paddingRight: '12px' }}>
+          <TextInputWithIconField
+            htmlId="steamgriddb-search"
+            label={t('steamgriddb.picker.search', 'Search Game')}
+            value={query}
+            onChange={setQuery}
+            icon={<FontAwesomeIcon icon={faSearch} />}
+            onIconClick={() => void searchGames(query)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                void searchGames(query)
+              }
+            }}
+          />
+        </div>
       )}
 
       {loading && (

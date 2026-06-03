@@ -40,6 +40,7 @@ type Props = {
   platformToInstall: InstallPlatform
   backdropClick: () => void
   appName?: string
+  initialSgdbTarget?: 'cover' | 'square' | null
 }
 
 export default function SideloadDialog({
@@ -51,7 +52,8 @@ export default function SideloadDialog({
   platformToInstall,
   setWinePrefix,
   children,
-  appName
+  appName,
+  initialSgdbTarget = null
 }: Props) {
   const { t, i18n } = useTranslation('gamepage')
   const [title, setTitle] = useState<string>(t('sideload.field.title', 'Title'))
@@ -67,7 +69,9 @@ export default function SideloadDialog({
   const [runningSetup, setRunningSetup] = useState(false)
   const [gameInfo, setGameInfo] = useState<Partial<GameInfo>>({})
   const [addingApp, setAddingApp] = useState(false)
-  const [sgdbTarget, setSgdbTarget] = useState<'cover' | 'square' | null>(null)
+  const [sgdbTarget, setSgdbTarget] = useState<'cover' | 'square' | null>(
+    initialSgdbTarget
+  )
   const [hasSgdbKey, setHasSgdbKey] = useState(false)
   const editMode = Boolean(appName)
 
@@ -386,6 +390,7 @@ export default function SideloadDialog({
               <SteamGridDBPicker
                 initialTitle={title}
                 mode={sgdbTarget === 'cover' ? 'heroes' : 'grids'}
+                hideCloseButton={!!initialSgdbTarget}
                 onClose={() => setSgdbTarget(null)}
                 onSelect={(url: string) => {
                   if (sgdbTarget === 'cover') {

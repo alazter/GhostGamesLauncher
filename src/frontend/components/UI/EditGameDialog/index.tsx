@@ -23,11 +23,16 @@ import Clear from '@mui/icons-material/Clear'
 type Props = {
   gameInfo: GameInfo
   backdropClick: () => void
+  initialSgdbTarget?: SgdbTarget
 }
 
 type SgdbTarget = 'cover' | 'square' | null
 
-export default function EditGameDialog({ gameInfo, backdropClick }: Props) {
+export default function EditGameDialog({
+  gameInfo,
+  backdropClick,
+  initialSgdbTarget = null
+}: Props) {
   const { t } = useTranslation('gamepage')
   const navigate = useNavigate()
   const goToAdvancedSettings = () => {
@@ -44,7 +49,7 @@ export default function EditGameDialog({ gameInfo, backdropClick }: Props) {
     gameInfo.overrides?.art_square || gameInfo.art_square
   )
   const [hasSgdbKey, setHasSgdbKey] = useState(false)
-  const [sgdbTarget, setSgdbTarget] = useState<SgdbTarget>(null)
+  const [sgdbTarget, setSgdbTarget] = useState<SgdbTarget>(initialSgdbTarget)
 
   useEffect(() => {
     void window.api.steamgriddb.hasApiKey().then(setHasSgdbKey)
@@ -167,6 +172,7 @@ export default function EditGameDialog({ gameInfo, backdropClick }: Props) {
               <SteamGridDBPicker
                 initialTitle={title}
                 mode={sgdbTarget === 'cover' ? 'heroes' : 'grids'}
+                hideCloseButton={!!initialSgdbTarget}
                 onClose={() => setSgdbTarget(null)}
                 onSelect={(url: string) => {
                   if (sgdbTarget === 'cover') setArtCover(url)
