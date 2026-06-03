@@ -32,7 +32,7 @@ const EnvVariablesTable = () => {
   }
 
   const envVariablesInfo = (
-    <InfoBox text="infobox.help">
+    <InfoBox text="infobox.help" align="right">
       {t(
         'options.env_variables.info',
         'Set environment variables to append to the command.'

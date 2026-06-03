@@ -61,6 +61,7 @@ const PopoverComponent: React.FC<PopoverComponentProps> = ({
             color: '#fff',
             fontSize: '13px',
             lineHeight: '1.5',
+            whiteSpace: 'normal',
             zIndex: 100,
             ...(align === 'right' ? {
               right: 'calc(100% + 12px)',

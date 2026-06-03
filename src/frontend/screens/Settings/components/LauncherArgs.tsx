@@ -54,20 +54,20 @@ const LauncherArgs = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <label htmlFor="launcherArgs" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-default)' }}>
-          {t('options.gameargs.title')}
-        </label>
-        {launcherArgsInfo}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'end', rowGap: '4px' }}>
+      <label htmlFor="launcherArgs" style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'normal', color: 'var(--text-secondary)', justifySelf: 'start', textAlign: 'left' }}>
+        {t('options.gameargs.title')}
+      </label>
+      {launcherArgsInfo}
+      <div style={{ gridColumn: '1 / -1' }}>
+        <TextInputField
+          htmlId="launcherArgs"
+          placeholder={t('options.gameargs.placeholder')}
+          value={launcherArgs}
+          onChange={handleLauncherArgs}
+          afterInput={errorDiv}
+        />
       </div>
-      <TextInputField
-        htmlId="launcherArgs"
-        placeholder={t('options.gameargs.placeholder')}
-        value={launcherArgs}
-        onChange={handleLauncherArgs}
-        afterInput={errorDiv}
-      />
     </div>
   )
 }

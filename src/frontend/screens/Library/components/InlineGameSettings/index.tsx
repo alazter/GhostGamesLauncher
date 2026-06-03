@@ -414,6 +414,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   }
 
   const sectionHeaderStyle = {
+    fontFamily: 'var(--secondary-font-family)',
     fontSize: '15px',
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.6)',
@@ -640,6 +641,16 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           overflowY: 'auto'
         }}
       >
+        <style dangerouslySetInnerHTML={{ __html: `
+          #root .inline-game-settings-container .helpLink {
+            height: auto !important;
+            margin-block-start: 0 !important;
+          }
+          #root .inline-game-settings-container .textInputFieldWrapper label,
+          #root .inline-game-settings-container .tableFieldWrapper label {
+            font-size: var(--text-md) !important;
+          }
+        `}} />
         {showUninstallModal && (
           <UninstallModal
             appName={game.app_name}
@@ -811,40 +822,40 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
               {/* Executável para Sideloaded Games */}
               {game.runner === 'sideload' && game.install?.platform !== 'Browser' && (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <label htmlFor="sideload-exe-inline" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-default)' }}>
-                      {t('sideload.info.exe', 'Select Executable')}
-                    </label>
-                    <InfoBox
-                      align="right"
-                      text={t(
-                        'sideload.import-hint.title',
-                        'Important! Are you adding a game from Epic/GOG/Amazon? Click here!'
-                      )}
-                    >
-                      <div className="sideloadImportHint">
-                        <Trans i18n={i18n} ns="gamepage" i18nKey="sideload.import-hint.content">
-                          Do NOT use this feature for that.
-                          <br />
-                          Instead, <NavLink to={'/login'}>log into</NavLink> the
-                          store, look for the game in your library, open the
-                          installation dialog, and click the &quot;Import Game&quot;
-                          button
-                        </Trans>
-                      </div>
-                    </InfoBox>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'end', rowGap: '4px' }}>
+                  <label htmlFor="sideload-exe-inline" style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'normal', color: 'var(--text-secondary)', justifySelf: 'start', textAlign: 'left' }}>
+                    {t('sideload.info.exe', 'Select Executable')}
+                  </label>
+                  <InfoBox
+                    align="right"
+                    text={t(
+                      'sideload.import-hint.title',
+                      'Important! Are you adding a game from Epic/GOG/Amazon? Click here!'
+                    )}
+                  >
+                    <div className="sideloadImportHint">
+                      <Trans i18n={i18n} ns="gamepage" i18nKey="sideload.import-hint.content">
+                        Do NOT use this feature for that.
+                        <br />
+                        Instead, <NavLink to={'/login'}>log into</NavLink> the
+                        store, look for the game in your library, open the
+                        installation dialog, and click the &quot;Import Game&quot;
+                        button
+                      </Trans>
+                    </div>
+                  </InfoBox>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <PathSelectionBox
+                      type="file"
+                      onPathChange={handleSideloadExeChange}
+                      path={sideloadExe}
+                      placeholder={t('sideload.info.exe', 'Select Executable')}
+                      pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
+                      pathDialogDefaultPath={game.install?.install_path || ''}
+                      htmlId="sideload-exe-inline"
+                      noDeleteButton
+                    />
                   </div>
-                  <PathSelectionBox
-                    type="file"
-                    onPathChange={handleSideloadExeChange}
-                    path={sideloadExe}
-                    placeholder={t('sideload.info.exe', 'Select Executable')}
-                    pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
-                    pathDialogDefaultPath={game.install?.install_path || ''}
-                    htmlId="sideload-exe-inline"
-                    noDeleteButton
-                  />
                 </div>
               )}
 

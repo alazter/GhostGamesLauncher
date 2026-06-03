@@ -474,8 +474,8 @@ export default function SideloadDialog({
                 {!editMode && children}
                 {showSideloadExe && !editMode && (
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                      <label htmlFor="sideload-exe" style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: 'var(--text-default)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '-10px' }}>
+                      <label htmlFor="sideload-exe" style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
                         {t('sideload.info.exe', 'Select Executable')}
                       </label>
                       <InfoBox

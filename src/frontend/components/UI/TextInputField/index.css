@@ -49,6 +49,10 @@
 .textInputFieldWrapper label {
   grid-area: label;
   text-align: start;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: normal;
+  margin-bottom: 4px;
 }
 
 .textInputFieldWrapper .inputIcon {

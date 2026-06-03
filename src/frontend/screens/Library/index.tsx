@@ -819,6 +819,9 @@ export default memo(function Library(): JSX.Element {
   }, [])
   // ====================================================================
 
+  const [selectedInlineGame, setSelectedInlineGame] = useState<GameInfo | null>(null)
+  const [showInlineSettings, setShowInlineSettings] = useState(false)
+
   const [showAlphabetFilter, setShowAlphabetFilter] = useState<boolean>(
     JSON.parse(storage.getItem('showAlphabetFilter') || 'true') as boolean
   )
@@ -912,11 +915,21 @@ export default memo(function Library(): JSX.Element {
       }
     }
 
-    if (scrollArea) scrollArea.addEventListener('scroll', scrollCallback)
+    if (scrollArea) {
+      scrollArea.addEventListener('scroll', scrollCallback)
+      if (btn) {
+        btn.style.visibility = scrollArea.scrollTop > 450 ? 'visible' : 'hidden'
+      }
+    } else {
+      if (btn) {
+        btn.style.visibility = 'hidden'
+      }
+    }
+
     return () => {
       if (scrollArea) scrollArea.removeEventListener('scroll', scrollCallback)
     }
-  }, [])
+  }, [showInlineSettings])
 
   const backToTop = () => {
     const scrollArea = document.getElementById('games-scroll-area')
@@ -932,9 +945,6 @@ export default memo(function Library(): JSX.Element {
       }, 50)
     }
   }
-
-  const [selectedInlineGame, setSelectedInlineGame] = useState<GameInfo | null>(null)
-  const [showInlineSettings, setShowInlineSettings] = useState(false)
 
   // Listen to selection mode changes reactively
   useEffect(() => {
@@ -1411,6 +1421,10 @@ export default memo(function Library(): JSX.Element {
         const header = document.querySelector('.Header')
         if (header) {
           const headerHeight = header.getBoundingClientRect().height
+          document.documentElement.style.setProperty(
+            '--header-height',
+            `${headerHeight}px`
+          )
           const libraryHeader =
             document.querySelector<HTMLDivElement>('.libraryHeader')
           if (libraryHeader)

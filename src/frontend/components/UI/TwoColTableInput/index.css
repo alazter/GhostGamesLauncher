@@ -6,22 +6,30 @@
 .tableFieldWrapper label {
   grid-area: label;
   text-align: start;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: normal;
+  margin-bottom: 4px;
 }
 
-.tableFieldWrapper table {
-  border-collapse: collapse;
-  grid-area: table;
-  max-width: 100%;
+.tableFieldWrapper table,
+.tableFieldWrapper tbody,
+.tableFieldWrapper tfoot,
+.tableFieldWrapper thead {
+  display: block;
+  width: 100%;
 }
 
 .tableFieldWrapper th {
   color: var(--accent);
-  font-size: var(--text-lg);
-  padding: var(--space-xs-fixed);
+  font-size: var(--text-md);
+  font-weight: normal;
+  padding: 0 0 4px;
   text-align: start;
   white-space: nowrap;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
@@ -34,7 +42,7 @@
 .tableFieldWrapper tr {
   max-width: 100%;
   display: grid;
-  grid-template-columns: 150px min-content auto min-content;
+  grid-template-columns: 1fr min-content 2fr min-content;
 }
 
 .tableFieldWrapper td {
@@ -68,11 +76,12 @@
 }
 
 .tableFieldWrapper tfoot tr:first-child td {
-  padding-top: 1rem;
+  padding-top: 0.3rem;
 }
 
 .tableFieldWrapper tfoot .Field {
   margin: 0;
+  width: 100%;
 }
 
 .tableFieldWrapper tfoot .Field label {

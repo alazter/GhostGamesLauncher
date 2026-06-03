@@ -142,6 +142,7 @@ export function TableInput({
         <tbody>
           <tr>
             <th>{header.key}</th>
+            <th></th>
             <th>
               <span>{header.value}</span>
               {headerExtra}

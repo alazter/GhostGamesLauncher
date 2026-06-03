@@ -41,11 +41,14 @@ export default memo(function LibraryHeader({ list }: Props) {
         alignItems: 'center',
         justifyContent: 'flex-start',
         width: '100%',
+        paddingTop: '6px',
         paddingBottom: '10px',
         paddingLeft: '35px',
         gap: '20px',
-        position: 'relative',
-        top: '0px'
+        position: 'sticky',
+        top: 'var(--header-height, 82px)',
+        zIndex: 9,
+        background: 'transparent'
       }}
     >
       {/* 1. TÍTULO (Esquerda) */}
