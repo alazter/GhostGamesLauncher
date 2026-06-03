@@ -1211,9 +1211,8 @@ export default function PersonalizationScreen() {
         /* GRID DE JOGOS PREVIEW */
         .preview-games-grid {
           display: grid;
-          grid-template-columns: repeat(6, 1fr);
+          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
           gap: 12px;
-          flex: 1;
         }
 
         .preview-game-card {
@@ -1228,6 +1227,9 @@ export default function PersonalizationScreen() {
           flex-direction: column;
           justify-content: flex-end;
           transition: transform 0.2s;
+        }
+        .preview-game-card.gamepad {
+          aspect-ratio: 3/4;
         }
         .preview-game-card:hover {
           transform: translateY(-2px);
@@ -1782,7 +1784,7 @@ export default function PersonalizationScreen() {
               {/* 3. GAMES GRID */}
               <div className="preview-games-grid">
                 {previewGames.map((game) => (
-                  <div key={game.id} className="preview-game-card">
+                  <div key={game.id} className={`preview-game-card ${hideIconsMouse ? 'gamepad' : ''}`}>
                     {/* Game Cover Art Image or Gradient */}
                     <div
                       className="preview-game-banner"
