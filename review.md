@@ -1,4 +1,4 @@
-# Review das Alterações - 04/06/2026
+# Review das Alterações - 05/06/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Heroic Games Launcher hoje.
 
@@ -6,62 +6,35 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 
 ## 📋 Resumo das Alterações Realizadas
 
-### 1. Novo Auto-Scanner de Jogos Instalados (Sideload Auto-Scanner)
-* **Problema:** Usuários precisavam adicionar manualmente cada jogo instalado externamente no PC por meio do Sideload, o que requeria localizar o executável manualmente.
+### 1. Customização Avançada das Cores e Opacidades dos Botões de Lojas (Store Buttons)
+* **Problema:** O painel de personalização anterior não permitia ajustar as opacidades individualmente para o fundo, hover (quando passa o mouse) e estado ativo/selecionado dos botões de loja.
 * **Solução:**
-  - Criamos o módulo `src/backend/storeManagers/sideload/scanner.ts`.
-  - Implementamos a busca automática via PowerShell na Registry do Windows para encontrar jogos instalados no PC.
-  - Criamos regras inteligentes de filtragem heurística para ignorar softwares gerais, drivers e atualizadores não-jogos.
-  - Implementamos um algoritmo de pontuação para correlacionar o nome da pasta com arquivos executáveis a fim de selecionar o binário correto do jogo.
-  - Integramos com a API do SteamGridDB para obter automaticamente capas e imagens para os jogos detectados.
-  - Adicionamos a funcionalidade de Blacklist para permitir ignorar jogos detectados que o usuário não quer importar.
-  - Criamos a opção de exportar o log de varredura para um arquivo `.txt`.
+  - Adicionamos três novos sliders de opacidade/transparência em `Personalization/index.tsx`:
+    - **Opacidade do Fundo (Alpha):** Controla a opacidade padrão de fundo dos botões das lojas.
+    - **Opacidade no Hover:** Controla a opacidade quando o mouse está sobre o botão.
+    - **Opacidade Selecionada (Alpha):** Controla a opacidade quando a loja correspondente está ativa/selecionada.
+  - Adicionamos uma caixa de visualização de cor com input Hex para edição direta dos valores em formato hexadecimal com prévia de cor integrada.
 
-### 2. Redesign Completo do Diálogo de Sideload (SideloadDialog) e Filtragem de Duplicados
-* **Problema:** A interface de Sideload manual possuía campos desorganizados, caixas de imagens desalinhadas e falta de suporte para o novo auto-scanner. Além disso, jogos já adicionados continuavam poluindo a lista de escaneados.
+### 2. Refinamento Estético e Transições do Alphabet Filter
+* **Problema:** O filtro alfabético no cabeçalho da biblioteca precisava de transições de cor mais suaves, melhor centralização e suporte para os novos estilos de personalização.
 * **Solução:**
-  - Reformulamos a estrutura em `SideloadDialog` criando abas diferenciadas: **Adicionar Manualmente** e **Scanner Automático**.
-  - Criamos um painel lateral esquerdo simulando o Hero Panel (`.simulated-hero-panel`), que apresenta a capa vertical em proporção de tela (`aspect-ratio: 2/3`) e links rápidos de ação com ícones correspondentes.
-  - Reorganizamos a aba do Scanner Automático para listar todos os jogos detectados com capas em miniatura, nomes e binários, oferecendo controles para "Importar" ou enviar para a "Blacklist".
-  - **Filtro de Duplicados:** Adicionamos um checkbox dinâmico "Ocultar itens escaneados que já estão adicionados no Heroic" para ocultar opcionalmente jogos repetidos e incluímos a tag visual de destaque "Já Adicionado" nos itens já presentes na biblioteca.
-  - **Validação de Argumentos:** Adicionamos validação contra erros nos argumentos de inicialização do executável, prevenindo cliques acidentais e desabilitando o botão de finalizar se houver falhas.
-  - Refatoramos todo o CSS em `SideloadDialog/index.scss` usando flexbox de duas colunas, bordas com efeitos premium e scroll otimizado.
+  - Atualizamos `AlphabetFilter/index.tsx` e `AlphabetFilter/index.css` para aplicar as variáveis CSS dinâmicas e transições suaves de cor.
+  - Implementamos seleções estilizadas com maior destaque e suporte a animações visuais premium.
 
-### 3. Funcionalidade de Desinstalação em Lote (Bulk Uninstall)
-* **Problema:** Não existia uma forma nativa de selecionar vários jogos na biblioteca e desinstalá-los ou removê-los em massa.
+### 3. Melhorias e Ajustes Visuais na Barra de Pesquisa (LibrarySearchBar)
+* **Problema:** A barra de pesquisa de jogos na biblioteca possuía bordas e sombras simplistas e desalinhadas em relação ao restante dos componentes da interface.
 * **Solução:**
-  - Implementamos o IPC handler `bulkUninstall` em `src/backend/utils/uninstaller.ts`.
-  - Adicionamos suporte à desinstalação paralela com limpeza de prefixos (Wineprefix), logs e configurações locais.
-  - Na tela de Biblioteca (`GamesList/index.tsx`), atualizamos o painel flutuante do modo Mass Edit (Modo de Edição em Lote) adicionando opções de "Marcar Todos", "Desmarcar Todos" e o botão "Desinstalar" com transições fluidas e desabilitação condicional se nenhum jogo for selecionado.
-
-### 4. Botão de Alternância de Layout (Novo Modo / Modo Antigo)
-* **Problema:** Havia a necessidade de alternar facilmente entre o novo layout de configurações Inline no painel lateral ("Novo Modo") e o gerenciamento clássico baseado em modais ("Modo Antigo").
-* **Solução:**
-  - Implementamos no painel de Personalização (`Personalization/index.tsx`) um controle switch premium (`premium-switch`) posicionado na barra de navegação mockada.
-  - O estado é persistido no localStorage (`heroic_use_inline_panel`) e propaga-se dinamicamente por meio de eventos globais customizados (`heroicUseInlinePanelChanged`).
-
-### 5. Estilização Premium e Efeitos Neon nas Configurações Inline
-* **Problema:** As caixas de texto e opções de seleção nas configurações inline possuíam estilo padrão e sem refinamento estético de foco e transições.
-* **Solução:**
-  - Adicionamos uma folha de estilos interna sofisticada com suporte a **Glassmorphism** (`background: rgba(255, 255, 255, 0.05)`, `backdrop-filter: blur(8px)`) em todos os campos de texto, comboboxes e botões de input.
-  - Implementamos efeitos de transição suave em `:hover` e foco com brilho em tom azul-turquesa (`#00ffff` e sombra neon).
-  - Limpamos as bordas pretas padrão e outlines do navegador ao focar nos elementos para manter o visual premium e integrado.
+  - Atualizamos `LibrarySearchBar/index.tsx` e criamos a folha de estilos dedicada `LibrarySearchBar/index.css`.
+  - Aplicamos o design system moderno com bordas suaves, efeitos de glow neon discretos no foco, sombras dinâmicas e transições de hover fluidas.
 
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
 
-### Backend
-- [NEW] [scanner.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner.ts)
-- [MODIFY] [main.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main.ts)
-- [MODIFY] [uninstaller.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/uninstaller.ts)
-- [MODIFY] [game_overrides/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/game_overrides/index.ts)
-- [MODIFY] [storeManagers/sideload/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/library.ts)
-
 ### Frontend
-- [NEW] [index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.css)
-- [MODIFY] [SideloadDialog/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InstallModal/SideloadDialog/index.tsx)
-- [MODIFY] [SideloadDialog/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InstallModal/SideloadDialog/index.scss)
-- [MODIFY] [GamesList/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GamesList/index.tsx)
-- [MODIFY] [InlineGameSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/index.tsx)
+- [NEW] [LibrarySearchBar/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/LibrarySearchBar/index.css)
+- [MODIFY] [LibrarySearchBar/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/LibrarySearchBar/index.tsx)
+- [MODIFY] [AlphabetFilter/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/AlphabetFilter/index.tsx)
+- [MODIFY] [AlphabetFilter/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/AlphabetFilter/index.css)
 - [MODIFY] [Personalization/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.tsx)
+- [MODIFY] [Personalization/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.css)

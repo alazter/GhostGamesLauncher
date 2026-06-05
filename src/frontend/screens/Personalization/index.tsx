@@ -83,6 +83,53 @@ export default function PersonalizationScreen() {
   })
 
   // ==============================================================
+  // ESTADOS DE CUSTOMIZAÇÃO DAS LOJAS
+  // ==============================================================
+  const [rightPanelMode, setRightPanelMode] = useState<'default' | 'storeButtons'>('default')
+
+  const [storeBtnBgColor, setStoreBtnBgColor] = useState<string>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_bg_color')
+    return saved !== null ? saved : '#ffffff'
+  })
+
+  const [storeBtnBgOpacity, setStoreBtnBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_bg_opacity')
+    return saved !== null ? Number(saved) : 0.03
+  })
+
+  const [storeBtnHoverOpacity, setStoreBtnHoverOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_hover_opacity')
+    return saved !== null ? Number(saved) : 0.06
+  })
+
+  const [storeBtnActiveOpacity, setStoreBtnActiveOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_active_opacity')
+    return saved !== null ? Number(saved) : 0.25
+  })
+
+  const [storeBtnBorderRadius, setStoreBtnBorderRadius] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_border_radius')
+    return saved !== null ? Number(saved) : 12
+  })
+
+  const [storeBtnGradientEnabled, setStoreBtnGradientEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_gradient_enabled')
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
+  })
+
+  const [storeBtnBgColor2, setStoreBtnBgColor2] = useState<string>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_bg_color_2')
+    return saved !== null ? saved : '#e08a1e'
+  })
+
+  const [activeStoreColorTab, setActiveStoreColorTab] = useState<'color1' | 'color2'>('color1')
+
+  const [storeBtnBorderEnabled, setStoreBtnBorderEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_border_enabled')
+    return saved !== null ? (JSON.parse(saved) as boolean) : true
+  })
+
+  // ==============================================================
   // ESCOLHA ALEATÓRIA DE 6 JOGOS DA BIBLIOTECA REAL COM REPETIÇÃO
   // ==============================================================
   const previewGames = useMemo(() => {
@@ -388,39 +435,6 @@ export default function PersonalizationScreen() {
       l: Math.round(l * 100)
     }
   }
-
-  const hslToRgb = (h: number, s: number, l: number) => {
-    h /= 360
-    s /= 100
-    l /= 100
-    let r = l
-    let g = l
-    let b = l
-
-    if (s !== 0) {
-      const hue2rgb = (p: number, q: number, t: number) => {
-        if (t < 0) t += 1
-        if (t > 1) t -= 1
-        if (t < 1 / 6) return p + (q - p) * 6 * t
-        if (t < 1 / 2) return q
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
-        return p
-      }
-
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s
-      const p = 2 * l - q
-      r = hue2rgb(p, q, h + 1 / 3)
-      g = hue2rgb(p, q, h)
-      b = hue2rgb(p, q, h - 1 / 3)
-    }
-
-    return {
-      r: Math.round(r * 255),
-      g: Math.round(g * 255),
-      b: Math.round(b * 255)
-    }
-  }
-
   const handleHexChange = (val: string) => {
     setAlphabetColor(val)
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
@@ -429,52 +443,189 @@ export default function PersonalizationScreen() {
     }
   }
 
-  const handleRgbFieldChange = (field: 'r' | 'g' | 'b', valStr: string) => {
-    const rgbValues = hexToRgb(alphabetColor)
-    const val = Math.max(0, Math.min(255, parseInt(valStr) || 0))
-    const newRgb = { ...rgbValues, [field]: val }
-    const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-    setAlphabetColor(hex)
-    localStorage.setItem('heroic_alphabet_color', hex)
+  const hsvToRgb = (h: number, s: number, v: number) => {
+    h = h / 360
+    s = s / 100
+    v = v / 100
+    let r = 0, g = 0, b = 0
+    const i = Math.floor(h * 6)
+    const f = h * 6 - i
+    const p = v * (1 - s)
+    const q = v * (1 - f * s)
+    const t = v * (1 - (1 - f) * s)
+    switch (i % 6) {
+      case 0: r = v; g = t; b = p; break
+      case 1: r = q; g = v; b = p; break
+      case 2: r = p; g = v; b = t; break
+      case 3: r = p; g = q; b = v; break
+      case 4: r = t; g = p; b = v; break
+      case 5: r = v; g = p; b = q; break
+    }
+    return {
+      r: Math.round(r * 255),
+      g: Math.round(g * 255),
+      b: Math.round(b * 255)
+    }
+  }
+
+  const rgbToHsv = (r: number, g: number, b: number) => {
+    r /= 255
+    g /= 255
+    b /= 255
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    let h = 0
+    let s = 0
+    const v = max
+    const d = max - min
+    s = max === 0 ? 0 : d / max
+    if (max !== min) {
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break
+        case g: h = (b - r) / d + 2; break
+        case b: h = (r - g) / d + 4; break
+      }
+      h /= 6
+    }
+    return {
+      h: Math.round(h * 360),
+      s: Math.round(s * 100),
+      v: Math.round(v * 100)
+    }
+  }
+
+  const SVBox = ({ hexColor, onChange }: { hexColor: string; onChange: (hex: string) => void }) => {
+    const rgb = hexToRgb(hexColor)
+    const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b)
+    
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const updateColor = (clientX: number, clientY: number) => {
+        const x = Math.max(0, Math.min(rect.width, clientX - rect.left))
+        const y = Math.max(0, Math.min(rect.height, clientY - rect.top))
+        const s = Math.round((x / rect.width) * 100)
+        const v = Math.round((1 - y / rect.height) * 100)
+        const newRgb = hsvToRgb(hsv.h, s, v)
+        const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+        onChange(newHex)
+      }
+
+      updateColor(e.clientX, e.clientY)
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        updateColor(moveEvent.clientX, moveEvent.clientY)
+      }
+
+      const handleMouseUp = () => {
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
+      }
+
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+    }
+
+    return (
+      <div
+        onMouseDown={handleMouseDown}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '150px',
+          borderRadius: '6px',
+          cursor: 'crosshair',
+          overflow: 'hidden',
+          background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent), hsl(${hsv.h}, 100%, 50%)`,
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: 'inset 0 0 15px rgba(0, 0, 0, 0.5)'
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            left: `${hsv.s}%`,
+            top: `${100 - hsv.v}%`,
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            border: '2px solid #fff',
+            boxShadow: '0 0 3px rgba(0,0,0,0.8)',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+            backgroundColor: 'transparent'
+          }}
+        />
+      </div>
+    )
+  }
+
+  const handleStoreHexChange = (val: string) => {
+    setStoreBtnBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleStoreHexChange2 = (val: string) => {
+    setStoreBtnBgColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_bg_color_2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleStoreGradientToggle = (val: boolean) => {
+    setStoreBtnGradientEnabled(val)
+    localStorage.setItem('heroic_store_btn_gradient_enabled', JSON.stringify(val))
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleHueSliderChange = (hVal: number) => {
-    const rgbValues = hexToRgb(alphabetColor)
-    const hslValues = rgbToHsl(rgbValues.r, rgbValues.g, rgbValues.b)
-    const s = hslValues.s < 10 ? 100 : hslValues.s
-    const l = (hslValues.l < 15 || hslValues.l > 85) ? 50 : hslValues.l
-    const newRgb = hslToRgb(hVal, s, l)
-    const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-    setAlphabetColor(hex)
-    localStorage.setItem('heroic_alphabet_color', hex)
+  const handleStoreBorderToggle = (val: boolean) => {
+    setStoreBtnBorderEnabled(val)
+    localStorage.setItem('heroic_store_btn_border_enabled', JSON.stringify(val))
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleGrayscaleSliderChange = (val: number) => {
-    const v = 255 - val
-    const hex = rgbToHex(v, v, v)
-    setAlphabetColor(hex)
-    localStorage.setItem('heroic_alphabet_color', hex)
+
+
+  const handleStoreBgOpacityChange = (val: number) => {
+    setStoreBtnBgOpacity(val)
+    localStorage.setItem('heroic_store_btn_bg_opacity', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleLightnessSliderChange = (lVal: number) => {
-    const rgbValues = hexToRgb(alphabetColor)
-    const hslValues = rgbToHsl(rgbValues.r, rgbValues.g, rgbValues.b)
-    const newRgb = hslToRgb(hslValues.h, hslValues.s, lVal)
-    const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-    setAlphabetColor(hex)
-    localStorage.setItem('heroic_alphabet_color', hex)
+  const handleStoreHoverOpacityChange = (val: number) => {
+    setStoreBtnHoverOpacity(val)
+    localStorage.setItem('heroic_store_btn_hover_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreActiveOpacityChange = (val: number) => {
+    setStoreBtnActiveOpacity(val)
+    localStorage.setItem('heroic_store_btn_active_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreBorderRadiusChange = (val: number) => {
+    setStoreBtnBorderRadius(val)
+    localStorage.setItem('heroic_store_btn_border_radius', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
   // ==============================================================
 
   const rgbValues = hexToRgb(alphabetColor)
   const hslValues = rgbToHsl(rgbValues.r, rgbValues.g, rgbValues.b)
-  const pureRgb = hslToRgb(hslValues.h, hslValues.s < 10 ? 100 : hslValues.s, 50)
-  const currentGrayscaleValue = 255 - Math.round((rgbValues.r + rgbValues.g + rgbValues.b) / 3)
-  const pureColorHex = rgbToHex(pureRgb.r, pureRgb.g, pureRgb.b)
+
+  const storeRgb = hexToRgb(storeBtnBgColor)
+  const storeHsl = rgbToHsl(storeRgb.r, storeRgb.g, storeRgb.b)
+  const storeRgb2 = hexToRgb(storeBtnBgColor2)
+  const storeHsl2 = rgbToHsl(storeRgb2.r, storeRgb2.g, storeRgb2.b)
+
+  const isEditingColor2 = storeBtnGradientEnabled && activeStoreColorTab === 'color2'
+  const currentEditingColor = isEditingColor2 ? storeBtnBgColor2 : storeBtnBgColor
+  const currentEditingHsl = isEditingColor2 ? storeHsl2 : storeHsl
+  const currentEditingHandler = isEditingColor2 ? handleStoreHexChange2 : handleStoreHexChange
   
   const { r, g, b } = rgbValues
   const luminance = 0.299 * r + 0.587 * g + 0.114 * b
@@ -815,35 +966,43 @@ export default function PersonalizationScreen() {
           background: var(--alpha-track-bg) !important;
         }
 
+        /* HUE SLIDER TRACK */
+        input[type='range'].hue-picker-range::-webkit-slider-runnable-track {
+          width: 100% !important;
+          height: 8px !important;
+          border-radius: 4px !important;
+          border: 1px solid rgba(255, 255, 255, 0.15) !important;
+          background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000) !important;
+        }
+        input[type='range'].hue-picker-range::-moz-range-track {
+          width: 100% !important;
+          height: 8px !important;
+          border-radius: 4px !important;
+          border: 1px solid rgba(255, 255, 255, 0.15) !important;
+          background: linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000) !important;
+        }
+
         /* HUE THUMB */
         input[type='range'].hue-picker-range::-webkit-slider-thumb {
           -webkit-appearance: none !important;
           appearance: none !important;
-          height: 28px !important;
-          width: 12px !important;
-          border-radius: 6px !important;
-          background: var(--thumb-color, #ffffff) !important;
-          border: 2.5px solid var(--thumb-border-color, #ffffff) !important;
+          height: 16px !important;
+          width: 8px !important;
+          border-radius: 4px !important;
+          background: #ffffff !important;
+          border: 1px solid rgba(0, 0, 0, 0.4) !important;
           cursor: pointer !important;
           margin-top: -4px !important;
-          box-shadow: 0 0 10px var(--thumb-border-color, rgba(255, 255, 255, 0.5)) !important;
-          transition: transform 0.1s !important;
-        }
-        input[type='range'].hue-picker-range::-webkit-slider-thumb:hover {
-          transform: scale(1.1) !important;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
         }
         input[type='range'].hue-picker-range::-moz-range-thumb {
-          height: 26px !important;
-          width: 10px !important;
-          border-radius: 6px !important;
-          background: var(--thumb-color, #ffffff) !important;
-          border: 2.5px solid var(--thumb-border-color, #ffffff) !important;
+          height: 16px !important;
+          width: 8px !important;
+          border-radius: 4px !important;
+          background: #ffffff !important;
+          border: 1px solid rgba(0, 0, 0, 0.4) !important;
           cursor: pointer !important;
-          box-shadow: 0 0 10px var(--thumb-border-color, rgba(255, 255, 255, 0.5)) !important;
-          transition: transform 0.1s !important;
-        }
-        input[type='range'].hue-picker-range::-moz-range-thumb:hover {
-          transform: scale(1.1) !important;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
         }
 
         /* ALPHA THUMB */
@@ -1087,62 +1246,118 @@ export default function PersonalizationScreen() {
           gap: 16px;
           width: 100%;
           box-sizing: border-box;
-          padding-top: 6px;
+          padding: 6px;
+          border: 1.5px dashed transparent;
+          border-radius: 14px;
+          transition: border-color 0.2s, background-color 0.2s;
+          cursor: pointer;
+        }
+        .preview-platforms-bar:hover {
+          border-color: rgba(230, 126, 34, 0.4);
+          background-color: rgba(255, 255, 255, 0.02);
+        }
+        .preview-platforms-bar--selected {
+          border-color: rgba(230, 126, 34, 0.8) !important;
+          background-color: rgba(230, 126, 34, 0.04) !important;
         }
 
         .preview-platform-btn {
+          box-sizing: border-box !important;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          padding: 5px 11px;
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 4px 6px;
+          border-radius: var(--store-btn-border-radius, 12px);
+          background: var(--store-btn-bg, rgba(255, 255, 255, 0.03)) padding-box, transparent border-box !important;
+          border: 1px solid var(--store-btn-border-color, rgba(255, 255, 255, 0.08)) !important;
+          background-clip: padding-box, border-box !important;
+          background-origin: padding-box, border-box !important;
           color: #fff;
-          font-size: 14px;
+          font-size: 18px;
           font-weight: 400;
-          cursor: default;
+          cursor: pointer;
           white-space: nowrap;
-          transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
           flex-shrink: 0;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: var(--store-btn-backdrop-filter, blur(12px));
+          -webkit-backdrop-filter: var(--store-btn-backdrop-filter, blur(12px));
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          transform: translate3d(0, 0, 0) scale(1);
+          backface-visibility: hidden;
+          will-change: transform, border-color, box-shadow;
+          position: relative !important;
+          overflow: hidden !important;
+          outline: none !important;
         }
+
+        .preview-platform-btn:focus,
+        .preview-platform-btn:focus-visible,
+        .preview-platform-btn:active {
+          outline: none !important;
+        }
+
         .preview-platform-btn:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.15);
+          transform: translate3d(0, 0, 0) scale(1.08) !important;
+        }
+
+        /* Ensure contents stay above the hover overlay */
+        .preview-platform-btn > img,
+        .preview-platform-btn > div,
+        .preview-platform-btn > span {
+          position: relative !important;
+          z-index: 2 !important;
+        }
+
+        /* Hover overlay using ::before pseudo-element */
+        .preview-platform-btn::before {
+          content: "" !important;
+          position: absolute !important;
+          inset: 0 !important;
+          background: var(--store-btn-hover-bg, rgba(255, 255, 255, 0.06)) padding-box, transparent border-box !important;
+          background-clip: padding-box, border-box !important;
+          background-origin: padding-box, border-box !important;
+          opacity: 0 !important;
+          transition: opacity 0.2s ease-in-out !important;
+          z-index: 1 !important;
+          pointer-events: none !important;
+        }
+
+        .preview-platform-btn:hover::before {
+          opacity: 1 !important;
         }
 
         .preview-platform-btn--active {
-          background: linear-gradient(135deg, rgba(20, 24, 30, 0.6) 0%, rgba(230, 126, 34, 0.06) 100%) padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(230, 126, 34, 0.95) 100%) border-box !important;
-          border: 1px solid transparent !important;
-          background-clip: padding-box, border-box !important;
-          background-origin: padding-box, border-box !important;
-          font-weight: 600 !important;
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          box-shadow: 0 3px 12px 0 rgba(230, 126, 34, 0.14), inset 0 0 8px rgba(255, 255, 255, 0.05) !important;
+          background: linear-gradient(135deg, var(--store-btn-active-bg-start, rgba(20, 24, 30, 0.6)) 0%, var(--store-btn-active-bg-end, rgba(230, 126, 34, 0.06)) 100%) padding-box, linear-gradient(135deg, var(--store-btn-active-border-start, rgba(255, 255, 255, 0.15)) 0%, var(--store-btn-active-border-end, rgba(230, 126, 34, 0.95)) 100%) border-box !important;
+          border-color: transparent !important;
+          font-weight: 400 !important;
+          backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+          -webkit-backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+          box-shadow: 0 3px 12px 0 var(--store-btn-shadow-color, rgba(230, 126, 34, 0.14)), inset 0 0 8px rgba(255, 255, 255, 0.05) !important;
           position: relative;
           z-index: 2;
+          transform: translate3d(0, 0, 0) scale(1.1) !important;
+        }
+
+        .preview-platform-btn--active:hover {
+          transform: translate3d(0, 0, 0) scale(1.1) !important;
         }
 
         .preview-platform-icon-img {
-          width: 26px;
-          height: 26px;
+          width: 40px;
+          height: 40px;
           object-fit: contain;
         }
 
         .preview-platform-icon-placeholder {
-          width: 26px;
-          height: 26px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           background: #4CAF50;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 18px;
           color: #fff;
           font-weight: bold;
         }
@@ -1214,13 +1429,13 @@ export default function PersonalizationScreen() {
         }
 
         .preview-alphabet-btn--active {
-          background: linear-gradient(135deg, rgba(20, 24, 30, 0.6) 0%, rgba(230, 126, 34, 0.06) 100%) padding-box, linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(230, 126, 34, 0.95) 100%) border-box !important;
+          background: linear-gradient(135deg, var(--store-btn-active-bg-start, rgba(20, 24, 30, 0.6)) 0%, var(--store-btn-active-bg-end, rgba(230, 126, 34, 0.06)) 100%) padding-box, linear-gradient(135deg, var(--store-btn-active-border-start, rgba(255, 255, 255, 0.2)) 0%, var(--store-btn-active-border-end, rgba(230, 126, 34, 0.95)) 100%) border-box !important;
           border: 2px solid transparent !important;
           background-clip: padding-box, border-box !important;
           background-origin: padding-box, border-box !important;
           color: #ffffff !important;
           font-weight: 700;
-          box-shadow: 0 3px 10px 0 rgba(230, 126, 34, 0.25), inset 0 0 4px rgba(255, 255, 255, 0.1) !important;
+          box-shadow: 0 3px 10px 0 var(--store-btn-shadow-color, rgba(230, 126, 34, 0.25)), inset 0 0 4px rgba(255, 255, 255, 0.1) !important;
           transform: scale(1.1);
         }
 
@@ -1591,7 +1806,10 @@ export default function PersonalizationScreen() {
         {/* ========================================= */}
         <div style={styles.centerPreview}>
           <div style={styles.previewArea}>
-            <div className="preview-library-container">
+            <div 
+              className="preview-library-container"
+              onClick={() => setRightPanelMode('default')}
+            >
               {/* 1. TOP BAR */}
               <div className="preview-top-bar">
                 {/* LINHA 1: Barra de busca, navegação e botões/filtros mockados */}
@@ -1715,7 +1933,40 @@ export default function PersonalizationScreen() {
                 </div>
 
                 {/* LINHA 2: Barra de Lojas / Plataformas */}
-                <div className="preview-platforms-bar">
+                <div 
+                  className={`preview-platforms-bar ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRightPanelMode('storeButtons');
+                  }}
+                  style={{
+                    '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
+                    '--store-btn-border-width': storeBtnBorderEnabled ? '1px' : '0px',
+                    '--store-btn-bg': storeBtnGradientEnabled
+                      ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnBgOpacity}) 100%)`
+                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity})`,
+                    '--store-btn-border-color': storeBtnBorderEnabled
+                      ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnBgOpacity * 2.5)})`
+                      : 'transparent',
+                    '--store-btn-hover-bg': storeBtnGradientEnabled
+                      ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnHoverOpacity}) 100%)`
+                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity})`,
+                    '--store-btn-hover-border-color': storeBtnBorderEnabled
+                      ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnHoverOpacity * 2.5)})`
+                      : 'transparent',
+                    '--store-btn-active-bg-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+                    '--store-btn-active-bg-end': storeBtnGradientEnabled
+                      ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnActiveOpacity})`
+                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+                    '--store-btn-active-border-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+                    '--store-btn-active-border-end': storeBtnGradientEnabled
+                      ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`
+                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+                    '--store-btn-shadow-color': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, 0.2)`,
+                    '--store-btn-backdrop-filter': storeBtnBgOpacity === 0 ? 'none' : 'blur(12px)',
+                    '--store-btn-hover-backdrop-filter': storeBtnHoverOpacity === 0 ? 'none' : 'blur(12px)'
+                  } as React.CSSProperties}
+                >
                   {stores
                     .filter((s) => s.isVisible ?? true)
                     .slice(0, 6)
@@ -1728,7 +1979,11 @@ export default function PersonalizationScreen() {
                         <div 
                           key={store.id} 
                           className={`preview-platform-btn ${isActive ? 'preview-platform-btn--active' : ''}`}
-                          onClick={() => setActivePreviewStoreId(store.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePreviewStoreId(store.id);
+                            setRightPanelMode('storeButtons');
+                          }}
                           style={{ cursor: 'pointer' }}
                         >
                           {store.icon || ['epic', 'gog', 'amazon', 'zoom', 'sideloaded', 'steam'].includes(store.id) ? (
@@ -1792,6 +2047,15 @@ export default function PersonalizationScreen() {
                       '--txt-color': btnTextColor,
                       '--disabled-txt-color': btnDisabledTextColor,
                       '--active-bg': activeBtnBg,
+                      '--store-btn-active-bg-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+                      '--store-btn-active-bg-end': storeBtnGradientEnabled
+                        ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnActiveOpacity})`
+                        : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+                      '--store-btn-active-border-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+                      '--store-btn-active-border-end': storeBtnGradientEnabled
+                        ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`
+                        : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+                      '--store-btn-shadow-color': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, 0.2)`,
                       width: alphabetAlignment === 'fill' ? '100%' : 'auto',
                       justifyContent: alphabetAlignment === 'fill' ? 'space-between' : 'center'
                     } as React.CSSProperties}
@@ -1877,546 +2141,748 @@ export default function PersonalizationScreen() {
         {/* 3. SIDEBAR DIREITA (CONFIGS E BACKGROUND) */}
         {/* ========================================= */}
         <div style={styles.sidebarRight}>
-          {/* SEÇÃO 1: BACKGROUND */}
-          <span style={styles.sectionTitle}>PERSONALIZAÇÃO DO BACKGROUND</span>
-          <div
-            style={styles.dropZone}
-            onDragOver={handleDragOverBg}
-            onDragLeave={handleDragLeaveBg}
-            onDrop={handleDropBg}
-          >
-            <span style={styles.dropZoneText}>
-              Arraste e solte o Background
-            </span>
-            <span style={{ fontSize: '14px', color: '#8a9bb0' }}>ou</span>
-
-            <label style={styles.searchFileBtn}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBgUpload}
-                style={{ display: 'none' }}
-              />
-              Pesquisar Arquivo
-            </label>
-
-            <p style={styles.recommendationText}>
-              Nós recomendamos usar uma imagem com a resolução de 1860x950 para
-              um melhor preenchimento.
-            </p>
-          </div>
-
-          {/* SEÇÃO 2: COMPORTAMENTO DA INTERFACE */}
-          <div style={{ marginTop: '20px' }}>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                background: 'rgba(0, 0, 0, 0.2)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.05)',
-                padding: '15px 0 0 0',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Cabeçalho Unificado */}
-              <div style={{ ...styles.toggleTextGroup, padding: '0 15px 15px 15px' }}>
-                <span style={styles.toggleTitle}>
-                  Comportamento da Grade de Jogos
-                </span>
-                <span style={styles.toggleSub}>
-                  Personalize a exibição de ícones e busca na biblioteca
-                </span>
-              </div>
-
-              {/* Divisor */}
-              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)' }} />
-              {/* Opção Gamepad */}
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 15px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = 'transparent')
-                }
-              >
-                <div style={styles.toggleTextGroup}>
-                  <span style={styles.toggleTitle}>
-                    Ocultar ícones no Gamepad
-                  </span>
-                  <span style={styles.toggleSub}>
-                    Deixa a interface limpa usando controle
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={hideIconsGamepad}
-                  onChange={handleToggleGamepadIcons}
-                  style={styles.checkbox}
-                />
-              </label>
-
-              {/* Divisor */}
-              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)', margin: '0 15px' }} />
-
-              {/* Opção Mouse */}
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 15px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = 'transparent')
-                }
-              >
-                <div style={styles.toggleTextGroup}>
-                  <span style={styles.toggleTitle}>
-                    Ocultar ícones no Mouse
-                  </span>
-                  <span style={styles.toggleSub}>
-                    Deixa a interface limpa usando o mouse
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={hideIconsMouse}
-                  onChange={handleToggleMouseIcons}
-                  style={styles.checkbox}
-                />
-              </label>
-
-              {/* Divisor */}
-              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)', margin: '0 15px' }} />
-
-              {/* Opção Sugestões de Busca */}
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 15px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = 'transparent')
-                }
-              >
-                <div style={styles.toggleTextGroup}>
-                  <span style={styles.toggleTitle}>
-                    Ocultar sugestões na busca
-                  </span>
-                  <span style={styles.toggleSub}>
-                    Deixa a barra de busca limpa ao pesquisar por jogos
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={hideSearchSuggestions}
-                  onChange={handleToggleSearchSuggestions}
-                  style={styles.checkbox}
-                />
-              </label>
-
-
-            </div>
-          </div>
-
-          {/* Configurações do Filtro de Alfabeto Unificado */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              background: 'rgba(0, 0, 0, 0.2)',
-              padding: '15px',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.05)',
-              marginTop: '20px'
-            }}
-          >
-            {/* Cabeçalho Unificado */}
-            <div style={styles.toggleTextGroup}>
-              <span style={styles.toggleTitle}>
-                Filtro de Alfabeto (A-Z)
-              </span>
-              <span style={styles.toggleSub}>
-                Personalize o alinhamento e transparência das letras
-              </span>
-            </div>
-
-            {/* Sub-seção 1: Alinhamento */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Alinhamento do Filtro
-              </span>
+          {rightPanelMode === 'default' ? (
+            <>
+              {/* SEÇÃO 1: BACKGROUND */}
+              <span style={styles.sectionTitle}>PERSONALIZAÇÃO DO BACKGROUND</span>
               <div
-                style={{
-                  display: 'flex',
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '6px',
-                  padding: '3px',
-                  gap: '4px'
-                }}
+                style={styles.dropZone}
+                onDragOver={handleDragOverBg}
+                onDragLeave={handleDragLeaveBg}
+                onDrop={handleDropBg}
               >
-                {(
-                  [
-                    { id: 'left', label: 'Esquerda' },
-                    { id: 'center', label: 'Centro' },
-                    { id: 'right', label: 'Direita' },
-                    { id: 'fill', label: 'Preencher' }
-                  ] as const
-                ).map((opt) => {
-                  const isSelected = alphabetAlignment === opt.id
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => handleToggleAlphabetAlignment(opt.id)}
-                      style={{
-                        flex: 1,
-                        height: '28px',
-                        background: isSelected ? '#4CAF50' : 'transparent',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+                <span style={styles.dropZoneText}>
+                  Arraste e solte o Background
+                </span>
+                <span style={{ fontSize: '14px', color: '#8a9bb0' }}>ou</span>
 
-            {/* Divisor Sutil */}
-            <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-
-            {/* Sub-seção 2: Transparência */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Transparência do Fundo
-              </span>
-
-              {/* Slider 1: Fundo do Painel */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <span style={{ color: '#fff', fontSize: '12px' }}>Opacidade do Fundo do Painel</span>
-                  <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBgOpacity * 100)}%</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                <label style={styles.searchFileBtn}>
                   <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={alphabetBgOpacity}
-                    onChange={(e) => handleAlphabetBgOpacityChange(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      accentColor: '#4CAF50',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      height: '6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer'
-                    }}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBgUpload}
+                    style={{ display: 'none' }}
                   />
-                </div>
+                  Pesquisar Arquivo
+                </label>
+
+                <p style={styles.recommendationText}>
+                  Nós recomendamos usar uma imagem com a resolução de 1860x950 para
+                  um melhor preenchimento.
+                </p>
               </div>
 
-              {/* Slider 2: Fundo das Letras */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <span style={{ color: '#fff', fontSize: '12px' }}>Opacidade do Fundo das Letras</span>
-                  <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBtnOpacity * 100)}%</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={alphabetBtnOpacity}
-                    onChange={(e) => handleAlphabetBtnOpacityChange(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      accentColor: '#4CAF50',
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      height: '6px',
-                      borderRadius: '3px',
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Divisor Sutil */}
-            <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-
-            {/* Sub-seção 3: Alterar Cores */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Alterar cores do filtro
-              </span>
-
-              {/* Hex Input and Color Preview */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* SEÇÃO 2: COMPORTAMENTO DA INTERFACE */}
+              <div style={{ marginTop: '20px' }}>
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    background: 'rgba(0, 0, 0, 0.3)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    gap: '10px',
-                    width: '150px'
+                    flexDirection: 'column',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    padding: '15px 0 0 0',
+                    overflow: 'hidden'
                   }}
                 >
-                  <div
+                  {/* Cabeçalho Unificado */}
+                  <div style={{ ...styles.toggleTextGroup, padding: '0 15px 15px 15px' }}>
+                    <span style={styles.toggleTitle}>
+                      Comportamento da Grade de Jogos
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize a exibição de ícones e busca na biblioteca
+                    </span>
+                  </div>
+
+                  {/* Divisor */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)' }} />
+                  {/* Opção Gamepad */}
+                  <label
                     style={{
-                      width: '18px',
-                      height: '18px',
-                      borderRadius: '4px',
-                      backgroundColor: alphabetColor,
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      flexShrink: 0
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 15px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
                     }}
-                  />
-                  <input
-                    type="text"
-                    value={alphabetColor}
-                    onChange={(e) => handleHexChange(e.target.value)}
-                    placeholder="#ffffff"
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = 'transparent')
+                    }
+                  >
+                    <div style={styles.toggleTextGroup}>
+                      <span style={styles.toggleTitle}>
+                        Ocultar ícones no Gamepad
+                      </span>
+                      <span style={styles.toggleSub}>
+                        Deixa a interface limpa usando controle
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={hideIconsGamepad}
+                      onChange={handleToggleGamepadIcons}
+                      style={styles.checkbox}
+                    />
+                  </label>
+
+                  {/* Divisor */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)', margin: '0 15px' }} />
+
+                  {/* Opção Mouse */}
+                  <label
                     style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: '13px',
-                      outline: 'none',
-                      width: '100%',
-                      fontFamily: 'monospace'
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 15px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
                     }}
-                  />
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = 'transparent')
+                    }
+                  >
+                    <div style={styles.toggleTextGroup}>
+                      <span style={styles.toggleTitle}>
+                        Ocultar ícones no Mouse
+                      </span>
+                      <span style={styles.toggleSub}>
+                        Deixa a interface limpa usando o mouse
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={hideIconsMouse}
+                      onChange={handleToggleMouseIcons}
+                      style={styles.checkbox}
+                    />
+                  </label>
+
+                  {/* Divisor */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.05)', margin: '0 15px' }} />
+
+                  {/* Opção Sugestões de Busca */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 15px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.background = 'transparent')
+                    }
+                  >
+                    <div style={styles.toggleTextGroup}>
+                      <span style={styles.toggleTitle}>
+                        Ocultar sugestões na busca
+                      </span>
+                      <span style={styles.toggleSub}>
+                        Deixa a barra de busca limpa ao pesquisar por jogos
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={hideSearchSuggestions}
+                      onChange={handleToggleSearchSuggestions}
+                      style={styles.checkbox}
+                    />
+                  </label>
+
+
                 </div>
               </div>
 
-              {/* RGB / Alpha Box Row */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {/* Labels Row */}
-                <div style={{ display: 'flex', gap: '10px', paddingLeft: '4px' }}>
-                  <span style={{ flex: 1, fontSize: '11px', color: '#8a9bb0', textAlign: 'center' }}>R</span>
-                  <span style={{ flex: 1, fontSize: '11px', color: '#8a9bb0', textAlign: 'center' }}>G</span>
-                  <span style={{ flex: 1, fontSize: '11px', color: '#8a9bb0', textAlign: 'center' }}>B</span>
-                  <span style={{ flex: 1, fontSize: '11px', color: '#8a9bb0', textAlign: 'center' }}>A</span>
-                  <div style={{ width: '28px' }} /> {/* Spacer */}
+              {/* Configurações do Filtro de Alfabeto Unificado */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  marginTop: '20px'
+                }}
+              >
+                {/* Cabeçalho Unificado */}
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Filtro de Alfabeto (A-Z)
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Personalize o alinhamento e transparência das letras
+                  </span>
                 </div>
-                {/* Inputs Row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="number"
-                    min="0"
-                    max="255"
-                    value={rgbValues.r}
-                    onChange={(e) => handleRgbFieldChange('r', e.target.value)}
-                    style={{
-                      flex: 1,
-                      height: '32px',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      textAlign: 'center',
-                      outline: 'none'
-                    }}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="255"
-                    value={rgbValues.g}
-                    onChange={(e) => handleRgbFieldChange('g', e.target.value)}
-                    style={{
-                      flex: 1,
-                      height: '32px',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      textAlign: 'center',
-                      outline: 'none'
-                    }}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="255"
-                    value={rgbValues.b}
-                    onChange={(e) => handleRgbFieldChange('b', e.target.value)}
-                    style={{
-                      flex: 1,
-                      height: '32px',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      textAlign: 'center',
-                      outline: 'none'
-                    }}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={Math.round(alphabetBgOpacity * 100)}
-                    onChange={(e) => {
-                      const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
-                      handleAlphabetBgOpacityChange(val / 100)
-                    }}
-                    style={{
-                      flex: 1,
-                      height: '32px',
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: '6px',
-                      color: '#fff',
-                      fontSize: '13px',
-                      textAlign: 'center',
-                      outline: 'none'
-                    }}
-                  />
-                  {/* Colored Alpha Overlay Preview */}
+
+                {/* Sub-seção 1: Alinhamento */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Alinhamento do Filtro
+                  </span>
                   <div
                     style={{
-                      width: '28px',
-                      height: '28px',
+                      display: 'flex',
+                      background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '6px',
-                      background: `repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 50% / 8px 8px`,
-                      position: 'relative',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      flexShrink: 0
+                      padding: '3px',
+                      gap: '4px'
                     }}
                   >
+                    {(
+                      [
+                        { id: 'left', label: 'Esquerda' },
+                        { id: 'center', label: 'Centro' },
+                        { id: 'right', label: 'Direita' },
+                        { id: 'fill', label: 'Preencher' }
+                      ] as const
+                    ).map((opt) => {
+                      const isSelected = alphabetAlignment === opt.id
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => handleToggleAlphabetAlignment(opt.id)}
+                          style={{
+                            flex: 1,
+                            height: '28px',
+                            background: isSelected ? '#4CAF50' : 'transparent',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Divisor Sutil */}
+                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Sub-seção 2: Transparência */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Transparência do Fundo
+                  </span>
+
+                  {/* Slider 1: Fundo do Painel */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff', fontSize: '12px' }}>Opacidade do Fundo do Painel</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBgOpacity * 100)}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={alphabetBgOpacity}
+                        onChange={(e) => handleAlphabetBgOpacityChange(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: '#4CAF50',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slider 2: Fundo das Letras */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff', fontSize: '12px' }}>Opacidade do Fundo das Letras</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBtnOpacity * 100)}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={alphabetBtnOpacity}
+                        onChange={(e) => handleAlphabetBtnOpacityChange(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: '#4CAF50',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/*                {/* Sub-seção 3: Alterar Cores */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Alterar cores do filtro
+                  </span>
+
+                  {/* 2D SV Box */}
+                  <SVBox hexColor={alphabetColor} onChange={handleHexChange} />
+
+                  {/* Hue Slider */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={hslValues.h}
+                        onChange={(e) => {
+                          const hVal = Number(e.target.value)
+                          const rgbValues = hexToRgb(alphabetColor)
+                          const hsvValues = rgbToHsv(rgbValues.r, rgbValues.g, rgbValues.b)
+                          const newRgb = hsvToRgb(hVal, hsvValues.s, hsvValues.v)
+                          const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                          setAlphabetColor(hex)
+                          localStorage.setItem('heroic_alphabet_color', hex)
+                          window.dispatchEvent(new Event('heroicSettingsChanged'))
+                        }}
+                        className="color-picker-range hue-picker-range"
+                        style={{
+                          '--thumb-color': alphabetColor,
+                          '--thumb-border-color': alphabetColor
+                        } as React.CSSProperties}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hex Input and Color Preview */}
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                     <div
                       style={{
-                        position: 'absolute',
-                        inset: 0,
-                        borderRadius: '5px',
-                        backgroundColor: `rgba(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}, ${alphabetBgOpacity})`
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        gap: '10px',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                      <input
+                        type="text"
+                        value={alphabetColor.replace('#', '')}
+                        onChange={(e) => handleHexChange('#' + e.target.value)}
+                        placeholder="ffffff"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '14px',
+                          outline: 'none',
+                          width: '100%',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <div
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '4px',
+                          backgroundColor: alphabetColor,
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          flexShrink: 0
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Opacidade do Fundo (Alpha) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff' }}>Opacidade do Fundo (Alpha)</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBgOpacity * 100)}%</span>
+                    </div>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={alphabetBgOpacity}
+                        onChange={(e) => handleAlphabetBgOpacityChange(Number(e.target.value))}
+                        className="color-picker-range alpha-picker-range"
+                        style={{
+                          '--alpha-track-bg': `linear-gradient(to right, rgba(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}, 0), rgb(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b})), repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 50% / 10px 10px`,
+                          '--thumb-color': `rgba(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}, ${alphabetBgOpacity})`,
+                          '--thumb-border-color': alphabetColor
+                        } as React.CSSProperties}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* SEÇÃO 1: PERSONALIZAÇÃO DAS LOJAS */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <span style={styles.sectionTitle}>PERSONALIZAÇÃO DAS LOJAS</span>
+                <button
+                  onClick={() => setRightPanelMode('default')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  ← Voltar
+                </button>
+              </div>
+
+              {/* Controles das Lojas */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Estilo dos Botões de Lojas
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Personalize a cor, opacidade e o arredondamento das bordas
+                  </span>
+                </div>
+
+                {/* Sub-seção 1: Arredondamento */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span style={{ color: '#fff' }}>Arredondamento das Bordas</span>
+                    <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{storeBtnBorderRadius}px</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                    <input
+                      type="range"
+                      min="0"
+                      max="30"
+                      step="1"
+                      value={storeBtnBorderRadius}
+                      onChange={(e) => handleStoreBorderRadiusChange(Number(e.target.value))}
+                      style={{
+                        width: '100%',
+                        accentColor: '#4CAF50',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        height: '6px',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
                       }}
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Hue Slider */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Matiz (Hue)</span>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="360"
-                    value={hslValues.h}
-                    onChange={(e) => handleHueSliderChange(Number(e.target.value))}
-                    className="color-picker-range hue-picker-range"
-                    style={{
-                      '--thumb-color': alphabetColor,
-                      '--thumb-border-color': alphabetColor
-                    } as React.CSSProperties}
-                  />
+                {/* Divisor Sutil */}
+                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Sub-seção 3: Cores */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {storeBtnGradientEnabled ? 'Configuração de Cores' : 'Alterar cor de fundo'}
+                      </span>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                        <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={storeBtnGradientEnabled}
+                            onChange={(e) => handleStoreGradientToggle(e.target.checked)}
+                          />
+                          <span className="premium-slider"></span>
+                        </label>
+                      </label>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Borda do Botão</span>
+                      <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={storeBtnBorderEnabled}
+                          onChange={(e) => handleStoreBorderToggle(e.target.checked)}
+                        />
+                        <span className="premium-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Tabs de seleção de cores em caso de degrade ativo */}
+                  {storeBtnGradientEnabled && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        borderRadius: '6px',
+                        padding: '3px',
+                        gap: '4px',
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                      }}
+                    >
+                      <button
+                        onClick={() => setActiveStoreColorTab('color1')}
+                        style={{
+                          flex: 1,
+                          height: '28px',
+                          background: activeStoreColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                          color: '#fff',
+                          border: activeStoreColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          outline: 'none'
+                        }}
+                      >
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                        Cor Inicial
+                      </button>
+                      <button
+                        onClick={() => setActiveStoreColorTab('color2')}
+                        style={{
+                          flex: 1,
+                          height: '28px',
+                          background: activeStoreColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                          color: '#fff',
+                          border: activeStoreColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          outline: 'none'
+                        }}
+                      >
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                        Cor Final
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 2D SV Box */}
+                  <SVBox hexColor={currentEditingColor} onChange={currentEditingHandler} />
+
+                  {/* Hue Slider */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={currentEditingHsl.h}
+                        onChange={(e) => {
+                          const hVal = Number(e.target.value)
+                          const rgbVal = hexToRgb(currentEditingColor)
+                          const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                          const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                          const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                          currentEditingHandler(hex)
+                        }}
+                        className="color-picker-range hue-picker-range"
+                        style={{
+                          '--thumb-color': currentEditingColor,
+                          '--thumb-border-color': currentEditingColor
+                        } as React.CSSProperties}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hex Input and Color Preview */}
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        gap: '10px',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                      <input
+                        type="text"
+                        value={currentEditingColor.replace('#', '')}
+                        onChange={(e) => currentEditingHandler('#' + e.target.value)}
+                        placeholder="ffffff"
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: '14px',
+                          outline: 'none',
+                          width: '100%',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      <div
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '4px',
+                          backgroundColor: currentEditingColor,
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          flexShrink: 0
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divisor Sutil */}
+                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+
+                {/* Sub-seção 2: Transparência */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Slider 1: Opacidade do Fundo */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff' }}>Opacidade do Fundo (Alpha)</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnBgOpacity * 100)}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={storeBtnBgOpacity}
+                        onChange={(e) => handleStoreBgOpacityChange(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: '#4CAF50',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slider 2: Opacidade no Hover */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff' }}>Opacidade no Hover</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnHoverOpacity * 100)}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={storeBtnHoverOpacity}
+                        onChange={(e) => handleStoreHoverOpacityChange(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: '#4CAF50',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slider 3: Opacidade Selecionada */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff' }}>Opacidade Selecionada (Alpha)</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnActiveOpacity * 100)}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={storeBtnActiveOpacity}
+                        onChange={(e) => handleStoreActiveOpacityChange(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: '#4CAF50',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Lightness Slider */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Luminosidade (Escuro a Claro)</span>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={hslValues.l}
-                    onChange={(e) => handleLightnessSliderChange(Number(e.target.value))}
-                    className="color-picker-range lightness-picker-range"
-                    style={{
-                      '--lightness-track-bg': `linear-gradient(to right, #000000, ${pureColorHex}, #ffffff)`,
-                      '--thumb-color': alphabetColor,
-                      '--thumb-border-color': alphabetColor
-                    } as React.CSSProperties}
-                  />
-                </div>
-              </div>
-
-              {/* Grayscale Slider (White -> Grey -> Black) */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Tons Neutros (Branco a Preto)</span>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="255"
-                    value={currentGrayscaleValue}
-                    onChange={(e) => handleGrayscaleSliderChange(Number(e.target.value))}
-                    className="color-picker-range grayscale-picker-range"
-                    style={{
-                      '--thumb-color': alphabetColor,
-                      '--thumb-border-color': alphabetColor
-                    } as React.CSSProperties}
-                  />
-                </div>
-              </div>
-
-              {/* Alpha Slider */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Opacidade do Fundo (Alpha)</span>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={alphabetBgOpacity}
-                    onChange={(e) => handleAlphabetBgOpacityChange(Number(e.target.value))}
-                    className="color-picker-range alpha-picker-range"
-                    style={{
-                      '--alpha-track-bg': `linear-gradient(to right, rgba(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}, 0), rgb(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b})), repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 50% / 10px 10px`,
-                      '--thumb-color': `rgba(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}, ${alphabetBgOpacity})`,
-                      '--thumb-border-color': alphabetColor
-                    } as React.CSSProperties}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

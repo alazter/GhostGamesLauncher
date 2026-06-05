@@ -8,6 +8,7 @@ import LibraryContext from 'frontend/screens/Library/LibraryContext'
 import { normalizeTitle } from 'frontend/helpers/library'
 import AddGameButton from 'frontend/screens/Library/components/AddGameButton'
 import ActionIcons from 'frontend/components/UI/ActionIcons'
+import './index.css'
 
 function fixFilter(text: string) {
   const regex = new RegExp(/([?\\|*|+|(|)|[|]|])+/, 'g')
@@ -77,6 +78,44 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
     return saved !== null ? (JSON.parse(saved) as boolean) : false
   })
 
+  const [storeBtnBgColor, setStoreBtnBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_bg_color') || '#ffffff'
+  })
+
+  const [storeBtnBgOpacity, setStoreBtnBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_bg_opacity')
+    return saved !== null ? Number(saved) : 0.03
+  })
+
+  const [storeBtnHoverOpacity, setStoreBtnHoverOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_hover_opacity')
+    return saved !== null ? Number(saved) : 0.06
+  })
+
+  const [storeBtnActiveOpacity, setStoreBtnActiveOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_active_opacity')
+    return saved !== null ? Number(saved) : 0.25
+  })
+
+  const [storeBtnBorderRadius, setStoreBtnBorderRadius] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_border_radius')
+    return saved !== null ? Number(saved) : 12
+  })
+
+  const [storeBtnGradientEnabled, setStoreBtnGradientEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_gradient_enabled')
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
+  })
+
+  const [storeBtnBgColor2, setStoreBtnBgColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_bg_color_2') || '#e08a1e'
+  })
+
+  const [storeBtnBorderEnabled, setStoreBtnBorderEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_border_enabled')
+    return saved !== null ? (JSON.parse(saved) as boolean) : true
+  })
+
   useEffect(() => {
     const handleStoresChange = () => {
       const saved = localStorage.getItem('heroic_custom_stores')
@@ -91,11 +130,48 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
     const handleSettingsChange = () => {
       const saved = localStorage.getItem('heroic_hide_search_suggestions')
       setHideSearchSuggestions(saved !== null ? (JSON.parse(saved) as boolean) : false)
+
+      setStoreBtnBgColor(localStorage.getItem('heroic_store_btn_bg_color') || '#ffffff')
+      
+      const bgOpacitySaved = localStorage.getItem('heroic_store_btn_bg_opacity')
+      setStoreBtnBgOpacity(bgOpacitySaved !== null ? Number(bgOpacitySaved) : 0.03)
+
+      const hoverOpacitySaved = localStorage.getItem('heroic_store_btn_hover_opacity')
+      setStoreBtnHoverOpacity(hoverOpacitySaved !== null ? Number(hoverOpacitySaved) : 0.06)
+
+      const borderRadiusSaved = localStorage.getItem('heroic_store_btn_border_radius')
+      setStoreBtnBorderRadius(borderRadiusSaved !== null ? Number(borderRadiusSaved) : 12)
+
+      const gradientEnabledSaved = localStorage.getItem('heroic_store_btn_gradient_enabled')
+      setStoreBtnGradientEnabled(gradientEnabledSaved !== null ? (JSON.parse(gradientEnabledSaved) as boolean) : false)
+
+      setStoreBtnBgColor2(localStorage.getItem('heroic_store_btn_bg_color_2') || '#e08a1e')
+
+      const borderEnabledSaved = localStorage.getItem('heroic_store_btn_border_enabled')
+      setStoreBtnBorderEnabled(borderEnabledSaved !== null ? (JSON.parse(borderEnabledSaved) as boolean) : true)
+
+      const activeOpacitySaved = localStorage.getItem('heroic_store_btn_active_opacity')
+      setStoreBtnActiveOpacity(activeOpacitySaved !== null ? Number(activeOpacitySaved) : 0.25)
     }
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     return () =>
       window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
   }, [])
+
+  const hexToRgb = (hex: string) => {
+    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
+    const fullHex = hex.replace(shorthandRegex, (_, r: string, g: string, b: string) => r + r + g + g + b + b)
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex)
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16)
+        }
+      : { r: 255, g: 255, b: 255 }
+  }
+  const storeRgb = hexToRgb(storeBtnBgColor)
+  const storeRgb2 = hexToRgb(storeBtnBgColor2)
 
   // Função que é disparada ao clicar numa loja
   const handleFilterClick = (storeId: string) => {
@@ -225,8 +301,33 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
           gap: '12px',
           width: '100%',
           maxWidth: '100%',
-          boxSizing: 'border-box'
-        }}
+          boxSizing: 'border-box',
+          '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
+          '--store-btn-border-width': storeBtnBorderEnabled ? '1px' : '0px',
+          '--store-btn-bg': storeBtnGradientEnabled
+            ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnBgOpacity}) 100%)`
+            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity})`,
+          '--store-btn-hover-bg': storeBtnGradientEnabled
+            ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnHoverOpacity}) 100%)`
+            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity})`,
+          '--store-btn-border-color': storeBtnBorderEnabled
+            ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnBgOpacity * 2.5)})`
+            : 'transparent',
+          '--store-btn-hover-border-color': storeBtnBorderEnabled
+            ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnHoverOpacity * 2.5)})`
+            : 'transparent',
+          '--store-btn-active-bg-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+          '--store-btn-active-bg-end': storeBtnGradientEnabled
+            ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnActiveOpacity})`
+            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+          '--store-btn-active-border-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+          '--store-btn-active-border-end': storeBtnGradientEnabled
+            ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`
+            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+          '--store-btn-shadow-color': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, 0.2)`,
+          '--store-btn-backdrop-filter': storeBtnBgOpacity === 0 ? 'none' : 'blur(12px)',
+          '--store-btn-hover-backdrop-filter': storeBtnHoverOpacity === 0 ? 'none' : 'blur(12px)'
+        } as React.CSSProperties}
       >
         {customStores
           .filter((store) => store.isVisible !== false)
@@ -240,45 +341,16 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
               <button
                 key={store.id}
                 onClick={() => handleFilterClick(store.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  backgroundColor: isActive ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                  border: 'none',
-                  color: '#fff',
-                  fontSize: '20px',
-                  fontWeight: isActive ? '500' : '400',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s ease',
-                  flexShrink: 0,
-                  opacity: 1,
-                }}
-                onMouseOver={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)'
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }
-                }}
+                className={`platform-filter-btn ${
+                  isActive ? 'platform-filter-btn--active' : ''
+                }`}
               >
                 {(DISPLAY_MODE === 'icon-text' ||
                   DISPLAY_MODE === 'icon-only') && (
                   <img
                     src={imageSource}
                     alt={store.name}
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      objectFit: 'contain'
-                    }}
+                    className="platform-filter-icon-img"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}

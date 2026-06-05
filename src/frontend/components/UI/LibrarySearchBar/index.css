@@ -1,0 +1,90 @@
+/* Isolated styles for the platform filter buttons */
+.platform-filter-btn {
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 4px 6px !important;
+  border-radius: var(--store-btn-border-radius, 12px) !important;
+  background: var(--store-btn-bg, rgba(255, 255, 255, 0.03)) padding-box, transparent border-box !important;
+  border: 1px solid var(--store-btn-border-color, rgba(255, 255, 255, 0.08)) !important;
+  background-clip: padding-box, border-box !important;
+  background-origin: padding-box, border-box !important;
+  color: #fff !important;
+  font-size: 18px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: transform 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
+  flex-shrink: 0 !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+  backface-visibility: hidden !important;
+  will-change: transform, border-color, box-shadow !important;
+  backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+  -webkit-backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  outline: none !important;
+}
+
+.platform-filter-btn:focus,
+.platform-filter-btn:focus-visible,
+.platform-filter-btn:active {
+  outline: none !important;
+}
+
+.platform-filter-btn:hover {
+  transform: translate3d(0, 0, 0) scale(1.08) !important;
+}
+
+/* Ensure contents stay above the hover overlay */
+.platform-filter-btn > img,
+.platform-filter-btn > span {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Hover overlay using ::before pseudo-element */
+.platform-filter-btn::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: var(--store-btn-hover-bg, rgba(255, 255, 255, 0.06)) padding-box, transparent border-box !important;
+  background-clip: padding-box, border-box !important;
+  background-origin: padding-box, border-box !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s ease-in-out !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+}
+
+.platform-filter-btn:hover::before {
+  opacity: 1 !important;
+}
+
+/* Active style (when platform is selected) */
+.platform-filter-btn--active {
+  background: linear-gradient(135deg, var(--store-btn-active-bg-start, rgba(20, 24, 30, 0.6)) 0%, var(--store-btn-active-bg-end, rgba(230, 126, 34, 0.06)) 100%) padding-box, linear-gradient(135deg, var(--store-btn-active-border-start, rgba(255, 255, 255, 0.15)) 0%, var(--store-btn-active-border-end, rgba(230, 126, 34, 0.95)) 100%) border-box !important;
+  border-color: transparent !important;
+  font-weight: 400 !important;
+  backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+  -webkit-backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+  box-shadow: 0 3px 12px 0 var(--store-btn-shadow-color, rgba(230, 126, 34, 0.14)), inset 0 0 8px rgba(255, 255, 255, 0.05) !important;
+  position: relative !important;
+  z-index: 2 !important;
+  transform: translate3d(0, 0, 0) scale(1.1) !important;
+}
+
+.platform-filter-btn--active:hover {
+  transform: translate3d(0, 0, 0) scale(1.1) !important;
+}
+
+/* Platform filter icon image styling */
+.platform-filter-icon-img {
+  width: 40px !important;
+  height: 40px !important;
+  object-fit: contain !important;
+}
