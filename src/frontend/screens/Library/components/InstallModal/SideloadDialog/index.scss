@@ -1,7 +1,7 @@
 .sideloadGrid {
   display: flex;
-  gap: 20px;
-  width: 1060px;
+  gap: 0;
+  width: 960px;
   max-width: 100%;
   height: 80vh;
   max-height: 720px;
@@ -9,18 +9,19 @@
   box-sizing: border-box;
 
   .simulated-hero-panel {
-    width: 380px;
+    width: 280px;
     height: 100%;
     box-sizing: border-box;
     flex-shrink: 0;
     background: rgba(30, 34, 40, 0.45);
     backdrop-filter: blur(10px);
-    border-radius: 16px;
+    border-radius: 16px 0 0 16px;
     padding: 15px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     overflow: hidden;
   }
@@ -31,7 +32,7 @@
     flex-direction: column;
     background: rgba(20, 24, 30, 0.45);
     backdrop-filter: blur(10px);
-    border-radius: 16px;
+    border-radius: 0 16px 16px 0;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     padding: 16px;
@@ -48,6 +49,12 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+
+    &.scannerTab {
+      overflow-y: hidden;
+      padding-right: 0;
+      gap: 0;
+    }
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -97,7 +104,6 @@
 
     &.hasSgdbKey:hover {
       border-color: #00ffff;
-      transform: scale(1.02);
 
       .imageHoverOverlay {
         opacity: 1;
@@ -161,4 +167,77 @@
   padding: 0 !important;
   overflow: visible !important;
   background: transparent !important;
+}
+
+/* Glassmorphism style for inputs and select components (Task 3) */
+.sideloadGrid {
+  .MuiOutlinedInput-notchedOutline {
+    border: none !important;
+  }
+
+  /* Reset default outlines/shadows and override high-specificity global focus styles (e.g., from Library page) */
+  select:focus,
+  [role="combobox"]:focus,
+  [role="checkbox"]:focus,
+  .MuiSelect-select:focus,
+  .MuiOutlinedInput-input:focus,
+  *:focus,
+  *:focus-visible {
+    outline: none !important;
+    outline-offset: 0 !important;
+    box-shadow: none !important;
+  }
+
+  input[type='text'],
+  input[type='password'],
+  .MuiOutlinedInput-root,
+  .selectStyle {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.25s ease !important;
+    outline: none !important;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    &:focus:not(:disabled),
+    &:focus-within:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: #00ffff !important;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.25) !important;
+      outline: none !important;
+    }
+  }
+
+  .button.is-success {
+    background: rgba(0, 229, 255, 0.12) !important;
+    border: 1px solid rgba(0, 229, 255, 0.25) !important;
+    color: #00e5ff !important;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(0, 229, 255, 0.22) !important;
+      border-color: #00ffff !important;
+      color: #fff !important;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3) !important;
+    }
+
+    &:disabled {
+      background: transparent !important;
+      border: none !important;
+      color: rgba(255, 255, 255, 0.3) !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
+    }
+  }
+
+  .InstallModal__platformIcon {
+    margin: 0 !important;
+  }
 }

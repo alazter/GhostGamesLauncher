@@ -38,8 +38,7 @@ import ContextProvider from 'frontend/state/ContextProvider'
 import classNames from 'classnames'
 import axios from 'axios'
 import { NavLink, useNavigate } from 'react-router-dom'
-import TextInputWithIconField from 'frontend/components/UI/TextInputWithIconField'
-import Folder from '@mui/icons-material/Folder'
+
 
 type Props = {
   availablePlatforms: AvailablePlatforms
@@ -66,7 +65,7 @@ export default function SideloadDialog({
   appName,
   initialSgdbTarget = null
 }: Props) {
-  const { t, i18n } = useTranslation('gamepage')
+  const { t, i18n } = useTranslation(['gamepage', 'translation'])
   const [title, setTitle] = useState<string>(t('sideload.field.title', 'Title'))
   const [selectedExe, setSelectedExe] = useState('')
   const [gameUrl, setGameUrl] = useState('')
@@ -84,9 +83,11 @@ export default function SideloadDialog({
     initialSgdbTarget
   )
   const [hasSgdbKey, setHasSgdbKey] = useState(false)
+  const [launcherArgs, setLauncherArgs] = useState('')
+  const [launcherArgsError, setLauncherArgsError] = useState('')
   const editMode = Boolean(appName)
 
-  const { refreshLibrary, platform, showDialogModal } = useContext(ContextProvider)
+  const { refreshLibrary, platform, showDialogModal, sideloadedLibrary, epic, gog, amazon, zoom } = useContext(ContextProvider)
   const navigate = useNavigate()
   const goToAdvancedSettings = () => {
     backdropClick()
@@ -103,6 +104,7 @@ export default function SideloadDialog({
   const [blacklistCount, setBlacklistCount] = useState(0)
   const [scannedImports, setScannedImports] = useState<GameCandidate[]>([])
   const [scannedBlacklist, setScannedBlacklist] = useState<GameCandidate[]>([])
+  const [hideDuplicates, setHideDuplicates] = useState(true)
 
   function handleTitle(value: string) {
     value = removeSpecialcharacters(value)
@@ -151,6 +153,12 @@ export default function SideloadDialog({
         setImageUrl(art_square || '')
         setHeroUrl(art_cover && art_cover !== art_square ? art_cover : '')
       })
+
+      void getGameSettings(appName, 'sideload').then((settings) => {
+        if (settings?.launcherArgs) {
+          setLauncherArgs(settings.launcherArgs)
+        }
+      })
     } else {
       setApp_name(short.generate().toString())
     }
@@ -164,6 +172,26 @@ export default function SideloadDialog({
       setWinePrefix(suggestedWinePrefix)
     })
   }, [title, editMode])
+
+  useEffect(() => {
+    if (launcherArgs.match(/%command/)) {
+      setLauncherArgsError(
+        t(
+          'translation:options.gameargs.error.command',
+          'The %command% syntax from Steam is not valid as game arguments.'
+        )
+      )
+    } else if (launcherArgs.match(/[A-Z_]+=\S/)) {
+      setLauncherArgsError(
+        t(
+          'translation:options.gameargs.error.env',
+          'Environment variables must be configured in the table below.'
+        )
+      )
+    } else {
+      setLauncherArgsError('')
+    }
+  }, [launcherArgs, t])
 
   async function searchImage() {
     if (hasSgdbKey) {
@@ -232,19 +260,21 @@ export default function SideloadDialog({
       launchFullScreen
     })
     const gameSettings = await getGameSettings(app_name, 'sideload')
-    if (!gameSettings) {
-      return
-    }
-    if (!editMode)
+    if (gameSettings) {
+      const updatedConfig: any = {
+        ...gameSettings,
+        launcherArgs
+      }
+      if (!editMode) {
+        updatedConfig.winePrefix = winePrefix
+        updatedConfig.wineVersion = wineVersion
+        updatedConfig.wineCrossoverBottle = crossoverBottle
+      }
       window.api.writeConfig({
         appName: app_name,
-        config: {
-          ...gameSettings,
-          winePrefix,
-          wineVersion,
-          wineCrossoverBottle: crossoverBottle
-        }
+        config: updatedConfig
       })
+    }
 
     await refreshLibrary({
       library: 'sideload',
@@ -355,19 +385,65 @@ export default function SideloadDialog({
     appPlatform !== 'linux' &&
     appPlatform !== 'Browser'
 
+  // Helper to check if a scanned candidate is already in any of the library stores
+  const isCandidateAlreadyAdded = useCallback((candidate: GameCandidate) => {
+    const normExecutable = candidate.executable.replace(/\\/g, '/').toLowerCase();
+    const normTitle = candidate.title.trim().toLowerCase();
+
+    const isMatch = (g: GameInfo) => {
+      const gExe = g.install?.executable?.replace(/\\/g, '/').toLowerCase();
+      const gTitle = g.title?.trim().toLowerCase();
+      return (gExe && gExe === normExecutable) || (gTitle && gTitle === normTitle);
+    };
+
+    return (
+      sideloadedLibrary?.some(isMatch) ||
+      epic?.library?.some(isMatch) ||
+      gog?.library?.some(isMatch) ||
+      amazon?.library?.some(isMatch) ||
+      zoom?.library?.some(isMatch)
+    );
+  }, [sideloadedLibrary, epic, gog, amazon, zoom]);
+
   // Auto-scanner functions
   const handleScanCandidates = async () => {
     setScanningCandidates(true)
     try {
       const results = await window.api.discoverInstalledGames()
+      results.sort((a, b) => a.title.localeCompare(b.title))
       setScannedCandidates(results)
 
+      // Pre-calculate already added maps for fast lookup
+      const addedExes = new Set<string>();
+      const addedTitles = new Set<string>();
+      const addKeys = (g: GameInfo) => {
+        if (g.install?.executable) addedExes.add(g.install.executable.replace(/\\/g, '/').toLowerCase());
+        if (g.title) addedTitles.add(g.title.trim().toLowerCase());
+      };
+      sideloadedLibrary?.forEach(addKeys);
+      epic?.library?.forEach(addKeys);
+      gog?.library?.forEach(addKeys);
+      amazon?.library?.forEach(addKeys);
+      zoom?.library?.forEach(addKeys);
+
       const initialSelection: Record<string, 'import' | 'blacklist' | 'none'> = {}
+      const defaultImports: GameCandidate[] = []
+
       results.forEach((c) => {
-        initialSelection[c.executable] = 'import'
+        const normExe = c.executable.replace(/\\/g, '/').toLowerCase();
+        const normTitle = c.title.trim().toLowerCase();
+        const isDuplicate = addedExes.has(normExe) || addedTitles.has(normTitle);
+
+        if (isDuplicate) {
+          initialSelection[c.executable] = 'none'
+        } else {
+          initialSelection[c.executable] = 'import'
+          defaultImports.push(c)
+        }
       })
+
       setImportSelection(initialSelection)
-      setScannedImports(results)
+      setScannedImports(defaultImports)
       setScannedBlacklist([])
     } catch (err) {
       window.api.logError(`Error discovering games: ${err}`)
@@ -407,6 +483,13 @@ export default function SideloadDialog({
       return newSelection
     })
   }
+
+  const displayedCandidates = React.useMemo(() => {
+    if (!hideDuplicates) {
+      return scannedCandidates
+    }
+    return scannedCandidates.filter((c) => !isCandidateAlreadyAdded(c))
+  }, [scannedCandidates, hideDuplicates, isCandidateAlreadyAdded])
 
   const handleExportLog = async () => {
     const dateStr = new Date().toLocaleString()
@@ -533,10 +616,10 @@ export default function SideloadDialog({
             style={{
               position: 'relative',
               cursor: 'pointer',
-              borderBottomLeftRadius: '0px',
-              borderBottomRightRadius: '0px',
+              borderRadius: '16px 0px 0px 0px',
+              border: 'none',
               width: 'calc(100% + 30px)',
-              height: '320px',
+              height: '420px',
               marginTop: '-15px',
               marginLeft: '-15px',
               marginRight: '-15px',
@@ -587,104 +670,6 @@ export default function SideloadDialog({
                 color: 'rgba(255, 255, 255, 0.7)'
               }} title={appPlatform}>
                 {platformIcon()}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('manual')
-                }}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: activeTab === 'manual' ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: activeTab === 'manual' ? '#00e5ff' : 'rgba(255, 255, 255, 0.7)',
-                  cursor: 'pointer'
-                }}
-                title={t('button.settings', 'Configurações')}
-              >
-                <FontAwesomeIcon icon={faCog} />
-              </button>
-
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: addingApp ? 'rgba(0, 229, 255, 0.1)' : 'rgba(0, 229, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#00e5ff'
-              }}>
-                <FontAwesomeIcon icon={addingApp ? faSpinner : faPlay} spin={addingApp} />
-              </div>
-            </div>
-
-            {/* Simulated stats */}
-            <div style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center', marginTop: '6px' }}>
-              <div>{editMode ? 'Tempo de jogo: Nunca' : 'Novo Jogo / Sideload'}</div>
-              {editMode && <div style={{ marginTop: '2px' }}>Jogado pela última vez: Nunca</div>}
-            </div>
-
-            {/* Divider */}
-            <div style={{ width: '100%', height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
-
-            {/* Links Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '8px',
-              width: '100%',
-              fontSize: '13px'
-            }}>
-              <div>
-                <button
-                  type="button"
-                  className="hero-mock-link"
-                  onClick={() => {
-                    setActiveTab('scanner')
-                    if (scannedCandidates.length === 0) {
-                      handleScanCandidates()
-                    }
-                  }}
-                >
-                  <FontAwesomeIcon icon={faSyncAlt} style={{ width: '14px' }} />
-                  Escanear PC
-                </button>
-                {blacklistCount > 0 && (
-                  <button
-                    type="button"
-                    className="hero-mock-link"
-                    style={{ color: '#ff4444' }}
-                    onClick={handleClearBlacklist}
-                  >
-                    <FontAwesomeIcon icon={faBan} style={{ width: '14px' }} />
-                    Limpar Blacklist
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="hero-mock-link"
-                  onClick={goToAdvancedSettings}
-                >
-                  <FontAwesomeIcon icon={faCog} style={{ width: '14px' }} />
-                  Conf. Globais
-                </button>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  className="hero-mock-link"
-                  onClick={() => window.api.openExternalUrl('https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/wiki')}
-                >
-                  <FontAwesomeIcon icon={faFileAlt} style={{ width: '14px' }} />
-                  Wiki / Ajuda
-                </button>
               </div>
             </div>
           </div>
@@ -801,7 +786,7 @@ export default function SideloadDialog({
               </div>
 
               {/* Scrollable Content Form */}
-              <div className="sideloadForm">
+              <div className={classNames('sideloadForm', { scannerTab: activeTab === 'scanner' })}>
                 {activeTab === 'manual' ? (
                   <>
                     {/* Secao 1: Titulo e Imagens */}
@@ -821,51 +806,7 @@ export default function SideloadDialog({
                         value={title}
                         maxLength={40}
                       />
-                      <details className="advancedFields" style={{ marginTop: '12px' }}>
-                        <summary
-                          onClick={(e) => {
-                            if (hasSgdbKey) {
-                              e.preventDefault()
-                              setSgdbTarget('square')
-                            }
-                          }}
-                          style={{ color: '#00e5ff', fontWeight: '600', cursor: 'pointer' }}
-                        >
-                          {t('sideload.images.summary', 'Customizar Imagens de Capa')}
-                        </summary>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
-                          <TextInputWithIconField
-                            label={t(
-                              'sideload.info.image-hint',
-                              'Square Art (click on the image to search on SteamGridDB)'
-                            )}
-                            placeholder={t(
-                              'sideload.placeholder.image',
-                              'Paste an URL of an Image or select one from your computer'
-                            )}
-                            onChange={(newValue: string) => setImageUrl(newValue)}
-                            htmlId="sideload-image"
-                            value={imageUrl}
-                            icon={<Folder />}
-                            onIconClick={() => handleSelectLocalImage('square')}
-                          />
-                          <TextInputWithIconField
-                            label={t(
-                              'sideload.info.cover-hint',
-                              'Cover/Hero Art (click on the image to search on SteamGridDB)'
-                            )}
-                            placeholder={t(
-                              'sideload.placeholder.image',
-                              'Paste an URL of an Image or select one from your computer'
-                            )}
-                            onChange={(newValue: string) => setHeroUrl(newValue)}
-                            htmlId="sideload-cover"
-                            value={heroUrl}
-                            icon={<Folder />}
-                            onIconClick={() => handleSelectLocalImage('cover')}
-                          />
-                        </div>
-                      </details>
+
                       {!hasSgdbKey && (
                         <div style={{ marginTop: '12px' }}>
                           <WarningMessage>
@@ -894,40 +835,70 @@ export default function SideloadDialog({
                       </div>
 
                       {showSideloadExe && (
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '-10px' }}>
-                            <label htmlFor="sideload-exe" style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
-                              {t('sideload.info.exe', 'Select Executable')}
-                            </label>
-                            <InfoBox
-                              text={t(
-                                'sideload.import-hint.title',
-                                'Important! Are you adding a game from Epic/GOG/Amazon? Click here!'
-                              )}
-                            >
-                              <div className="sideloadImportHint">
-                                <Trans i18n={i18n} ns="gamepage" i18nKey="sideload.import-hint.content">
-                                  Do NOT use this feature for that.
-                                  <br />
-                                  Instead, <NavLink to={'/login'}>log into</NavLink> the
-                                  store, look for the game in your library, open the
-                                  installation dialog, and click the &quot;Import Game&quot;
-                                  button
-                                </Trans>
-                              </div>
-                            </InfoBox>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '-10px' }}>
+                              <label htmlFor="sideload-exe" style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                                {t('sideload.info.exe', 'Select Executable')}
+                              </label>
+                              <InfoBox
+                                text={t(
+                                  'sideload.import-hint.title',
+                                  'Important! Are you adding a game from Epic/GOG/Amazon? Click here!'
+                                )}
+                              >
+                                <div className="sideloadImportHint">
+                                  <Trans i18n={i18n} ns="gamepage" i18nKey="sideload.import-hint.content">
+                                    Do NOT use this feature for that.
+                                    <br />
+                                    Instead, <NavLink to={'/login'}>log into</NavLink> the
+                                    store, look for the game in your library, open the
+                                    installation dialog, and click the &quot;Import Game&quot;
+                                    button
+                                  </Trans>
+                                </div>
+                              </InfoBox>
+                            </div>
+                            <PathSelectionBox
+                              type="file"
+                              onPathChange={setSelectedExe}
+                              path={selectedExe}
+                              placeholder={t('sideload.info.exe', 'Select Executable')}
+                              pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
+                              pathDialogDefaultPath={winePrefix}
+                              pathDialogFilters={fileFilters(platformToInstall)}
+                              htmlId="sideload-exe"
+                              noDeleteButton
+                            />
                           </div>
-                          <PathSelectionBox
-                            type="file"
-                            onPathChange={setSelectedExe}
-                            path={selectedExe}
-                            placeholder={t('sideload.info.exe', 'Select Executable')}
-                            pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
-                            pathDialogDefaultPath={winePrefix}
-                            pathDialogFilters={fileFilters(platformToInstall)}
-                            htmlId="sideload-exe"
-                            noDeleteButton
-                          />
+
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '-10px' }}>
+                              <label htmlFor="sideload-args" style={{ margin: 0, fontSize: 'var(--text-sm)', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                                {t('translation:options.gameargs.title')}
+                              </label>
+                              <InfoBox text={t('translation:infobox.help', 'Help')} align="right">
+                                <span>
+                                  {t('translation:help.other.part4')}
+                                  <strong>{t('translation:help.other.part5')}</strong>
+                                  {t('translation:help.other.part6')}
+                                  <strong>{` -nolauncher `}</strong>
+                                  {t('translation:help.other.part7')}
+                                </span>
+                              </InfoBox>
+                            </div>
+                            <TextInputField
+                              htmlId="sideload-args"
+                              placeholder={t('translation:options.gameargs.placeholder')}
+                              value={launcherArgs}
+                              onChange={(newValue: string) => setLauncherArgs(newValue)}
+                              afterInput={
+                                launcherArgsError ? (
+                                  <p className="error">{launcherArgsError}</p>
+                                ) : undefined
+                              }
+                            />
+                          </div>
                         </div>
                       )}
 
@@ -978,12 +949,18 @@ export default function SideloadDialog({
                   </>
                 ) : (
                   /* AUTO-SCANNER TAB CONTENT */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)' }}>
-                        {scannedCandidates.length > 0
-                          ? `Encontrado(s) ${scannedCandidates.length} jogo(s) candidatos.`
-                          : 'Use o scanner para procurar jogos instalados no seu PC.'}
+                        {scannedCandidates.length > 0 ? (
+                          hideDuplicates ? (
+                            `Mostrando ${displayedCandidates.length} de ${scannedCandidates.length} candidatos (ocultando ${scannedCandidates.length - displayedCandidates.length} já adicionados)`
+                          ) : (
+                            `Encontrado(s) ${scannedCandidates.length} jogo(s) candidatos.`
+                          )
+                        ) : (
+                          'Use o scanner para procurar jogos instalados no seu PC.'
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {blacklistCount > 0 && (
@@ -1017,6 +994,33 @@ export default function SideloadDialog({
                         </button>
                       </div>
                     </div>
+         
+                    {scannedCandidates.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', marginTop: '-8px', marginBottom: '-4px' }}>
+                        <label style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '13px',
+                          color: 'rgba(255, 255, 255, 0.75)',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={hideDuplicates}
+                            onChange={(e) => setHideDuplicates(e.target.checked)}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: '#00ffff',
+                              cursor: 'pointer'
+                            }}
+                          />
+                          Ocultar itens escaneados que já estão adicionados no Heroic
+                        </label>
+                      </div>
+                    )}
 
                     {scanningCandidates && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '12px', flex: 1 }}>
@@ -1035,9 +1039,19 @@ export default function SideloadDialog({
                       </div>
                     )}
 
-                    {!scanningCandidates && scannedCandidates.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: '420px', paddingRight: '4px' }}>
-                        {scannedCandidates.map((c) => {
+                    {!scanningCandidates && scannedCandidates.length > 0 && displayedCandidates.length === 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px dashed rgba(255, 255, 255, 0.1)', flex: 1 }}>
+                        <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center' }}>
+                          Todos os candidatos escaneados já foram adicionados ao Heroic.
+                          <br />
+                          Desmarque &quot;Ocultar itens escaneados...&quot; acima para visualizá-los.
+                        </span>
+                      </div>
+                    )}
+
+                    {!scanningCandidates && displayedCandidates.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, minHeight: 0, paddingRight: '4px' }}>
+                        {displayedCandidates.map((c) => {
                           const selection = importSelection[c.executable] || 'none'
                           return (
                             <div
@@ -1066,7 +1080,21 @@ export default function SideloadDialog({
                                   {c.executable}
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                              <div style={{ display: 'flex', gap: '8px', flexShrink: 0, alignItems: 'center' }}>
+                                {isCandidateAlreadyAdded(c) && (
+                                  <span style={{
+                                    fontSize: '11px',
+                                    color: '#ffcc00',
+                                    background: 'rgba(255, 204, 0, 0.1)',
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(255, 204, 0, 0.3)',
+                                    fontWeight: 'bold',
+                                    marginRight: '4px'
+                                  }}>
+                                    Já Adicionado
+                                  </span>
+                                )}
                                 <label style={{
                                   display: 'flex',
                                   alignItems: 'center',
@@ -1166,7 +1194,12 @@ export default function SideloadDialog({
                       type="button"
                       onClick={async () => handleInstall()}
                       className={`button is-success`}
-                      disabled={(!selectedExe.length && !gameUrl) || addingApp || searching}
+                      disabled={
+                        (!selectedExe.length && !gameUrl) ||
+                        addingApp ||
+                        searching ||
+                        Boolean(launcherArgsError)
+                      }
                     >
                       {addingApp && <FontAwesomeIcon icon={faSpinner} spin />}
                       {!addingApp && t('button.finish', 'Finish')}

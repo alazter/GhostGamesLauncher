@@ -935,13 +935,84 @@ export default function InlineGameSettings({ game, onClose }: Props) {
         }}
       >
         <style dangerouslySetInnerHTML={{ __html: `
-          #root .inline-game-settings-container .helpLink {
+          .inline-game-settings-container .helpLink {
             height: auto !important;
             margin-block-start: 0 !important;
           }
-          #root .inline-game-settings-container .textInputFieldWrapper label,
-          #root .inline-game-settings-container .tableFieldWrapper label {
+          .inline-game-settings-container .textInputFieldWrapper label,
+          .inline-game-settings-container .tableFieldWrapper label {
             font-size: var(--text-md) !important;
+          }
+          .inline-game-settings-container input[type='text'],
+          .inline-game-settings-container input[type='password'],
+          .inline-game-settings-container .MuiOutlinedInput-root,
+          .inline-game-settings-container .selectStyle,
+          .inline-game-settings-container select,
+          .inline-game-settings-container textarea,
+          .inline-game-settings-container .textInputFieldWrapper input,
+          .inline-game-settings-container .selectFieldWrapper select,
+          .inline-game-settings-container .selectFieldWrapper .selectStyle,
+          .inline-game-settings-container .selectFieldWrapper .MuiOutlinedInput-root {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(8px) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+            transition: all 0.25s ease !important;
+            outline: none !important;
+          }
+          .inline-game-settings-container .MuiOutlinedInput-notchedOutline {
+            border: none !important;
+          }
+          .inline-game-settings-container input[type='text']:hover:not(:disabled),
+          .inline-game-settings-container input[type='password']:hover:not(:disabled),
+          .inline-game-settings-container .MuiOutlinedInput-root:hover:not(:disabled),
+          .inline-game-settings-container .selectStyle:hover:not(:disabled),
+          .inline-game-settings-container select:hover:not(:disabled),
+          .inline-game-settings-container textarea:hover:not(:disabled),
+          .inline-game-settings-container .textInputFieldWrapper input:hover:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper select:hover:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper .selectStyle:hover:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper .MuiOutlinedInput-root:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+          }
+          .inline-game-settings-container input[type='text']:focus:not(:disabled),
+          .inline-game-settings-container input[type='text']:focus-within:not(:disabled),
+          .inline-game-settings-container input[type='password']:focus:not(:disabled),
+          .inline-game-settings-container input[type='password']:focus-within:not(:disabled),
+          .inline-game-settings-container .MuiOutlinedInput-root:focus:not(:disabled),
+          .inline-game-settings-container .MuiOutlinedInput-root:focus-within:not(:disabled),
+          .inline-game-settings-container .selectStyle:focus:not(:disabled),
+          .inline-game-settings-container .selectStyle:focus-within:not(:disabled),
+          .inline-game-settings-container select:focus:not(:disabled),
+          .inline-game-settings-container select:focus-within:not(:disabled),
+          .inline-game-settings-container textarea:focus:not(:disabled),
+          .inline-game-settings-container textarea:focus-within:not(:disabled),
+          .inline-game-settings-container .textInputFieldWrapper input:focus:not(:disabled),
+          .inline-game-settings-container .textInputFieldWrapper input:focus-within:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper select:focus:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper select:focus-within:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper .selectStyle:focus:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper .selectStyle:focus-within:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper .MuiOutlinedInput-root:focus:not(:disabled),
+          .inline-game-settings-container .selectFieldWrapper .MuiOutlinedInput-root:focus-within:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-color: #00ffff !important;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.25) !important;
+            outline: none !important;
+          }
+          
+          /* Remove default outlines and focus indicators */
+          .inline-game-settings-container select:focus,
+          .inline-game-settings-container [role="combobox"]:focus,
+          .inline-game-settings-container [role="checkbox"]:focus,
+          .inline-game-settings-container .MuiSelect-select:focus,
+          .inline-game-settings-container .MuiOutlinedInput-input:focus,
+          .inline-game-settings-container *:focus,
+          .inline-game-settings-container *:focus-visible {
+            outline: none !important;
+            outline-offset: 0 !important;
+            box-shadow: none !important;
           }
         `}} />
         {showUninstallModal && (
@@ -1454,8 +1525,8 @@ function ActionButton({
         alignItems: 'center',
         gap: '12px',
         padding: '12px 16px',
-        background: hovered ? getHoverBg() : 'rgba(255, 255, 255, 0.03)',
-        border: hovered ? getHoverBorder() : '1px solid rgba(255, 255, 255, 0.06)',
+        background: hovered ? getHoverBg() : 'rgba(255, 255, 255, 0.05)',
+        border: hovered ? getHoverBorder() : '1px solid rgba(255, 255, 255, 0.1)',
         borderRadius: '10px',
         color: hovered ? getHoverColor() : 'rgba(255, 255, 255, 0.8)',
         fontSize: '14px',

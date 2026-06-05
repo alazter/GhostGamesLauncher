@@ -17,12 +17,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Adicionamos a funcionalidade de Blacklist para permitir ignorar jogos detectados que o usuário não quer importar.
   - Criamos a opção de exportar o log de varredura para um arquivo `.txt`.
 
-### 2. Redesign Completo do Diálogo de Sideload (SideloadDialog)
-* **Problema:** A interface de Sideload manual possuía campos desorganizados, caixas de imagens desalinhadas e falta de suporte para o novo auto-scanner.
+### 2. Redesign Completo do Diálogo de Sideload (SideloadDialog) e Filtragem de Duplicados
+* **Problema:** A interface de Sideload manual possuía campos desorganizados, caixas de imagens desalinhadas e falta de suporte para o novo auto-scanner. Além disso, jogos já adicionados continuavam poluindo a lista de escaneados.
 * **Solução:**
   - Reformulamos a estrutura em `SideloadDialog` criando abas diferenciadas: **Adicionar Manualmente** e **Scanner Automático**.
   - Criamos um painel lateral esquerdo simulando o Hero Panel (`.simulated-hero-panel`), que apresenta a capa vertical em proporção de tela (`aspect-ratio: 2/3`) e links rápidos de ação com ícones correspondentes.
   - Reorganizamos a aba do Scanner Automático para listar todos os jogos detectados com capas em miniatura, nomes e binários, oferecendo controles para "Importar" ou enviar para a "Blacklist".
+  - **Filtro de Duplicados:** Adicionamos um checkbox dinâmico "Ocultar itens escaneados que já estão adicionados no Heroic" para ocultar opcionalmente jogos repetidos e incluímos a tag visual de destaque "Já Adicionado" nos itens já presentes na biblioteca.
+  - **Validação de Argumentos:** Adicionamos validação contra erros nos argumentos de inicialização do executável, prevenindo cliques acidentais e desabilitando o botão de finalizar se houver falhas.
   - Refatoramos todo o CSS em `SideloadDialog/index.scss` usando flexbox de duas colunas, bordas com efeitos premium e scroll otimizado.
 
 ### 3. Funcionalidade de Desinstalação em Lote (Bulk Uninstall)
@@ -37,6 +39,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 * **Solução:**
   - Implementamos no painel de Personalização (`Personalization/index.tsx`) um controle switch premium (`premium-switch`) posicionado na barra de navegação mockada.
   - O estado é persistido no localStorage (`heroic_use_inline_panel`) e propaga-se dinamicamente por meio de eventos globais customizados (`heroicUseInlinePanelChanged`).
+
+### 5. Estilização Premium e Efeitos Neon nas Configurações Inline
+* **Problema:** As caixas de texto e opções de seleção nas configurações inline possuíam estilo padrão e sem refinamento estético de foco e transições.
+* **Solução:**
+  - Adicionamos uma folha de estilos interna sofisticada com suporte a **Glassmorphism** (`background: rgba(255, 255, 255, 0.05)`, `backdrop-filter: blur(8px)`) em todos os campos de texto, comboboxes e botões de input.
+  - Implementamos efeitos de transição suave em `:hover` e foco com brilho em tom azul-turquesa (`#00ffff` e sombra neon).
+  - Limpamos as bordas pretas padrão e outlines do navegador ao focar nos elementos para manter o visual premium e integrado.
 
 ---
 
