@@ -104,14 +104,6 @@ export default function SidebarLinks() {
 
   return (
     <div className="SidebarLinks Sidebar__section" data-tour="sidebar-menu">
-      {!loggedIn && (
-        <SidebarItem
-          icon={faUser}
-          label={t('button.login', 'Login')}
-          url="/login"
-          dataTour="sidebar-login"
-        />
-      )}
       <SidebarItem
         isActiveFallback={location.pathname.includes('gamepage')}
         url="/"
@@ -126,6 +118,17 @@ export default function SidebarLinks() {
         icon={faPaintBrush}
         label="Personalização"
         dataTour="sidebar-personalization"
+      />
+
+      <SidebarItem
+        url="/login"
+        icon={loggedIn ? faUserAlt : faUser}
+        label={
+          loggedIn
+            ? t('userselector.manageaccounts', 'Manage Accounts')
+            : t('button.login', 'Login')
+        }
+        dataTour={loggedIn ? 'sidebar-manage-accounts' : 'sidebar-login'}
       />
 
       <div className="SidebarItemWithSubmenu">
@@ -243,14 +246,7 @@ export default function SidebarLinks() {
         />
       )}
 
-      {loggedIn && (
-        <SidebarItem
-          url="/login"
-          icon={faUserAlt}
-          label={t('userselector.manageaccounts', 'Manage Accounts')}
-          dataTour="sidebar-manage-accounts"
-        />
-      )}
+
 
       <SidebarItem
         url="/accessibility"
