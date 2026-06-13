@@ -8,6 +8,11 @@
 Ghost Games Launcher is an Open Source Game Launcher for Linux, Windows and macOS based on the excellent [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
 Right now it supports launching games from the Epic Games Store using [Legendary](https://github.com/derrod/legendary), GOG Games using our custom implementation with [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) and Amazon Games using [Nile](https://github.com/imLinguin/nile).
 
+## 🚀 Download
+Get the latest release of Ghost Games Launcher here:
+- **Windows Portable x64:** [Ghost-Games-Launcher-0.0.1-alpha-Portable-x64.exe](https://github.com/alazter/HeroicGamesLauncher/releases/download/v0.0.1-alpha/Ghost-Games-Launcher-0.0.1-alpha-Portable-x64.exe)
+- **All Releases:** [GitHub Releases Page](https://github.com/alazter/HeroicGamesLauncher/releases)
+
 Ghost Games Launcher is built with Web Technologies:  
 [![Typescript](https://img.shields.io/badge/Typescript-3178c6?style=for-the-badge&logo=typescript&labelColor=gray)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-5fd9fb?style=for-the-badge&logo=react&labelColor=gray)](https://reactjs.org/)
@@ -149,7 +154,7 @@ If you're not using the Flatpak version, keep GE-Proton as your Wine runner. Wit
 
 #### Debian, Ubuntu and Derivatives
 
-Download the file ending in .deb from the [latest release](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest).  
+Download the file ending in .deb from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest).  
 Double-click it to open it up in your Software Manager, or run `sudo dpkg -i Heroic*amd64.deb` to install it directly.
 
 #### Arch (AUR)
@@ -163,7 +168,7 @@ Please see [the Arch Wiki](https://wiki.archlinux.org/title/Arch_User_Repository
 
 #### Fedora
 
-You can download the file ending in .rpm from the [latest release](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest) and install it with `sudo dnf install ./heroic-*.x86_64.rpm`.
+You can download the file ending in .rpm from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest) and install it with `sudo dnf install ./heroic-*.x86_64.rpm`.
 
 Alternatively, you can use the Flatpak package.
 
@@ -195,13 +200,13 @@ Since these two distribution formats don't have a form of dependency management,
 
 ##### AppImage
 
-- Download the file ending in .AppImage from the [latest release](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest)
+- Download the file ending in .AppImage from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest)
 - Make it executable (`chmod +x Heroic*.AppImage`)
 - Run it (double-click in most file managers, or run `./Heroic*.AppImage`)
 
 ##### .tar.xz
 
-- Download the file ending in .tar.xz from the [latest release](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest)
+- Download the file ending in .tar.xz from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest)
 - Extract it anywhere
 - Run the `heroic` file in the folder you extracted it to (double-click in most file managers, or run `./heroic`)
 
@@ -213,13 +218,13 @@ If you use WinGet (installed by default on Windows 11 and modern versions of 10)
 
 #### Manual installl
 
-Download the Heroic Installer (`Heroic-x.x.x-Setup.exe`) or the portable version (`Heroic-x.x.x-Portable.exe`) from the [latest release](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest). Run the executable you downloaded to install/run Heroic.  
+Download the Heroic Installer (`Heroic-x.x.x-Setup.exe`) or the portable version (`Heroic-x.x.x-Portable.exe`) from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest). Run the executable you downloaded to install/run Heroic.  
 The Setup will create shortcuts to Heroic on your Desktop and in your Start Menu.
 
 ### macOS
 
 If you use Homebrew, you can run `brew install --cask --no-quarantine heroic` to install Heroic.  
-Otherwise, download the file ending in .dmg from the [latest release](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/latest), double-click it to mount it, and drag the "Heroic" application into the "Applications" folder.
+Otherwise, download the file ending in .dmg from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest), double-click it to mount it, and drag the "Heroic" application into the "Applications" folder.
 
 ## Development environment
 
