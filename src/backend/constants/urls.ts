@@ -2,9 +2,9 @@ export const epicLoginUrl = 'https://legendary.gl/epiclogin'
 export const sidInfoUrl =
   'https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/wiki/How-To:-Epic-Alternative-Login'
 export const heroicGithubURL =
-  'https://github.com/alazter/HeroicGamesLauncher/releases/latest'
+  'https://github.com/alazter/GhostGamesLauncher/releases/latest'
 export const GITHUB_API =
-  'https://api.github.com/repos/alazter/HeroicGamesLauncher/releases'
+  'https://api.github.com/repos/alazter/GhostGamesLauncher/releases'
 export const supportURL =
   'https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/blob/main/Support.md'
 export const discordLink = 'https://discord.gg/rHJ2uqdquK'

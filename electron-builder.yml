@@ -3,7 +3,7 @@ productName: Ghost Games Launcher
 publish:
   provider: github
   owner: alazter
-  repo: HeroicGamesLauncher
+  repo: GhostGamesLauncher
 files:
   - build/**/*
   - node_modules/**/*

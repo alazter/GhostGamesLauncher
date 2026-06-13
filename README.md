@@ -1,17 +1,16 @@
 # <img src="public/logo.png" width="40" height="40" align="center" /> Ghost Games Launcher
 
-[![GitHub release](https://img.shields.io/github/v/release/alazter/HeroicGamesLauncher?style=for-the-badge)](https://github.com/alazter/HeroicGamesLauncher/releases/latest)
-[![GitHub all releases](https://img.shields.io/github/downloads/alazter/HeroicGamesLauncher/total?style=for-the-badge&color=00B000)](https://github.com/alazter/HeroicGamesLauncher/releases/)
-[![GPLv3 license](https://img.shields.io/github/license/alazter/HeroicGamesLauncher?style=for-the-badge&color=blue)](https://github.com/alazter/HeroicGamesLauncher/blob/main/COPYING)  
-[![Discord](https://img.shields.io/discord/812703221789097985?label=Discord%20Server&logo=discord&color=5865F2&style=for-the-badge)](https://discord.gg/rHJ2uqdquK)
+[![GitHub release](https://img.shields.io/github/v/release/alazter/GhostGamesLauncher?style=for-the-badge)](https://github.com/alazter/GhostGamesLauncher/releases/latest)
+[![GitHub all releases](https://img.shields.io/github/downloads/alazter/GhostGamesLauncher/total?style=for-the-badge&color=00B000)](https://github.com/alazter/GhostGamesLauncher/releases/)
+[![GPLv3 license](https://img.shields.io/github/license/alazter/GhostGamesLauncher?style=for-the-badge&color=blue)](https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING)  
 
 Ghost Games Launcher is an Open Source Game Launcher for Linux, Windows and macOS based on the excellent [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
 Right now it supports launching games from the Epic Games Store using [Legendary](https://github.com/derrod/legendary), GOG Games using our custom implementation with [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) and Amazon Games using [Nile](https://github.com/imLinguin/nile).
 
 ## 🚀 Download
 Get the latest release of Ghost Games Launcher here:
-- **Windows Portable x64:** [Ghost-Games-Launcher-0.0.1-alpha-Portable-x64.exe](https://github.com/alazter/HeroicGamesLauncher/releases/download/v0.0.1-alpha/Ghost-Games-Launcher-0.0.1-alpha-Portable-x64.exe)
-- **All Releases:** [GitHub Releases Page](https://github.com/alazter/HeroicGamesLauncher/releases)
+- **Windows Portable x64:** [Ghost-Games-Launcher-0.0.1-alpha-Portable-x64.exe](https://github.com/alazter/GhostGamesLauncher/releases/download/v0.0.1-alpha/Ghost-Games-Launcher-0.0.1-alpha-Portable-x64.exe)
+- **All Releases:** [GitHub Releases Page](https://github.com/alazter/GhostGamesLauncher/releases)
 
 Ghost Games Launcher is built with Web Technologies:  
 [![Typescript](https://img.shields.io/badge/Typescript-3178c6?style=for-the-badge&logo=typescript&labelColor=gray)](https://www.typescriptlang.org/)
@@ -81,8 +80,7 @@ Ghost Games Launcher is built with Web Technologies:
   - Ubuntu (latest 2 LTS versions)
   - Fedora (latest 2 versions)
   - Arch Linux & derivatives (Manjaro, Garuda, EndeavourOS)
-  - Heroic will still _work_ on most distros, but it is up to you to _get_ it to work
-    Chances are though that someone on our [Discord](https://discord.gg/rHJ2uqdquK) can help you
+  - Ghost Games Launcher will still _work_ on most distros, but it is up to you to _get_ it to work
 - SteamOS (downloading using Discover only)
 - Windows 10 & 11
 - macOS 14 or newer
@@ -154,12 +152,12 @@ If you're not using the Flatpak version, keep GE-Proton as your Wine runner. Wit
 
 #### Debian, Ubuntu and Derivatives
 
-Download the file ending in .deb from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest).  
+Download the file ending in .deb from the [latest release](https://github.com/alazter/GhostGamesLauncher/releases/latest).  
 Double-click it to open it up in your Software Manager, or run `sudo dpkg -i Heroic*amd64.deb` to install it directly.
 
 #### Arch (AUR)
 
-We currently only support one AUR package: `heroic-games-launcher-bin`. Although you might find other packages there, do not ask support for them on this GitHub or on our Discord, ask their maintainers directly.
+We currently only support one AUR package: `heroic-games-launcher-bin`. Although you might find other packages there, do not ask support for them on this GitHub, ask their maintainers directly.
 
 - [![Stable version badge](https://img.shields.io/aur/version/heroic-games-launcher-bin?style=flat&label=heroic-games-launcher-bin)](https://aur.archlinux.org/packages/heroic-games-launcher-bin)  
   (stable release, recommended)
@@ -168,7 +166,7 @@ Please see [the Arch Wiki](https://wiki.archlinux.org/title/Arch_User_Repository
 
 #### Fedora
 
-You can download the file ending in .rpm from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest) and install it with `sudo dnf install ./heroic-*.x86_64.rpm`.
+You can download the file ending in .rpm from the [latest release](https://github.com/alazter/GhostGamesLauncher/releases/latest) and install it with `sudo dnf install ./heroic-*.x86_64.rpm`.
 
 Alternatively, you can use the Flatpak package.
 
@@ -200,13 +198,13 @@ Since these two distribution formats don't have a form of dependency management,
 
 ##### AppImage
 
-- Download the file ending in .AppImage from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest)
+- Download the file ending in .AppImage from the [latest release](https://github.com/alazter/GhostGamesLauncher/releases/latest)
 - Make it executable (`chmod +x Heroic*.AppImage`)
 - Run it (double-click in most file managers, or run `./Heroic*.AppImage`)
 
 ##### .tar.xz
 
-- Download the file ending in .tar.xz from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest)
+- Download the file ending in .tar.xz from the [latest release](https://github.com/alazter/GhostGamesLauncher/releases/latest)
 - Extract it anywhere
 - Run the `heroic` file in the folder you extracted it to (double-click in most file managers, or run `./heroic`)
 
@@ -218,13 +216,13 @@ If you use WinGet (installed by default on Windows 11 and modern versions of 10)
 
 #### Manual installl
 
-Download the Heroic Installer (`Heroic-x.x.x-Setup.exe`) or the portable version (`Heroic-x.x.x-Portable.exe`) from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest). Run the executable you downloaded to install/run Heroic.  
+Download the Heroic Installer (`Heroic-x.x.x-Setup.exe`) or the portable version (`Heroic-x.x.x-Portable.exe`) from the [latest release](https://github.com/alazter/GhostGamesLauncher/releases/latest). Run the executable you downloaded to install/run Heroic.  
 The Setup will create shortcuts to Heroic on your Desktop and in your Start Menu.
 
 ### macOS
 
 If you use Homebrew, you can run `brew install --cask --no-quarantine heroic` to install Heroic.  
-Otherwise, download the file ending in .dmg from the [latest release](https://github.com/alazter/HeroicGamesLauncher/releases/latest), double-click it to mount it, and drag the "Heroic" application into the "Applications" folder.
+Otherwise, download the file ending in .dmg from the [latest release](https://github.com/alazter/GhostGamesLauncher/releases/latest), double-click it to mount it, and drag the "Heroic" application into the "Applications" folder.
 
 ## Development environment
 
