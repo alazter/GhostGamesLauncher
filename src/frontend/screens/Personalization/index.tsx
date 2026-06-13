@@ -1330,12 +1330,10 @@ export default function PersonalizationScreen() {
           cursor: pointer;
         }
         .preview-platforms-bar:hover {
-          border-color: rgba(230, 126, 34, 0.4);
           background-color: rgba(255, 255, 255, 0.02);
         }
         .preview-platforms-bar--selected {
-          border-color: rgba(230, 126, 34, 0.8) !important;
-          background-color: rgba(230, 126, 34, 0.04) !important;
+          background-color: rgba(255, 255, 255, 0.03) !important;
         }
 
         .preview-platform-btn {
