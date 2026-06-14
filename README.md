@@ -16,18 +16,6 @@ Ghost Games Launcher is built with Web Technologies:
 [![electron-builder](https://img.shields.io/badge/electron--builder-4078c0?style=for-the-badge&logo=electronbuilder&labelColor=gray&logoColor=4078c0)](https://www.electron.build/)
 [![Jest](https://img.shields.io/badge/Jest-18DF16?style=for-the-badge&logo=jest&labelColor=gray&logoColor=18DF16)](https://jestjs.io/)
 [![Vite](https://img.shields.io/badge/Vite-BD34FE?style=for-the-badge&logo=vite&labelColor=gray)](https://vitejs.dev/)
-
-## Index
-
-- [Ghost Games Launcher](#ghost-games-launcher)
-  - [Index](#index)
-  - [Features available right now](#features-available-right-now)
-  - [Planned features](#planned-features)
-  - [Supported Operating Systems](#supported-operating-systems)
-  - [Language Support](#language-support)
-    - [Help with Translations Here](#help-with-translations-here)
-  - [Installation](#installation)
-    - [Windows](#windows)
   
   - [Development environment](#development-environment)
     - [Building Heroic Binaries](#building-heroic-binaries)
@@ -35,8 +23,6 @@ Ghost Games Launcher is built with Web Technologies:
     - [Quickly testing/debugging Heroic on your own system](#quickly-testingdebugging-heroic-on-your-own-system)
     - [Testing with Docker](#testing-with-docker)
     - [Development on nix](#development-on-nix)
-  - [Sponsors](#sponsors)
-  - [Screenshots](#screenshots)
   - [Credits](#credits)
 
 ## Features available right now
