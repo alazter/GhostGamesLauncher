@@ -5,7 +5,7 @@
 [![GPLv3 license](https://img.shields.io/github/license/alazter/GhostGamesLauncher?style=for-the-badge&color=blue)](https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING)  
 
 Ghost Games Launcher is an Open Source Game Launcher for Linux, Windows and macOS based on the excellent [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
-Right now it supports launching games from the Epic Games Store using [Legendary](https://github.com/derrod/legendary), GOG Games using our custom implementation with [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) and Amazon Games using [Nile](https://github.com/imLinguin/nile).
+Right now it supports launching games from the Epic Games Store using [Legendary](https://github.com/derrod/legendary), GOG Games using implementation with [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) and Amazon Games using [Nile](https://github.com/imLinguin/nile).
 
 ## 🚀 Download
 Get the latest release of Ghost Games Launcher here:
