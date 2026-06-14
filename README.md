@@ -7,8 +7,6 @@
 Ghost Games Launcher is an Open Source Game Launcher for Windows based on the excellent [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
 Right now it supports launching games from the Epic Games Store using [Legendary](https://github.com/derrod/legendary), GOG Games using implementation with [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) and Amazon Games using [Nile](https://github.com/imLinguin/nile).
   
-- [Credits](#credits)
-
 ## Features available right now
 
 - Login with an existing Epic Games, GOG or Amazon account
@@ -28,8 +26,6 @@ Right now it supports launching games from the Epic Games Store using [Legendary
 - Add Games and Applications outside GOG, Epic Games and Amazon Games
 - Define your categories to organize your collection
 
-<details>
-  <summary>Expand</summary>
 
 - English
 - Portuguese (Brazil)
