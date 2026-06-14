@@ -63,6 +63,7 @@ This project is a customized fork and rebranding of the excellent [Heroic Games 
 
 Ghost Games Launcher would not be possible without the work done in many other projects:
 
+- Heroic Games Launcher: https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher
 - Legendary: https://github.com/derrod/legendary (we use [a fork of it](https://github.com/Heroic-Games-Launcher/legendary))
 - GOGdl: https://github.com/Heroic-Games-Launcher/heroic-gogdl
 - Nile: https://github.com/imLinguin/nile
