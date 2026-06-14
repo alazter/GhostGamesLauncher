@@ -38,8 +38,6 @@ Ghost Games Launcher is built with Web Technologies:
 - Add Games and Applications outside GOG, Epic Games and Amazon Games
 - Define your categories to organize your collection
 
-## Language Support
-
 <details>
   <summary>Expand</summary>
 
