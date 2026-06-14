@@ -43,8 +43,6 @@ Ghost Games Launcher is built with Web Technologies:
 <details>
   <summary>Expand</summary>
 
-Thanks to the community, Heroic was translated to almost 40 different languages so far:
-
 - English
 - Portuguese (Brazil)
 
