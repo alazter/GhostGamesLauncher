@@ -4,7 +4,7 @@ import { homedir } from 'os'
 import { join, resolve } from 'path'
 import { env } from 'process'
 import { dirSync } from 'tmp'
-import { isSnap } from './environment'
+import { isSnap, isWindows } from './environment'
 
 let configFolder = app.getPath('appData')
 // If we're running tests, we want a config folder independent of the normal
@@ -70,4 +70,6 @@ export function fixAsarPath(origin: string): string {
   return origin
 }
 
-export const windowIcon = fixAsarPath(join(publicDir, 'icon.png'))
+export const windowIcon = fixAsarPath(
+  join(publicDir, isWindows ? 'win_icon.ico' : 'icon.png')
+)
