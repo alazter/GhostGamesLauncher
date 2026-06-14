@@ -17,12 +17,6 @@ Ghost Games Launcher is built with Web Technologies:
 [![Jest](https://img.shields.io/badge/Jest-18DF16?style=for-the-badge&logo=jest&labelColor=gray&logoColor=18DF16)](https://jestjs.io/)
 [![Vite](https://img.shields.io/badge/Vite-BD34FE?style=for-the-badge&logo=vite&labelColor=gray)](https://vitejs.dev/)
   
-  - [Development environment](#development-environment)
-    - [Building Heroic Binaries](#building-heroic-binaries)
-    - [Building with VS Code](#building-with-vs-code)
-    - [Quickly testing/debugging Heroic on your own system](#quickly-testingdebugging-heroic-on-your-own-system)
-    - [Testing with Docker](#testing-with-docker)
-    - [Development on nix](#development-on-nix)
   - [Credits](#credits)
 
 ## Features available right now
