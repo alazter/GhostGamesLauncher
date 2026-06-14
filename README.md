@@ -65,7 +65,7 @@ This project is a customized fork and rebranding of the excellent [Heroic Games 
 
 ### Tools We Use to Run Games
 
-Heroic would not be possible without the work done in many other projects:
+Ghost Games Launcher would not be possible without the work done in many other projects:
 
 - Legendary: https://github.com/derrod/legendary (we use [a fork of it](https://github.com/Heroic-Games-Launcher/legendary))
 - GOGdl: https://github.com/Heroic-Games-Launcher/heroic-gogdl
