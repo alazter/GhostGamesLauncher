@@ -69,6 +69,12 @@ interface About {
   shortDescription: string
 }
 
+export type ReleaseAsset = {
+  name: string
+  browser_download_url: string
+  size: number
+}
+
 export type Release = {
   type: 'stable' | 'beta'
   html_url: string
@@ -78,6 +84,7 @@ export type Release = {
   prerelease: boolean
   id: number
   body?: string
+  assets?: ReleaseAsset[]
 }
 
 export type ExperimentalFeatures = {

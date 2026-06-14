@@ -11,6 +11,7 @@ import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
 import CachedImage from 'frontend/components/UI/CachedImage'
+import fallbackImage from 'frontend/assets/heroic_card.jpg'
 
 interface Props {
   game: GameInfo
@@ -218,7 +219,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     }}>
       {/* Imagem */}
       <CachedImage
-        src={panelSquare || panelCover || ''}
+        src={panelSquare || panelCover || fallbackImage}
         alt={panelTitle}
         style={{
           width: 'calc(100% + 30px)',

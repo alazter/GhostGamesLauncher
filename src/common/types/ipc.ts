@@ -180,6 +180,9 @@ interface AsyncIPCFunctions {
   showUpdateSetting: () => boolean
   getLatestReleases: () => Promise<Release[]>
   getCurrentChangelog: () => Promise<Release | null>
+  downloadLauncherUpdate: (
+    assets: any[]
+  ) => Promise<{ success: boolean; destPath?: string; error?: string }>
   getGameInfo: (appName: string, runner: Runner) => Promise<GameInfo | null>
   getAchievements: (
     appName: string,
@@ -431,6 +434,13 @@ interface FrontendMessages {
       { title?: string; art_cover?: string; art_square?: string }
     >
   ) => void
+
+  'download-launcher-update-progress': (progress: {
+    bytes: number
+    speed: number
+    percentage: number
+    writingSpeed: number
+  }) => void
 
   // Used inside tests, so we can be a bit lenient with the type checking here
   message: (...params: unknown[]) => void

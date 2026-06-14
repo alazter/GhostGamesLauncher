@@ -11,7 +11,8 @@ import {
   protocol,
   screen,
   clipboard,
-  session
+  session,
+  shell
 } from 'electron'
 import {
   addHandler,
@@ -716,6 +717,63 @@ addHandler('getLatestReleases', async () => {
 
 addHandler('getCurrentChangelog', async () => {
   return getCurrentChangelog()
+})
+
+addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
+  const { downloadFile } = await import('./utils')
+  const currentExeName = path.basename(app.getPath('exe')).toLowerCase()
+  const isPortable = currentExeName.includes('portable')
+
+  // Find matching asset
+  let selectedAsset = assets.find((asset) => {
+    const assetName = asset.name.toLowerCase()
+    if (isPortable) {
+      return assetName.includes('portable') && assetName.endsWith('.exe')
+    } else {
+      return assetName.includes('setup') && assetName.endsWith('.exe')
+    }
+  })
+
+  // Fallback to first .exe if no match
+  if (!selectedAsset) {
+    selectedAsset = assets.find((asset) => asset.name.toLowerCase().endsWith('.exe'))
+  }
+
+  if (!selectedAsset) {
+    logError('No executable asset found in release for download.', LogPrefix.Backend)
+    return { success: false, error: 'Nenhum arquivo executável (.exe) encontrado para download.' }
+  }
+
+  const downloadsFolder = app.getPath('downloads')
+  const destPath = path.join(downloadsFolder, selectedAsset.name)
+
+  try {
+    await downloadFile({
+      url: selectedAsset.browser_download_url,
+      dest: destPath,
+      progressCallback: (bytes, speed, percentage, writingSpeed) => {
+        sendFrontendMessage('download-launcher-update-progress', {
+          bytes,
+          speed,
+          percentage,
+          writingSpeed
+        })
+      }
+    })
+
+    shell.openPath(destPath).then((err) => {
+      if (err) {
+        logError(['Failed to launch update file:', err], LogPrefix.Backend)
+      } else {
+        app.quit()
+      }
+    })
+
+    return { success: true, destPath }
+  } catch (error) {
+    logError(['Failed to download launcher update:', error], LogPrefix.Backend)
+    return { success: false, error: String(error) }
+  }
 })
 
 addListener('clearCache', (event, showDialog, fromVersionChange = false) => {

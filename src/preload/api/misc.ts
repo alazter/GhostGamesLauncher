@@ -112,3 +112,5 @@ export const steamgriddb = {
   getGrids: makeHandlerInvoker('steamgriddb.getGrids'),
   getHeroes: makeHandlerInvoker('steamgriddb.getHeroes')
 }
+export const downloadLauncherUpdate = makeHandlerInvoker('downloadLauncherUpdate')
+export const handleDownloadLauncherUpdateProgress = frontendListenerSlot('download-launcher-update-progress')

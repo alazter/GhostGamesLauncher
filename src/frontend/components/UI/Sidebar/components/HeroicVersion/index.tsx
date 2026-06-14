@@ -5,16 +5,8 @@ import { ChangelogModal } from '../../../ChangelogModal'
 import TourButton from 'frontend/components/Tour/TourButton'
 import { SIDEBAR_TOUR_ID } from '../SidebarTour'
 import './index.scss'
-
-type Release = {
-  html_url: string
-  name: string
-  tag_name: string
-  published_at: string
-  type: 'stable' | 'beta'
-  id: number
-  body?: string
-}
+import UpdatePopupModal from 'frontend/components/UI/UpdatePopupModal'
+import { Release } from 'common/types'
 
 const storage = window.localStorage
 const lastVersion = storage.getItem('last_version')?.replaceAll('"', '')
@@ -26,9 +18,13 @@ export default React.memo(function HeroicVersion() {
   const [showChangelogModal, setShowChangelogModal] = useState(true)
   const [showChangelogModalOnClick, setShowChangelogModalOnClick] =
     useState(false)
+  const [updateToPrompt, setUpdateToPrompt] = useState<Release | null>(null)
 
-  const { hideChangelogsOnStartup, lastChangelogShown, setLastChangelogShown } =
-    useContext(ContextProvider)
+  const {
+    hideChangelogsOnStartup,
+    lastChangelogShown,
+    setLastChangelogShown
+  } = useContext(ContextProvider)
 
   useEffect(() => {
     void window.api.getHeroicVersion().then((version) => {
@@ -50,6 +46,18 @@ export default React.memo(function HeroicVersion() {
       })
   }, [])
 
+  useEffect(() => {
+    if (!newReleases) return
+
+    const newStable = newReleases.filter((r) => r.type === 'stable')[0]
+    const newBeta = newReleases.filter((r) => r.type === 'beta')[0]
+    const latestRelease = newStable || newBeta
+
+    if (latestRelease) {
+      setUpdateToPrompt(latestRelease)
+    }
+  }, [newReleases])
+
   const newStable: Release | undefined = newReleases?.filter(
     (r) => r.type === 'stable'
   )[0]
@@ -57,6 +65,7 @@ export default React.memo(function HeroicVersion() {
     (r) => r.type === 'beta'
   )[0]
   const shouldShowUpdates = newBeta || newStable
+  const latestRelease = newStable || newBeta
 
   const version = heroicVersion.replace('-beta', ' Beta').replace('-alpha', ' Alpha')
 
@@ -75,20 +84,36 @@ export default React.memo(function HeroicVersion() {
           }}
         />
       )}
+      {updateToPrompt && (
+        <UpdatePopupModal
+          release={updateToPrompt}
+          onClose={() => setUpdateToPrompt(null)}
+        />
+      )}
       <div className="heroicVersionWrapper">
         <span
           className="heroicVersion"
           role="link"
-          title={t(
-            'info.heroic.click-to-see-changelog',
-            'Click to see changelog'
-          )}
-          onClick={() => setShowChangelogModalOnClick((current) => !current)}
+          title={
+            shouldShowUpdates && latestRelease
+              ? `${t('info.heroic.newReleases', 'Update Available!')} (${latestRelease.tag_name})`
+              : t('info.heroic.click-to-see-changelog', 'Click to see changelog')
+          }
+          onClick={() => {
+            if (shouldShowUpdates && latestRelease) {
+              setUpdateToPrompt(latestRelease)
+            } else {
+              setShowChangelogModalOnClick((current) => !current)
+            }
+          }}
         >
           <span className="heroicVersion__title">
             <span>{t('info.heroic.version', 'Heroic Version')}: </span>
           </span>
           <strong>{version}</strong>
+          {shouldShowUpdates && (
+            <span className="update-badge-dot" />
+          )}
         </span>
         <TourButton tourId={SIDEBAR_TOUR_ID} className="sidebar-tour-button" />
       </div>
