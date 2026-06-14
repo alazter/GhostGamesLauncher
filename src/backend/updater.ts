@@ -50,7 +50,7 @@ async function showAutoupdateDialog() {
   }
   if (response === 2) {
     shell.openExternal(
-      'https://github.com/alazter/HeroicGamesLauncher/releases'
+      'https://github.com/alazter/GhostGamesLauncher/releases'
     )
     showAutoupdateDialog()
   }

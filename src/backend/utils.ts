@@ -11,6 +11,7 @@ import {
 } from 'common/types'
 import axios from 'axios'
 import https from 'node:https'
+import { gt as semverGtOriginal } from 'semver'
 import { app, dialog, shell, Notification, BrowserWindow } from 'electron'
 import { exec, spawn, SpawnOptions, spawnSync } from 'child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'graceful-fs'
@@ -99,43 +100,11 @@ function semverGt(target: string, base: string) {
   if (!target || !base) {
     return false
   }
-  target = target.replace('v', '')
-
-  // beta to beta
-  if (base.includes('-beta') && target.includes('-beta')) {
-    const bSplit = base.split('-beta.')
-    const tSplit = target.split('-beta.')
-
-    // same major beta?
-    if (bSplit[0] === tSplit[0]) {
-      base = bSplit[1]
-      target = tSplit[1]
-      return target > base
-    } else {
-      base = bSplit[0]
-      target = tSplit[0]
-    }
+  try {
+    return semverGtOriginal(target, base)
+  } catch {
+    return false
   }
-
-  // beta to stable
-  if (base.includes('-beta')) {
-    base = base.split('-beta.')[0]
-  }
-
-  // stable to beta
-  if (target.includes('-beta')) {
-    target = target.split('-beta.')[0]
-  }
-
-  const [bmajor, bminor, bpatch] = base.split('.').map(Number)
-  const [tmajor, tminor, tpatch] = target.split('.').map(Number)
-
-  let isGE = false
-  // A pretty nice piece of logic if you ask me. :P
-  isGE ||= tmajor > bmajor
-  isGE ||= tmajor === bmajor && tminor > bminor
-  isGE ||= tmajor === bmajor && tminor === bminor && tpatch > bpatch
-  return isGE
 }
 
 const getFileSize = fileSize.partial({ base: 2 }) as (arg: unknown) => string
