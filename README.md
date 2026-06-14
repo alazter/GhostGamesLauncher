@@ -2,7 +2,7 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/alazter/GhostGamesLauncher?style=for-the-badge)](https://github.com/alazter/GhostGamesLauncher/releases/latest)
 [![GitHub all releases](https://img.shields.io/github/downloads/alazter/GhostGamesLauncher/total?style=for-the-badge&color=00B000)](https://github.com/alazter/GhostGamesLauncher/releases/)
-[![GPLv3 license](https://img.shields.io/github/license/alazter/GhostGamesLauncher?style=for-the-badge&color=blue)](https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING)  
+[![GPLv3 license](https://img.shields.io/github/license/alazter/GhostGamesLauncher?style=for-the-badge&color=blue)]([https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING](https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING))  
 
 Ghost Games Launcher is an Open Source Game Launcher for Windows based on the excellent [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
 Right now it supports launching games from the Epic Games Store using [Legendary](https://github.com/derrod/legendary), GOG Games using implementation with [gogdl](https://github.com/Heroic-Games-Launcher/heroic-gogdl) and Amazon Games using [Nile](https://github.com/imLinguin/nile).
