@@ -16,6 +16,11 @@ interface SidebarItemProps {
   className?: string
   elementType?: 'a' | 'button'
   dataTour?: string
+  draggable?: boolean
+  onDragStart?: React.DragEventHandler
+  onDragOver?: React.DragEventHandler
+  onDragEnd?: React.DragEventHandler
+  style?: React.CSSProperties
 }
 
 export default function SidebarItem({
@@ -26,7 +31,12 @@ export default function SidebarItem({
   onClick,
   className,
   elementType,
-  dataTour
+  dataTour,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  style
 }: SidebarItemProps) {
   const itemContent = (
     <>
@@ -46,6 +56,11 @@ export default function SidebarItem({
           className="Sidebar__item"
           onClick={onClick}
           data-tour={dataTour}
+          draggable={draggable}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+          style={style}
         >
           {itemContent}
         </button>
@@ -61,6 +76,11 @@ export default function SidebarItem({
           to={url}
           onClick={onClick}
           data-tour={dataTour}
+          draggable={draggable}
+          onDragStart={onDragStart}
+          onDragOver={onDragOver}
+          onDragEnd={onDragEnd}
+          style={style}
         >
           {itemContent}
         </NavLink>

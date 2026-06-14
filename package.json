@@ -1,5 +1,5 @@
 {
-  "name": "heroic",
+  "name": "ghost",
   "version": "0.0.1-alpha",
   "versionNames": {
     "stable": "Hajrudin",
@@ -15,7 +15,7 @@
     "url": "https://github.com/alazter/GhostGamesLauncher"
   },
   "author": {
-    "name": "Heroic Games Launcher",
+    "name": "Ghost Games Launcher",
     "email": "heroicgameslauncher@protonmail.com"
   },
   "engines": {

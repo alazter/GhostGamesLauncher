@@ -7,9 +7,21 @@ import ContextProvider from 'frontend/state/ContextProvider'
 
 interface QuitButtonProps {
   dataTour?: string
+  draggable?: boolean
+  onDragStart?: React.DragEventHandler
+  onDragOver?: React.DragEventHandler
+  onDragEnd?: React.DragEventHandler
+  style?: React.CSSProperties
 }
 
-const QuitButton: React.FC<QuitButtonProps> = ({ dataTour }) => {
+const QuitButton: React.FC<QuitButtonProps> = ({
+  dataTour,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  style
+}) => {
   const { t } = useTranslation()
   const { showDialogModal } = useContext(ContextProvider)
 
@@ -35,6 +47,11 @@ const QuitButton: React.FC<QuitButtonProps> = ({ dataTour }) => {
       className="Sidebar__item"
       onClick={() => handleQuitButton()}
       data-tour={dataTour}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      style={style}
     >
       <div className="Sidebar__itemIcon">
         <FontAwesomeIcon

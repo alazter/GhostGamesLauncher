@@ -20,7 +20,7 @@ import UploadedLogFilesList from './screens/Settings/sections/LogSettings/compon
 import { TourProvider } from './state/TourContext'
 import { InstallGameWrapper } from './screens/Library/components/InstallModal'
 import { SettingsModalWrapper } from './screens/Settings/components/SettingsModal'
-import AnalyticsDialog from './screens/Settings/components/AnalyticsDialog'
+
 
 interface HeroicAppContext {
   isRTL: boolean
@@ -53,11 +53,23 @@ function Root() {
     return localStorage.getItem('heroic_custom_bg')
   })
 
+  const [sidebarPosition, setSidebarPosition] = useState<'left' | 'right'>(() => {
+    return (localStorage.getItem('heroic_sidebar_position') as 'left' | 'right') || 'left'
+  })
+
   useEffect(() => {
     const handleBgChange = () =>
       setGlobalBg(localStorage.getItem('heroic_custom_bg'))
     window.addEventListener('customBgChanged', handleBgChange)
     return () => window.removeEventListener('customBgChanged', handleBgChange)
+  }, [])
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      setSidebarPosition((localStorage.getItem('heroic_sidebar_position') as 'left' | 'right') || 'left')
+    }
+    window.addEventListener('heroicSettingsChanged', handleSettingsChange)
+    return () => window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
   }, [])
 
   useEffect(() => {
@@ -181,7 +193,8 @@ function Root() {
         frameless: isFrameless,
         fullscreen: isFullscreen,
         disableAnimations,
-        consoleMode: isConsoleMode
+        consoleMode: isConsoleMode,
+        'sidebar-right': sidebarPosition === 'right'
       })}
     >
       <ThemeProvider theme={theme}>
@@ -201,7 +214,7 @@ function Root() {
               <LogFileUploadDialog />
               <UploadedLogFilesList />
               <Outlet />
-              <AnalyticsDialog />
+
             </main>
             <div className="controller">
               <ControllerHints />

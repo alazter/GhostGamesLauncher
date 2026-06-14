@@ -1116,7 +1116,7 @@ export default function SideloadDialog({
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              <img
+                              <CachedImage
                                 src={c.art_square || fallbackImage}
                                 alt={c.title}
                                 style={{ width: '40px', height: '54px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)' }}

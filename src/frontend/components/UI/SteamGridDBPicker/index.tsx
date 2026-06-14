@@ -10,6 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import TextInputWithIconField from 'frontend/components/UI/TextInputWithIconField'
+import PathSelectionBox from '../PathSelectionBox'
 import { SGDBGame, SGDBGrid } from 'common/types'
 
 interface Props {
@@ -239,6 +240,36 @@ export default function SteamGridDBPicker({
               <CachedImage src={grid.thumb} />
             </div>
           ))}
+        </div>
+      )}
+
+      {!selectedGameId && (
+        <div className="SteamGridDBPicker__manual-selection">
+          <PathSelectionBox
+            htmlId="steamgriddb-manual-cover"
+            type="file"
+            path=""
+            placeholder={t(
+              'steamgriddb.picker.manual-cover',
+              'Select image manually...'
+            )}
+            pathDialogTitle={t(
+              'steamgriddb.picker.select-image-title',
+              'Select Image'
+            )}
+            pathDialogFilters={[
+              {
+                name: 'Images',
+                extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp']
+              }
+            ]}
+            onPathChange={(selectedPath) => {
+              if (selectedPath) {
+                onSelect(selectedPath)
+              }
+            }}
+            noDeleteButton={true}
+          />
         </div>
       )}
     </div>

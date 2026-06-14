@@ -40,7 +40,7 @@ export default memo(function LibraryHeader({ list }: Props) {
 
   const [btnBorderEnabled, setBtnBorderEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('heroic_alphabet_btn_border_enabled')
-    return saved !== null ? (JSON.parse(saved) as boolean) : true
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
   })
 
   const [btnBorderRadius, setBtnBorderRadius] = useState<number>(() => {
@@ -65,7 +65,7 @@ export default memo(function LibraryHeader({ list }: Props) {
       setBtnGradientEnabled(savedGrad !== null ? (JSON.parse(savedGrad) as boolean) : false)
 
       const savedBrd = localStorage.getItem('heroic_alphabet_btn_border_enabled')
-      setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : true)
+      setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : false)
 
       const savedRadius = localStorage.getItem('heroic_alphabet_btn_border_radius')
       setBtnBorderRadius(savedRadius !== null ? Number(savedRadius) : 18)

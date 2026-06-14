@@ -100,7 +100,7 @@ export default React.memo(function NewLogin() {
           <div className="runnerHeader">
             <HeroicLogo className="runnerHeaderIcon" />
             <div className="runnerHeaderText">
-              <h1 className="title">Heroic</h1>
+              <h1 className="title">Ghost</h1>
               <h2 className="subtitle">Games Launcher</h2>
             </div>
 

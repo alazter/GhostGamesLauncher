@@ -200,3 +200,13 @@ img.loaded {
 .isRTL {
   direction: rtl;
 }
+
+.App.sidebar-right {
+  grid-template-columns: 1fr min-content;
+  grid-template-areas: 'offline offline' 'content sidebar' 'controller sidebar';
+}
+
+.App.sidebar-right .Sidebar .resizer {
+  left: 0;
+  right: auto;
+}

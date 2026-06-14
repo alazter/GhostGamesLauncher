@@ -380,7 +380,7 @@
         "download_proton_steam": "Quando ativado, o Proton-GE será baixado diretamente no diretório de camadas de compatibilidade da Steam, ao invés do diretório padrão do Heroic. Isso irá usar o diretório definido em 'Caminho padrão da Steam' acima.",
         "wine-hdr": "O HDR melhora as cores, fornecendo uma imagem mais brilhante e contrastes profundos. Para que o HDR funcione, a tela e o jogo precisam de suporte.",
         "wine-wayland": "O driver experimental Wine-Wayland permite que os jogos sejam executados nativamente com o protocolo de exibição Wayland. Ativar o mesmo pode quebrar alguns jogos.",
-        "analytics": "Habilitar coleta 100% anônima de dados para ajudar a melhorar o app. Precisa reiniciar o app para ter efeito.",
+        "analytics": "Habilitar coleta de telemetria e dados de uso anônimos para ajudar a melhorar o Ghost. Precisa reiniciar o app para ter efeito.",
         "WoW64": "O modo Wine WoW64 permite que jogos Windows de 32 bits sejam executados em Wine de 64 bits. Ativar esta opção pode melhorar o desempenho, mas também poderá causar problemas em jogos de 32 bits mais antigos.",
         "nvidiaprime": {
             "details": "Usar placa de vídeo dedicada para renderizar o jogo em sistemas multi-GPU. Só necessário em notebooks gamers ou computadores com GPUs avulsas para renderização (NVIDIA Optimus, AMD CrossFire)"
@@ -658,7 +658,7 @@
         "log": {
             "copy-to-clipboard": "Copiar log para a área de transferência",
             "current-log": "Log atual",
-            "instructions": "Acesse o nosso Discord e procure pela seção \"#-support\". Leia a thread fixada \"Read Me First | Frequently Asked Questions\" e siga as instruções (Em Inglês) para compartilhar o conteúdo do Log e qualquer informação relevante sobre seu problema.",
+            "instructions": "Verifique estes logs para identificar possíveis erros. Você pode compartilhá-los com a equipe de desenvolvimento do Ghost ao relatar problemas.",
             "instructions_title": "Como reportar um problema?",
             "last-log": "Último log",
             "no-file": "Arquivo de log não encontrado",
@@ -695,7 +695,7 @@
             },
             "descriptiveNames": {
                 "gog": "registro GOG",
-                "heroic": "Registro geral Heroic",
+                "ghost": "Registro geral do Ghost",
                 "legendary": "Registro Epic Games / Legendary",
                 "nile": "Registro Amazon / Nile",
                 "game-log": "Registro do jogo {{gameTitle}}",
@@ -802,7 +802,7 @@
             "info_label": "Versões não GE do Proton ignoradas"
         },
         "no-tray-icon": "Esconder ícone do indicador de aplicativo (Reinicialização necessária)",
-        "analyticsOptIn": "Enviar dados anônimos para ajudar o desenvolvimento do Heroic",
+        "analyticsOptIn": "Ativar Telemetria (Enviar dados anônimos para ajudar o desenvolvimento do Ghost)",
         "show_valve_proton": {
             "confirmation": {
                 "dont_show": "Não os exibir",
@@ -1242,7 +1242,9 @@
         "picker": {
             "search": "Buscar jogo",
             "title": "Capas do SteamGridDB",
-            "select-game": ""
+            "select-game": "",
+            "manual-cover": "Selecionar imagem manualmente...",
+            "select-image-title": "Selecionar Imagem"
         }
     },
     "console": {

@@ -82,6 +82,11 @@ const PathSelectionBox = ({
       value={tmpPath}
       onChange={(newVal) => setTmpPath(newVal)}
       onBlur={(e) => onPathChange(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          onPathChange(tmpPath)
+        }
+      }}
       onIconClick={handleIconClick}
       placeholder={placeholder}
       icon={!noDeleteButton && path ? <Backspace /> : <Folder />}

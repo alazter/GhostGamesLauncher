@@ -38,12 +38,6 @@ function Settings() {
 
   const { type = 'general' } = useParams()
   const appName = 'default'
-  const isGeneralSettings = type === 'general'
-  const isSyncSettings = type === 'sync'
-  const isGamesSettings = type === 'games_settings'
-  const isLogSettings = type === 'log'
-  const isAdvancedSetting = type === 'advanced'
-  const isSystemInfo = type === 'systeminfo'
 
   // TODO: Adding this comment translation here for now to not lose the
   // translation. This should be removed from here when the help is added
@@ -70,6 +64,22 @@ function Settings() {
     getSettings()
   }, [])
 
+  // Scroll to section dynamically when path type parameter changes
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined
+    if (type) {
+      timer = setTimeout(() => {
+        const element = document.getElementById(type)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
+    }
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [type])
+
   // create setting context functions
   const contextValues: SettingsContextType | null = useSettingsContext({
     appName
@@ -94,20 +104,20 @@ function Settings() {
             window.api.clipboardWriteText(
               JSON.stringify({ appName, title, ...currentConfig })
             ),
-          show: !isLogSettings,
+          show: true,
           icon: <ContentCopy />
         },
         {
           label: t('settings.open-config-file', 'Open Config File'),
           onclick: () => window.api.showConfigFileInFolder(appName),
-          show: !isLogSettings,
+          show: true,
           icon: <FileOpen />
         }
       ]}
     >
       <SettingsContext.Provider value={contextValues}>
         <div className={`Settings ${type}`}>
-          <div role="list" className="settingsWrapper">
+          <div role="list" className="settingsWrapper" style={{ maxWidth: '800px', width: '100%', scrollBehavior: 'smooth' }}>
             <NavLink to="/library" role="link" className="backButton">
               <ArrowCircleLeftIcon />
             </NavLink>
@@ -115,12 +125,12 @@ function Settings() {
               {title}
             </h1>
 
-            {isGeneralSettings && <GeneralSettings />}
-            {isGamesSettings && <GamesSettings />}
-            {isSyncSettings && <SyncSaves />}
-            {isAdvancedSetting && <AdvancedSettings />}
-            {isLogSettings && <LogSettings />}
-            {isSystemInfo && <SystemInfo />}
+            <div id="general" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><GeneralSettings /></div>
+            <div id="games_settings" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><GamesSettings /></div>
+            <div id="sync" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><SyncSaves /></div>
+            <div id="advanced" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><AdvancedSettings /></div>
+            <div id="log" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><LogSettings /></div>
+            <div id="systeminfo" style={{ width: '100%', marginBottom: '40px', paddingBottom: '30px' }}><SystemInfo /></div>
             <FooterInfo />
           </div>
         </div>

@@ -10,6 +10,7 @@ import { launch, sendKill } from 'frontend/helpers'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
+import CachedImage from 'frontend/components/UI/CachedImage'
 
 interface Props {
   game: GameInfo
@@ -216,7 +217,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
     }}>
       {/* Imagem */}
-      <img
+      <CachedImage
         src={panelSquare || panelCover || ''}
         alt={panelTitle}
         style={{

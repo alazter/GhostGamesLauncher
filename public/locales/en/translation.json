@@ -449,7 +449,7 @@
     "help": {
         "advertiseAvxForRosetta": "Enables AVX instruction set support when running Windows games through Rosetta on Apple Silicon Macs. This may be required for some games like Death Stranding that need AVX support.",
         "amdfsr": "AMD's FSR helps boost framerate by upscaling lower resolutions in Fullscreen Mode. Image quality increases from 5 to 1 at the cost of a slight performance hit. Enabling may improve performance.",
-        "analytics": "Enables Heroic to collect 100% anonymous usage data to help improve the application. Needs restart to take effect.",
+        "analytics": "Enables Ghost to collect anonymous usage and telemetry data to help improve the application. Needs restart to take effect.",
         "button": {
             "close": "Close Help",
             "open": "Open Help"
@@ -758,7 +758,7 @@
         "alt-gogdl-bin": "Choose an Alternative GOGDL Binary to use",
         "alt-legendary-bin": "Choose an Alternative Legendary Binary",
         "alt-nile-bin": "Choose an Alternative Nile Binary",
-        "analyticsOptIn": "Send anonymous data to help Heroic development",
+        "analyticsOptIn": "Enable Telemetry (Send anonymous data to help Ghost development)",
         "autodxvk": "Auto Install/Update DXVK on Prefix",
         "autodxvknvapi": "Auto Install/Update DXVK-NVAPI on Prefix",
         "autosync": "Autosync Saves",
@@ -850,12 +850,12 @@
             "descriptiveNames": {
                 "game-log": "Game log of {{gameTitle}}",
                 "gog": "GOG log",
-                "heroic": "General Heroic log",
+                "ghost": "General Ghost log",
                 "legendary": "Epic Games / Legendary log",
                 "nile": "Amazon / Nile log",
                 "zoom": "Zoom log"
             },
-            "instructions": "Join our Discord and look for the \"#-support\" section. Read the pinned \"Read Me First | Frequently Asked Questions\" thread and follow the instructions to share these logs and any relevant information about your problem.",
+            "instructions": "Check these logs to identify errors. You can share them with the Ghost developers or community when reporting issues.",
             "instructions_title": "How to report a problem?",
             "join-heroic-discord": "Join our Discord",
             "no-file": "No log file found",
@@ -1082,7 +1082,9 @@
         "picker": {
             "search": "Search Game",
             "select-game": "Select a Game:",
-            "title": "SteamGridDB Covers"
+            "title": "SteamGridDB Covers",
+            "manual-cover": "Select image manually...",
+            "select-image-title": "Select Image"
         }
     },
     "store": "Epic Store",

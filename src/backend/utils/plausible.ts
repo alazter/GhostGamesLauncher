@@ -72,62 +72,8 @@ function Plausible() {
 }
 
 export async function startPlausible() {
-  if (process.env.CI === 'e2e') {
-    logInfo('Skipping Plausible Analytics in E2E tests', LogPrefix.Backend)
-    return
-  }
-
-  const plausible = Plausible()
-  plausible.enableAutoPageviews()
-  const appVersion = app.getVersion()
-  const providersObject = {
-    gog: !!GOGUser.isLoggedIn(),
-    epic: !!LegendaryUser.isLoggedIn(),
-    amazon: !!NileUser.isLoggedIn(),
-    sideloaded: libraryStore.raw_store.games?.length > 0
-  }
-  const loggedInProviders = Object.entries(providersObject)
-    .filter(([, v]) => v)
-    .map(([k]) => k)
-
-  let distro = 'unknown'
-  let distroVersion = 'unknown'
-  try {
-    const osInfo = await getOsInfo()
-    if (osInfo.name) distro = osInfo.name
-    if (osInfo.version) distroVersion = osInfo.version
-  } catch (error) {
-    logWarning(
-      `Failed to read OS info for analytics: ${error}`,
-      LogPrefix.Backend
-    )
-  }
-
-  const props = {
-    version: appVersion,
-    gog: providersObject.gog || false,
-    epic: providersObject.epic || false,
-    amazon: providersObject.amazon || false,
-    sideloaded: providersObject.sideloaded || false,
-    providers: loggedInProviders.join(', '),
-    OS: process.platform,
-    arch: process.arch,
-    distro,
-    distroVersion,
-    isFlatpak: isFlatpak,
-    isAppImage: isAppImage,
-    isSnap: isSnap,
-    isSteamDeckGameMode: isSteamDeckGameMode,
-    isSteamDeck: !!isSteamDeck
-  }
-
-  if (process.platform) {
-    logInfo('Starting Plausible Analytics', LogPrefix.Backend)
-    logInfo(`Shared Data: ${JSON.stringify(props)}`, LogPrefix.Backend)
-    plausible.trackEvent('App Loaded', {
-      props
-    })
-  }
+  logInfo('Plausible Analytics is disabled', LogPrefix.Backend)
+  return
 }
 
 backendEvents.on('settingChanged', ({ key, newValue }) => {

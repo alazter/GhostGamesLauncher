@@ -13,14 +13,14 @@ function getBaseLogPath(): string {
   if (isWindows) {
     const localAppData =
       process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local')
-    return join(localAppData, 'Heroic', 'logs')
+    return join(localAppData, 'Ghost', 'logs')
   }
   if (isMac) {
-    return join(homedir(), 'Library', 'Logs', 'Heroic Games Launcher')
+    return join(homedir(), 'Library', 'Logs', 'Ghost Games Launcher')
   }
   const stateHome =
     process.env.XDG_STATE_HOME ?? join(homedir(), '.local', 'state')
-  return join(stateHome, 'Heroic', 'logs')
+  return join(stateHome, 'Ghost', 'logs')
 }
 
 // Which game log to return. By default, the launch log is returned.
@@ -46,7 +46,7 @@ type GetLogFileArgs =
 function getLogFilePath(args: GetLogFileArgs): string {
   let relativeFilePath: string
   if (!(args?.appName || args?.runner)) {
-    relativeFilePath = 'heroic'
+    relativeFilePath = 'ghost'
   } else if (args.runner && !args.appName) {
     relativeFilePath = join('runners', args.runner)
   } else {

@@ -37,7 +37,7 @@ const AlphabetFilter: React.FC = () => {
 
   const [btnBorderEnabled, setBtnBorderEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('heroic_alphabet_btn_border_enabled')
-    return saved !== null ? (JSON.parse(saved) as boolean) : true
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
   })
 
   const [btnHoverOpacity, setBtnHoverOpacity] = useState<number>(() => {
@@ -73,7 +73,7 @@ const AlphabetFilter: React.FC = () => {
       setBtnGradientEnabled(savedGrad !== null ? (JSON.parse(savedGrad) as boolean) : false)
 
       const savedBrd = localStorage.getItem('heroic_alphabet_btn_border_enabled')
-      setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : true)
+      setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : false)
 
       const savedHoverOp = localStorage.getItem('heroic_alphabet_btn_hover_opacity')
       setBtnHoverOpacity(savedHoverOp !== null ? Number(savedHoverOp) : 0.13)
