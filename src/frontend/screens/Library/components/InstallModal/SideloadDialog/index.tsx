@@ -100,6 +100,9 @@ export default function SideloadDialog({
   // Auto-scanner states
   const [scannedCandidates, setScannedCandidates] = useState<GameCandidate[]>([])
   const [scanningCandidates, setScanningCandidates] = useState(false)
+  const [scanPhase, setScanPhase] = useState<'initial' | 'registry_done' | 'full_done'>('initial')
+  const [searchTitlesInput, setSearchTitlesInput] = useState('')
+  const [searchOnlyByName, setSearchOnlyByName] = useState(true)
   const [importSelection, setImportSelection] = useState<Record<string, 'import' | 'blacklist' | 'none'>>({})
   const [blacklistCount, setBlacklistCount] = useState(0)
   const [scannedImports, setScannedImports] = useState<GameCandidate[]>([])
@@ -480,11 +483,85 @@ export default function SideloadDialog({
       setImportSelection(initialSelection)
       setScannedImports(defaultImports)
       setScannedBlacklist([])
+      setScanPhase('registry_done')
     } catch (err) {
       window.api.logError(`Error discovering games: ${err}`)
     } finally {
       setScanningCandidates(false)
     }
+  }
+
+  const handleScanAll = async () => {
+    setScanningCandidates(true)
+    try {
+      const searchTitles = (searchOnlyByName && searchTitlesInput)
+        ? searchTitlesInput.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined
+
+      const results = await window.api.discoverAllGames(searchTitles)
+      results.sort((a, b) => a.title.localeCompare(b.title))
+      setScannedCandidates(results)
+
+      // Pre-calculate already added maps for fast lookup
+      const addedExes = new Set<string>();
+      const addedTitles = new Set<string>();
+      const addKeys = (g: GameInfo) => {
+        if (g.install?.executable) addedExes.add(g.install.executable.replace(/\\/g, '/').toLowerCase());
+        if (g.title) addedTitles.add(g.title.trim().toLowerCase());
+      };
+      sideloadedLibrary?.forEach(addKeys);
+      epic?.library?.forEach(addKeys);
+      gog?.library?.forEach(addKeys);
+      amazon?.library?.forEach(addKeys);
+      zoom?.library?.forEach(addKeys);
+
+      const initialSelection: Record<string, 'import' | 'blacklist' | 'none'> = {}
+      const defaultImports: GameCandidate[] = []
+
+      results.forEach((c) => {
+        const normExe = c.executable.replace(/\\/g, '/').toLowerCase();
+        const normTitle = c.title.trim().toLowerCase();
+        const isDuplicate = addedExes.has(normExe) || addedTitles.has(normTitle);
+
+        if (isDuplicate) {
+          initialSelection[c.executable] = 'none'
+        } else {
+          initialSelection[c.executable] = 'import'
+          defaultImports.push(c)
+        }
+      })
+
+      setImportSelection(initialSelection)
+      setScannedImports(defaultImports)
+      setScannedBlacklist([])
+      setScanPhase('full_done')
+    } catch (err) {
+      window.api.logError(`Error scanning all games: ${err}`)
+    } finally {
+      setScanningCandidates(false)
+    }
+  }
+
+  const handleSelectAll = (action: 'import' | 'none') => {
+    const newSelection: Record<string, 'import' | 'blacklist' | 'none'> = {}
+    const toImport: GameCandidate[] = []
+
+    scannedCandidates.forEach((c) => {
+      if (action === 'import') {
+        if (!isCandidateAlreadyAdded(c)) {
+          newSelection[c.executable] = 'import'
+          toImport.push(c)
+        } else {
+          newSelection[c.executable] = 'none'
+        }
+      } else {
+        newSelection[c.executable] = 'none'
+      }
+    })
+
+    setImportSelection(newSelection)
+    setScannedImports(toImport)
+    setScannedBlacklist([])
   }
 
   const handleToggleSelection = (executable: string, target: 'import' | 'blacklist') => {
@@ -1024,10 +1101,13 @@ export default function SideloadDialog({
                         </button>
                         <button
                           type="button"
-                          onClick={handleScanCandidates}
+                          onClick={scanPhase === 'initial' ? handleScanCandidates : handleScanAll}
                           className="button is-secondary"
                           style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
-                          disabled={scanningCandidates}
+                          disabled={
+                            scanningCandidates ||
+                            (scanPhase !== 'initial' && searchOnlyByName && !searchTitlesInput.trim())
+                          }
                         >
                           {scanningCandidates ? (
                             <>
@@ -1037,15 +1117,52 @@ export default function SideloadDialog({
                           ) : (
                             <>
                               <FontAwesomeIcon icon={faSyncAlt} style={{ marginRight: '6px' }} />
-                              Escanear PC
+                              {scanPhase === 'initial' ? 'Escanear PC' : 'Escanear Tudo'}
                             </>
                           )}
                         </button>
                       </div>
                     </div>
+
+                    {scanPhase !== 'initial' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
+                        <label style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '13px',
+                          color: 'rgba(255, 255, 255, 0.75)',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={searchOnlyByName}
+                            onChange={(e) => setSearchOnlyByName(e.target.checked)}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              accentColor: '#00ffff',
+                              cursor: 'pointer'
+                            }}
+                          />
+                          Desabilitar escaneamento completo (buscar apenas pelos nomes digitados)
+                        </label>
+
+                        {searchOnlyByName && (
+                          <TextInputField
+                            label="Buscar Jogos Específicos (separados por vírgula)"
+                            placeholder="Digite o nome dos jogos, ex: GTA, Cyberpunk, Witcher"
+                            onChange={(newValue) => setSearchTitlesInput(newValue)}
+                            htmlId="scanner-search-titles"
+                            value={searchTitlesInput}
+                          />
+                        )}
+                      </div>
+                    )}
          
                     {scannedCandidates.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', marginTop: '-8px', marginBottom: '-4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', marginTop: '-8px', marginBottom: '-4px' }}>
                         <label style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1068,6 +1185,41 @@ export default function SideloadDialog({
                           />
                           Ocultar itens escaneados que já estão adicionados no Heroic
                         </label>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectAll('import')}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#00ffff',
+                              fontSize: '12.5px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              padding: 0,
+                              outline: 'none'
+                            }}
+                          >
+                            Marcar Todos
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectAll('none')}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ff4444',
+                              fontSize: '12.5px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              padding: 0,
+                              outline: 'none'
+                            }}
+                          >
+                            Desmarcar Todos
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -1075,7 +1227,9 @@ export default function SideloadDialog({
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '12px', flex: 1 }}>
                         <FontAwesomeIcon icon={faSpinner} spin size="2x" style={{ color: '#00e5ff' }} />
                         <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>
-                          Escaneando o registro do Windows por executáveis de jogos...
+                          {scanPhase === 'initial'
+                            ? 'Escaneando o registro do Windows por executáveis de jogos...'
+                            : 'Escaneando discos locais por jogos (isso pode levar alguns segundos)...'}
                         </span>
                       </div>
                     )}
@@ -1083,7 +1237,9 @@ export default function SideloadDialog({
                     {!scanningCandidates && scannedCandidates.length === 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px dashed rgba(255, 255, 255, 0.1)', flex: 1 }}>
                         <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.5)' }}>
-                          Nenhum candidato encontrado. Clique em &quot;Escanear PC&quot; acima.
+                          {scanPhase === 'initial'
+                            ? 'Nenhum candidato encontrado. Clique em "Escanear PC" acima.'
+                            : 'Nenhum candidato encontrado. Clique em "Escanear Tudo" acima.'}
                         </span>
                       </div>
                     )}
@@ -1093,7 +1249,7 @@ export default function SideloadDialog({
                         <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center' }}>
                           Todos os candidatos escaneados já foram adicionados ao Heroic.
                           <br />
-                          Desmarque &quot;Ocultar itens escaneados...&quot; acima para visualizá-los.
+                          Desmarque "Ocultar itens escaneados..." acima para visualizá-los.
                         </span>
                       </div>
                     )}

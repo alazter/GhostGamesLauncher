@@ -1,5 +1,6 @@
-import { exec } from 'child_process'
+import { exec, execSync } from 'child_process'
 import { existsSync, readdirSync, statSync } from 'graceful-fs'
+import { readdir, stat } from 'fs/promises'
 import { join, dirname, basename } from 'path'
 import { libraryStore } from './electronStores'
 import { addNewApp } from './library'
@@ -453,6 +454,129 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
   }
 
   return candidates
+}
+
+function getDrives(): string[] {
+  try {
+    const output = execSync('wmic logicaldisk get name', { encoding: 'utf8' })
+    return output.split('\r\n')
+      .map(line => line.trim())
+      .filter(line => /^[A-Z]:$/.test(line))
+      .map(drive => drive + '\\')
+  } catch {
+    return ['C:\\']
+  }
+}
+
+const IGNORED_DIR_NAMES = new Set([
+  'windows',
+  'system volume information',
+  '$recycle.bin',
+  'recovery',
+  'appdata',
+  'microsoft',
+  'google',
+  'node_modules',
+  '.git',
+  'temp',
+  'tmp',
+  'system32',
+  'syswow64',
+  'boot',
+  'common files'
+])
+
+async function scanDirectoryForGamesAsync(
+  dir: string,
+  searchTitles: string[] | undefined,
+  depth: number,
+  maxDepth: number,
+  results: GameCandidate[]
+): Promise<void> {
+  if (depth > maxDepth) return
+
+  try {
+    const items = await readdir(dir)
+    const subdirs: string[] = []
+    const exes: string[] = []
+
+    for (const item of items) {
+      const fullPath = join(dir, item)
+      try {
+        const stats = await stat(fullPath)
+        if (stats.isDirectory()) {
+          const lowerName = item.toLowerCase()
+          if (!IGNORED_DIR_NAMES.has(lowerName) && !lowerName.startsWith('.')) {
+            subdirs.push(fullPath)
+          }
+        } else if (stats.isFile() && item.toLowerCase().endsWith('.exe')) {
+          exes.push(fullPath)
+        }
+      } catch {}
+    }
+
+    for (const exePath of exes) {
+      const fileName = basename(exePath).toLowerCase()
+      if (['unins', 'uninstall', 'setup', 'install', 'crash', 'reporter', 'config', 'settings', 'tool', 'cef', 'browser', 'unity', 'easyanticheat', 'eac', 'vc_redist', 'dxsetup', 'touchup', 'gfn', 'geforce'].some(k => fileName.includes(k))) {
+        continue
+      }
+
+      const dirName = basename(dir)
+      const title = dirName
+
+      if (searchTitles && searchTitles.length > 0) {
+        const matchesSearch = searchTitles.some(term => {
+          const normTerm = term.toLowerCase().trim()
+          return title.toLowerCase().includes(normTerm) || fileName.includes(normTerm)
+        })
+        if (!matchesSearch) continue
+      }
+
+      if (!results.some(r => r.executable === exePath)) {
+        results.push({
+          title,
+          executable: exePath,
+          art_cover: '',
+          art_square: ''
+        })
+      }
+    }
+
+    for (const subdir of subdirs) {
+      await scanDirectoryForGamesAsync(subdir, searchTitles, depth + 1, maxDepth, results)
+    }
+  } catch {}
+}
+
+export async function discoverAllGames(searchTitles?: string[]): Promise<GameCandidate[]> {
+  if (process.platform !== 'win32') {
+    return []
+  }
+
+  logInfo(`Starting full PC scan for games... Search terms: ${searchTitles?.join(', ') || 'None'}`)
+
+  const drives = getDrives()
+  const results: GameCandidate[] = []
+
+  for (const drive of drives) {
+    await scanDirectoryForGamesAsync(drive, searchTitles, 1, 5, results)
+  }
+
+  const apiKey = getApiKey()
+  if (apiKey) {
+    const fetchPromises = results.slice(0, 50).map(async (candidate) => {
+      try {
+        const coverData = await fetchCoverFromSteamGridDB(apiKey, candidate.title)
+        if (coverData) {
+          candidate.art_square = coverData.art_square
+          candidate.art_cover = coverData.art_cover
+        }
+      } catch {}
+    })
+    await Promise.all(fetchPromises)
+  }
+
+  return results
 }
 
 export async function importSelectedGames({

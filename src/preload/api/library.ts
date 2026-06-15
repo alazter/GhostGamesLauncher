@@ -25,6 +25,7 @@ export const changeGameVersionPinnedStatus = makeListenerCaller('changeGameVersi
 export const getGameOverride = makeHandlerInvoker('getGameOverride')
 export const getGameSdl = makeHandlerInvoker('getGameSdl')
 export const discoverInstalledGames = makeHandlerInvoker('discoverInstalledGames')
+export const discoverAllGames = makeHandlerInvoker('discoverAllGames')
 export const importSelectedGames = makeHandlerInvoker('importSelectedGames')
 export const undoImport = makeHandlerInvoker('undoImport')
 export const addGameToBlacklist = makeHandlerInvoker('addGameToBlacklist')

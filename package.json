@@ -16,7 +16,8 @@
   },
   "author": {
     "name": "Ghost Games Launcher",
-    "email": "heroicgameslauncher@protonmail.com"
+    "email": "hwan123@gmail.com",
+    "url": "https://github.com/alazter/GhostGamesLauncher"
   },
   "engines": {
     "node": ">=22"

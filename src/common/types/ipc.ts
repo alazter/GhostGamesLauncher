@@ -380,6 +380,7 @@ interface AsyncIPCFunctions {
     dimensions?: string[]
   }) => Promise<Array<{ id: number; url: string; thumb: string }>>
   discoverInstalledGames: () => Promise<GameCandidate[]>
+  discoverAllGames: (searchTitles?: string[]) => Promise<GameCandidate[]>
   importSelectedGames: (args: {
     gamesToImport: GameCandidate[]
     gamesToBlacklist: GameCandidate[]

@@ -119,6 +119,7 @@ import { addNewApp, updateSideloadedApps } from './storeManagers/sideload/librar
 import {
   scanInstalledGames,
   discoverInstalledGames,
+  discoverAllGames,
   importSelectedGames,
   undoImport,
   addGameToBlacklist,
@@ -1434,6 +1435,7 @@ addListener('setTitleBarOverlay', (e, args) => {
 addListener('addNewApp', (e, args) => addNewApp(args))
 addHandler('scanInstalledGames', () => scanInstalledGames())
 addHandler('discoverInstalledGames', () => discoverInstalledGames())
+addHandler('discoverAllGames', (e, searchTitles) => discoverAllGames(searchTitles))
 addHandler('importSelectedGames', (e, args) => importSelectedGames(args))
 addHandler('undoImport', (e, args) => undoImport(args))
 addHandler('addGameToBlacklist', (e, args) => addGameToBlacklist(args))
