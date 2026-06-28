@@ -762,11 +762,13 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
       }
     })
 
+    app.releaseSingleInstanceLock()
     shell.openPath(destPath).then((err) => {
       if (err) {
         logError(['Failed to launch update file:', err], LogPrefix.Backend)
+        app.requestSingleInstanceLock()
       } else {
-        app.quit()
+        handleExit()
       }
     })
 
