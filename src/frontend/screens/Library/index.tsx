@@ -83,7 +83,7 @@ export default memo(function Library(): JSX.Element {
   }
 
   const [cardZoom, setCardZoom] = useState<number>(() => {
-    const steps = [160, 180, 200, 240, 280, 340, 360]
+    const steps = [160, 180, 210, 240, 280, 340, 360]
     const stored = parseInt(storage.getItem('heroic_card_zoom') || '180')
     if (steps.includes(stored)) return stored
     return steps.reduce((prev, curr) => Math.abs(curr - stored) < Math.abs(prev - stored) ? curr : prev, 180)
@@ -1774,7 +1774,7 @@ export default memo(function Library(): JSX.Element {
           <button
             id="zoom-minus-btn"
             onClick={() => {
-              const steps = [160, 180, 200, 240, 280, 340, 360]
+              const steps = [160, 180, 210, 240, 280, 340, 360]
               let idx = steps.indexOf(cardZoom)
               if (idx === -1) {
                 const smallerSteps = steps.filter(s => s < cardZoom)
@@ -1836,7 +1836,7 @@ export default memo(function Library(): JSX.Element {
           <button
             id="zoom-plus-btn"
             onClick={() => {
-              const steps = [160, 180, 200, 240, 280, 340, 360]
+              const steps = [160, 180, 210, 240, 280, 340, 360]
               let idx = steps.indexOf(cardZoom)
               if (idx === -1) {
                 const largerSteps = steps.filter(s => s > cardZoom)

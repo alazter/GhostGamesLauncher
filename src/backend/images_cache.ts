@@ -44,33 +44,49 @@ const getImageFromCache = (url: string) => {
   const digest = createHash('sha256').update(realUrl).digest('hex')
   const cachePath = join(imagesCachePath, digest)
 
+  if (existsSync(cachePath)) {
+    try {
+      return net.fetch(pathToFileURL(cachePath).toString())
+    } catch (err) {
+      console.error('[ImagesCache] Failed to load cached image:', cachePath, err)
+      return new Response('Cache file not found', { status: 404 })
+    }
+  }
+
   if (
-    !existsSync(cachePath) &&
     realUrl.startsWith('http') &&
     !pending.has(digest)
   ) {
     // if not found, download in the background
     pending.set(
       digest,
-      new Promise((res) => {
+      new Promise<void>((res) => {
         axios({
           method: 'get',
           url: realUrl,
           responseType: 'stream'
         })
-          .then((response) => response.data.pipe(createWriteStream(cachePath)))
+          .then((response) => {
+            const writer = createWriteStream(cachePath)
+            response.data.pipe(writer)
+            writer.on('finish', () => res())
+            writer.on('error', () => res())
+          })
+          .catch(() => {
+            res()
+          })
           .finally(() => {
             pending.delete(digest)
-            res()
           })
       })
     )
   }
 
+  // Serve the remote image directly in the meantime
   try {
-    return net.fetch(pathToFileURL(cachePath).toString())
+    return net.fetch(realUrl)
   } catch (err) {
-    console.error('[ImagesCache] Failed to load cached image:', cachePath, err)
-    return new Response('Cache file not found', { status: 404 })
+    console.error('[ImagesCache] Failed to fetch remote image:', realUrl, err)
+    return new Response('Remote fetch failed', { status: 500 })
   }
 }
