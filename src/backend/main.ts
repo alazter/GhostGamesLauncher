@@ -243,11 +243,13 @@ async function initializeWindow(): Promise<BrowserWindow> {
   mainWindow.on('close', async (e) => {
     e.preventDefault()
 
-    if (!isCLIFullscreen && !isSteamDeckGameMode) {
+    if (!isCLIFullscreen && !isSteamDeckGameMode && !mainWindow.isMinimized()) {
       // store windows properties
+      const isMax = mainWindow.isMaximized()
+      const bounds = isMax ? mainWindow.getNormalBounds() : mainWindow.getBounds()
       configStore.set('window-props', {
-        ...mainWindow.getBounds(),
-        maximized: mainWindow.isMaximized()
+        ...bounds,
+        maximized: isMax
       })
     }
 
