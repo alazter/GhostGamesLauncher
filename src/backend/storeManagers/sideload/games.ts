@@ -11,7 +11,7 @@ import { libraryStore } from './electronStores'
 import { GameConfig } from '../../game_config'
 import { killPattern, sendGameStatusUpdate, shutdownWine } from '../../utils'
 import { logInfo, LogPrefix, logWarning } from 'backend/logger'
-import { dirname } from 'path'
+import { dirname, basename } from 'path'
 import { existsSync, rmSync } from 'graceful-fs'
 import i18next from 'i18next'
 import {
@@ -86,12 +86,18 @@ export async function stop(appName: string): Promise<void> {
   } = getGameInfo(appName)
 
   if (executable) {
-    const split = executable.split('/')
+    const gameSettings = await getSettings(appName)
+    const isSteamLaunchWithMonitor =
+      basename(executable).toLowerCase() === 'steam.exe' &&
+      gameSettings.targetExe !== undefined &&
+      gameSettings.targetExe !== ''
+
+    const target = isSteamLaunchWithMonitor ? gameSettings.targetExe : executable
+    const split = target.split(/[/\\]/)
     const exe = split[split.length - 1]
     killPattern(exe)
 
     if (!isNative(appName)) {
-      const gameSettings = await getSettings(appName)
       shutdownWine(gameSettings)
     }
   }

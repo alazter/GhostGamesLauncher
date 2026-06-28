@@ -17,6 +17,10 @@ import {
 } from '../../launcher'
 import { access, chmod } from 'fs/promises'
 import shlex from 'shlex'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 import { showDialogBoxModalAuto } from '../../dialog/dialog'
 import {
   createAbortController,
@@ -131,9 +135,16 @@ export async function launchGame(
   const { browserUrl, customUserAgent, launchFullScreen } = gameInfo
 
   const gameSettingsOverrides = await GameConfig.get(appName).getSettings()
-  if (
+  const isSteamLaunchWithMonitor =
+    executable &&
+    basename(executable).toLowerCase() === 'steam.exe' &&
     gameSettingsOverrides.targetExe !== undefined &&
     gameSettingsOverrides.targetExe !== ''
+
+  if (
+    gameSettingsOverrides.targetExe !== undefined &&
+    gameSettingsOverrides.targetExe !== '' &&
+    !isSteamLaunchWithMonitor
   ) {
     executable = gameSettingsOverrides.targetExe
   }
@@ -240,6 +251,10 @@ export async function launchGame(
         }
       )
 
+      if (isSteamLaunchWithMonitor) {
+        await waitForProcessToExit(gameSettingsOverrides.targetExe, logWriter)
+      }
+
       launchCleanup(rpcClient)
       // TODO: check and revert to previous permissions
       if (isLinux || (isMac && !executable.endsWith('.app'))) {
@@ -266,9 +281,70 @@ export async function launchGame(
       }
     })
 
+    if (isSteamLaunchWithMonitor) {
+      await waitForProcessToExit(gameSettingsOverrides.targetExe, logWriter)
+    }
+
     launchCleanup(rpcClient)
 
     return true
   }
   return false
+}
+
+async function isProcessRunning(processName: string): Promise<boolean> {
+  let name = basename(processName)
+  if (process.platform === 'win32' && !name.toLowerCase().endsWith('.exe')) {
+    name += '.exe'
+  }
+  try {
+    if (process.platform === 'win32') {
+      const { stdout } = await execAsync(`tasklist /FI "IMAGENAME eq ${name}" /NH`)
+      return stdout.toLowerCase().includes(name.toLowerCase())
+    } else {
+      const { stdout } = await execAsync(`pgrep -f "${name}"`)
+      return stdout.trim().length > 0
+    }
+  } catch (err) {
+    return false
+  }
+}
+
+async function waitForProcessToExit(targetExe: string, logWriter: LogWriter) {
+  let name = basename(targetExe)
+  if (process.platform === 'win32' && !name.toLowerCase().endsWith('.exe')) {
+    name += '.exe'
+  }
+  logInfo(`Steam launch with monitor: waiting for process ${name} to start...`, LogPrefix.Backend)
+  logWriter.logInfo(`Steam launch with monitor: waiting for process ${name} to start...`)
+
+  // 1. Wait for the process to start (up to 60 seconds)
+  let started = false
+  for (let i = 0; i < 60; i++) {
+    if (await isProcessRunning(name)) {
+      started = true
+      break
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+
+  if (!started) {
+    logWarning(`Steam launch with monitor: process ${name} did not start within 60 seconds.`, LogPrefix.Backend)
+    logWriter.logWarning(`Steam launch with monitor: process ${name} did not start within 60 seconds.`)
+    return
+  }
+
+  logInfo(`Steam launch with monitor: process ${name} detected. Monitoring...`, LogPrefix.Backend)
+  logWriter.logInfo(`Steam launch with monitor: process ${name} detected. Monitoring...`)
+
+  // 2. Poll every 2 seconds until the process is no longer running
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    if (!(await isProcessRunning(name))) {
+      break
+    }
+  }
+
+  logInfo(`Steam launch with monitor: process ${name} has exited.`, LogPrefix.Backend)
+  logWriter.logInfo(`Steam launch with monitor: process ${name} has exited.`)
 }
