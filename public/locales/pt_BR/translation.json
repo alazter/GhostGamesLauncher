@@ -964,10 +964,10 @@
         "removepath": "Remover"
     },
     "tray": {
-        "about": "Sobre o Heroic",
-        "quit": "Sair do Heroic",
-        "reload": "Recarregar o Heroic",
-        "show": "Mostrar o Heroic"
+        "about": "Sobre o Ghost",
+        "quit": "Sair do Ghost",
+        "reload": "Recarregar o Ghost",
+        "show": "Mostrar o Ghost"
     },
     "two_col_table": {
         "save_hint": "Alterações nesta tabela não são salvas automaticamente. Clique no botão +"
