@@ -16,6 +16,7 @@ import {
   MinimizeOnGameLaunch,
   Shortcuts,
   StartInConsoleMode,
+  StartAtLogin,
   TraySettings,
   UseDarkTrayIcon,
   UseFramelessWindow,
@@ -55,6 +56,8 @@ export default function GeneralSettings() {
       <StartInConsoleMode />
 
       <TraySettings />
+
+      <StartAtLogin />
 
       <MinimizeOnGameLaunch />
 

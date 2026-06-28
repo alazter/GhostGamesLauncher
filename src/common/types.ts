@@ -131,6 +131,7 @@ export interface AppSettings extends GameSettings {
   experimentalFeatures?: ExperimentalFeatures
   framelessWindow: boolean
   hideChangelogsOnStartup: boolean
+  startAtLogin: boolean
   hideWindowOnProtocolLaunch: boolean
   libraryTopSection: LibraryTopSectionOptions
   maxRecentGames: number

@@ -394,6 +394,17 @@ if (!gotTheLock) {
 
     const settings = GlobalConfig.get().getSettings()
 
+    if (isWindows || isMac) {
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: settings.startAtLogin === true,
+          path: app.getPath('exe')
+        })
+      } catch (err) {
+        logError(`Failed to initialize login item settings: ${err}`, LogPrefix.Backend)
+      }
+    }
+
     if (settings && settings.analyticsOptIn === true) {
       startPlausible()
     }
@@ -963,6 +974,17 @@ addHandler('writeConfig', (event, { appName, config }) =>
 addListener('setSetting', (event, { appName, key, value }) => {
   if (appName === 'default') {
     GlobalConfig.get().setSetting(key, value)
+    if (key === 'startAtLogin') {
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: value === true,
+          path: app.getPath('exe')
+        })
+        logInfo(`Set startAtLogin to ${value}`, LogPrefix.Backend)
+      } catch (err) {
+        logError(`Failed to set login item settings: ${err}`, LogPrefix.Backend)
+      }
+    }
   } else {
     GameConfig.get(appName).setSetting(key, value)
   }
