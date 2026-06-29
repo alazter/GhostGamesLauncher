@@ -590,13 +590,16 @@ const GameCard = ({
     }
   ]
 
+  const isFallbackCover = !cover || cover === 'fallback'
+
   const wrapperClasses = classNames(grid ? 'gameCard' : 'gameListItem', {
     installed: isInstalled,
     hidden: isHiddenGame,
     notAvailable: notAvailable,
     gamepad: Boolean(activeController),
     justPlayed: justPlayed,
-    selectedInline: isSelectedInline
+    selectedInline: isSelectedInline,
+    hasFallbackCover: isFallbackCover
   })
 
   const imgClasses = classNames('gameImg', { installed: isInstalled })

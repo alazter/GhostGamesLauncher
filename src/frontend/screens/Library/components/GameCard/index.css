@@ -137,6 +137,17 @@
   display: none !important; /* Esconde para ficar igual ao mockup */
 }
 
+.gameCard.hasFallbackCover .gameTitle {
+  transform: translateY(0) !important;
+  display: block !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  color: #fff !important;
+  padding: 6px 4px !important;
+  font-size: 12px !important;
+  text-align: center !important;
+  bottom: 0 !important;
+}
+
 .gameCard:not(.justPlayed) > .icons {
   position: absolute;
   bottom: 0;
