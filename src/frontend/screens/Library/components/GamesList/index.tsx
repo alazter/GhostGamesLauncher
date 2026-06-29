@@ -193,6 +193,10 @@ const GamesList = ({
     })
   }, [library, activeStoreFilter, assignments])
 
+  useEffect(() => {
+    (window as any).heroicActiveLibrary = filteredLibrary
+  }, [filteredLibrary])
+
   const allSelected = selectedGames.length === filteredLibrary.length && filteredLibrary.length > 0
 
   const handleToggleSelectAll = () => {

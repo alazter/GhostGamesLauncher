@@ -1559,10 +1559,6 @@ export default memo(function Library(): JSX.Element {
   ])
 
   useEffect(() => {
-    (window as any).heroicActiveLibrary = libraryToShow
-  }, [libraryToShow])
-
-  useEffect(() => {
     let timer: NodeJS.Timeout | null = null
 
     const setHeaderHightCSS = () => {
