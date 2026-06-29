@@ -224,7 +224,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     }}>
       {/* Imagem */}
       <CachedImage
-        src={panelCover || panelSquare || fallbackImage}
+        src={panelSquare || panelCover || fallbackImage}
         fallback={fallbackImage}
         alt={panelTitle}
         style={{
