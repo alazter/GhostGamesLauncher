@@ -138,6 +138,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
     if (!showNavArrows) return
     const prevIndex = (currentIndex - 1 + gameList.length) % gameList.length
     const targetGame = gameList[prevIndex]
+    ;(window as any).heroicKeepInlineSettingsOpen = true
     window.dispatchEvent(
       new CustomEvent('heroicSelectGameInline', {
         detail: { gameInfo: targetGame }
@@ -149,6 +150,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
     if (!showNavArrows) return
     const nextIndex = (currentIndex + 1) % gameList.length
     const targetGame = gameList[nextIndex]
+    ;(window as any).heroicKeepInlineSettingsOpen = true
     window.dispatchEvent(
       new CustomEvent('heroicSelectGameInline', {
         detail: { gameInfo: targetGame }

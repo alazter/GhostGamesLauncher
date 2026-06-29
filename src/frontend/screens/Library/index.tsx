@@ -1136,7 +1136,11 @@ export default memo(function Library(): JSX.Element {
       currentAppName !== prevSelectedRef.current.appName ||
       currentRunner !== prevSelectedRef.current.runner
     ) {
-      setShowInlineSettings(false)
+      if ((window as any).heroicKeepInlineSettingsOpen) {
+        (window as any).heroicKeepInlineSettingsOpen = false
+      } else {
+        setShowInlineSettings(false)
+      }
     }
 
     prevSelectedRef.current = { appName: currentAppName, runner: currentRunner }
