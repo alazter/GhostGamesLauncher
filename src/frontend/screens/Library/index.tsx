@@ -1494,8 +1494,9 @@ export default memo(function Library(): JSX.Element {
 
         const hasCategory = categorizedGames.has(gameId)
         const hasAssignment = !!explicitlyAssignedStore
+        const isSideloaded = game.runner === 'sideload'
 
-        return !hasCategory && !hasAssignment
+        return isSideloaded && !hasCategory && !hasAssignment
       })
     }
     // ====================================================================

@@ -44,7 +44,8 @@ export default function Header() {
       const gameId = `${game.app_name}_${game.runner}`
       const hasCategory = categorizedGames.has(gameId)
       const hasAssignment = !!assignments[game.app_name]
-      return !hasCategory && !hasAssignment && !game.install?.is_dlc
+      const isSideloaded = game.runner === 'sideload'
+      return isSideloaded && !hasCategory && !hasAssignment && !game.install?.is_dlc
     })
   }, [
     epic,
