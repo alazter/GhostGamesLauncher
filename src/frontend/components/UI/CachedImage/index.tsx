@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import classNames from 'classnames'
 
 interface CachedImageProps {
@@ -22,47 +22,76 @@ const shouldCache = (src?: string) => {
 }
 
 const CachedImage = (props: Props) => {
-  const [useCache, setUseCache] = useState(
-    shouldCache(props.src)
-  )
   const [loaded, setLoaded] = useState(false)
-  const [useFallback, setUseFallback] = useState(false)
+  const [displaySrc, setDisplaySrc] = useState<string | undefined>(undefined)
+  const activeLoadRef = useRef<string | null>(null)
 
   useEffect(() => {
-    setLoaded(false)
-    setUseFallback(false)
-    setUseCache(shouldCache(props.src))
-  }, [props.src])
-
-  const onError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    // if not cached, tried with the real
-    if (useCache) {
-      setUseCache(false)
-    } else {
-      // if not cached and can't access real, try with the fallback
-      if (props.fallback) {
-        setUseFallback(true)
-        setUseCache(shouldCache(props.fallback))
-      }
+    let active = true
+    
+    const getTargetSrc = (sourceUrl: string | undefined, fallbackUrl: string | undefined) => {
+      if (!sourceUrl) return fallbackUrl || ''
+      const cacheEnabled = shouldCache(sourceUrl)
+      return cacheEnabled ? `imagecache://localhost/${encodeURIComponent(sourceUrl)}` : sourceUrl
     }
-    props.onError?.(e)
-  }
 
-  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    setLoaded(true)
-    props.onLoad?.(e)
-  }
+    const primaryTarget = getTargetSrc(props.src, props.fallback)
+    activeLoadRef.current = primaryTarget
 
-  let src = useFallback ? props.fallback : props.src
-  src = useCache && src ? `imagecache://localhost/${encodeURIComponent(src)}` : src
+    // If we don't have a displaySrc yet (initial mount), set it immediately to avoid blank space
+    if (!displaySrc) {
+      setDisplaySrc(primaryTarget || props.fallback)
+    }
+
+    if (primaryTarget) {
+      setLoaded(false)
+      const img = new Image()
+      img.src = primaryTarget
+      img.onload = () => {
+        if (!active || activeLoadRef.current !== primaryTarget) return
+        setDisplaySrc(primaryTarget)
+        setLoaded(true)
+      }
+      img.onerror = () => {
+        if (!active || activeLoadRef.current !== primaryTarget) return
+        // Try fallback
+        if (props.fallback && primaryTarget !== props.fallback) {
+          const fallbackTarget = getTargetSrc(props.fallback, undefined)
+          const fallbackImg = new Image()
+          fallbackImg.src = fallbackTarget
+          fallbackImg.onload = () => {
+            if (!active || activeLoadRef.current !== primaryTarget) return
+            setDisplaySrc(fallbackTarget)
+            setLoaded(true)
+          }
+          fallbackImg.onerror = () => {
+            if (!active || activeLoadRef.current !== primaryTarget) return
+            setDisplaySrc(props.fallback)
+            setLoaded(true)
+          }
+        } else {
+          setDisplaySrc(props.fallback)
+          setLoaded(true)
+        }
+      }
+    } else {
+      setDisplaySrc(props.fallback)
+      setLoaded(true)
+    }
+
+    return () => {
+      active = false
+    }
+  }, [props.src, props.fallback])
+
+  // Omit src, onLoad, onError, loading from rest props to avoid conflicts
+  const { src: _src, onLoad: _onLoad, onError: _onError, loading: _loading, ...rest } = props
 
   return (
     <img
-      loading="lazy"
-      {...props}
-      src={src}
-      onLoad={handleLoad}
-      onError={onError}
+      loading="eager"
+      {...rest}
+      src={displaySrc}
       className={classNames(props.className, {
         loaded,
         loading: !loaded
