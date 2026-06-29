@@ -87,12 +87,7 @@ export async function stop(appName: string): Promise<void> {
 
   if (executable) {
     const gameSettings = await getSettings(appName)
-    const isSteamLaunchWithMonitor =
-      basename(executable).toLowerCase() === 'steam.exe' &&
-      gameSettings.targetExe !== undefined &&
-      gameSettings.targetExe !== ''
-
-    const target = isSteamLaunchWithMonitor ? gameSettings.targetExe : executable
+    const target = gameSettings.targetExe || executable
     const split = target.split(/[/\\]/)
     const exe = split[split.length - 1]
     killPattern(exe)

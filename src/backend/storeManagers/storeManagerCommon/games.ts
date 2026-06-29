@@ -137,7 +137,7 @@ export async function launchGame(
   const gameSettingsOverrides = await GameConfig.get(appName).getSettings()
   const isSteamLaunchWithMonitor =
     executable &&
-    basename(executable).toLowerCase() === 'steam.exe' &&
+    runner === 'sideload' &&
     gameSettingsOverrides.targetExe !== undefined &&
     gameSettingsOverrides.targetExe !== ''
 
@@ -315,27 +315,28 @@ async function waitForProcessToExit(targetExe: string, logWriter: LogWriter) {
   if (process.platform === 'win32' && !name.toLowerCase().endsWith('.exe')) {
     name += '.exe'
   }
-  logInfo(`Steam launch with monitor: waiting for process ${name} to start...`, LogPrefix.Backend)
-  logWriter.logInfo(`Steam launch with monitor: waiting for process ${name} to start...`)
+  logInfo(`Game launch with monitor: waiting for process ${name} to start...`, LogPrefix.Backend)
+  logWriter.logInfo(`Game launch with monitor: waiting for process ${name} to start...`)
 
-  // 1. Wait for the process to start (up to 60 seconds)
+  // 1. Wait for the process to start (up to 300 seconds, polling every 2 seconds)
   let started = false
-  for (let i = 0; i < 60; i++) {
+  const maxAttempts = 150
+  for (let i = 0; i < maxAttempts; i++) {
     if (await isProcessRunning(name)) {
       started = true
       break
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
   }
 
   if (!started) {
-    logWarning(`Steam launch with monitor: process ${name} did not start within 60 seconds.`, LogPrefix.Backend)
-    logWriter.logWarning(`Steam launch with monitor: process ${name} did not start within 60 seconds.`)
+    logWarning(`Game launch with monitor: process ${name} did not start within 300 seconds.`, LogPrefix.Backend)
+    logWriter.logWarning(`Game launch with monitor: process ${name} did not start within 300 seconds.`)
     return
   }
 
-  logInfo(`Steam launch with monitor: process ${name} detected. Monitoring...`, LogPrefix.Backend)
-  logWriter.logInfo(`Steam launch with monitor: process ${name} detected. Monitoring...`)
+  logInfo(`Game launch with monitor: process ${name} detected. Monitoring...`, LogPrefix.Backend)
+  logWriter.logInfo(`Game launch with monitor: process ${name} detected. Monitoring...`)
 
   // 2. Poll every 2 seconds until the process is no longer running
   while (true) {
@@ -345,6 +346,6 @@ async function waitForProcessToExit(targetExe: string, logWriter: LogWriter) {
     }
   }
 
-  logInfo(`Steam launch with monitor: process ${name} has exited.`, LogPrefix.Backend)
-  logWriter.logInfo(`Steam launch with monitor: process ${name} has exited.`)
+  logInfo(`Game launch with monitor: process ${name} has exited.`, LogPrefix.Backend)
+  logWriter.logInfo(`Game launch with monitor: process ${name} has exited.`)
 }
