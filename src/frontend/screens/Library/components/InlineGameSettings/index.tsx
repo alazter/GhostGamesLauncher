@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react'
+import React, { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTimes, faGlobe, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
@@ -120,6 +120,65 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   const { t, i18n } = useTranslation('gamepage')
   const { showDialogModal, refreshLibrary } = useContext(ContextProvider)
   const { openGameCategoriesModal } = useGlobalState.keys('openGameCategoriesModal')
+
+  const gameList = useMemo(() => {
+    return (window as any).heroicActiveLibrary || []
+  }, [game])
+
+  const currentIndex = useMemo(() => {
+    if (!gameList.length) return -1
+    return gameList.findIndex(
+      (g: GameInfo) => g.app_name === game.app_name && g.runner === game.runner
+    )
+  }, [gameList, game.app_name, game.runner])
+
+  const showNavArrows = gameList.length > 1 && currentIndex !== -1
+
+  const handlePrevGame = useCallback(() => {
+    if (!showNavArrows) return
+    const prevIndex = (currentIndex - 1 + gameList.length) % gameList.length
+    const targetGame = gameList[prevIndex]
+    window.dispatchEvent(
+      new CustomEvent('heroicSelectGameInline', {
+        detail: { gameInfo: targetGame }
+      })
+    )
+  }, [showNavArrows, currentIndex, gameList])
+
+  const handleNextGame = useCallback(() => {
+    if (!showNavArrows) return
+    const nextIndex = (currentIndex + 1) % gameList.length
+    const targetGame = gameList[nextIndex]
+    window.dispatchEvent(
+      new CustomEvent('heroicSelectGameInline', {
+        detail: { gameInfo: targetGame }
+      })
+    )
+  }, [showNavArrows, currentIndex, gameList])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.getAttribute('contenteditable') === 'true')
+      ) {
+        return
+      }
+
+      if (e.key === 'ArrowLeft') {
+        handlePrevGame()
+      } else if (e.key === 'ArrowRight') {
+        handleNextGame()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handlePrevGame, handleNextGame])
 
   const [isEditingTitle, setIsEditingTitle] = useState(false)
 
@@ -1086,28 +1145,94 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               <DeleteIcon style={{ fontSize: '18px' }} />
             </button>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'rgba(255, 255, 255, 0.6)',
-              fontSize: '18px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.color = '#fff'
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'
-            }}
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            {showNavArrows && (
+              <div className="settings-nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '10px' }}>
+                <button
+                  onClick={handlePrevGame}
+                  title="Jogo Anterior"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    lineHeight: 1,
+                    transition: 'all 0.2s',
+                    outline: 'none'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  &lt;
+                </button>
+                <button
+                  onClick={handleNextGame}
+                  title="Próximo Jogo"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    lineHeight: 1,
+                    transition: 'all 0.2s',
+                    outline: 'none'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '18px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = '#fff'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'
+              }}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
         </div>
 
         {/* Abas e Personalizar */}
