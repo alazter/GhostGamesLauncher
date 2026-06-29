@@ -820,7 +820,8 @@ export default function PersonalizationScreen() {
       background: 'transparent',
       zIndex: 2,
       display: 'flex',
-      overflow: 'hidden'
+      overflowX: 'auto',
+      overflowY: 'hidden'
     } as React.CSSProperties,
 
     sectionTitle: {
@@ -846,7 +847,8 @@ export default function PersonalizationScreen() {
       borderRight: '1px solid rgba(255,255,255,0.05)',
       display: 'flex',
       flexDirection: 'column',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      flexShrink: 0
     } as React.CSSProperties,
 
     storeListContext: {
@@ -955,6 +957,8 @@ export default function PersonalizationScreen() {
     // =========================================
     centerPreview: {
       flex: 1,
+      minWidth: '550px',
+      flexShrink: 0,
       height: '100%',
       background: 'rgba(20, 24, 30, 0.4)',
       backdropFilter: 'blur(4px)',
@@ -985,7 +989,8 @@ export default function PersonalizationScreen() {
       boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
-      overflowY: 'auto'
+      overflowY: 'auto',
+      flexShrink: 0
     } as React.CSSProperties,
 
     dropZone: {

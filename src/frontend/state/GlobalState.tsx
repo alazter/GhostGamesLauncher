@@ -224,7 +224,7 @@ class GlobalState extends PureComponent<Props> {
     hiddenGames: configStore.get('games.hidden', []),
     currentCustomCategories: loadCurrentCategories(),
     sidebarCollapsed: JSON.parse(
-      storage.getItem('sidebar_collapsed') || 'false'
+      storage.getItem('sidebar_collapsed') || 'true'
     ),
     favouriteGames: configStore.get('games.favourites', []),
     customCategories: configStore.get('games.customCategories', {}),
