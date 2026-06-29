@@ -211,11 +211,12 @@ const GameCard = ({
   // A LÓGICA MESTRA DE EXIBIÇÃO
   const shouldShowIcons = activeController ? !hideIconsGamepad : !hideIconsMouse
 
-  const { openGameSettingsModal, openGameLogsModal, openGameCategoriesModal } =
+  const { openGameSettingsModal, openGameLogsModal, openGameCategoriesModal, gameOverrides } =
     useGlobalState.keys(
       'openGameSettingsModal',
       'openGameLogsModal',
-      'openGameCategoriesModal'
+      'openGameCategoriesModal',
+      'gameOverrides'
     )
 
   const { layout } = useContext(LibraryContext)
@@ -225,11 +226,12 @@ const GameCard = ({
     is_installed: isInstalled,
     install: gameInstallInfo
   } = { ...gameInfoFromProps }
-  const title = cardTitle
+  const gameOverride = gameOverrides[appName]
+  const title = gameOverride?.title || cardTitle
   const art_cover =
-    gameInfoFromProps.overrides?.art_cover || gameInfoFromProps.art_cover
+    gameOverride?.art_cover || gameInfoFromProps.overrides?.art_cover || gameInfoFromProps.art_cover
   const cover =
-    gameInfoFromProps.overrides?.art_square || gameInfoFromProps.art_square
+    gameOverride?.art_square || gameInfoFromProps.overrides?.art_square || gameInfoFromProps.art_square
 
   const isInstallable =
     gameInfo.installable === undefined || gameInfo.installable

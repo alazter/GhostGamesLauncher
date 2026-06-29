@@ -12,6 +12,7 @@ import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
+import useGlobalState from 'frontend/state/GlobalStateV2'
 
 interface Props {
   game: GameInfo
@@ -27,22 +28,25 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   const { status } = hasStatus(game)
   const [isLaunching, setIsLaunching] = useState(false)
 
+  const { gameOverrides } = useGlobalState.keys('gameOverrides')
+  const gameOverride = gameOverrides[game.app_name]
+
   const [tsInfo, setTsInfo] = useState(() => timestampStore.get_nodefault(game.app_name))
   const [panelTitle, setPanelTitle] = useState<string>(
-    () => game.overrides?.title || game.title
+    () => gameOverride?.title || game.overrides?.title || game.title
   )
   const [panelSquare, setPanelSquare] = useState<string>(
-    () => game.overrides?.art_square || game.art_square || ''
+    () => gameOverride?.art_square || game.overrides?.art_square || game.art_square || ''
   )
   const [panelCover, setPanelCover] = useState<string>(
-    () => game.overrides?.art_cover || game.art_cover || ''
+    () => gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || ''
   )
 
   useEffect(() => {
     setTsInfo(timestampStore.get_nodefault(game.app_name))
-    setPanelTitle(game.overrides?.title || game.title)
-    setPanelSquare(game.overrides?.art_square || game.art_square || '')
-    setPanelCover(game.overrides?.art_cover || game.art_cover || '')
+    setPanelTitle(gameOverride?.title || game.overrides?.title || game.title)
+    setPanelSquare(gameOverride?.art_square || game.overrides?.art_square || game.art_square || '')
+    setPanelCover(gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || '')
   }, [
     game.app_name,
     status,
@@ -51,7 +55,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     game.art_square,
     game.overrides?.art_square,
     game.art_cover,
-    game.overrides?.art_cover
+    game.overrides?.art_cover,
+    gameOverride
   ])
 
   useEffect(() => {

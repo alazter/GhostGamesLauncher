@@ -119,7 +119,11 @@ const SHOW_HORIZONTAL_BANNER = false
 export default function InlineGameSettings({ game, onClose }: Props) {
   const { t, i18n } = useTranslation('gamepage')
   const { showDialogModal, refreshLibrary } = useContext(ContextProvider)
-  const { openGameCategoriesModal } = useGlobalState.keys('openGameCategoriesModal')
+  const { openGameCategoriesModal, gameOverrides } = useGlobalState.keys(
+    'openGameCategoriesModal',
+    'gameOverrides'
+  )
+  const gameOverride = gameOverrides[game.app_name]
 
   const gameList = useMemo(() => {
     return (window as any).heroicActiveLibrary || []
@@ -198,10 +202,10 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
   useEffect(() => {
     if (inlineSgdbTarget) {
-      setEditCover(game.overrides?.art_cover || game.art_cover || '')
-      setEditSquare(game.overrides?.art_square || game.art_square || '')
+      setEditCover(gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || '')
+      setEditSquare(gameOverride?.art_square || game.overrides?.art_square || game.art_square || '')
     }
-  }, [inlineSgdbTarget, game.art_cover, game.overrides?.art_cover, game.art_square, game.overrides?.art_square])
+  }, [inlineSgdbTarget, game.art_cover, game.overrides?.art_cover, gameOverride?.art_cover, game.art_square, game.overrides?.art_square, gameOverride?.art_square])
 
   useEffect(() => {
     if (inlineSgdbTarget) {
@@ -222,13 +226,13 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           detail: {
             appName: game.app_name,
             runner: game.runner,
-            art_cover: game.overrides?.art_cover || game.art_cover || '',
-            art_square: game.overrides?.art_square || game.art_square || ''
+            art_cover: gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || '',
+            art_square: gameOverride?.art_square || game.overrides?.art_square || game.art_square || ''
           }
         })
       )
     }
-  }, [editCover, editSquare, game.app_name, game.runner, inlineSgdbTarget, game.art_cover, game.overrides?.art_cover, game.art_square, game.overrides?.art_square])
+  }, [editCover, editSquare, game.app_name, game.runner, inlineSgdbTarget, game.art_cover, game.overrides?.art_cover, gameOverride?.art_cover, game.art_square, game.overrides?.art_square, gameOverride?.art_square])
 
   const handleSideloadExeChange = async (newPath: string) => {
     setSideloadExe(newPath)
