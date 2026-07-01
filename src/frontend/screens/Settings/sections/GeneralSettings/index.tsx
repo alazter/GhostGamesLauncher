@@ -23,7 +23,9 @@ import {
   WinePrefixesBasePath,
   PlaytimeSync,
   AnalyticsOptIn,
-  SteamGridDbApiKey
+  SteamGridDbApiKey,
+  SteamGridDbNsfw,
+  SteamGridDbDownload
 } from '../../components'
 
 export default function GeneralSettings() {
@@ -38,6 +40,10 @@ export default function GeneralSettings() {
       <ThemeSelector />
 
       <SteamGridDbApiKey />
+
+      <SteamGridDbNsfw />
+
+      <SteamGridDbDownload />
 
       <DefaultInstallPath />
 

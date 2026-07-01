@@ -11,7 +11,7 @@ type Props = {
 
 export default memo(function LibraryHeader({ list }: Props) {
   const { t } = useTranslation()
-  const { showFavourites, showAlphabetFilter } = useContext(LibraryContext)
+  const { showFavourites, showAlphabetFilter, showUnclassifiedOnly } = useContext(LibraryContext)
 
   const [alignment, setAlignment] = useState<string>(() => {
     return localStorage.getItem('heroic_alphabet_alignment') || 'center'
@@ -198,7 +198,8 @@ export default memo(function LibraryHeader({ list }: Props) {
           paddingLeft: alignment === 'left' ? '6px' : '10px',
           paddingRight: '10px',
           '--alphabet-alignment': alignment === 'left' ? 'flex-start' : alignment === 'right' ? 'flex-end' : alignment === 'fill' ? 'space-between' : 'center',
-          '--alphabet-padding-left': alignment === 'left' ? '8px' : '12px'
+          '--alphabet-padding-left': alignment === 'left' ? '8px' : '12px',
+          ...(showUnclassifiedOnly ? { pointerEvents: 'none', opacity: 0.4 } : {})
         } as React.CSSProperties}
       >
         {showAlphabetFilter && <AlphabetFilter />}

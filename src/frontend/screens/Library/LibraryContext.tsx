@@ -42,7 +42,8 @@ const initialContext: LibraryContextType = {
   onToggleAlphabetFilter: () => null,
   alphabetFilterLetter: null,
   setAlphabetFilterLetter: () => null,
-  gamesForAlphabetFilter: [] as GameInfo[]
+  gamesForAlphabetFilter: [] as GameInfo[],
+  showUnclassifiedOnly: false
 }
 
 export default createContext(initialContext)

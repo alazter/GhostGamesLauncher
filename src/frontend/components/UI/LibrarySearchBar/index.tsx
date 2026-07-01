@@ -44,7 +44,7 @@ interface CustomStore {
   isVisible?: boolean
 }
 
-export default function LibrarySearchBar({ children }: { children?: ReactNode }) {
+export default function LibrarySearchBar({ children, isUnclassifiedActive }: { children?: ReactNode; isUnclassifiedActive?: boolean }) {
   const { epic, gog, sideloadedLibrary, amazon, zoom } =
     useContext(ContextProvider)
   const { handleSearch, filterText } = useContext(LibraryContext)
@@ -265,7 +265,7 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
           width: '100%'
         }}
       >
-        <div data-tour="library-search">
+        <div data-tour="library-search" style={isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4 } : undefined}>
           <SearchBar
             suggestionsListItems={hideSearchSuggestions ? [] : suggestions}
             onInputChanged={(text) => handleSearch(text)}
@@ -280,7 +280,8 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            flexShrink: 0
+            flexShrink: 0,
+            ...(isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4 } : {})
           }}
         >
           <AddGameButton data-tour="library-add-game" />
@@ -302,6 +303,7 @@ export default function LibrarySearchBar({ children }: { children?: ReactNode })
           width: '100%',
           maxWidth: '100%',
           boxSizing: 'border-box',
+          ...(isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4 } : {}),
           '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
           '--store-btn-border-width': storeBtnBorderEnabled ? '1px' : '0px',
           '--store-btn-bg': storeBtnGradientEnabled

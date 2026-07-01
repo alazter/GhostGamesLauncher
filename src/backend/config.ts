@@ -376,6 +376,8 @@ class GlobalConfigV0 extends GlobalConfig {
       noTrayIcon: false,
       showValveProton: false,
       steamGridDbApiKey: '',
+      steamGridDbNsfw: false,
+      steamGridDbDownloadCovers: true,
       disableGOGPresence: false,
       startAtLogin: false
     }

@@ -51,6 +51,9 @@ export async function getGrids(
     gameId: number
     dimensions?: string[]
     styles?: string[]
+    types?: string[]
+    nsfw?: string
+    page?: number
   }
 ): Promise<SGDBGrid[]> {
   const params: Record<string, string> = {}
@@ -59,6 +62,14 @@ export async function getGrids(
   }
   if (args.styles && args.styles.length > 0) {
     params.styles = args.styles.join(',')
+  }
+  const types = args.types && args.types.length > 0 ? args.types : ['static', 'animated']
+  params.types = types.join(',')
+  if (args.nsfw) {
+    params.nsfw = args.nsfw
+  }
+  if (args.page !== undefined) {
+    params.page = args.page.toString()
   }
 
   const response = await axios.get<SGDBResponse<SGDBGrid[]>>(
@@ -88,6 +99,9 @@ export async function getHeroes(
     gameId: number
     dimensions?: string[]
     styles?: string[]
+    types?: string[]
+    nsfw?: string
+    page?: number
   }
 ): Promise<SGDBGrid[]> {
   const params: Record<string, string> = {}
@@ -96,6 +110,14 @@ export async function getHeroes(
   }
   if (args.styles && args.styles.length > 0) {
     params.styles = args.styles.join(',')
+  }
+  const types = args.types && args.types.length > 0 ? args.types : ['static', 'animated']
+  params.types = types.join(',')
+  if (args.nsfw) {
+    params.nsfw = args.nsfw
+  }
+  if (args.page !== undefined) {
+    params.page = args.page.toString()
   }
 
   const response = await axios.get<SGDBResponse<SGDBGrid[]>>(

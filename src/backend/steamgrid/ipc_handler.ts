@@ -3,6 +3,10 @@ import { addHandler } from 'backend/ipc'
 import { logError, LogPrefix } from 'backend/logger'
 import * as SteamGridDB from './utils'
 import { encryptApiKey, decryptApiKey, isEncryptedValue } from './secureKey'
+import { join } from 'path'
+import { existsSync, mkdirSync, createWriteStream, readdirSync, unlinkSync } from 'graceful-fs'
+import axios from 'axios'
+import { appFolder } from '../constants/paths'
 
 function readStoredApiKey(): string {
   const stored: string = GlobalConfig.get().getSettings().steamGridDbApiKey
@@ -57,11 +61,16 @@ addHandler('steamgriddb.getGrids', async (event, args) => {
     return []
   }
 
+  const nsfwSetting = GlobalConfig.get().getSettings().steamGridDbNsfw ? 'any' : 'false'
+
   try {
     const results = await SteamGridDB.getGrids(apiKey, {
       gameId: args.gameId,
       dimensions: args.dimensions,
-      styles: args.styles
+      styles: args.styles,
+      types: args.types,
+      nsfw: args.nsfw ?? nsfwSetting,
+      page: args.page
     })
     return results.map((grid) => ({
       id: grid.id,
@@ -80,11 +89,16 @@ addHandler('steamgriddb.getHeroes', async (event, args) => {
     return []
   }
 
+  const nsfwSetting = GlobalConfig.get().getSettings().steamGridDbNsfw ? 'any' : 'false'
+
   try {
     const results = await SteamGridDB.getHeroes(apiKey, {
       gameId: args.gameId,
       dimensions: args.dimensions,
-      styles: args.styles
+      styles: args.styles,
+      types: args.types,
+      nsfw: args.nsfw ?? nsfwSetting,
+      page: args.page
     })
     return results.map((grid) => ({
       id: grid.id,
@@ -93,6 +107,55 @@ addHandler('steamgriddb.getHeroes', async (event, args) => {
     }))
   } catch (error) {
     logError([`SteamGridDB getHeroes failed:`, error], LogPrefix.Backend)
+    throw error
+  }
+})
+
+addHandler('steamgriddb.downloadCover', async (event, args) => {
+  const customCoversPath = join(appFolder, 'custom-covers')
+  if (!existsSync(customCoversPath)) {
+    mkdirSync(customCoversPath)
+  }
+
+  // Delete any existing cover files for this app and target type (e.g. diff extensions) to save disk space
+  try {
+    const files = readdirSync(customCoversPath)
+    const prefix = `${args.appName}_${args.targetType}.`
+    for (const file of files) {
+      if (file.startsWith(prefix)) {
+        try {
+          unlinkSync(join(customCoversPath, file))
+        } catch {}
+      }
+    }
+  } catch {}
+
+  const ext = args.url.split('?')[0].split('.').pop()?.toLowerCase() || 'webp'
+  const destPath = join(customCoversPath, `${args.appName}_${args.targetType}.${ext}`)
+
+  const headers: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+  }
+
+  try {
+    const response = await axios({
+      method: 'get',
+      url: args.url,
+      responseType: 'stream',
+      headers
+    })
+
+    const writer = createWriteStream(destPath)
+    response.data.pipe(writer)
+
+    await new Promise<void>((resolve, reject) => {
+      writer.on('finish', resolve)
+      writer.on('error', reject)
+    })
+
+    return destPath
+  } catch (error) {
+    logError([`Failed to download SteamGridDB cover:`, error], LogPrefix.Backend)
     throw error
   }
 })

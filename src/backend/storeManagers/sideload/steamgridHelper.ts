@@ -36,7 +36,8 @@ export async function fetchCoverFromSteamGridDB(
         const grids = await SteamGridDB.getGrids(apiKey, {
           gameId,
           dimensions: ['600x900', '342x482', '660x930'],
-          styles: ['material', 'alternate', 'blurred']
+          styles: ['material', 'alternate', 'blurred'],
+          types: ['static']
         })
         if (grids && grids.length > 0) {
           return {

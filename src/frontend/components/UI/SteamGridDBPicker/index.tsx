@@ -21,10 +21,19 @@ interface Props {
   dimensions?: string[]
   styles?: string[]
   hideCloseButton?: boolean
+  onCancel?: () => void
+  onFinish?: () => void
+  isFinishDisabled?: boolean
 }
 
 const DEFAULT_GRID_DIMENSIONS = ['600x900', '342x482', '660x930']
-const DEFAULT_GRID_STYLES = ['material', 'alternate', 'blurred']
+const DEFAULT_GRID_STYLES = [
+  'material',
+  'alternate',
+  'blurred',
+  'white_logo',
+  'no_logo'
+]
 
 export default function SteamGridDBPicker({
   initialTitle,
@@ -33,7 +42,10 @@ export default function SteamGridDBPicker({
   mode = 'grids',
   dimensions,
   styles,
-  hideCloseButton = false
+  hideCloseButton = false,
+  onCancel,
+  onFinish,
+  isFinishDisabled = false
 }: Props) {
   const { t } = useTranslation()
   const [query, setQuery] = useState(initialTitle)
@@ -42,6 +54,9 @@ export default function SteamGridDBPicker({
   const [loading, setLoading] = useState(false)
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [fetchingMore, setFetchingMore] = useState(false)
 
   const handleSelectGame = useCallback(
     async (gameId: number) => {
@@ -49,6 +64,8 @@ export default function SteamGridDBPicker({
       setLoading(true)
       setError(null)
       setGrids([])
+      setPage(0)
+      setHasMore(true)
       try {
         const fetcher =
           mode === 'heroes'
@@ -61,13 +78,17 @@ export default function SteamGridDBPicker({
         const results = await fetcher({
           gameId,
           styles: fetchStyles,
-          dimensions: fetchDims
+          dimensions: fetchDims,
+          page: 0
         })
         setGrids(results)
         if (results.length === 0) {
           setError(
             t('steamgriddb.error.no-grids', 'No covers found for this game.')
           )
+        }
+        if (results.length < 50) {
+          setHasMore(false)
         }
       } catch (err) {
         setError(t('steamgriddb.error.grids', 'Failed to fetch grids'))
@@ -78,6 +99,39 @@ export default function SteamGridDBPicker({
     },
     [t, mode, dimensions, styles]
   )
+
+  const handleLoadMore = useCallback(async () => {
+    if (selectedGameId === null || fetchingMore || !hasMore) return
+    setFetchingMore(true)
+    const nextPage = page + 1
+    try {
+      const fetcher =
+        mode === 'heroes'
+          ? window.api.steamgriddb.getHeroes
+          : window.api.steamgriddb.getGrids
+      const fetchDims =
+        dimensions ?? (mode === 'heroes' ? [] : DEFAULT_GRID_DIMENSIONS)
+      const fetchStyles =
+        styles ?? (mode === 'heroes' ? [] : DEFAULT_GRID_STYLES)
+      const results = await fetcher({
+        gameId: selectedGameId,
+        styles: fetchStyles,
+        dimensions: fetchDims,
+        page: nextPage
+      })
+      if (results.length > 0) {
+        setGrids((prev) => [...prev, ...results])
+        setPage(nextPage)
+      }
+      if (results.length < 50) {
+        setHasMore(false)
+      }
+    } catch (err) {
+      console.error('Failed to load more grids:', err)
+    } finally {
+      setFetchingMore(false)
+    }
+  }, [selectedGameId, page, fetchingMore, hasMore, mode, dimensions, styles])
 
   const [hasApiKey, setHasApiKey] = useState(true)
 
@@ -178,16 +232,16 @@ export default function SteamGridDBPicker({
             </button>
           )}
           <h3 style={{ margin: 0 }}>{t('steamgriddb.picker.title', 'SteamGridDB Covers')}</h3>
-          {!hideCloseButton && (
-            <button
-              className="SteamGridDBPicker__back-btn"
-              onClick={onClose}
-              title={t('button.back', 'Go Back')}
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          )}
         </div>
+        {!hideCloseButton && (
+          <button
+            className="SteamGridDBPicker__close-btn"
+            onClick={onClose}
+            title={t('button.back', 'Go Back')}
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        )}
       </div>
 
       {!selectedGameId && (
@@ -230,16 +284,76 @@ export default function SteamGridDBPicker({
       )}
 
       {!loading && grids.length > 0 && (
-        <div className="SteamGridDBPicker__grids">
-          {grids.map((grid) => (
-            <div
-              key={grid.id}
-              className="SteamGridDBPicker__grid-item"
-              onClick={() => onSelect(grid.url)}
-            >
-              <CachedImage src={grid.thumb} />
+        <div className="SteamGridDBPicker__scroll-container">
+          <div className="SteamGridDBPicker__grids">
+            {grids.map((grid) => {
+              const cleanThumb = grid.thumb.split('?')[0].toLowerCase();
+              const isVideo = cleanThumb.endsWith('.webm') || cleanThumb.endsWith('.mp4');
+              return (
+                <div
+                  key={grid.id}
+                  className="SteamGridDBPicker__grid-item"
+                  onClick={() => onSelect(grid.url)}
+                >
+                  {isVideo ? (
+                    <video
+                      src={grid.thumb}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                    />
+                  ) : (
+                    <CachedImage src={grid.thumb} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedGameId && hasMore && (
+            <div className="SteamGridDBPicker__load-more" style={{ display: 'flex', justifyContent: 'center', margin: '10px 0 20px 0' }}>
+              <button
+                type="button"
+                className="button outline"
+                disabled={fetchingMore}
+                onClick={handleLoadMore}
+                style={{
+                  padding: '8px 24px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  borderColor: 'var(--accent, #3cf2e6)',
+                  color: 'var(--accent, #3cf2e6)',
+                  background: 'transparent',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseOver={(e) => {
+                  if (!fetchingMore) {
+                    e.currentTarget.style.background = 'var(--accent, #3cf2e6)';
+                    e.currentTarget.style.color = '#12161a';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!fetchingMore) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--accent, #3cf2e6)';
+                  }
+                }}
+              >
+                {fetchingMore ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                    {t('steamgriddb.picker.loading-more', 'Loading...')}
+                  </span>
+                ) : (
+                  t('steamgriddb.picker.load-more', 'Carregar mais capas')
+                )}
+              </button>
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -272,6 +386,52 @@ export default function SteamGridDBPicker({
           />
         </div>
       )}
+
+      {/* Picker Footer Actions */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        paddingTop: '12px',
+        marginTop: 'auto',
+        paddingLeft: '12px',
+        paddingRight: '12px',
+        paddingBottom: '4px',
+        gap: '12px'
+      }}>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="button is-secondary"
+            style={{
+              padding: '8px 24px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            {t('button.cancel', 'Cancelar')}
+          </button>
+        )}
+        {onFinish && (
+          <button
+            type="button"
+            onClick={onFinish}
+            className="button is-success"
+            disabled={isFinishDisabled}
+            style={{
+              padding: '8px 24px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            {t('button.finish', 'Terminar')}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

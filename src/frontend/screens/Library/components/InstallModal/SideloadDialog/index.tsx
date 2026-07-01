@@ -110,6 +110,8 @@ export default function SideloadDialog({
   const [hideDuplicates, setHideDuplicates] = useState(true)
   const [showBlacklistModal, setShowBlacklistModal] = useState(false)
   const [blacklistItems, setBlacklistItems] = useState<Array<{ title: string; executable: string }>>([])
+  const [logicalDrives, setLogicalDrives] = useState<string[]>([])
+  const [selectedDrives, setSelectedDrives] = useState<Record<string, boolean>>({})
 
   function handleTitle(value: string) {
     value = removeSpecialcharacters(value)
@@ -121,6 +123,16 @@ export default function SideloadDialog({
   useEffect(() => {
     window.api.steamgriddb.hasApiKey().then(setHasSgdbKey)
     window.api.getBlacklist().then((list) => setBlacklistCount(list.length))
+    window.api.getLogicalDrives().then((drives: string[]) => {
+      if (Array.isArray(drives)) {
+        setLogicalDrives(drives)
+        const initialDrives: Record<string, boolean> = {}
+        drives.forEach(drive => {
+          initialDrives[drive] = true
+        })
+        setSelectedDrives(initialDrives)
+      }
+    })
 
     if (appName) {
       void getGameInfo(appName, 'sideload').then((info) => {
@@ -199,26 +211,78 @@ export default function SideloadDialog({
   }, [launcherArgs, t])
 
   async function searchImage() {
-    if (hasSgdbKey) {
-      setSgdbTarget('square')
-      return
-    }
+    if (!title || title.trim() === '' || title.trim() === t('sideload.field.title', 'Title')) return
+
     setSearching(true)
 
     try {
-      const response = await axios.get(
-        `https://steamgrid.usebottles.com/api/search/${title}`,
-        { timeout: 3500 }
-      )
+      if (hasSgdbKey) {
+        const searchResult = await window.api.steamgriddb.searchGame(title)
+        if (Array.isArray(searchResult) && searchResult.length > 0) {
+          const gameId = searchResult[0].id
 
-      if (response.status === 200) {
-        const steamGridImage = response.data as string
+          const settings = await window.api.requestAppSettings()
+          const downloadCovers = settings?.steamGridDbDownloadCovers ?? true
 
-        if (steamGridImage && steamGridImage.startsWith('http')) {
-          setImageUrl(steamGridImage)
+          // Get grids (square art)
+          const gridsResult = await window.api.steamgriddb.getGrids({ gameId, styles: ['material'] })
+          if (Array.isArray(gridsResult) && gridsResult.length > 0) {
+            const firstGrid = gridsResult[0].url
+            if (firstGrid) {
+              if (downloadCovers) {
+                try {
+                  const localGridPath = await window.api.steamgriddb.downloadCover({
+                    url: firstGrid,
+                    appName: app_name,
+                    targetType: 'square'
+                  })
+                  setImageUrl(localGridPath)
+                } catch {
+                  setImageUrl(firstGrid)
+                }
+              } else {
+                setImageUrl(firstGrid)
+              }
+            }
+          }
+
+          // Get heroes (vertical cover art)
+          const heroesResult = await window.api.steamgriddb.getHeroes({ gameId })
+          if (Array.isArray(heroesResult) && heroesResult.length > 0) {
+            const firstHero = heroesResult[0].url
+            if (firstHero) {
+              if (downloadCovers) {
+                try {
+                  const localHeroPath = await window.api.steamgriddb.downloadCover({
+                    url: firstHero,
+                    appName: app_name,
+                    targetType: 'cover'
+                  })
+                  setHeroUrl(localHeroPath)
+                } catch {
+                  setHeroUrl(firstHero)
+                }
+              } else {
+                setHeroUrl(firstHero)
+              }
+            }
+          }
         }
       } else {
-        throw new Error('Fetch failed')
+        const response = await axios.get(
+          `https://steamgrid.usebottles.com/api/search/${title}`,
+          { timeout: 3500 }
+        )
+
+        if (response.status === 200) {
+          const steamGridImage = response.data as string
+
+          if (steamGridImage && steamGridImage.startsWith('http')) {
+            setImageUrl(steamGridImage)
+          }
+        } else {
+          throw new Error('Fetch failed')
+        }
       }
     } catch (error) {
       window.api.logError(`${error}`)
@@ -492,13 +556,23 @@ export default function SideloadDialog({
   }
 
   const handleScanAll = async () => {
+    let activeSearchOnlyByName = searchOnlyByName
+    if (searchOnlyByName && !searchTitlesInput.trim()) {
+      setSearchOnlyByName(false)
+      activeSearchOnlyByName = false
+    }
+
     setScanningCandidates(true)
     try {
-      const searchTitles = (searchOnlyByName && searchTitlesInput)
-        ? searchTitlesInput.split(',').map((s) => s.trim()).filter(Boolean)
+      const searchTitles = (activeSearchOnlyByName && searchTitlesInput)
+        ? searchTitlesInput.split(/[;,]/).map((s) => s.trim()).filter(Boolean)
         : undefined
 
-      const results = await window.api.discoverAllGames(searchTitles)
+      const drivesToScan = Object.entries(selectedDrives)
+        .filter(([_, enabled]) => enabled)
+        .map(([drive, _]) => drive)
+
+      const results = await window.api.discoverAllGames(searchTitles, drivesToScan)
       results.sort((a, b) => a.title.localeCompare(b.title))
       setScannedCandidates(results)
 
@@ -806,44 +880,46 @@ export default function SideloadDialog({
         {/* Right simulated Settings Panel */}
         <div className="simulated-settings-panel">
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
-                {editMode ? `${title} (Configurações)` : t('sideload.add_title', 'Adicionar Jogo')}
-              </h2>
-              {editMode && (
-                <button
-                  type="button"
-                  onClick={handleDeleteApp}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#ff4444',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  title={t('button.delete', 'Excluir Jogo')}
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
-              )}
+          {!sgdbTarget && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
+                  {editMode ? `${title} (Configurações)` : t('sideload.add_title', 'Adicionar Jogo')}
+                </h2>
+                {editMode && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteApp}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ff4444',
+                      cursor: 'pointer',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    title={t('button.delete', 'Excluir Jogo')}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={backdropClick}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '18px',
+                  cursor: 'pointer'
+                }}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={backdropClick}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '18px',
-                cursor: 'pointer'
-              }}
-            >
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
+          )}
 
           {/* SteamGridDB Picker Mode */}
           {sgdbTarget ? (
@@ -851,14 +927,56 @@ export default function SideloadDialog({
               <SteamGridDBPicker
                 initialTitle={title}
                 mode={sgdbTarget === 'cover' ? 'heroes' : 'grids'}
-                hideCloseButton={!!initialSgdbTarget}
-                onClose={() => setSgdbTarget(null)}
-                onSelect={(url: string) => {
-                  if (sgdbTarget === 'cover') {
-                    setHeroUrl(url)
-                  } else if (url !== imageUrl) {
+                hideCloseButton={false}
+                onClose={() => {
+                  if (initialSgdbTarget) {
+                    backdropClick()
+                  } else {
+                    setSgdbTarget(null)
+                  }
+                }}
+                onCancel={backdropClick}
+                onFinish={handleInstall}
+                isFinishDisabled={
+                  (!selectedExe.length && !gameUrl) ||
+                  addingApp ||
+                  searching ||
+                  Boolean(launcherArgsError)
+                }
+                onSelect={async (url: string) => {
+                  const settings = await window.api.requestAppSettings()
+                  const downloadCovers = settings?.steamGridDbDownloadCovers ?? true
+
+                  if (url.startsWith('http') && downloadCovers) {
                     setImageLoading(true)
-                    setImageUrl(url)
+                    try {
+                      const localPath = await window.api.steamgriddb.downloadCover({
+                        url,
+                        appName: app_name,
+                        targetType: sgdbTarget === 'cover' ? 'cover' : 'square'
+                      })
+                      if (sgdbTarget === 'cover') {
+                        setHeroUrl(localPath)
+                      } else {
+                        setImageUrl(localPath)
+                      }
+                    } catch (err) {
+                      console.error('Failed to download SteamGridDB cover:', err)
+                      if (sgdbTarget === 'cover') {
+                        setHeroUrl(url)
+                      } else if (url !== imageUrl) {
+                        setImageUrl(url)
+                      }
+                    } finally {
+                      setImageLoading(false)
+                    }
+                  } else {
+                    if (sgdbTarget === 'cover') {
+                      setHeroUrl(url)
+                    } else if (url !== imageUrl) {
+                      setImageLoading(true)
+                      setImageUrl(url)
+                    }
                   }
                   setSgdbTarget(null)
                 }}
@@ -989,7 +1107,13 @@ export default function SideloadDialog({
                             </div>
                             <PathSelectionBox
                               type="file"
-                              onPathChange={setSelectedExe}
+                              onPathChange={(val) => {
+                                let cleanVal = val.trim()
+                                if (cleanVal.startsWith('"') && cleanVal.endsWith('"')) {
+                                  cleanVal = cleanVal.slice(1, -1)
+                                }
+                                setSelectedExe(cleanVal)
+                              }}
                               path={selectedExe}
                               placeholder={t('sideload.info.exe', 'Select Executable')}
                               pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
@@ -998,6 +1122,24 @@ export default function SideloadDialog({
                               htmlId="sideload-exe"
                               noDeleteButton
                             />
+                            {platform === 'win32' && (
+                              <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center' }}>
+                                <InfoBox
+                                  text={t(
+                                    'sideload.xbox-hint-title',
+                                    'Importante! Se for adicionar um jogo Xbox app/Game Pass clique aqui para obter informações'
+                                  )}
+                                  align="left"
+                                >
+                                  <div style={{ maxWidth: '450px', padding: '8px', lineHeight: '1.4', fontSize: '13px', color: 'var(--text-default)' }}>
+                                    {t(
+                                      'sideload.xbox-hint',
+                                      'Dica para jogos do Xbox App/Game Pass: Devido a restrições de permissão do Windows na pasta XboxGames, a busca pelo navegador de arquivos pode falhar. Se isso ocorrer, copie o caminho completo do executável no explorer e cole diretamente no campo acima (aspas serão removidas automaticamente).'
+                                    )}
+                                  </div>
+                                </InfoBox>
+                              </div>
+                            )}
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1104,10 +1246,7 @@ export default function SideloadDialog({
                           onClick={scanPhase === 'initial' ? handleScanCandidates : handleScanAll}
                           className="button is-secondary"
                           style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
-                          disabled={
-                            scanningCandidates ||
-                            (scanPhase !== 'initial' && searchOnlyByName && !searchTitlesInput.trim())
-                          }
+                          disabled={scanningCandidates}
                         >
                           {scanningCandidates ? (
                             <>
@@ -1123,6 +1262,64 @@ export default function SideloadDialog({
                         </button>
                       </div>
                     </div>
+
+                    {/* SELEÇÃO DE HDS */}
+                    {logicalDrives.length > 0 && scanPhase !== 'full_done' && (
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        marginTop: '-4px',
+                        marginBottom: '4px'
+                      }}>
+                        <span style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          color: 'rgba(255, 255, 255, 0.6)',
+                          marginBottom: '8px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px'
+                        }}>
+                          Selecione os HDs para o Escaneamento Completo:
+                        </span>
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                          {logicalDrives.map((drive) => (
+                            <label
+                              key={drive}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '13px',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                userSelect: 'none'
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={!!selectedDrives[drive]}
+                                onChange={(e) => {
+                                  setSelectedDrives({
+                                    ...selectedDrives,
+                                    [drive]: e.target.checked
+                                  })
+                                }}
+                                style={{
+                                  width: '16px',
+                                  height: '16px',
+                                  accentColor: '#00ffff',
+                                  cursor: 'pointer'
+                                }}
+                              />
+                              💾 {drive}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {scanPhase !== 'initial' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
@@ -1229,7 +1426,7 @@ export default function SideloadDialog({
                         <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>
                           {scanPhase === 'initial'
                             ? 'Escaneando o registro do Windows por executáveis de jogos...'
-                            : 'Escaneando discos locais por jogos (isso pode levar alguns segundos)...'}
+                            : 'Procurando por jogos (Isso pode levar alguns minutos dependendo do seu PC)...'}
                         </span>
                       </div>
                     )}

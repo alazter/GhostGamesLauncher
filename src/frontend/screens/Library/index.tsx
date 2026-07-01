@@ -1637,7 +1637,8 @@ export default memo(function Library(): JSX.Element {
         onToggleAlphabetFilter: handleToggleAlphabetFilter,
         gamesForAlphabetFilter,
         alphabetFilterLetter,
-        setAlphabetFilterLetter
+        setAlphabetFilterLetter,
+        showUnclassifiedOnly
       }}
     >
       <div

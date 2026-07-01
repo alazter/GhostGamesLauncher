@@ -172,7 +172,7 @@ export default function EditGameDialog({
               <SteamGridDBPicker
                 initialTitle={title}
                 mode={sgdbTarget === 'cover' ? 'heroes' : 'grids'}
-                hideCloseButton={!!initialSgdbTarget}
+                hideCloseButton={false}
                 onClose={() => setSgdbTarget(null)}
                 onSelect={(url: string) => {
                   if (sgdbTarget === 'cover') setArtCover(url)

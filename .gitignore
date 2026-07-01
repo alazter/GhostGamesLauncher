@@ -37,3 +37,8 @@ flatpak-build
 .env
 
 playwright-report
+
+# scratch / temporary files
+/scratch
+/scratch_*.js
+

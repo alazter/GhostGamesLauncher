@@ -110,7 +110,8 @@ export const steamgriddb = {
   setApiKey: makeHandlerInvoker('steamgriddb.setApiKey'),
   searchGame: makeHandlerInvoker('steamgriddb.searchGame'),
   getGrids: makeHandlerInvoker('steamgriddb.getGrids'),
-  getHeroes: makeHandlerInvoker('steamgriddb.getHeroes')
+  getHeroes: makeHandlerInvoker('steamgriddb.getHeroes'),
+  downloadCover: makeHandlerInvoker('steamgriddb.downloadCover')
 }
 export const downloadLauncherUpdate = makeHandlerInvoker('downloadLauncherUpdate')
 export const handleDownloadLauncherUpdateProgress = frontendListenerSlot('download-launcher-update-progress')

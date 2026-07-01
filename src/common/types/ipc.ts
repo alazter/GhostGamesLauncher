@@ -373,14 +373,26 @@ interface AsyncIPCFunctions {
     gameId: number
     styles?: string[]
     dimensions?: string[]
+    types?: string[]
+    nsfw?: string
+    page?: number
   }) => Promise<Array<{ id: number; url: string; thumb: string }>>
   'steamgriddb.getHeroes': (args: {
     gameId: number
     styles?: string[]
     dimensions?: string[]
+    types?: string[]
+    nsfw?: string
+    page?: number
   }) => Promise<Array<{ id: number; url: string; thumb: string }>>
+  'steamgriddb.downloadCover': (args: {
+    url: string
+    appName: string
+    targetType: 'cover' | 'square'
+  }) => Promise<string>
   discoverInstalledGames: () => Promise<GameCandidate[]>
-  discoverAllGames: (searchTitles?: string[]) => Promise<GameCandidate[]>
+  discoverAllGames: (searchTitles?: string[], selectedDrives?: string[]) => Promise<GameCandidate[]>
+  getLogicalDrives: () => Promise<string[]>
   importSelectedGames: (args: {
     gamesToImport: GameCandidate[]
     gamesToBlacklist: GameCandidate[]

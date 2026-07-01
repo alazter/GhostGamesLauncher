@@ -47,31 +47,35 @@ const CachedImage = (props: Props) => {
       setLoaded(false)
       const img = new Image()
       img.src = primaryTarget
-      img.onload = () => {
+      img.onload = (e) => {
         if (!active || activeLoadRef.current !== primaryTarget) return
         setDisplaySrc(primaryTarget)
         setLoaded(true)
+        props.onLoad?.(e as any)
       }
-      img.onerror = () => {
+      img.onerror = (e) => {
         if (!active || activeLoadRef.current !== primaryTarget) return
         // Try fallback
         if (props.fallback && primaryTarget !== props.fallback) {
           const fallbackTarget = getTargetSrc(props.fallback, undefined)
           const fallbackImg = new Image()
           fallbackImg.src = fallbackTarget
-          fallbackImg.onload = () => {
+          fallbackImg.onload = (fe) => {
             if (!active || activeLoadRef.current !== primaryTarget) return
             setDisplaySrc(fallbackTarget)
             setLoaded(true)
+            props.onLoad?.(fe as any)
           }
-          fallbackImg.onerror = () => {
+          fallbackImg.onerror = (fe) => {
             if (!active || activeLoadRef.current !== primaryTarget) return
             setDisplaySrc(props.fallback)
             setLoaded(true)
+            props.onError?.(fe as any)
           }
         } else {
           setDisplaySrc(props.fallback)
           setLoaded(true)
+          props.onError?.(e as any)
         }
       }
     } else {

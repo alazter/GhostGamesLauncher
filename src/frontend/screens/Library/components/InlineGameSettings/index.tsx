@@ -851,7 +851,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             <SteamGridDBPicker
               initialTitle={currentTitle}
               mode={inlineSgdbTarget === 'cover' ? 'heroes' : 'grids'}
-              hideCloseButton={true}
+              hideCloseButton={false}
               onClose={() => setInlineSgdbTarget(null)}
               onSelect={(url: string) => {
                 if (inlineSgdbTarget === 'cover') {

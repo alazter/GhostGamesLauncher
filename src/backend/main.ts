@@ -125,7 +125,8 @@ import {
   addGameToBlacklist,
   clearBlacklist,
   getBlacklist,
-  removeGameFromBlacklist
+  removeGameFromBlacklist,
+  getDrives
 } from './storeManagers/sideload/scanner'
 import {
   setGameOverrides,
@@ -178,6 +179,20 @@ import {
 import { supportedLanguages } from 'common/languages'
 import MigrationSystem from './migration'
 
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'imagecache',
+    privileges: {
+      standard: true,
+      secure: true,
+      corsEnabled: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: true
+    }
+  }
+])
+
 if (isLinux) app.commandLine?.appendSwitch('--gtk-version', '3')
 
 const { showOpenDialog } = dialog
@@ -186,6 +201,10 @@ async function initializeWindow(): Promise<BrowserWindow> {
   createNecessaryFolders()
   configStore.set('userHome', userHome)
   const mainWindow = createMainWindow()
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    logInfo(`[Renderer Console] [Level ${level}] [${sourceId}:${line}]: ${message}`)
+  })
 
   if ((isSteamDeckGameMode || isCLIFullscreen) && !isCLINoGui) {
     logInfo(
@@ -1461,7 +1480,8 @@ addListener('setTitleBarOverlay', (e, args) => {
 addListener('addNewApp', (e, args) => addNewApp(args))
 addHandler('scanInstalledGames', () => scanInstalledGames())
 addHandler('discoverInstalledGames', () => discoverInstalledGames())
-addHandler('discoverAllGames', (e, searchTitles) => discoverAllGames(searchTitles))
+addHandler('discoverAllGames', (e, searchTitles, selectedDrives) => discoverAllGames(searchTitles, selectedDrives))
+addHandler('getLogicalDrives', () => getDrives())
 addHandler('importSelectedGames', (e, args) => importSelectedGames(args))
 addHandler('undoImport', (e, args) => undoImport(args))
 addHandler('addGameToBlacklist', (e, args) => addGameToBlacklist(args))

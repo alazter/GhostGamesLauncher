@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { faFolderOpen } from '@fortawesome/free-solid-svg-icons'
+import { faFolderOpen, faFileExport } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { UpdateComponent } from 'frontend/components/UI'
 import SettingsContext from '../../SettingsContext'
@@ -121,6 +121,25 @@ export default function LogSettings() {
     window.api.showLogFileInFolder(showLogOf)
   }
 
+  const handleExportInstalledGamesLog = async () => {
+    const dateStr = new Date().toLocaleString()
+    let logText = `Ghost Game Launcher - Installed Games Log - ${dateStr}\n`
+    logText += `============================================================\n\n`
+    logText += `Total de Jogos Instalados: ${installedGames.length}\n\n`
+    logText += `--- LISTA DE JOGOS INSTALADOS ---\n`
+
+    installedGames.forEach((g) => {
+      const platform = g.runner.toUpperCase()
+      const installPath = g.install?.install_path || (g.install?.executable ? g.install.executable.substring(0, Math.max(g.install.executable.lastIndexOf('/'), g.install.executable.lastIndexOf('\\'))) : '')
+      const exe = g.install?.executable || ''
+      logText += `- Título: ${g.title}\n  Plataforma: ${platform}\n  Pasta de Instalação: ${installPath}\n  Executável: ${exe}\n\n`
+    })
+
+    logText += `============================================================\n`
+
+    await window.api.exportScanLog(logText)
+  }
+
   const descriptiveLogFileName = useMemo(() => {
     if (!showLogOf.runner)
       return t('setting.log.descriptiveNames.ghost', 'General Ghost log')
@@ -230,6 +249,21 @@ export default function LogSettings() {
             </div>
           </a>
         )}
+        <a
+          onClick={handleExportInstalledGamesLog}
+          title={t('setting.log.export-search-log', 'Export Search Log')}
+          className="button is-footer"
+          style={{ marginLeft: '12px' }}
+        >
+          <div className="button-icontext-flex">
+            <div className="button-icon-flex">
+              <FontAwesomeIcon icon={faFileExport} />
+            </div>
+            <span className="button-icon-text">
+              {t('setting.log.export-search-log', 'Export Search Log')}
+            </span>
+          </div>
+        </a>
       </span>
     </>
   )

@@ -116,7 +116,7 @@ export default function Header() {
   return (
     <>
       <div className="Header" style={{ display: 'block' }}>
-        <LibrarySearchBar>
+        <LibrarySearchBar isUnclassifiedActive={isUnclassifiedActive}>
           <span className="Header__filters">
             {hasUnclassifiedGames && (
               <button
@@ -143,7 +143,7 @@ export default function Header() {
                 }}
               >
                 {isUnclassifiedActive
-                  ? 'Mostrar Todos'
+                  ? 'Sair da Edição'
                   : 'Jogos Sem Classificação'}
               </button>
             )}
@@ -194,8 +194,10 @@ export default function Header() {
               </button>
             )}
 
-             <CategoryFilter />
-             <LibraryFilters />
+            <div style={isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4, display: 'flex', gap: 'inherit', alignItems: 'center' } : { display: 'flex', gap: 'inherit', alignItems: 'center' }}>
+              <CategoryFilter />
+              <LibraryFilters />
+            </div>
           </span>
         </LibrarySearchBar>
       </div>

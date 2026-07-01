@@ -255,6 +255,7 @@ export interface LibraryContextType {
   alphabetFilterLetter: string | null
   setAlphabetFilterLetter: (letter: string | null) => void
   gamesForAlphabetFilter: GameInfo[]
+  showUnclassifiedOnly?: boolean
 }
 
 export interface GameContextType {

@@ -33,3 +33,5 @@ export const exportScanLog = makeHandlerInvoker('exportScanLog')
 export const clearBlacklist = makeHandlerInvoker('clearBlacklist')
 export const getBlacklist = makeHandlerInvoker('getBlacklist')
 export const removeGameFromBlacklist = makeHandlerInvoker('removeGameFromBlacklist')
+export const getLogicalDrives = makeHandlerInvoker('getLogicalDrives')
+
