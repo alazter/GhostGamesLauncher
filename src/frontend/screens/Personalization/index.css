@@ -49,3 +49,10 @@
   background-color: #00ffff;
   box-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
 }
+
+/* Prevenção de rolagem horizontal */
+.masterContainer,
+.personalization-screen {
+  max-width: 100%;
+  overflow-x: hidden !important;
+}

@@ -35,18 +35,29 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   const [panelTitle, setPanelTitle] = useState<string>(
     () => gameOverride?.title || game.overrides?.title || game.title
   )
-  const [panelSquare, setPanelSquare] = useState<string>(
-    () => gameOverride?.art_square || game.overrides?.art_square || game.art_square || ''
-  )
-  const [panelCover, setPanelCover] = useState<string>(
-    () => gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || ''
-  )
+
+  const getEffectiveSquare = () =>
+    gameOverride?.art_square !== undefined
+      ? gameOverride.art_square
+      : game.overrides?.art_square !== undefined
+      ? game.overrides.art_square
+      : game.art_square || ''
+
+  const getEffectiveCover = () =>
+    gameOverride?.art_cover !== undefined
+      ? gameOverride.art_cover
+      : game.overrides?.art_cover !== undefined
+      ? game.overrides.art_cover
+      : game.art_cover || ''
+
+  const [panelSquare, setPanelSquare] = useState<string>(getEffectiveSquare)
+  const [panelCover, setPanelCover] = useState<string>(getEffectiveCover)
 
   useEffect(() => {
     setTsInfo(timestampStore.get_nodefault(game.app_name))
     setPanelTitle(gameOverride?.title || game.overrides?.title || game.title)
-    setPanelSquare(gameOverride?.art_square || game.overrides?.art_square || game.art_square || '')
-    setPanelCover(gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || '')
+    setPanelSquare(getEffectiveSquare())
+    setPanelCover(getEffectiveCover())
   }, [
     game.app_name,
     status,

@@ -229,9 +229,13 @@ const GameCard = ({
   const gameOverride = gameOverrides[appName]
   const title = gameOverride?.title || cardTitle
   const art_cover =
-    gameOverride?.art_cover || gameInfoFromProps.overrides?.art_cover || gameInfoFromProps.art_cover
+    gameOverride?.art_cover !== undefined
+      ? gameOverride.art_cover
+      : gameInfoFromProps.overrides?.art_cover ?? gameInfoFromProps.art_cover
   const cover =
-    gameOverride?.art_square || gameInfoFromProps.overrides?.art_square || gameInfoFromProps.art_square
+    gameOverride?.art_square !== undefined
+      ? gameOverride.art_square
+      : gameInfoFromProps.overrides?.art_square ?? gameInfoFromProps.art_square
 
   const isInstallable =
     gameInfo.installable === undefined || gameInfo.installable

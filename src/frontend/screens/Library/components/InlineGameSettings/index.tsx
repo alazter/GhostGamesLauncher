@@ -75,11 +75,20 @@ const syncFrontendStoreForSideload = (updatedGame: GameInfo) => {
 
     if (updatedGame.title) {
       const overrides = gameOverridesStore.get('overrides', {})
-      overrides[updatedGame.app_name] = {
-        ...overrides[updatedGame.app_name],
-        title: updatedGame.title,
-        art_cover: updatedGame.art_cover || overrides[updatedGame.app_name]?.art_cover || '',
-        art_square: updatedGame.art_square || overrides[updatedGame.app_name]?.art_square || ''
+      const currentOverride = overrides[updatedGame.app_name] || {}
+      const newCover = updatedGame.art_cover !== undefined ? updatedGame.art_cover : (currentOverride.art_cover || '')
+      const newSquare = updatedGame.art_square !== undefined ? updatedGame.art_square : (currentOverride.art_square || '')
+      const newTitle = updatedGame.title || currentOverride.title || ''
+
+      if (!newTitle && !newCover && !newSquare) {
+        delete overrides[updatedGame.app_name]
+      } else {
+        overrides[updatedGame.app_name] = {
+          ...currentOverride,
+          title: newTitle,
+          art_cover: newCover,
+          art_square: newSquare
+        }
       }
       gameOverridesStore.set('overrides', overrides)
       useGlobalState.getState().setGameOverrides(overrides)
@@ -91,20 +100,25 @@ const syncFrontendStoreForSideload = (updatedGame: GameInfo) => {
 
 const syncFrontendStoreForOverride = (
   appName: string,
-  title: string,
+  title?: string,
   artCover?: string,
   artSquare?: string
 ) => {
   try {
     const overrides = gameOverridesStore.get('overrides', {})
-    if (!title && !artCover && !artSquare) {
+    const currentOverride = overrides[appName] || {}
+    const targetCover = artCover !== undefined ? artCover : (currentOverride.art_cover || '')
+    const targetSquare = artSquare !== undefined ? artSquare : (currentOverride.art_square || '')
+    const targetTitle = title !== undefined ? title : (currentOverride.title || '')
+
+    if (!targetTitle && !targetCover && !targetSquare) {
       delete overrides[appName]
     } else {
       overrides[appName] = {
-        ...overrides[appName],
-        title: title || overrides[appName]?.title || '',
-        art_cover: artCover || overrides[appName]?.art_cover || '',
-        art_square: artSquare || overrides[appName]?.art_square || ''
+        ...currentOverride,
+        title: targetTitle,
+        art_cover: targetCover,
+        art_square: targetSquare
       }
     }
     gameOverridesStore.set('overrides', overrides)
@@ -202,12 +216,37 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
   useEffect(() => {
     if (inlineSgdbTarget) {
-      setEditCover(gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || '')
-      setEditSquare(gameOverride?.art_square || game.overrides?.art_square || game.art_square || '')
+      setEditCover(
+        gameOverride?.art_cover !== undefined
+          ? gameOverride.art_cover
+          : game.overrides?.art_cover !== undefined
+          ? game.overrides.art_cover
+          : game.art_cover || ''
+      )
+      setEditSquare(
+        gameOverride?.art_square !== undefined
+          ? gameOverride.art_square
+          : game.overrides?.art_square !== undefined
+          ? game.overrides.art_square
+          : game.art_square || ''
+      )
     }
   }, [inlineSgdbTarget, game.art_cover, game.overrides?.art_cover, gameOverride?.art_cover, game.art_square, game.overrides?.art_square, gameOverride?.art_square])
 
   useEffect(() => {
+    const effCover =
+      gameOverride?.art_cover !== undefined
+        ? gameOverride.art_cover
+        : game.overrides?.art_cover !== undefined
+        ? game.overrides.art_cover
+        : game.art_cover || ''
+    const effSquare =
+      gameOverride?.art_square !== undefined
+        ? gameOverride.art_square
+        : game.overrides?.art_square !== undefined
+        ? game.overrides.art_square
+        : game.art_square || ''
+
     if (inlineSgdbTarget) {
       window.api.logInfo(`Dispatching real-time cover preview event for ${game.app_name}`)
       window.dispatchEvent(
@@ -226,8 +265,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           detail: {
             appName: game.app_name,
             runner: game.runner,
-            art_cover: gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || '',
-            art_square: gameOverride?.art_square || game.overrides?.art_square || game.art_square || ''
+            art_cover: effCover,
+            art_square: effSquare
           }
         })
       )
@@ -448,6 +487,13 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
   const handleDeleteCover = async () => {
     try {
+      game.art_cover = ''
+      game.art_square = ''
+      if (game.overrides) {
+        game.overrides.art_cover = ''
+        game.overrides.art_square = ''
+      }
+
       if (game.runner === 'sideload') {
         const updatedGame: GameInfo = {
           runner: 'sideload',
@@ -459,8 +505,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             is_dlc: false
           },
           art_cover: '',
+          art_square: '',
           is_installed: true,
-          art_square: game.art_square || '',
           canRunOffline: true,
           browserUrl: game.browserUrl || '',
           customUserAgent: game.customUserAgent || '',
@@ -474,23 +520,37 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           appName: game.app_name,
           title: game.title,
           art_cover: '',
-          art_square: game.overrides?.art_square || ''
+          art_square: ''
         })
       } else {
         syncFrontendStoreForOverride(
           game.app_name,
           game.overrides?.title || '',
           '',
-          game.overrides?.art_square || ''
+          ''
         )
 
         await window.api.setGameMetadataOverride({
           appName: game.app_name,
           title: game.overrides?.title || '',
           art_cover: '',
-          art_square: game.overrides?.art_square || ''
+          art_square: ''
         })
       }
+
+      setEditCover('')
+      setEditSquare('')
+
+      window.dispatchEvent(
+        new CustomEvent('heroicGameCoverChanged', {
+          detail: {
+            appName: game.app_name,
+            runner: game.runner,
+            art_cover: '',
+            art_square: ''
+          }
+        })
+      )
 
       if (refreshLibrary) {
         await refreshLibrary({
@@ -1122,8 +1182,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               {currentTitle} (Configurações)
             </h2>
             <button
-              onClick={confirmDeleteCover}
-              title={t('delete_cover.title', 'Deletar Capa')}
+              onClick={() => setShowUninstallModal(true)}
+              title={game.runner === 'sideload' ? t('button.remove', 'Remover Jogo da Biblioteca') : t('button.uninstall', 'Desinstalar Jogo')}
               style={{
                 background: 'rgba(255, 75, 75, 0.05)',
                 border: '1px solid rgba(255, 75, 75, 0.2)',

@@ -75,10 +75,20 @@ export default function Header() {
     }
   }
 
-  // 2. Dispara o evento limpo sem tocar no activeStoreFilter do sistema
+  // 2. Dispara o evento limpo desmarcando qualquer filtro de loja ativo
   const toggleUnclassifiedFilter = () => {
     const newState = !isUnclassifiedActive
     setIsUnclassifiedActive(newState)
+
+    if (newState) {
+      localStorage.removeItem('heroic_active_store_filter')
+      window.dispatchEvent(
+        new CustomEvent('heroicFilterChanged', {
+          detail: { storeFilter: null }
+        })
+      )
+    }
+
     window.dispatchEvent(
       new CustomEvent('heroicToggleUnclassifiedFilter', {
         detail: { active: newState }
@@ -107,9 +117,24 @@ export default function Header() {
         }
       }
     }
+    const handleFilterChanged = () => {
+      const activeStore = localStorage.getItem('heroic_active_store_filter')
+      if (activeStore && isUnclassifiedActive) {
+        setIsUnclassifiedActive(false)
+        window.dispatchEvent(
+          new CustomEvent('heroicToggleUnclassifiedFilter', {
+            detail: { active: false }
+          })
+        )
+      }
+    }
+
     window.addEventListener('heroicToggleMassEdit', handleExternalCancel)
-    return () =>
+    window.addEventListener('heroicFilterChanged', handleFilterChanged)
+    return () => {
       window.removeEventListener('heroicToggleMassEdit', handleExternalCancel)
+      window.removeEventListener('heroicFilterChanged', handleFilterChanged)
+    }
   }, [isUnclassifiedActive])
 
 

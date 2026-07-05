@@ -13,6 +13,7 @@
     "2d5014bc87420a5ca5d73c2e332b6ef75d033608",
     "7-zip",
     "89c70cc31f94bc1fba8b7b5394e2eb235bcbe34a",
+    "8bitdo_ultimate_software",
     "__installdata__",
     "__installer",
     "_internal",
@@ -28,6 +29,7 @@
     "anomaly-1.5.1.2",
     "anti-malware",
     "anticheatexpert",
+    "aoe url helper",
     "app certification kit",
     "app-1.0.9243",
     "appcert",
@@ -51,9 +53,11 @@
     "bin",
     "bios",
     "bonjour",
+    "boris fx",
     "br",
     "burner",
     "cable",
+    "car.service.together",
     "cdiresource",
     "cef",
     "cemu_",
@@ -81,12 +85,15 @@
     "davinci resolve",
     "deck builder",
     "deckboard",
+    "denuvo anti-cheat",
     "desktop-launcher",
+    "discord",
     "discord",
     "disk1",
     "diskspd",
     "display.nview",
     "displayfusion",
+    "docker desktop",
     "dolphin-x64",
     "dotnet",
     "downloadres",
@@ -105,9 +112,11 @@
     "encoder",
     "epic games launcher",
     "epic online services",
+    "epson",
     "ereg",
     "es-de",
     "exitlag",
+    "fancontrol",
     "ffmodules",
     "filezilla",
     "fl studio",
@@ -147,10 +156,16 @@
     "integration",
     "internet download manager",
     "internet explorer",
+    "jackett",
+    "jdownloader",
     "jellyfin",
+    "k-lite codec pack",
+    "kingston ssd manager",
+    "krita",
     "launcher",
     "layout",
     "libexec",
+    "lightshot",
     "lkg",
     "lkg_db",
     "luna",
@@ -161,16 +176,19 @@
     "memtest",
     "memu",
     "microfone boost",
+    "microsoft 365",
     "microsoft office",
     "microsoft onedrive",
     "microsoft update health tools",
     "midi2key",
+    "mkvtoolnix",
     "mkvtoolnix",
     "motospeed gaming keyboard ck108 driver",
     "mozilla firefox",
     "mozilla maintenance service",
     "mpc-be",
     "mpc-hc64",
+    "msi afterburner",
     "msvcrt",
     "msxml 4.0",
     "mtn",
@@ -210,8 +228,11 @@
     "path_nocd_the_settlersiv_gold_edition",
     "pdfelement",
     "pgtools",
+    "playit",
+    "playnite",
     "pokerstars",
     "power-grid",
+    "powertoys",
     "prime95",
     "programas",
     "programas que eu usei",
@@ -227,13 +248,24 @@
     "raycast",
     "rcon",
     "recoverit",
+    "remote system monitor",
     "retrobat",
+    "revo uninstaller",
     "riot vanguard",
+    "roblox",
+    "rocketdock",
+    "sd card formatter",
+    "send anywhere",
+    "simhub",
     "skype",
     "spotify",
     "spybot",
+    "stacher",
     "steam",
+    "stremio",
     "telegram",
+    "ua connect",
+    "uaconnect",
     "ubisoft connect",
     "ubisoft game launcher",
     "uniconverter",
@@ -242,44 +274,14 @@
     "vlc",
     "vlc media player",
     "voicemeeter",
+    "winaero tweaker",
     "windows defender",
     "winrar",
+    "wondershare",
+    "zoom",
     "zsnesw",
     "{252d5b5a-21ce-4bbc-b09a-870c8add8364}",
-    "{6d763e18-e1e6-4c26-975b-40dcb4815825}",
-    "simhub",
-    "roblox",
-    "discord",
-    "wondershare",
-    "mkvtoolnix",
-    "remote system monitor",
-    "rocketdock",
-    "sd card formatter",
-    "send anywhere",
-    "uaconnect",
-    "ua connect",
-    "8bitdo_ultimate_software",
-    "aoe url helper",
-    "car.service.together",
-    "denuvo anti-cheat",
-    "docker desktop",
-    "epson",
-    "jackett",
-    "jdownloader",
-    "k-lite codec pack",
-    "kingston ssd manager",
-    "msi afterburner",
-    "playit",
-    "playnite",
-    "revo uninstaller",
-    "stacher",
-    "winaero tweaker",
-    "zoom",
-    "powertoys",
-    "fancontrol",
-    "microsoft 365",
-    "boris fx",
-    "lightshot"
+    "{6d763e18-e1e6-4c26-975b-40dcb4815825}"
   ],
   "blacklisted_exes": [
     "2 - reign of caos patch 1.26a english.exe",
@@ -289,6 +291,53 @@
     "7z.exe",
     "7z2409-x64.exe",
     "7za.exe",
+    "AOEURLHelper.exe",
+    "ActivationUI.exe",
+    "BEService.exe",
+    "BEService_x64.exe",
+    "BsSndRpt64.exe",
+    "Buzz-1.4.4-windows.exe",
+    "CarServiceTogether.exe",
+    "DataCollectionAgentController.exe",
+    "Debug.exe",
+    "Docker Desktop Installer.exe",
+    "ENPApp.exe",
+    "EasyInfo.exe",
+    "FanControl.exe",
+    "FetchDriver.exe",
+    "FvSDKTestClient_Public.exe",
+    "Gaming.exe",
+    "ImagingDevices.exe",
+    "JackettTray.exe",
+    "KSM_Gen15.exe",
+    "Lightshot.exe",
+    "MP4Box.exe",
+    "MSIAfterburner.exe",
+    "NvSHIM.exe",
+    "NvTmMon.exe",
+    "NvTmRep.exe",
+    "Playnite.DesktopApp.exe",
+    "PowerToys.exe",
+    "PowerToysUserSetup-0.99.1-x64.exe",
+    "RemoteSystemMonitorService.exe",
+    "RevoUninPro.exe",
+    "RobloxPlayerInstaller.exe",
+    "RobloxStudioInstaller.exe",
+    "Robust.Packaging.exe",
+    "Robust.Server.exe",
+    "RocketDock.exe",
+    "SD Card Formatter.exe",
+    "Send Anywhere.exe",
+    "SimHubWPF.exe",
+    "Stacher7.exe",
+    "TransferProcess.exe",
+    "UA Connect.exe",
+    "VersionService.exe",
+    "WinaeroTweaker.exe",
+    "Windows10UpgraderApp.exe",
+    "WsMediaInfo.exe",
+    "YeetPatch.exe",
+    "Zoom.exe",
     "a4apanel.exe",
     "ace-service64.exe",
     "adb.exe",
@@ -340,10 +389,14 @@
     "controllercompanion.exe",
     "cpuburner.exe",
     "cpuz.exe",
+    "createdump.exe",
     "deckboard.exe",
     "dedicatedserver.exe",
+    "denuvo-anti-cheat-update-service.exe",
     "desktop-launcher.exe",
+    "desync.exe",
     "devcon.exe",
+    "dfu4.exe",
     "discord.exe",
     "diskanalyzer.exe",
     "diskinfo64.exe",
@@ -360,6 +413,7 @@
     "dotnetfx40_full_x86_x64.exe",
     "dotnetfx40_full_x86_x64全部版本.exe",
     "dowser.exe",
+    "dpscat.exe",
     "driverscloud.exe",
     "drmconverter.exe",
     "dropbox.exe",
@@ -375,7 +429,9 @@
     "epiconlineservicesuihelper.exe",
     "excel.exe",
     "exitlag.exe",
+    "fastboot.exe",
     "ffmpeg.exe",
+    "ffprobe.exe",
     "filecoauth.exe",
     "filesynchelper.exe",
     "filezilla.exe",
@@ -384,6 +440,7 @@
     "fl64 (scaled).exe",
     "fl64.exe",
     "flowsrt-0.0.3.exe",
+    "format_sd.exe",
     "formatfactory.exe",
     "fpupdate.exe",
     "fraps 3.4.7 registered [prfctcmptrs].exe",
@@ -428,6 +485,7 @@
     "hwinfo64.exe",
     "hwmonitor.exe",
     "hytale-launcher.exe",
+    "i4jdel.exe",
     "id patcher.exe",
     "idman.exe",
     "iexplore.exe",
@@ -440,10 +498,12 @@
     "inspectvhddialog.exe",
     "integratedoffice.exe",
     "integrator.exe",
+    "jabswitch.exe",
     "jellyfinmediaplayer.exe",
     "joytokey.exe",
     "kavremvr.exe",
     "keymapui.exe",
+    "krita.exe",
     "l",
     "launcher.exe",
     "launcherpatcher.exe",
@@ -467,6 +527,7 @@
     "mbuns.exe",
     "mbupdatrv5.exe",
     "mdnsresponder.exe",
+    "mediainfo.exe",
     "mega link downloader.exe",
     "megadownloader.exe",
     "memeedit.exe",
@@ -508,6 +569,7 @@
     "node.exe",
     "node20.exe",
     "notification_helper.exe",
+    "nssm.exe",
     "nvappbar.exe",
     "nvcameraenable.exe",
     "nvflash32.exe",
@@ -551,6 +613,11 @@
     "pdfelement.exe",
     "pg_dump.exe",
     "pg_restore.exe",
+    "pip.exe",
+    "pip3.13.exe",
+    "pip3.14.exe",
+    "pip3.exe",
+    "playit.exe",
     "playnite1051.exe",
     "playsound.exe",
     "playsvr.exe",
@@ -581,6 +648,7 @@
     "rainmeter.exe",
     "rarbg_do_not_mirror.exe",
     "raycast.startuplauncher.exe",
+    "rct_traducao.exe",
     "remoteconsole.exe",
     "reshadefxc32.exe",
     "resolve.exe",
@@ -596,6 +664,7 @@
     "scalar.exe",
     "sdscan.exe",
     "sensece.exe",
+    "sensor.exe",
     "server.exe",
     "settlers_4_path_v2.50.1516a(gold edition).exe",
     "sigmagui.exe",
@@ -607,8 +676,10 @@
     "sphericalequirect64.exe",
     "sqlitestudio-2.0.12.exe",
     "startup.exe",
+    "steam.exe",
     "streamercodecdetector.exe",
     "stremio+4.4.168.exe",
+    "stremio-shell-ng.exe",
     "stub.exe",
     "subl.exe",
     "sublime_text.exe",
@@ -627,6 +698,8 @@
     "tts-deck-editor.exe",
     "ubisoftconnect.exe",
     "uhssvc.exe",
+    "unarc.exe",
+    "unins000.exe",
     "updater.exe",
     "urlreqservice.exe",
     "vbcable_controlpanel.exe",
@@ -654,113 +727,13 @@
     "x86_64-w64-mingw32-nmakehlp.exe",
     "yamlfxc32.exe",
     "youtube-music-3.11.0.exe",
-    "zerotier-one_x64.exe",
-    "SimHubWPF.exe",
-    "RobloxStudioInstaller.exe",
-    "format_sd.exe",
-    "SD Card Formatter.exe",
-    "RemoteSystemMonitorService.exe",
-    "sensor.exe",
-    "RocketDock.exe",
-    "Send Anywhere.exe",
-    "pip.exe",
-    "pip3.exe",
-    "pip3.13.exe",
-    "pip3.14.exe",
-    "createdump.exe",
-    "ffprobe.exe",
-    "nssm.exe",
-    "EasyInfo.exe",
-    "mediainfo.exe",
-    "MP4Box.exe",
-    "Debug.exe",
-    "fastboot.exe",
-    "FetchDriver.exe",
-    "TransferProcess.exe",
-    "WsMediaInfo.exe",
-    "unarc.exe",
-    "UA Connect.exe",
-    "Windows10UpgraderApp.exe",
-    "NvSHIM.exe",
-    "NvTmMon.exe",
-    "NvTmRep.exe",
-    "dpscat.exe",
-    "Buzz-1.4.4-windows.exe",
-    "rct_traducao.exe",
-    "dfu4.exe",
-    "AOEURLHelper.exe",
-    "CarServiceTogether.exe",
-    "denuvo-anti-cheat-update-service.exe",
-    "Docker Desktop Installer.exe",
-    "ENPApp.exe",
-    "DataCollectionAgentController.exe",
-    "JackettTray.exe",
-    "i4jdel.exe",
-    "unins000.exe",
-    "KSM_Gen15.exe",
-    "MSIAfterburner.exe",
-    "playit.exe",
-    "Playnite.DesktopApp.exe",
-    "RevoUninPro.exe",
-    "Stacher7.exe",
-    "WinaeroTweaker.exe",
-    "Zoom.exe",
-    "PowerToys.exe",
-    "PowerToysUserSetup-0.99.1-x64.exe",
-    "FanControl.exe",
-    "Lightshot.exe",
-    "Robust.Packaging.exe",
-    "Robust.Server.exe",
-    "FvSDKTestClient_Public.exe",
-    "ImagingDevices.exe",
-    "desync.exe",
-    "Gaming.exe",
-    "BsSndRpt64.exe",
-    "jabswitch.exe",
-    "ActivationUI.exe",
-    "steam.exe"
+    "zerotier-one_x64.exe"
   ],
   "known_games": [
     {
-      "displayNamePattern": "ball x pit",
-      "preferred_exe": "Balls.exe",
-      "targetExe": "Balls.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "cities: skylines ii",
-      "preferred_exe": "Cities2.exe",
-      "targetExe": "Cities2.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "f-22 lightning 3",
-      "preferred_exe": "L3.exe",
-      "targetExe": "L3.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "heroes of hammerwatch ii",
-      "preferred_exe": "HWR2.exe",
-      "targetExe": "HWR2.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "runescape: dragonwilds",
-      "preferred_exe": "RSDragonwilds.exe",
-      "targetExe": "RSDragonwilds.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "stronghold crusader",
-      "preferred_exe": "Stronghold Crusader Definitive Edition.exe",
-      "targetExe": "Stronghold Crusader Definitive Edition.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "transport tycoon",
-      "preferred_exe": "openttd.exe",
-      "targetExe": "openttd.exe",
+      "displayNamePattern": "anomaly",
+      "preferred_exe": "AnomalyLauncher.exe",
+      "targetExe": "AnomalyLauncher.exe",
       "ignore_exes": []
     },
     {
@@ -773,78 +746,55 @@
       ]
     },
     {
-      "displayNamePattern": "grand theft auto v",
-      "preferred_exe": "GTA5.exe",
-      "targetExe": "GTA5.exe",
-      "ignore_exes": [
-        "PlayGTAV.exe",
-        "GTAVLauncher.exe"
-      ]
-    },
-    {
       "displayNamePattern": "arma 3",
       "preferred_exe": "arma3_x64.exe",
       "targetExe": "arma3_x64.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "arma reforger",
+      "preferred_exe": "ArmaReforgerSteam.exe",
+      "targetExe": "ArmaReforgerSteam.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "balatro",
+      "preferred_exe": "Balatro.exe",
+      "targetExe": "Balatro.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "baldur's gate 3",
+      "preferred_exe": "bg3.exe",
+      "targetExe": "bg3.exe",
       "ignore_exes": [
-        "arma3launcher.exe",
-        "arma3battleye.exe",
-        "arma3server.exe"
+        "bg3_dx11.exe"
       ]
     },
     {
-      "displayNamePattern": "cube world",
-      "preferred_exe": "Cube.exe",
-      "targetExe": "Cube.exe",
-      "ignore_exes": [
-        "CubeLauncher.exe"
-      ]
+      "displayNamePattern": "ball x pit",
+      "preferred_exe": "Balls.exe",
+      "targetExe": "Balls.exe",
+      "ignore_exes": []
     },
     {
-      "displayNamePattern": "enter the gungeon",
-      "preferred_exe": "EtG.exe",
-      "targetExe": "EtG.exe",
-      "ignore_exes": [
-        "启动游戏.exe"
-      ]
+      "displayNamePattern": "battlefield 1942",
+      "preferred_exe": "BF1942.exe",
+      "targetExe": "BF1942.exe",
+      "ignore_exes": []
     },
     {
-      "displayNamePattern": "phasmophobia",
-      "preferred_exe": "Phasmophobia.exe",
-      "targetExe": "Phasmophobia.exe",
-      "ignore_exes": [
-        "Launcher.exe"
-      ]
+      "displayNamePattern": "battlefield 2",
+      "preferred_exe": "BF2.exe",
+      "targetExe": "BF2.exe",
+      "ignore_exes": []
     },
     {
-      "displayNamePattern": "poly bridge",
-      "preferred_exe": "polybridge.exe",
-      "targetExe": "polybridge.exe",
+      "displayNamePattern": "battlefield 2 complete collection",
+      "preferred_exe": "BF2.exe",
+      "targetExe": "BF2.exe",
       "ignore_exes": [
-        "LAUNCHER.exe"
-      ]
-    },
-    {
-      "displayNamePattern": "slay the spire",
-      "preferred_exe": "SlayTheSpire.exe",
-      "targetExe": "SlayTheSpire.exe",
-      "ignore_exes": [
-        "Launcher_x64.exe"
-      ]
-    },
-    {
-      "displayNamePattern": "hell let loose",
-      "preferred_exe": "HLL.exe",
-      "targetExe": "HLL.exe",
-      "ignore_exes": [
-        "Launch_HLL.exe"
-      ]
-    },
-    {
-      "displayNamePattern": "pvz battle for neighborville",
-      "preferred_exe": "PVZBattleforNeighborville.exe",
-      "targetExe": "PVZBattleforNeighborville.exe",
-      "ignore_exes": [
-        "EAAntiCheat.GameServiceLauncher.exe"
+        "PRBF2.exe"
       ]
     },
     {
@@ -860,93 +810,49 @@
       "ignore_exes": []
     },
     {
-      "displayNamePattern": "foxhole",
-      "preferred_exe": "War.exe",
-      "targetExe": "War.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "king arthur's gold",
-      "preferred_exe": "KAG.exe",
-      "targetExe": "KAG.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "king of fighters xiii",
-      "preferred_exe": "kofxiii.exe",
-      "targetExe": "kofxiii.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "mirthwood",
-      "preferred_exe": "Mirthwood.exe",
-      "targetExe": "Mirthwood.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "mouse p.i. for hire",
-      "preferred_exe": "MOUSE.exe",
-      "targetExe": "MOUSE.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "projectzomboid",
-      "preferred_exe": "ProjectZomboid64.exe",
-      "targetExe": "ProjectZomboid64.exe",
+      "displayNamePattern": "borderlands 2",
+      "preferred_exe": "Borderlands2.exe",
+      "targetExe": "Borderlands2.exe",
       "ignore_exes": [
-        "ProjectZomboid32.exe"
+        "borderlands2_goty_br.exe"
       ]
     },
     {
-      "displayNamePattern": "rise of nations",
-      "preferred_exe": "riseofnations.exe",
-      "targetExe": "riseofnations.exe",
+      "displayNamePattern": "call of duty: modern warfare ii",
+      "preferred_exe": "cod22-cod.exe",
+      "targetExe": "cod22-cod.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "call to arms - gates of hell",
+      "preferred_exe": "calltoarms_gatesofhell.exe",
+      "targetExe": "calltoarms_gatesofhell.exe",
       "ignore_exes": [
-        "patriots.exe"
+        "BsSndRpt64.exe"
       ]
-    },
-    {
-      "displayNamePattern": "soundpad",
-      "preferred_exe": "Soundpad.exe",
-      "targetExe": "Soundpad.exe",
-      "ignore_exes": [
-        "SoundpadService.exe"
-      ]
-    },
-    {
-      "displayNamePattern": "the king of fighters 2002 unlimited match",
-      "preferred_exe": "KingOfFighters2002UM.exe",
-      "targetExe": "KingOfFighters2002UM.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "the king of fighters'98 ultimate match",
-      "preferred_exe": "KingOfFighters98UM.exe",
-      "targetExe": "KingOfFighters98UM.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "tower unite",
-      "preferred_exe": "Tower.exe",
-      "targetExe": "Tower.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "warhammer rogue trader",
-      "preferred_exe": "WH40KRT.exe",
-      "targetExe": "WH40KRT.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "zombieville usa 3-d",
-      "preferred_exe": "Exodus.exe",
-      "targetExe": "Exodus.exe",
-      "ignore_exes": []
     },
     {
       "displayNamePattern": "call to arms: panzer elite",
       "preferred_exe": "call_to_arms_pe.exe",
       "targetExe": "call_to_arms_pe.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "circuit superstars",
+      "preferred_exe": "circuit-superstars.exe",
+      "targetExe": "circuit-superstars.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "cities: skylines ii",
+      "preferred_exe": "Cities2.exe",
+      "targetExe": "Cities2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "clone hero",
+      "preferred_exe": "Clone Hero.exe",
+      "targetExe": "Clone Hero.exe",
       "ignore_exes": []
     },
     {
@@ -956,9 +862,29 @@
       "ignore_exes": []
     },
     {
+      "displayNamePattern": "crimson desert",
+      "preferred_exe": "CrimsonDesert.exe",
+      "targetExe": "CrimsonDesert.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "cube world",
+      "preferred_exe": "Cube.exe",
+      "targetExe": "Cube.exe",
+      "ignore_exes": [
+        "CubeLauncher.exe"
+      ]
+    },
+    {
       "displayNamePattern": "darkest hour: europe '44-'45",
       "preferred_exe": "ROEdLAA.exe",
       "targetExe": "ROEdLAA.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "dead as disco",
+      "preferred_exe": "Pagoda.exe",
+      "targetExe": "Pagoda.exe",
       "ignore_exes": []
     },
     {
@@ -982,9 +908,270 @@
       ]
     },
     {
+      "displayNamePattern": "enshrouded",
+      "preferred_exe": "enshrouded.exe",
+      "targetExe": "enshrouded.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "enter the gungeon",
+      "preferred_exe": "EtG.exe",
+      "targetExe": "EtG.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "f-22 lightning 3",
+      "preferred_exe": "L3.exe",
+      "targetExe": "L3.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "fellowship",
+      "preferred_exe": "fellowship.exe",
+      "targetExe": "fellowship.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "final vendetta",
+      "preferred_exe": "Final Vendetta.exe",
+      "targetExe": "Final Vendetta.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "fortnite",
+      "preferred_exe": "FortniteClient-Win64-Shipping.exe",
+      "targetExe": "FortniteClient-Win64-Shipping.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "forza horizon 6",
+      "preferred_exe": "forzahorizon6.exe",
+      "targetExe": "forzahorizon6.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "foxhole",
+      "preferred_exe": "War.exe",
+      "targetExe": "War.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "ftl: faster than light",
+      "preferred_exe": "FTLGame.exe",
+      "targetExe": "FTLGame.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "getting over it",
+      "preferred_exe": "GettingOverIt.exe",
+      "targetExe": "GettingOverIt.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "grand theft auto v",
+      "preferred_exe": "GTA5.exe",
+      "targetExe": "GTA5.exe",
+      "ignore_exes": [
+        "PlayGTAV.exe",
+        "GTAVLauncher.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "hell let loose",
+      "preferred_exe": "HLL.exe",
+      "targetExe": "HLL.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "hellcard",
+      "preferred_exe": "HELLCARD.exe",
+      "targetExe": "HELLCARD.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "helldivers 2",
+      "preferred_exe": "helldivers2.exe",
+      "targetExe": "helldivers2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "hero siege",
+      "preferred_exe": "Hero_Siege.exe",
+      "targetExe": "Hero_Siege.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "heroes of hammerwatch ii",
+      "preferred_exe": "HWR2.exe",
+      "targetExe": "HWR2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "heroes of might and magic olden era",
+      "preferred_exe": "HeroesOldenEra.exe",
+      "targetExe": "HeroesOldenEra.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "internet cafe simulator 2",
+      "preferred_exe": "Internet Cafe Simulator 2.exe",
+      "targetExe": "Internet Cafe Simulator 2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "inzoi",
+      "preferred_exe": "inZOI.exe",
+      "targetExe": "inZOI.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "ixion",
+      "preferred_exe": "Ixion.exe",
+      "targetExe": "Ixion.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "king arthur's gold",
+      "preferred_exe": "KAG.exe",
+      "targetExe": "KAG.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "king of fighters xiii",
+      "preferred_exe": "kofxiii.exe",
+      "targetExe": "kofxiii.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "league of legends",
+      "preferred_exe": "RiotClientServices.exe",
+      "targetExe": "RiotClientServices.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "liner rider",
+      "preferred_exe": "LineRider ZaDa V1.3b.exe",
+      "targetExe": "LineRider ZaDa V1.3b.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "luma island",
+      "preferred_exe": "Luma Island.exe",
+      "targetExe": "Luma Island.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "megabonk",
+      "preferred_exe": "Megabonk.exe",
+      "targetExe": "Megabonk.exe",
+      "ignore_exes": []
+    },
+    {
       "displayNamePattern": "metal slug 2",
       "preferred_exe": "mslug2.exe",
       "targetExe": "mslug2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "metal slug tactics",
+      "preferred_exe": "Metal Slug Tactics.exe",
+      "targetExe": "Metal Slug Tactics.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "mirthwood",
+      "preferred_exe": "Mirthwood.exe",
+      "targetExe": "Mirthwood.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "monster hunter rise",
+      "preferred_exe": "MonsterHunterRise.exe",
+      "targetExe": "MonsterHunterRise.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "monster hunter wilds",
+      "preferred_exe": "MonsterHunterWilds.exe",
+      "targetExe": "MonsterHunterWilds.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "monster hunter: world",
+      "preferred_exe": "MonsterHunterWorld.exe",
+      "targetExe": "MonsterHunterWorld.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "monster sanctuary",
+      "preferred_exe": "Monster Sanctuary.exe",
+      "targetExe": "Monster Sanctuary.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "mouse p.i. for hire",
+      "preferred_exe": "MOUSE.exe",
+      "targetExe": "MOUSE.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "no man's sky",
+      "preferred_exe": "NMS.exe",
+      "targetExe": "NMS.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "northgard",
+      "preferred_exe": "Northgard.exe",
+      "targetExe": "Northgard.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "openrct2",
+      "preferred_exe": "openrct2.exe",
+      "targetExe": "openrct2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "outbound",
+      "preferred_exe": "Outbound.exe",
+      "targetExe": "Outbound.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "paralives",
+      "preferred_exe": "Paralives.exe",
+      "targetExe": "Paralives.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "parkitect",
+      "preferred_exe": "Parkitect.exe",
+      "targetExe": "Parkitect.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "path of exile 2",
+      "preferred_exe": "PathOfExileSteam.exe",
+      "targetExe": "PathOfExileSteam.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "phasmophobia",
+      "preferred_exe": "Phasmophobia.exe",
+      "targetExe": "Phasmophobia.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "planet coaster",
+      "preferred_exe": "PlanetCoaster.exe",
+      "targetExe": "PlanetCoaster.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "planet zoo",
+      "preferred_exe": "PlanetZoo.exe",
+      "targetExe": "PlanetZoo.exe",
       "ignore_exes": []
     },
     {
@@ -994,9 +1181,92 @@
       "ignore_exes": []
     },
     {
+      "displayNamePattern": "poly bridge",
+      "preferred_exe": "polybridge.exe",
+      "targetExe": "polybridge.exe",
+      "ignore_exes": [
+        "LAUNCHER.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "portal knights",
+      "preferred_exe": "portal_knights_x64.exe",
+      "targetExe": "portal_knights_x64.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "project zomboid",
+      "preferred_exe": "ProjectZomboid64.exe",
+      "targetExe": "ProjectZomboid64.exe",
+      "ignore_exes": [
+        "ProjectZomboid32.exe",
+        "jabswitch.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "projectzomboid",
+      "preferred_exe": "ProjectZomboid64.exe",
+      "targetExe": "ProjectZomboid64.exe",
+      "ignore_exes": [
+        "ProjectZomboid32.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "punch club 2",
+      "preferred_exe": "Punch Club 2 Fast Forward.exe",
+      "targetExe": "Punch Club 2 Fast Forward.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "pvz battle for neighborville",
+      "preferred_exe": "PVZBattleforNeighborville.exe",
+      "targetExe": "PVZBattleforNeighborville.exe",
+      "ignore_exes": [
+        "EAAntiCheat.GameServiceLauncher.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "pvz replanted",
+      "preferred_exe": "Replanted.exe",
+      "targetExe": "Replanted.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "ready or not",
+      "preferred_exe": "ReadyOrNot.exe",
+      "targetExe": "ReadyOrNot.exe",
+      "ignore_exes": []
+    },
+    {
       "displayNamePattern": "red orchestra: ostfront 41-45",
       "preferred_exe": "ROEdLAA.exe",
       "targetExe": "ROEdLAA.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "replaced",
+      "preferred_exe": "Replaced.exe",
+      "targetExe": "Replaced.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "rise of nations",
+      "preferred_exe": "riseofnations.exe",
+      "targetExe": "riseofnations.exe",
+      "ignore_exes": [
+        "patriots.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "rocket league",
+      "preferred_exe": "RocketLeague.exe",
+      "targetExe": "RocketLeague.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "rollercoaster tycoon 2",
+      "preferred_exe": "RCT2.EXE",
+      "targetExe": "RCT2.EXE",
       "ignore_exes": []
     },
     {
@@ -1006,15 +1276,191 @@
       "ignore_exes": []
     },
     {
+      "displayNamePattern": "romestead",
+      "preferred_exe": "Romestead.exe",
+      "targetExe": "Romestead.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "runescape: dragonwilds",
+      "preferred_exe": "RSDragonwilds.exe",
+      "targetExe": "RSDragonwilds.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "runestone keeper",
+      "preferred_exe": "RuneStoneKeeper.exe",
+      "targetExe": "RuneStoneKeeper.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "s.t.a.l.k.e.r. 2",
+      "preferred_exe": "Stalker2.exe",
+      "targetExe": "Stalker2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "satisfactory",
+      "preferred_exe": "FactoryGame.exe",
+      "targetExe": "FactoryGame.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "shadows of doubt",
+      "preferred_exe": "Shadows of Doubt.exe",
+      "targetExe": "Shadows of Doubt.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "shantytown",
+      "preferred_exe": "ShantyTown.exe",
+      "targetExe": "ShantyTown.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "simcity 2013",
+      "preferred_exe": "SimCity_2013_Offline_nosTEAM.exe",
+      "targetExe": "SimCity_2013_Offline_nosTEAM.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "skate",
+      "preferred_exe": "Skate.exe",
+      "targetExe": "Skate.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "slay the spire",
+      "preferred_exe": "SlayTheSpire.exe",
+      "targetExe": "SlayTheSpire.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "sonic mania",
+      "preferred_exe": "SonicMania.exe",
+      "targetExe": "SonicMania.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "soundpad",
+      "preferred_exe": "Soundpad.exe",
+      "targetExe": "Soundpad.exe",
+      "ignore_exes": [
+        "SoundpadService.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "space haven",
+      "preferred_exe": "SpaceHaven.exe",
+      "targetExe": "SpaceHaven.exe",
+      "ignore_exes": [
+        "jabswitch.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "space station 14 playtest",
+      "preferred_exe": "Space Station 14 Launcher.exe",
+      "targetExe": "Space Station 14 Launcher.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "squad",
+      "preferred_exe": "Squad.exe",
+      "targetExe": "Squad.exe",
+      "ignore_exes": [
+        "start_protected_game.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "star wars battlefront ii",
+      "preferred_exe": "starwarsbattlefrontii.exe",
+      "targetExe": "starwarsbattlefrontii.exe",
+      "ignore_exes": [
+        "ActivationUI.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "starbound",
+      "preferred_exe": "starbound.exe",
+      "targetExe": "starbound.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "stoneshard",
+      "preferred_exe": "StoneShard.exe",
+      "targetExe": "StoneShard.exe",
+      "ignore_exes": []
+    },
+    {
       "displayNamePattern": "stranded: alien dawn",
       "preferred_exe": "StrandedSteamDebug.exe",
       "targetExe": "StrandedSteamDebug.exe",
       "ignore_exes": []
     },
     {
+      "displayNamePattern": "stronghold crusader",
+      "preferred_exe": "Stronghold Crusader Definitive Edition.exe",
+      "targetExe": "Stronghold Crusader Definitive Edition.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "super woden gp 2",
+      "preferred_exe": "Super Woden GP 2.exe",
+      "targetExe": "Super Woden GP 2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "swag and sorcery",
+      "preferred_exe": "Swag and Sorcery.exe",
+      "targetExe": "Swag and Sorcery.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "tabletop simulator",
+      "preferred_exe": "Tabletop Simulator.exe",
+      "targetExe": "Tabletop Simulator.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "tcg card shop simulator",
+      "preferred_exe": "Card Shop Simulator.exe",
+      "targetExe": "Card Shop Simulator.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "the binding of isaac: rebirth",
+      "preferred_exe": "isaac-ng.exe",
+      "targetExe": "isaac-ng.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "the escapists 2",
+      "preferred_exe": "TheEscapists2.exe",
+      "targetExe": "TheEscapists2.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "the finals",
+      "preferred_exe": "Discovery.exe",
+      "targetExe": "Discovery.exe",
+      "ignore_exes": []
+    },
+    {
       "displayNamePattern": "the king of fighters '97 global match",
       "preferred_exe": "KOF97.exe",
       "targetExe": "KOF97.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "the king of fighters 2002 unlimited match",
+      "preferred_exe": "KingOfFighters2002UM.exe",
+      "targetExe": "KingOfFighters2002UM.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "the king of fighters'98 ultimate match",
+      "preferred_exe": "KingOfFighters98UM.exe",
+      "targetExe": "KingOfFighters98UM.exe",
       "ignore_exes": []
     },
     {
@@ -1030,109 +1476,103 @@
       "ignore_exes": []
     },
     {
+      "displayNamePattern": "tower unite",
+      "preferred_exe": "Tower.exe",
+      "targetExe": "Tower.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "transport fever",
+      "preferred_exe": "TransportFever.exe",
+      "targetExe": "TransportFever.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "transport tycoon",
+      "preferred_exe": "openttd.exe",
+      "targetExe": "openttd.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "tricky towers",
+      "preferred_exe": "TrickyTowers.exe",
+      "targetExe": "TrickyTowers.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "voice of the void",
+      "preferred_exe": "VotV.exe",
+      "targetExe": "VotV.exe",
+      "ignore_exes": [
+        "YeetPatch.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "war thunder",
+      "preferred_exe": "aces.exe",
+      "targetExe": "aces.exe",
+      "ignore_exes": [
+        "launcher.exe"
+      ]
+    },
+    {
+      "displayNamePattern": "warhammer 40,000 space marine 2",
+      "preferred_exe": "Warhammer 40000 Space Marine 2 - Retail.exe",
+      "targetExe": "Warhammer 40000 Space Marine 2 - Retail.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "warhammer rogue trader",
+      "preferred_exe": "WH40KRT.exe",
+      "targetExe": "WH40KRT.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "wartales",
+      "preferred_exe": "Wartales.exe",
+      "targetExe": "Wartales.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "whisper mountain outbreak",
+      "preferred_exe": "Whisper Mountain Outbreak.exe",
+      "targetExe": "Whisper Mountain Outbreak.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "windrose",
+      "preferred_exe": "Windrose.exe",
+      "targetExe": "Windrose.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "witchit",
+      "preferred_exe": "WitchIt.exe",
+      "targetExe": "WitchIt.exe",
+      "ignore_exes": []
+    },
+    {
+      "displayNamePattern": "wreckfest",
+      "preferred_exe": "Wreckfest_x64.exe",
+      "targetExe": "Wreckfest_x64.exe",
+      "ignore_exes": []
+    },
+    {
       "displayNamePattern": "x4: foundations",
       "preferred_exe": "X4.exe",
       "targetExe": "X4.exe",
       "ignore_exes": []
     },
     {
-      "displayNamePattern": "anomaly",
-      "preferred_exe": "AnomalyLauncher.exe",
-      "targetExe": "AnomalyLauncher.exe",
+      "displayNamePattern": "zero sievert",
+      "preferred_exe": "ZERO Sievert.exe",
+      "targetExe": "ZERO Sievert.exe",
       "ignore_exes": []
     },
     {
-      "displayNamePattern": "battlefield 1942",
-      "preferred_exe": "BF1942.exe",
-      "targetExe": "BF1942.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "battlefield 2 complete collection",
-      "preferred_exe": "BF2.exe",
-      "targetExe": "BF2.exe",
-      "ignore_exes": [
-        "PRBF2.exe"
-      ]
-    },
-    {
-      "displayNamePattern": "borderlands 2",
-      "preferred_exe": "borderlands2_goty_br.exe",
-      "targetExe": "borderlands2_goty_br.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "heroes of might and magic olden era",
-      "preferred_exe": "HeroesOldenEra.exe",
-      "targetExe": "HeroesOldenEra.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "liner rider",
-      "preferred_exe": "LineRider ZaDa V1.3b.exe",
-      "targetExe": "LineRider ZaDa V1.3b.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "satisfactory",
-      "preferred_exe": "FactoryGame.exe",
-      "targetExe": "FactoryGame.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "simcity 2013",
-      "preferred_exe": "SimCity_2013_Offline_nosTEAM.exe",
-      "targetExe": "SimCity_2013_Offline_nosTEAM.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "squad",
-      "preferred_exe": "Squad.exe",
-      "targetExe": "Squad.exe",
-      "ignore_exes": [
-        "start_protected_game.exe"
-      ]
-    },
-    {
-      "displayNamePattern": "the finals",
-      "preferred_exe": "Discovery.exe",
-      "targetExe": "Discovery.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "dead as disco",
-      "preferred_exe": "Pagoda.exe",
-      "targetExe": "Pagoda.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "call of duty: modern warfare ii",
-      "preferred_exe": "cod22-cod.exe",
-      "targetExe": "cod22-cod.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "ftl: faster than light",
-      "preferred_exe": "FTLGame.exe",
-      "targetExe": "FTLGame.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "path of exile 2",
-      "preferred_exe": "PathOfExileSteam.exe",
-      "targetExe": "PathOfExileSteam.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "the binding of isaac: rebirth",
-      "preferred_exe": "isaac-ng.exe",
-      "targetExe": "isaac-ng.exe",
-      "ignore_exes": []
-    },
-    {
-      "displayNamePattern": "space station 14 playtest",
-      "preferred_exe": "Space Station 14 Launcher.exe",
-      "targetExe": "Space Station 14 Launcher.exe",
+      "displayNamePattern": "zombieville usa 3-d",
+      "preferred_exe": "Exodus.exe",
+      "targetExe": "Exodus.exe",
       "ignore_exes": []
     }
   ]

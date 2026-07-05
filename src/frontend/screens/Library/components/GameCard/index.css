@@ -11,7 +11,8 @@
   border-radius: var(--space-3xs);
   animation: fade-in 0.1s ease-in;
   aspect-ratio: 173/275;
-  content-visibility: auto;
+  contain: content;
+  will-change: transform;
 }
 
 .gameCard.gamepad {

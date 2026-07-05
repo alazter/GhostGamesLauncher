@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import classNames from 'classnames'
 
 interface CachedImageProps {
@@ -11,6 +11,10 @@ interface CachedImageProps {
 
 type Props = React.ImgHTMLAttributes<HTMLImageElement> & CachedImageProps
 
+// Set of URLs that have already loaded once during this session.
+// This prevents repeating the 500ms fade-in transition when switching screens or re-rendering cards.
+const loadedUrls = new Set<string>()
+
 const shouldCache = (src?: string) => {
   if (!src) return false
   if (src.startsWith('data:')) return false
@@ -21,84 +25,54 @@ const shouldCache = (src?: string) => {
   return false
 }
 
+const getTargetSrc = (sourceUrl: string | undefined, fallbackUrl: string | undefined) => {
+  if (!sourceUrl) return fallbackUrl || ''
+  const cacheEnabled = shouldCache(sourceUrl)
+  return cacheEnabled ? `imagecache://localhost/${encodeURIComponent(sourceUrl)}` : sourceUrl
+}
+
 const CachedImage = (props: Props) => {
-  const [loaded, setLoaded] = useState(false)
-  const [displaySrc, setDisplaySrc] = useState<string | undefined>(undefined)
-  const activeLoadRef = useRef<string | null>(null)
+  const [error, setError] = useState(false)
 
+  const displaySrc = error ? (props.fallback || '') : getTargetSrc(props.src, props.fallback)
+  const isAlreadyLoaded = displaySrc ? loadedUrls.has(displaySrc) : false
+
+  const [loaded, setLoaded] = useState(isAlreadyLoaded)
+
+  // Reset state when source changes
   useEffect(() => {
-    let active = true
-    
-    const getTargetSrc = (sourceUrl: string | undefined, fallbackUrl: string | undefined) => {
-      if (!sourceUrl) return fallbackUrl || ''
-      const cacheEnabled = shouldCache(sourceUrl)
-      return cacheEnabled ? `imagecache://localhost/${encodeURIComponent(sourceUrl)}` : sourceUrl
-    }
-
-    const primaryTarget = getTargetSrc(props.src, props.fallback)
-    activeLoadRef.current = primaryTarget
-
-    // If we don't have a displaySrc yet (initial mount), set it immediately to avoid blank space
-    if (!displaySrc) {
-      setDisplaySrc(primaryTarget || props.fallback)
-    }
-
-    if (primaryTarget) {
-      setLoaded(false)
-      const img = new Image()
-      img.src = primaryTarget
-      img.onload = (e) => {
-        if (!active || activeLoadRef.current !== primaryTarget) return
-        setDisplaySrc(primaryTarget)
-        setLoaded(true)
-        props.onLoad?.(e as any)
-      }
-      img.onerror = (e) => {
-        if (!active || activeLoadRef.current !== primaryTarget) return
-        // Try fallback
-        if (props.fallback && primaryTarget !== props.fallback) {
-          const fallbackTarget = getTargetSrc(props.fallback, undefined)
-          const fallbackImg = new Image()
-          fallbackImg.src = fallbackTarget
-          fallbackImg.onload = (fe) => {
-            if (!active || activeLoadRef.current !== primaryTarget) return
-            setDisplaySrc(fallbackTarget)
-            setLoaded(true)
-            props.onLoad?.(fe as any)
-          }
-          fallbackImg.onerror = (fe) => {
-            if (!active || activeLoadRef.current !== primaryTarget) return
-            setDisplaySrc(props.fallback)
-            setLoaded(true)
-            props.onError?.(fe as any)
-          }
-        } else {
-          setDisplaySrc(props.fallback)
-          setLoaded(true)
-          props.onError?.(e as any)
-        }
-      }
-    } else {
-      setDisplaySrc(props.fallback)
+    if (displaySrc && loadedUrls.has(displaySrc)) {
       setLoaded(true)
+    } else {
+      setLoaded(false)
     }
+    setError(false)
+  }, [props.src, displaySrc])
 
-    return () => {
-      active = false
-    }
-  }, [props.src, props.fallback])
-
-  // Omit src, onLoad, onError, loading from rest props to avoid conflicts
-  const { src: _src, onLoad: _onLoad, onError: _onError, loading: _loading, ...rest } = props
+  const { src: _src, onLoad: _onLoad, onError: _onError, loading = 'lazy', ...rest } = props
 
   return (
     <img
-      loading="eager"
+      loading={loading}
       {...rest}
       src={displaySrc}
+      onLoad={(e) => {
+        if (displaySrc) {
+          loadedUrls.add(displaySrc)
+        }
+        setLoaded(true)
+        props.onLoad?.(e)
+      }}
+      onError={(e) => {
+        if (!error && props.fallback) {
+          setError(true)
+        } else {
+          props.onError?.(e)
+        }
+      }}
       className={classNames(props.className, {
-        loaded,
-        loading: !loaded
+        loaded: loaded || isAlreadyLoaded,
+        loading: !loaded && !isAlreadyLoaded && !error
       })}
     />
   )

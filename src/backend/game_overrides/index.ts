@@ -1,20 +1,21 @@
 import { GameInfo } from 'common/types'
 import { gameOverridesStore, GameMetadataOverride } from './electronStores'
 import { logInfo, logError, LogPrefix } from 'backend/logger'
-import { userDataPath } from 'backend/constants/paths'
+import { appFolder, userDataPath } from 'backend/constants/paths'
 import { existsSync, readdirSync, unlinkSync } from 'graceful-fs'
 import { join } from 'node:path'
 
 const logPrefix: LogPrefix = 'GameOverrides'
 
 const overridesImagesDir = join(userDataPath, 'game_overrides_images')
+const customCoversDir = join(appFolder, 'custom-covers')
 
-const removeImagesMatching = (predicate: (file: string) => boolean) => {
-  if (!existsSync(overridesImagesDir)) return
-  for (const file of readdirSync(overridesImagesDir)) {
+const removeImagesMatching = (dir: string, predicate: (file: string) => boolean) => {
+  if (!existsSync(dir)) return
+  for (const file of readdirSync(dir)) {
     if (!predicate(file)) continue
     try {
-      unlinkSync(join(overridesImagesDir, file))
+      unlinkSync(join(dir, file))
     } catch (error) {
       logError(
         `Failed to delete override image ${file}: ${String(error)}`,
@@ -24,8 +25,10 @@ const removeImagesMatching = (predicate: (file: string) => boolean) => {
   }
 }
 
-const removeImagesForApp = (appName: string) =>
-  removeImagesMatching((file) => file.startsWith(`${appName}-`))
+const removeImagesForApp = (appName: string) => {
+  removeImagesMatching(overridesImagesDir, (file) => file.startsWith(`${appName}-`))
+  removeImagesMatching(customCoversDir, (file) => file.startsWith(`${appName}_`))
+}
 
 /**
  * Get stored overrides for a specific game
@@ -71,10 +74,13 @@ export function setGameOverrides(
       GameMetadataOverride
     >
 
+    if (!override.art_cover && !override.art_square) {
+      removeImagesForApp(appName)
+    }
+
     // If override is empty, remove it and drop any stored image files.
     if (!override.title && !override.art_cover && !override.art_square) {
       delete currentOverrides[appName]
-      removeImagesForApp(appName)
     } else {
       currentOverrides[appName] = override
     }

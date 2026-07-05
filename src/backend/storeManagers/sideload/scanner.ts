@@ -17,6 +17,7 @@ interface RegistryEntry {
   DisplayName?: string
   InstallLocation?: string
   DisplayIcon?: string
+  PSChildName?: string
 }
 
 interface ScannerRule {
@@ -153,6 +154,36 @@ function isCandidateExeValid(exePath: string, folderTitle: string, matchedRule?:
   return true
 }
 
+function detectAntiCheat(dir: string, depth = 0): boolean {
+  if (depth > 8) return false
+  try {
+    const items = readdirSync(dir)
+    for (const item of items) {
+      const nameLower = item.toLowerCase()
+      if (nameLower.includes('easyanticheat') || nameLower.includes('battleye') || nameLower === 'eac') {
+        return true
+      }
+      const fullPath = join(dir, item)
+      let stat
+      try {
+        stat = statSync(fullPath)
+      } catch {
+        continue
+      }
+      if (stat.isDirectory()) {
+        if (detectAntiCheat(fullPath, depth + 1)) {
+          return true
+        }
+      } else if (stat.isFile()) {
+        if (nameLower.includes('beservice') || nameLower.includes('easyanticheat') || nameLower.includes('protected_game')) {
+          return true
+        }
+      }
+    }
+  } catch {}
+  return false
+}
+
 async function discoverSteamGames(): Promise<GameCandidate[]> {
   const candidates: GameCandidate[] = []
   try {
@@ -197,6 +228,9 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
 
           const nameMatch = acfContent.match(/"name"\s+"([^"]+)"/i)
           const dirMatch = acfContent.match(/"installdir"\s+"([^"]+)"/i)
+
+          const appidMatch = acfFile.match(/appmanifest_(\d+)\.acf/i)
+          const appid = appidMatch ? appidMatch[1] : ''
 
           if (nameMatch && dirMatch) {
             const title = nameMatch[1].trim()
@@ -245,12 +279,26 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
               }
 
               if (executablePath) {
-                candidates.push({
-                  title,
-                  executable: executablePath,
-                  art_cover: '',
-                  art_square: ''
-                })
+                const steamExe = join(steamPath, 'steam.exe')
+                const hasAc = detectAntiCheat(gameFolder)
+
+                if (hasAc && appid && existsSync(steamExe)) {
+                  candidates.push({
+                    title,
+                    executable: steamExe,
+                    art_cover: '',
+                    art_square: '',
+                    launchParameters: `-applaunch ${appid}`,
+                    originalExecutable: executablePath
+                  })
+                } else {
+                  candidates.push({
+                    title,
+                    executable: executablePath,
+                    art_cover: '',
+                    art_square: ''
+                  })
+                }
               }
             }
           }
@@ -265,6 +313,7 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
 
   return candidates
 }
+
 
 function runPowerShell(query: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -454,7 +503,9 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
       // Clean icon path (remove comma index and quotes)
       const cleanIcon = DisplayIcon.replace(/,\d+$/, '').replace(/"/g, '').trim()
       if (cleanIcon.toLowerCase().endsWith('.exe') && existsSync(cleanIcon)) {
-        executablePath = cleanIcon
+        if (isCandidateExeValid(cleanIcon, title, matchedRule, true)) {
+          executablePath = cleanIcon
+        }
       }
     }
 
@@ -644,7 +695,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
 
   logInfo(`Starting registry scan for discovering installed games... Loaded ${loadedRules.blacklisted_titles.length} blacklisted titles and ${loadedRules.blacklisted_exes.length} blacklisted exes.`)
 
-  const psQuery = `Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*, HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*, HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where-Object { $_.InstallLocation -ne $null -and $_.DisplayName -ne $null } | Select-Object DisplayName, InstallLocation, DisplayIcon | ConvertTo-Json`
+  const psQuery = `Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*, HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*, HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where-Object { $_.InstallLocation -ne $null -and $_.DisplayName -ne $null } | Select-Object DisplayName, InstallLocation, DisplayIcon, PSChildName | ConvertTo-Json`
 
   let jsonOutput = ''
   try {
@@ -673,7 +724,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
   const candidates: GameCandidate[] = []
 
   for (const entry of rawEntries) {
-    const { DisplayName, InstallLocation, DisplayIcon } = entry
+    const { DisplayName, InstallLocation, DisplayIcon, PSChildName } = entry
     if (!DisplayName || !InstallLocation) continue
 
     const title = DisplayName.trim()
@@ -685,6 +736,9 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
     const titleLower = title.toLowerCase()
     if (NON_GAME_KEYWORDS.some(k => titleLower.includes(k))) continue
     if (loadedRules.blacklisted_titles.some(k => titleLower.includes(k.toLowerCase()))) continue
+
+    // Skip Steam games from registry loop since they are handled by discoverSteamGames()
+    if (PSChildName && PSChildName.toLowerCase().startsWith('steam app ')) continue
 
     const matchedRule = loadedRules.known_games.find(rule => 
       titleLower.includes(rule.displayNamePattern.toLowerCase())
@@ -698,7 +752,9 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
       // Clean icon path (remove comma index and quotes)
       const cleanIcon = DisplayIcon.replace(/,\d+$/, '').replace(/"/g, '').trim()
       if (cleanIcon.toLowerCase().endsWith('.exe') && existsSync(cleanIcon)) {
-        executablePath = cleanIcon
+        if (isCandidateExeValid(cleanIcon, title, matchedRule, true)) {
+          executablePath = cleanIcon
+        }
       }
     }
 
@@ -853,7 +909,9 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
       title: sGame.title,
       executable: sGame.executable,
       art_cover,
-      art_square
+      art_square,
+      launchParameters: sGame.launchParameters,
+      originalExecutable: sGame.originalExecutable
     })
   }
 
@@ -1227,7 +1285,6 @@ export async function discoverAllGames(searchTitles?: string[], selectedDrives?:
 
   return filteredResults
 }
-
 export async function importSelectedGames({
   gamesToImport,
   gamesToBlacklist
@@ -1260,13 +1317,20 @@ export async function importSelectedGames({
       const gameConfig = GameConfig.get(app_name)
       gameConfig.resetToDefaults()
 
-      // Save targetExe override if matched
-      const titleLower = game.title.toLowerCase()
-      const matchedRule = loadedRules.known_games.find(rule => 
-        titleLower.includes(rule.displayNamePattern.toLowerCase())
-      )
-      if (matchedRule && matchedRule.targetExe) {
-        gameConfig.setSetting('targetExe', join(dirname(game.executable), matchedRule.targetExe))
+      // Save launchParameters & targetExe overrides if present
+      if (game.launchParameters) {
+        gameConfig.setSetting('launcherArgs', game.launchParameters)
+      }
+      if (game.originalExecutable) {
+        gameConfig.setSetting('targetExe', game.originalExecutable)
+      } else {
+        const titleLower = game.title.toLowerCase()
+        const matchedRule = loadedRules.known_games.find(rule => 
+          titleLower.includes(rule.displayNamePattern.toLowerCase())
+        )
+        if (matchedRule && matchedRule.targetExe) {
+          gameConfig.setSetting('targetExe', join(dirname(game.executable), matchedRule.targetExe))
+        }
       }
 
       importedAppNames.push(app_name)

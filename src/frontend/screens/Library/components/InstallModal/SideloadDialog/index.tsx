@@ -110,6 +110,7 @@ export default function SideloadDialog({
   const [hideDuplicates, setHideDuplicates] = useState(true)
   const [showBlacklistModal, setShowBlacklistModal] = useState(false)
   const [blacklistItems, setBlacklistItems] = useState<Array<{ title: string; executable: string }>>([])
+  const [blacklistSearchQuery, setBlacklistSearchQuery] = useState('')
   const [logicalDrives, setLogicalDrives] = useState<string[]>([])
   const [selectedDrives, setSelectedDrives] = useState<Record<string, boolean>>({})
 
@@ -1649,13 +1650,16 @@ export default function SideloadDialog({
             padding: '24px',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#fff' }}>
                 Jogos na Blacklist ({blacklistItems.length})
               </h3>
               <button
                 type="button"
-                onClick={() => setShowBlacklistModal(false)}
+                onClick={() => {
+                  setShowBlacklistModal(false)
+                  setBlacklistSearchQuery('')
+                }}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -1669,13 +1673,91 @@ export default function SideloadDialog({
               </button>
             </div>
 
+            {/* Campo de Busca na Blacklist */}
+            {blacklistItems.length > 0 && (
+              <div
+                style={{
+                  position: 'relative',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    fontSize: '13px',
+                    pointerEvents: 'none'
+                  }}
+                />
+                <input
+                  type="text"
+                  value={blacklistSearchQuery}
+                  onChange={(e) => setBlacklistSearchQuery(e.target.value)}
+                  placeholder="Pesquisar jogo ou executável na blacklist..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 36px 8px 34px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {blacklistSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setBlacklistSearchQuery('')}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      padding: '2px'
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                )}
+              </div>
+            )}
+
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '6px' }}>
-              {blacklistItems.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.4)', padding: '40px 0' }}>
-                  A blacklist está vazia.
-                </div>
-              ) : (
-                blacklistItems.map((item, idx) => (
+              {(() => {
+                const query = blacklistSearchQuery.toLowerCase().trim()
+                const filteredItems = blacklistItems.filter(
+                  (item) =>
+                    !query ||
+                    item.title.toLowerCase().includes(query) ||
+                    item.executable.toLowerCase().includes(query)
+                )
+
+                if (blacklistItems.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.4)', padding: '40px 0' }}>
+                      A blacklist está vazia.
+                    </div>
+                  )
+                }
+
+                if (filteredItems.length === 0) {
+                  return (
+                    <div style={{ textAlign: 'center', color: 'rgba(255, 255, 255, 0.4)', padding: '40px 0' }}>
+                      Nenhum item bloqueado corresponde à busca "{blacklistSearchQuery}".
+                    </div>
+                  )
+                }
+
+                return filteredItems.map((item, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -1719,7 +1801,7 @@ export default function SideloadDialog({
                     </button>
                   </div>
                 ))
-              )}
+              })()}
             </div>
 
             <div style={{

@@ -910,7 +910,18 @@ export default memo(function Library(): JSX.Element {
   useEffect(() => {
     const handleUnclassifiedFilter = (e: Event) => {
       const customEvent = e as CustomEvent<{ active: boolean }>
-      setShowUnclassifiedOnly(customEvent.detail?.active || false)
+      const isActive = customEvent.detail?.active || false
+      setShowUnclassifiedOnly(isActive)
+
+      if (isActive) {
+        localStorage.removeItem('heroic_active_store_filter')
+        setActiveStoreFilter(null)
+        window.dispatchEvent(
+          new CustomEvent('heroicFilterChanged', {
+            detail: { storeFilter: null }
+          })
+        )
+      }
     }
     window.addEventListener(
       'heroicToggleUnclassifiedFilter',
@@ -969,8 +980,18 @@ export default memo(function Library(): JSX.Element {
   )
 
   useEffect(() => {
-    const handleFilterChange = () =>
-      setActiveStoreFilter(localStorage.getItem('heroic_active_store_filter'))
+    const handleFilterChange = () => {
+      const storeFilter = localStorage.getItem('heroic_active_store_filter')
+      setActiveStoreFilter(storeFilter)
+      if (storeFilter) {
+        setShowUnclassifiedOnly(false)
+        window.dispatchEvent(
+          new CustomEvent('heroicToggleUnclassifiedFilter', {
+            detail: { active: false }
+          })
+        )
+      }
+    }
     const handleAssignmentsChange = () =>
       setAssignments(
         JSON.parse(
@@ -1054,6 +1075,23 @@ export default memo(function Library(): JSX.Element {
       if (scrollArea) scrollArea.removeEventListener('scroll', scrollCallback)
     }
   }, [showInlineSettings])
+
+  const prevShowInlineSettingsRef = useRef(showInlineSettings)
+
+  useEffect(() => {
+    if (prevShowInlineSettingsRef.current && !showInlineSettings && selectedInlineGame) {
+      setTimeout(() => {
+        const scrollArea = document.getElementById('games-scroll-area')
+        if (scrollArea) {
+          const card = scrollArea.querySelector(`[data-app-name="${selectedInlineGame.app_name}"]`) as HTMLElement
+          if (card) {
+            card.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          }
+        }
+      }, 50)
+    }
+    prevShowInlineSettingsRef.current = showInlineSettings
+  }, [showInlineSettings, selectedInlineGame])
 
   const backToTop = () => {
     const scrollArea = document.getElementById('games-scroll-area')
@@ -1502,10 +1540,7 @@ export default memo(function Library(): JSX.Element {
 
         return isSideloaded && !hasCategory && !hasAssignment
       })
-    }
-    // ====================================================================
-
-    if (activeStoreFilter) {
+    } else if (activeStoreFilter) {
       library = library.filter((game) => {
         const explicitlyAssignedStore = assignments[game.app_name]
 
@@ -1672,70 +1707,77 @@ export default memo(function Library(): JSX.Element {
           )}
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
-            {showInlineSettings && selectedInlineGame ? (
+            {showInlineSettings && selectedInlineGame && (
               <InlineGameSettings 
                 game={selectedInlineGame} 
                 onClose={() => setShowInlineSettings(false)} 
               />
-            ) : (
-              <>
-                <div style={{ flexShrink: 0 }}>
-                  {showRecentGames && (
-                    <RecentlyPlayed
-                      handleModal={handleModal}
-                      onlyInstalled={libraryTopSection.endsWith('installed')}
-                      showHidden={showHidden}
+            )}
+
+            <div
+              style={{
+                display: showInlineSettings && selectedInlineGame ? 'none' : 'flex',
+                flexDirection: 'column',
+                flex: 1,
+                minHeight: 0
+              }}
+            >
+              <div style={{ flexShrink: 0 }}>
+                {showRecentGames && (
+                  <RecentlyPlayed
+                    handleModal={handleModal}
+                    onlyInstalled={libraryTopSection.endsWith('installed')}
+                    showHidden={showHidden}
+                  />
+                )}
+
+                {showFavourites && !showFavouritesLibrary && (
+                  <>
+                    <div
+                      className="library-section-header"
+                      data-tour="library-header"
+                    >
+                      <h3 className="libraryHeader">
+                        {t('favourites', 'Favourites')}
+                      </h3>
+                    </div>
+                    <GamesList
+                      library={favourites}
+                      handleGameCardClick={handleModal}
+                      isFavourite
+                      isFirstLane
                     />
-                  )}
+                  </>
+                )}
+              </div>
 
-                  {showFavourites && !showFavouritesLibrary && (
-                    <>
-                      <div
-                        className="library-section-header"
-                        data-tour="library-header"
-                      >
-                        <h3 className="libraryHeader">
-                          {t('favourites', 'Favourites')}
-                        </h3>
-                      </div>
-                      <GamesList
-                        library={favourites}
-                        handleGameCardClick={handleModal}
-                        isFavourite
-                        isFirstLane
-                      />
-                    </>
-                  )}
-                </div>
-
-                <div
-                  id="games-scroll-area"
-                  data-sn-section="main-games-grid"
-                  style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    minHeight: 0,
-                    paddingBottom: '30px',
-                    paddingRight: '8px',
-                    marginTop: '-20px',
-                    paddingTop: '20px'
-                  }}
-                >
-                  <span id="top" />
+              <div
+                id="games-scroll-area"
+                data-sn-section="main-games-grid"
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  minHeight: 0,
+                  paddingBottom: '30px',
+                  paddingRight: '8px',
+                  marginTop: '-20px',
+                  paddingTop: '20px'
+                }}
+              >
+                <span id="top" />
                 {refreshing && !refreshingInTheBackground && <UpdateComponent />}
                 {libraryToShow.length === 0 && <EmptyLibraryMessage />}
-                  {libraryToShow.length > 0 &&
-                    (!refreshing || refreshingInTheBackground) && (
-                      <GamesList
-                        library={libraryToShow}
-                        layout={layout}
-                        handleGameCardClick={handleModal}
-                      />
-                    )}
-                </div>
-              </>
-            )}
+                {libraryToShow.length > 0 &&
+                  (!refreshing || refreshingInTheBackground) && (
+                    <GamesList
+                      library={libraryToShow}
+                      layout={layout}
+                      handleGameCardClick={handleModal}
+                    />
+                  )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

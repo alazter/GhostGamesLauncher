@@ -1,6 +1,6 @@
 import { initImagesCache } from './images_cache'
 import { fetchLastestReleases } from './utils/releases'
-import { DiskSpaceData, StatusPromise, WineInstallation } from 'common/types'
+import { DiskSpaceData, StatusPromise, WineInstallation, WindowProps } from 'common/types'
 import * as path from 'path'
 import {
   BrowserWindow,
@@ -485,12 +485,17 @@ if (!gotTheLock) {
     if (!headless) {
       const isWayland = Boolean(process.env.WAYLAND_DISPLAY)
       const showWindow = () => {
-        const props = configStore.get_nodefault('window-props')
-        mainWindow.show()
-        // Apply maximize only if we show the window
+        const props = configStore.get('window-props', {
+          height: 690,
+          width: 1200,
+          x: 0,
+          y: 0,
+          maximized: false
+        }) as WindowProps
         if (props?.maximized) {
           mainWindow.maximize()
         }
+        mainWindow.show()
       }
       if (isWayland) {
         // Electron + Wayland don't send ready-to-show

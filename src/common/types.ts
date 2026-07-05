@@ -237,7 +237,10 @@ export interface GameCandidate {
   executable: string
   art_cover: string
   art_square: string
+  launchParameters?: string
+  originalExecutable?: string
 }
+
 
 export interface GameSettings {
   autoInstallDxvk: boolean

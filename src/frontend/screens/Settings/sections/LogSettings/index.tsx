@@ -128,11 +128,35 @@ export default function LogSettings() {
     logText += `Total de Jogos Instalados: ${installedGames.length}\n\n`
     logText += `--- LISTA DE JOGOS INSTALADOS ---\n`
 
-    installedGames.forEach((g) => {
+    const gamesWithSettings = await Promise.all(
+      installedGames.map(async (g) => {
+        try {
+          const settings = await window.api.getGameSettings(g.app_name, g.runner)
+          return { game: g, settings }
+        } catch {
+          return { game: g, settings: null }
+        }
+      })
+    )
+
+    gamesWithSettings.forEach(({ game: g, settings }) => {
       const platform = g.runner.toUpperCase()
       const installPath = g.install?.install_path || (g.install?.executable ? g.install.executable.substring(0, Math.max(g.install.executable.lastIndexOf('/'), g.install.executable.lastIndexOf('\\'))) : '')
       const exe = g.install?.executable || ''
-      logText += `- Título: ${g.title}\n  Plataforma: ${platform}\n  Pasta de Instalação: ${installPath}\n  Executável: ${exe}\n\n`
+      const launcherArgs = settings?.launcherArgs || ''
+      const targetExe = settings?.targetExe || ''
+
+      logText += `- Título: ${g.title}\n`
+      logText += `  Plataforma: ${platform}\n`
+      logText += `  Pasta de Instalação: ${installPath}\n`
+      logText += `  Executável: ${exe}\n`
+      if (launcherArgs) {
+        logText += `  Argumentos de Inicialização: ${launcherArgs}\n`
+      }
+      if (targetExe) {
+        logText += `  Executável Alvo (targetExe): ${targetExe}\n`
+      }
+      logText += `\n`
     })
 
     logText += `============================================================\n`

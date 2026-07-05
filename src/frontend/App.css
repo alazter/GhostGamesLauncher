@@ -164,11 +164,11 @@ svg.disabled {
 }
 
 img.loading {
-  opacity: 0;
+  opacity: 0.85;
 }
 
 img.loaded {
-  transition: opacity 500ms;
+  transition: opacity 0.1s ease-in;
   opacity: 1;
 }
 

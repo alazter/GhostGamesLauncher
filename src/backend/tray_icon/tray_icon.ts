@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, nativeImage, Tray } from 'electron'
 import i18next from 'i18next'
 import { addListener } from 'backend/ipc'
-import { RecentGame } from 'common/types'
+import { RecentGame, WindowProps } from 'common/types'
 import { logInfo, LogPrefix } from 'backend/logger'
 import { handleProtocol } from '../protocol'
 import { getRecentGames, maxRecentGames } from '../recent_games/recent_games'
@@ -11,6 +11,8 @@ import { backendEvents } from '../backend_events'
 import { join } from 'node:path'
 import { isMac } from 'backend/constants/environment'
 import { fixAsarPath, publicDir } from 'backend/constants/paths'
+
+import { configStore } from '../constants/key_value_stores'
 
 const iconDark = fixAsarPath(join(publicDir, 'icon-dark.png'))
 const iconLight = fixAsarPath(join(publicDir, 'icon-light.png'))
@@ -40,7 +42,21 @@ export const initTrayIcon = async (mainWindow: BrowserWindow) => {
     if (exitToTray && mainWindow.isVisible()) {
       mainWindow.hide()
     } else {
+      const windowProps = configStore.get('window-props', {
+        height: 690,
+        width: 1200,
+        x: 0,
+        y: 0,
+        maximized: false
+      }) as WindowProps
+      if (windowProps?.maximized && !mainWindow.isMaximized()) {
+        mainWindow.maximize()
+      }
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore()
+      }
       mainWindow.show()
+      mainWindow.focus()
     }
   })
 

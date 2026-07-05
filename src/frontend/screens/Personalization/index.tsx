@@ -25,7 +25,7 @@ interface CustomStore {
 }
 
 export default function PersonalizationScreen() {
-  const { epic, gog, sideloadedLibrary, amazon, zoom } = useContext(ContextProvider)
+  const { epic, gog, sideloadedLibrary, amazon, zoom, zoomPercent, setZoomPercent } = useContext(ContextProvider)
 
   const [bgImage, setBgImage] = useState<string | null>(() => {
     return localStorage.getItem('heroic_custom_bg')
@@ -2761,6 +2761,77 @@ export default function PersonalizationScreen() {
                       style={styles.checkbox}
                     />
                   </label>
+                </div>
+              </div>
+
+              {/* Escalonamento da Interface (UI Scale) */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  marginTop: '20px'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={styles.toggleTitle}>
+                      Escalonamento da Interface (UI Scale)
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#50e3c2', background: 'rgba(80, 227, 194, 0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                      {zoomPercent || 100}%
+                    </span>
+                  </div>
+                  <span style={styles.toggleSub}>
+                    Ajuste a escala dos elementos para monitores menores e evite a rolagem lateral
+                  </span>
+                </div>
+
+                {/* Botões Rápidos de Escala */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[75, 85, 90, 100, 110, 125].map((scaleVal) => {
+                    const isSelected = (zoomPercent || 100) === scaleVal
+                    return (
+                      <button
+                        key={scaleVal}
+                        onClick={() => setZoomPercent(scaleVal)}
+                        style={{
+                          flex: 1,
+                          minWidth: '42px',
+                          height: '30px',
+                          background: isSelected ? '#50e3c2' : 'rgba(255, 255, 255, 0.05)',
+                          color: isSelected ? '#12161a' : '#fff',
+                          border: isSelected ? '1px solid #50e3c2' : '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {scaleVal}%
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Range Slider de Escala */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>70%</span>
+                  <input
+                    type="range"
+                    min={70}
+                    max={130}
+                    step={5}
+                    value={zoomPercent || 100}
+                    onChange={(e) => setZoomPercent(parseInt(e.target.value))}
+                    style={{ flex: 1, accentColor: '#50e3c2', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>130%</span>
                 </div>
               </div>
 
