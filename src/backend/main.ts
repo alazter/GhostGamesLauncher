@@ -396,6 +396,22 @@ if (!gotTheLock) {
     // try to fix notification app name on windows
     if (isWindows) {
       app.setAppUserModelId('Ghost Games Launcher')
+      try {
+        const currentExePath = app.getPath('exe')
+        const desktopFolder = app.getPath('desktop')
+        const shortcutNames = ['Ghost.lnk', 'Ghost Games Launcher.lnk']
+        for (const name of shortcutNames) {
+          const shortcutPath = path.join(desktopFolder, name)
+          shell.writeShortcutLink(shortcutPath, 'create', {
+            target: currentExePath,
+            description: 'Ghost Games Launcher',
+            icon: currentExePath,
+            iconIndex: 0
+          })
+        }
+      } catch (err) {
+        logError(`Failed to create desktop shortcut on startup: ${err}`, LogPrefix.Backend)
+      }
     }
 
     runOnceWhenOnline(async () => {
