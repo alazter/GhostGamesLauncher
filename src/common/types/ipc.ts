@@ -404,6 +404,8 @@ interface AsyncIPCFunctions {
   clearBlacklist: () => Promise<void>
   getBlacklist: () => Promise<Array<{ title: string; executable: string }>>
   removeGameFromBlacklist: (executable: string) => Promise<void>
+  exportGhostBackup: () => Promise<{ success: boolean; filePath?: string; error?: string }>
+  importGhostBackup: () => Promise<{ success: boolean; error?: string }>
 }
 
 interface FrontendMessages {

@@ -25,7 +25,8 @@ import {
   AnalyticsOptIn,
   SteamGridDbApiKey,
   SteamGridDbNsfw,
-  SteamGridDbDownload
+  SteamGridDbDownload,
+  BackupRestoreSettings
 } from '../../components'
 
 export default function GeneralSettings() {
@@ -86,6 +87,8 @@ export default function GeneralSettings() {
       <MaxRecentGames />
 
       <MaxWorkers />
+
+      <BackupRestoreSettings />
     </div>
   )
 }

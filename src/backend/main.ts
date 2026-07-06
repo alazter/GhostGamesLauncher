@@ -24,7 +24,7 @@ import 'backend/updater'
 import 'backend/discounts'
 import { autoUpdater } from 'electron-updater'
 import { cpus } from 'os'
-import { existsSync, watch, readdirSync, readFileSync, writeFileSync } from 'graceful-fs'
+import { existsSync, watch, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'graceful-fs'
 import 'source-map-support/register'
 
 import Backend from 'i18next-fs-backend'
@@ -140,6 +140,8 @@ import {
   getGameSdl
 } from 'backend/storeManagers/legendary/library'
 import { backendEvents } from './backend_events'
+import { libraryStore } from './storeManagers/sideload/electronStores'
+import { gameOverridesStore } from './game_overrides/electronStores'
 import { configStore } from './constants/key_value_stores'
 import {
   customThemesWikiLink,
@@ -782,8 +784,16 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
     return { success: false, error: 'Nenhum arquivo executável (.exe) encontrado para download.' }
   }
 
-  const downloadsFolder = app.getPath('downloads')
-  const destPath = path.join(downloadsFolder, selectedAsset.name)
+  let installDir = app.getPath('downloads')
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local')
+    installDir = path.join(localAppData, 'Programs', 'Ghost Games Launcher')
+    if (!existsSync(installDir)) {
+      mkdirSync(installDir, { recursive: true })
+    }
+  }
+
+  const destPath = path.join(installDir, selectedAsset.name)
 
   try {
     await downloadFile({
@@ -799,6 +809,25 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
       }
     })
 
+    // Create or Update Desktop Shortcuts on Windows
+    if (process.platform === 'win32') {
+      try {
+        const desktopFolder = app.getPath('desktop')
+        const shortcutNames = ['Ghost.lnk', 'Ghost Games Launcher.lnk']
+        for (const name of shortcutNames) {
+          const shortcutPath = path.join(desktopFolder, name)
+          shell.writeShortcutLink(shortcutPath, 'create', {
+            target: destPath,
+            description: 'Ghost Games Launcher',
+            icon: destPath,
+            iconIndex: 0
+          })
+        }
+      } catch (err) {
+        logError(['Failed to create desktop shortcut for update:', err], LogPrefix.Backend)
+      }
+    }
+
     app.releaseSingleInstanceLock()
     shell.openPath(destPath).then((err) => {
       if (err) {
@@ -812,6 +841,85 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
     return { success: true, destPath }
   } catch (error) {
     logError(['Failed to download launcher update:', error], LogPrefix.Backend)
+    return { success: false, error: String(error) }
+  }
+})
+
+addHandler('exportGhostBackup', async () => {
+  const mainWindow = getMainWindow()
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow!, {
+    title: 'Exportar Backup do Ghost Games Launcher',
+    defaultPath: `Ghost_Backup_${new Date().toISOString().slice(0, 10)}.ghostbackup`,
+    filters: [{ name: 'Ghost Backup (*.ghostbackup, *.json)', extensions: ['ghostbackup', 'json'] }]
+  })
+
+  if (canceled || !filePath) {
+    return { success: false, error: 'Exportação cancelada.' }
+  }
+
+  try {
+    const backupData = {
+      version: '0.0.8-alpha',
+      exportedAt: new Date().toISOString(),
+      settings: configStore.get_nodefault('settings') || {},
+      windowProps: configStore.get_nodefault('window-props') || {},
+      zoomPercent: configStore.get('zoomPercent', 100),
+      sideloadedGames: libraryStore.get('games', []),
+      gameOverrides: gameOverridesStore.get('overrides', {}),
+      blacklist: await getBlacklist()
+    }
+
+    writeFileSync(filePath, JSON.stringify(backupData, null, 2), 'utf-8')
+    return { success: true, filePath }
+  } catch (error) {
+    logError(['Failed to export backup:', error], LogPrefix.Backend)
+    return { success: false, error: String(error) }
+  }
+})
+
+addHandler('importGhostBackup', async () => {
+  const mainWindow = getMainWindow()
+  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow!, {
+    title: 'Importar Backup do Ghost Games Launcher',
+    filters: [{ name: 'Ghost Backup (*.ghostbackup, *.json)', extensions: ['ghostbackup', 'json'] }],
+    properties: ['openFile']
+  })
+
+  if (canceled || filePaths.length === 0) {
+    return { success: false, error: 'Importação cancelada.' }
+  }
+
+  try {
+    const filePath = filePaths[0]
+    const fileContent = readFileSync(filePath, 'utf-8')
+    const backupData = JSON.parse(fileContent)
+
+    if (backupData.settings) {
+      configStore.set('settings', backupData.settings)
+    }
+    if (backupData.windowProps) {
+      configStore.set('window-props', backupData.windowProps)
+    }
+    if (backupData.zoomPercent !== undefined) {
+      configStore.set('zoomPercent', backupData.zoomPercent)
+    }
+    if (Array.isArray(backupData.sideloadedGames)) {
+      libraryStore.set('games', backupData.sideloadedGames)
+    }
+    if (backupData.gameOverrides) {
+      gameOverridesStore.set('overrides', backupData.gameOverrides)
+    }
+    if (Array.isArray(backupData.blacklist)) {
+      await clearBlacklist()
+      for (const item of backupData.blacklist) {
+        await addGameToBlacklist(item)
+      }
+    }
+
+    sendFrontendMessage('refreshLibrary')
+    return { success: true }
+  } catch (error) {
+    logError(['Failed to import backup:', error], LogPrefix.Backend)
     return { success: false, error: String(error) }
   }
 })

@@ -34,4 +34,6 @@ export const clearBlacklist = makeHandlerInvoker('clearBlacklist')
 export const getBlacklist = makeHandlerInvoker('getBlacklist')
 export const removeGameFromBlacklist = makeHandlerInvoker('removeGameFromBlacklist')
 export const getLogicalDrives = makeHandlerInvoker('getLogicalDrives')
+export const exportGhostBackup = makeHandlerInvoker('exportGhostBackup')
+export const importGhostBackup = makeHandlerInvoker('importGhostBackup')
 

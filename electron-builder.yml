@@ -26,10 +26,10 @@ protocols:
       - heroic
 
 win:
-  artifactName: ${productName}-${version}-Setup-${arch}.${ext}
+  artifactName: ${productName}-${version}-Portable-${arch}.${ext}
   icon: build/win_icon.ico
   target:
-    - nsis
+    - portable
   files:
     - build/bin/${arch}/win32/*
     - build/bin/x64/win32/nile.exe
