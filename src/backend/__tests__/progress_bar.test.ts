@@ -76,28 +76,40 @@ describe('progress_bar', () => {
     })
   })
 
-  describe('on gameStatusUpdate with status="done"', () => {
-    it('removes the progress bar', () => {
-      sendGameStatusUpdate({
-        appName: 'Test',
-        status: 'done'
+  describe('on gameStatusUpdate with reset statuses', () => {
+    const resetStatuses = [
+      'done',
+      'canceled',
+      'error',
+      'playing',
+      'launching',
+      'syncing-saves',
+      'notAvailable'
+    ] as const
+
+    resetStatuses.forEach((status) => {
+      it(`removes the progress bar for status="${status}"`, () => {
+        sendGameStatusUpdate({
+          appName: 'Test',
+          status
+        })
+
+        expect(window.setProgressBar).toBeCalledWith(-1)
       })
 
-      expect(window.setProgressBar).toBeCalledWith(-1)
-    })
+      it(`stops listening for progress updates for status="${status}"`, () => {
+        jest.spyOn(backendEvents, 'off')
 
-    it('stops listening for progress updates', () => {
-      jest.spyOn(backendEvents, 'off')
+        sendGameStatusUpdate({
+          appName: 'Test',
+          status
+        })
 
-      sendGameStatusUpdate({
-        appName: 'Test',
-        status: 'done'
+        expect(backendEvents.off).toBeCalledWith(
+          'progressUpdate-Test',
+          expect.any(Function)
+        )
       })
-
-      expect(backendEvents.off).toBeCalledWith(
-        'progressUpdate-Test',
-        expect.any(Function)
-      )
     })
   })
 })

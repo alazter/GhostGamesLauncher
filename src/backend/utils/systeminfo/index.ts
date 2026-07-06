@@ -147,7 +147,7 @@ We are${info.isAppImage ? '' : ' not'} running from an AppImage
     : ''
 }
 Software Versions:
-  Heroic: ${info.softwareInUse.heroicVersion}
+  Ghost: ${info.softwareInUse.heroicVersion}
   Legendary: ${info.softwareInUse.legendaryVersion}
   gogdl: ${info.softwareInUse.gogdlVersion}
   comet: ${info.softwareInUse.cometVersion}

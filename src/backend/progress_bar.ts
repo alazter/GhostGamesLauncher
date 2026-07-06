@@ -8,8 +8,18 @@ const handleProgressUpdate = ({ progress }: GameStatus) => {
   }
 }
 
+const RESET_STATUSES = [
+  'done',
+  'canceled',
+  'error',
+  'playing',
+  'launching',
+  'syncing-saves',
+  'notAvailable'
+]
+
 backendEvents.on('gameStatusUpdate', ({ appName, status }) => {
-  if (status === 'done') {
+  if (RESET_STATUSES.includes(status)) {
     getMainWindow()?.setProgressBar(-1) // reset progress bar
     // stop listening for progress updates
     backendEvents.off(`progressUpdate-${appName}`, handleProgressUpdate)

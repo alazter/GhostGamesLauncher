@@ -1,10 +1,6 @@
 {
   "name": "ghost",
-  "version": "0.1.0-beta",
-  "versionNames": {
-    "stable": "Hajrudin",
-    "beta": "Caesar Clown"
-  },
+  "version": "0.1.1-beta",
   "private": false,
   "main": "build/main/main.js",
   "homepage": "./",

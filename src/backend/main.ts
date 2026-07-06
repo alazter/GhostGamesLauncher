@@ -395,7 +395,7 @@ if (!gotTheLock) {
 
     // try to fix notification app name on windows
     if (isWindows) {
-      app.setAppUserModelId('Ghost Games Launcher')
+      app.setAppUserModelId('com.ghostgameslauncher.ghost')
       try {
         const currentExePath = app.getPath('exe')
         const desktopFolder = app.getPath('desktop')
@@ -406,7 +406,8 @@ if (!gotTheLock) {
             target: currentExePath,
             description: 'Ghost Games Launcher',
             icon: currentExePath,
-            iconIndex: 0
+            iconIndex: 0,
+            appUserModelId: 'com.ghostgameslauncher.ghost'
           })
         }
       } catch (err) {
