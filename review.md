@@ -1,4 +1,4 @@
-# Review das Alterações - 05/07/2026
+# Review das Alterações - 06/07/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -43,6 +43,23 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Expansão massiva das regras de scanner em `scanner_rules.json` e otimização do scanner de sideload no backend.
   - Refatorações no cache de imagens (`images_cache.ts` e `CachedImage`) e ajustes de layout em telas da biblioteca, cards de jogos e painel de preferências.
 
+### 7. Otimizações de Performance e Renderização
+* **Problema:** Gargalos de performance ao carregar a biblioteca ou renderizar os cards dos jogos.
+* **Solução:**
+  - Otimização no carregamento e verificação de imagens no componente `CachedImage`.
+  - Melhorias na lógica de atualização e renderização de layouts na visualização da biblioteca (`Library` e `GameCard`/`GamesList`), diminuindo a sobrecarga de renderizações desnecessárias.
+
+### 8. Atalhos de Desktop na Inicialização e Painel de Backup
+* **Problema:** Necessidade de criar atalhos automaticamente e interface para backup/restauração de dados.
+* **Solução:**
+  - Implementação de criação automática de atalhos na inicialização no backend/main.ts.
+  - Integração do novo painel de configurações para Backup e Restauração (`BackupRestoreSettings`).
+
+### 9. Lançamento da Versão Beta (`v0.1.0-beta`) e Alpha (`v0.0.9-alpha`)
+* **Problema:** Gerar novas versões estáveis (Beta) empacotando as otimizações.
+* **Solução:**
+  - Incremento de versões correspondente e publicação das releases automatizadas no GitHub.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -66,6 +83,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 
 ### Preload & API
 - [MODIFY] [misc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/misc.ts)
+- [MODIFY] [library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/library.ts)
 
 ### Frontend
 - [MODIFY] [App.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.css)
@@ -80,10 +98,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [Library/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/index.tsx)
 - [MODIFY] [GameCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.tsx)
 - [MODIFY] [GameCard/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.css)
+- [MODIFY] [GamesList/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GamesList/index.tsx)
 - [MODIFY] [HeroPanel/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/HeroPanel/index.tsx)
 - [MODIFY] [InlineGameSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/index.tsx)
 - [MODIFY] [SideloadDialog/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InstallModal/SideloadDialog/index.tsx)
 - [MODIFY] [LogSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/LogSettings/index.tsx)
+- [MODIFY] [GeneralSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/GeneralSettings/index.tsx)
+- [MODIFY] [constants.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/constants.ts)
+- [MODIFY] [hasStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/hasStatus.ts)
+- [NEW] [BackupRestoreSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/BackupRestoreSettings.tsx)
 - [NEW] [update-ghost.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/assets/update-ghost.png)
 - [NEW] [UpdatePopupModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/UpdatePopupModal/index.tsx)
 - [NEW] [UpdatePopupModal/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/UpdatePopupModal/index.scss)
