@@ -500,10 +500,7 @@ const GamesList = ({
                 >
                   <GameCard
                     hasUpdate={hasUpdate}
-                    buttonClick={() => {
-                      if (gameInfo.runner !== 'sideload')
-                        handleGameCardClick(app_name, runner, gameInfo)
-                    }}
+                    handleGameCardClick={handleGameCardClick}
                     forceCard={layout === 'grid'}
                     isRecent={isRecent}
                     gameInfo={gameInfo}

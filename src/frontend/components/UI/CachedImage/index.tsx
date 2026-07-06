@@ -41,13 +41,14 @@ const CachedImage = (props: Props) => {
 
   // Reset state when source changes
   useEffect(() => {
-    if (displaySrc && loadedUrls.has(displaySrc)) {
-      setLoaded(true)
-    } else {
-      setLoaded(false)
+    const nextLoaded = displaySrc ? loadedUrls.has(displaySrc) : false
+    if (loaded !== nextLoaded) {
+      setLoaded(nextLoaded)
     }
-    setError(false)
-  }, [props.src, displaySrc])
+    if (error) {
+      setError(false)
+    }
+  }, [props.src, displaySrc, loaded, error])
 
   const { src: _src, onLoad: _onLoad, onError: _onError, loading = 'lazy', ...rest } = props
 

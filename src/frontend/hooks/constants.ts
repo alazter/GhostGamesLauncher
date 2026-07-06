@@ -49,14 +49,26 @@ export function getStatusLabel({
 }
 
 const storage = window.localStorage
-const nonAvailbleGames = storage.getItem('nonAvailableGames') || '[]'
-const nonAvailbleGamesArray = JSON.parse(nonAvailbleGames)
+const availabilityCache = new Map<string, boolean>()
 
 export async function handleNonAvailableGames(appName: string, runner: Runner) {
+  const gameId = `${appName}_${runner}`
+  if (availabilityCache.has(gameId)) {
+    return availabilityCache.get(gameId)!
+  }
+
+  // Defer checks to avoid freezing during render spikes
+  await new Promise((resolve) => setTimeout(resolve, Math.random() * 800 + 200))
+
   const gameAvailable = await window.api.isGameAvailable({
     appName,
     runner
   })
+
+  availabilityCache.set(gameId, gameAvailable)
+
+  const nonAvailbleGames = storage.getItem('nonAvailableGames') || '[]'
+  const nonAvailbleGamesArray = JSON.parse(nonAvailbleGames) as string[]
 
   if (!gameAvailable) {
     if (!nonAvailbleGamesArray.includes(appName)) {

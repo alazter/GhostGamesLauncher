@@ -1,6 +1,6 @@
 import './index.css'
 
-import { useContext, CSSProperties, useMemo, useState, useEffect } from 'react'
+import { useContext, CSSProperties, useMemo, useState, useEffect, memo } from 'react'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRepeat, faBan } from '@fortawesome/free-solid-svg-icons'
@@ -57,7 +57,11 @@ import EditGameDialog from 'frontend/components/UI/EditGameDialog'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 
 interface Card {
-  buttonClick: () => void
+  handleGameCardClick: (
+    appName: string,
+    runner: Runner,
+    gameInfo: GameInfo
+  ) => void
   hasUpdate: boolean
   isRecent: boolean
   justPlayed: boolean
@@ -116,7 +120,7 @@ const NonFocusableButton = ({
 
 const GameCard = ({
   hasUpdate,
-  buttonClick,
+  handleGameCardClick,
   forceCard,
   isRecent = false,
   justPlayed = false,
@@ -247,6 +251,12 @@ const GameCard = ({
 
   const { status, folder, label } = hasStatus(gameInfo, size)
   const isBrowserGame = gameInfo.install.platform === 'Browser'
+
+  const onInstall = () => {
+    if (runner !== 'sideload' && handleGameCardClick) {
+      handleGameCardClick(appName, runner, gameInfoFromProps)
+    }
+  }
 
   const assignedCategory = useMemo(() => {
     if (!customCategories || !customCategories.list) return null
@@ -442,7 +452,7 @@ const GameCard = ({
           activeController={activeController}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation()
-            buttonClick()
+            onInstall()
           }}
           title={`${t('button.install')} (${title})`}
         >
@@ -515,7 +525,7 @@ const GameCard = ({
     },
     {
       label: t('button.install'),
-      onclick: () => buttonClick(),
+      onclick: () => onInstall(),
       show: !isInstalled && !isQueued && isInstallable,
       icon: <Download />
     },
@@ -868,4 +878,4 @@ const GameCard = ({
   }
 }
 
-export default GameCard
+export default memo(GameCard)

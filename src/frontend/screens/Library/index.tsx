@@ -1186,19 +1186,20 @@ export default memo(function Library(): JSX.Element {
 
 
 
-  function handleModal(
+  const handleModal = useCallback((
     appName: string,
     runner: Runner,
     gameInfo?: GameInfo
-  ) {
+  ) => {
     if (gameInfo) {
-      if (selectedInlineGame?.app_name === appName && selectedInlineGame?.runner === runner) {
-        setSelectedInlineGame(null)
-      } else {
-        setSelectedInlineGame(gameInfo)
-      }
+      setSelectedInlineGame((current) => {
+        if (current?.app_name === appName && current?.runner === runner) {
+          return null
+        }
+        return gameInfo
+      })
     }
-  }
+  }, [])
 
   const installing: string[] = useMemo(
     () =>

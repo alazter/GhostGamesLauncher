@@ -109,10 +109,14 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
   }, [
     libraryStatus,
     appName,
-    epic.library,
-    gog.library,
+    runner,
+    gameSize,
+    t,
+    progress.percent,
     is_installed,
-    progress.percent
+    thirdPartyManagedApp,
+    isEAManaged,
+    isUbisoftManaged
   ])
 
   return gameStatus
