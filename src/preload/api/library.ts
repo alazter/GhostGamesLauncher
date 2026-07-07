@@ -36,4 +36,9 @@ export const removeGameFromBlacklist = makeHandlerInvoker('removeGameFromBlackli
 export const getLogicalDrives = makeHandlerInvoker('getLogicalDrives')
 export const exportGhostBackup = makeHandlerInvoker('exportGhostBackup')
 export const importGhostBackup = makeHandlerInvoker('importGhostBackup')
+export const connectCloudProvider = makeHandlerInvoker('connectCloudProvider')
+export const disconnectCloudProvider = makeHandlerInvoker('disconnectCloudProvider')
+export const getCloudProviderStatus = makeHandlerInvoker('getCloudProviderStatus')
+export const uploadBackupToCloud = makeHandlerInvoker('uploadBackupToCloud')
+export const downloadBackupFromCloud = makeHandlerInvoker('downloadBackupFromCloud')
 

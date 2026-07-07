@@ -49,6 +49,8 @@ import { notify, showDialogBoxModalAuto } from './dialog/dialog'
 import { getMainWindow } from './main_window'
 import { sendFrontendMessage } from './ipc'
 import { GlobalConfig } from './config'
+import { getBackupPayload } from './backup/backupHelper'
+import { uploadBackupToCloud } from './backup/cloudBackup'
 import { GameConfig } from './game_config'
 import { validWine, runWineCommand } from './launcher'
 import { gameManagerMap } from 'backend/storeManagers'
@@ -243,6 +245,19 @@ async function handleExit() {
 
   mainWindow?.hide()
   await gogPresence.deletePresence()
+
+  try {
+    const settings = GlobalConfig.get().getSettings() as any
+    const provider = settings.cloudBackupProvider || 'none'
+    const autoBackup = settings.cloudBackupOnExit === true
+    if (autoBackup && provider !== 'none') {
+      logInfo(`Running automatic cloud backup on exit to ${provider}...`, LogPrefix.Backend)
+      const backupData = await getBackupPayload()
+      await uploadBackupToCloud(backupData)
+    }
+  } catch (err) {
+    logError(`Auto cloud backup on exit failed: ${err}`, LogPrefix.Backend)
+  }
 
   app.exit()
 }

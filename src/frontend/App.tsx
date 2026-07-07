@@ -22,6 +22,8 @@ import { InstallGameWrapper } from './screens/Library/components/InstallModal'
 import { SettingsModalWrapper } from './screens/Settings/components/SettingsModal'
 
 
+import { syncLocalStorageToBackend } from './utils/localStorageBackup'
+
 interface HeroicAppContext {
   isRTL: boolean
   isFullscreen: boolean
@@ -70,6 +72,26 @@ function Root() {
     }
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     return () => window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
+  }, [])
+
+  useEffect(() => {
+    // Initial sync
+    syncLocalStorageToBackend()
+
+    const handleSync = () => {
+      syncLocalStorageToBackend()
+    }
+
+    // Sync on unload or settings/background changes
+    window.addEventListener('beforeunload', handleSync)
+    window.addEventListener('heroicSettingsChanged', handleSync)
+    window.addEventListener('customBgChanged', handleSync)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleSync)
+      window.removeEventListener('heroicSettingsChanged', handleSync)
+      window.removeEventListener('customBgChanged', handleSync)
+    }
   }, [])
 
   useEffect(() => {

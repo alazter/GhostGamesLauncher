@@ -146,6 +146,9 @@ export interface AppSettings extends GameSettings {
   steamGridDbApiKey: string
   steamGridDbNsfw: boolean
   steamGridDbDownloadCovers: boolean
+  localStorageBackup?: Record<string, string>
+  cloudBackupProvider?: 'none' | 'google' | 'onedrive' | 'dropbox'
+  cloudBackupOnExit?: boolean
 }
 
 export type LibraryTopSectionOptions =

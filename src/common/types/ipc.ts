@@ -404,8 +404,13 @@ interface AsyncIPCFunctions {
   clearBlacklist: () => Promise<void>
   getBlacklist: () => Promise<Array<{ title: string; executable: string }>>
   removeGameFromBlacklist: (executable: string) => Promise<void>
-  exportGhostBackup: () => Promise<{ success: boolean; filePath?: string; error?: string }>
-  importGhostBackup: () => Promise<{ success: boolean; error?: string }>
+  exportGhostBackup: (frontendData?: { localStorageData?: Record<string, string> }) => Promise<{ success: boolean; filePath?: string; error?: string }>
+  importGhostBackup: (fileContent?: string) => Promise<{ success: boolean; error?: string; localStorageData?: Record<string, string> }>
+  connectCloudProvider: (provider: 'google' | 'onedrive' | 'dropbox') => Promise<{ success: boolean; error?: string; accountName?: string }>
+  disconnectCloudProvider: () => Promise<void>
+  getCloudProviderStatus: () => Promise<{ connected: boolean; provider?: string; accountName?: string }>
+  uploadBackupToCloud: (frontendData?: { localStorageData?: Record<string, string> }) => Promise<{ success: boolean; error?: string }>
+  downloadBackupFromCloud: () => Promise<{ success: boolean; data?: any; error?: string }>
 }
 
 interface FrontendMessages {

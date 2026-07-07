@@ -251,57 +251,15 @@ export default function SidebarLinks() {
         return <div key={id} className="divider" {...dragProps} />
       case 'settings':
         return (
-          <div key="settings" className="SidebarItemWithSubmenu" {...dragProps}>
-            <SidebarItem
-              isActiveFallback={location.pathname.includes('settings')}
-              icon={faSlidersH}
-              label={t('Settings', 'Settings')}
-              url="/settings/general"
-              dataTour="sidebar-settings"
-            />
-            {isSettings && (
-              <div className="SidebarSubmenu settings">
-                <SidebarItem
-                  url="/settings/general"
-                  isActiveFallback={type === 'general'}
-                  className="SidebarLinks__subItem"
-                  label={t('settings.navbar.general')}
-                />
-                {!isWin && (
-                  <SidebarItem
-                    url="/settings/games_settings"
-                    isActiveFallback={type === 'games_settings'}
-                    className="SidebarLinks__subItem"
-                    label={t(
-                      'settings.navbar.games_settings_defaults',
-                      'Game Defaults'
-                    )}
-                  />
-                )}
-                <SidebarItem
-                  url="/settings/advanced"
-                  isActiveFallback={type === 'advanced'}
-                  className="SidebarLinks__subItem"
-                  label={t('settings.navbar.advanced', 'Advanced')}
-                />
-                <SidebarItem
-                  url="/settings/systeminfo"
-                  isActiveFallback={type === 'systeminfo'}
-                  className="SidebarLinks__subItem"
-                  label={t(
-                    'settings.navbar.systemInformation',
-                    'System Information'
-                  )}
-                />
-                <SidebarItem
-                  url="/settings/log"
-                  isActiveFallback={type === 'log'}
-                  className="SidebarLinks__subItem"
-                  label={t('settings.navbar.log', 'Log')}
-                />
-              </div>
-            )}
-          </div>
+          <SidebarItem
+            key="settings"
+            isActiveFallback={location.pathname.includes('settings')}
+            icon={faSlidersH}
+            label={t('Settings', 'Settings')}
+            url="/settings/general"
+            dataTour="sidebar-settings"
+            {...dragProps}
+          />
         )
       case 'console':
         return (

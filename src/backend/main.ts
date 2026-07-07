@@ -142,7 +142,7 @@ import {
 import { backendEvents } from './backend_events'
 import { libraryStore } from './storeManagers/sideload/electronStores'
 import { gameOverridesStore } from './game_overrides/electronStores'
-import { configStore } from './constants/key_value_stores'
+import { configStore, tsStore } from './constants/key_value_stores'
 import {
   customThemesWikiLink,
   discordLink,
@@ -180,6 +180,16 @@ import {
 } from './constants/paths'
 import { supportedLanguages } from 'common/languages'
 import MigrationSystem from './migration'
+
+import {
+  connectCloudProvider,
+  clearCloudTokens,
+  getCloudProviderStatus,
+  uploadBackupToCloud,
+  downloadBackupFromCloud
+} from './backup/cloudBackup'
+
+import { getBackupPayload } from './backup/backupHelper'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -863,7 +873,7 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
   }
 })
 
-addHandler('exportGhostBackup', async () => {
+addHandler('exportGhostBackup', async (event, frontendData?: { localStorageData?: Record<string, string> }) => {
   const mainWindow = getMainWindow()
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow!, {
     title: 'Exportar Backup do Ghost Games Launcher',
@@ -876,16 +886,10 @@ addHandler('exportGhostBackup', async () => {
   }
 
   try {
-    const backupData = {
-      version: '0.0.8-alpha',
-      exportedAt: new Date().toISOString(),
-      settings: configStore.get_nodefault('settings') || {},
-      windowProps: configStore.get_nodefault('window-props') || {},
-      zoomPercent: configStore.get('zoomPercent', 100),
-      sideloadedGames: libraryStore.get('games', []),
-      gameOverrides: gameOverridesStore.get('overrides', {}),
-      blacklist: await getBlacklist()
+    if (frontendData?.localStorageData) {
+      (configStore as any).set('settings.localStorageBackup', frontendData.localStorageData)
     }
+    const backupData = await getBackupPayload()
 
     writeFileSync(filePath, JSON.stringify(backupData, null, 2), 'utf-8')
     return { success: true, filePath }
@@ -895,22 +899,28 @@ addHandler('exportGhostBackup', async () => {
   }
 })
 
-addHandler('importGhostBackup', async () => {
-  const mainWindow = getMainWindow()
-  const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow!, {
-    title: 'Importar Backup do Ghost Games Launcher',
-    filters: [{ name: 'Ghost Backup (*.ghostbackup, *.json)', extensions: ['ghostbackup', 'json'] }],
-    properties: ['openFile']
-  })
-
-  if (canceled || filePaths.length === 0) {
-    return { success: false, error: 'Importação cancelada.' }
-  }
-
+addHandler('importGhostBackup', async (event, fileContent?: string) => {
   try {
-    const filePath = filePaths[0]
-    const fileContent = readFileSync(filePath, 'utf-8')
-    const backupData = JSON.parse(fileContent)
+    let backupData: any
+
+    if (fileContent) {
+      backupData = JSON.parse(fileContent)
+    } else {
+      const mainWindow = getMainWindow()
+      const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow!, {
+        title: 'Importar Backup do Ghost Games Launcher',
+        filters: [{ name: 'Ghost Backup (*.ghostbackup, *.json)', extensions: ['ghostbackup', 'json'] }],
+        properties: ['openFile']
+      })
+
+      if (canceled || filePaths.length === 0) {
+        return { success: false, error: 'Importação cancelada.' }
+      }
+
+      const filePath = filePaths[0]
+      const rawContent = readFileSync(filePath, 'utf-8')
+      backupData = JSON.parse(rawContent)
+    }
 
     if (backupData.settings) {
       configStore.set('settings', backupData.settings)
@@ -933,11 +943,57 @@ addHandler('importGhostBackup', async () => {
         await addGameToBlacklist(item)
       }
     }
+    if (backupData.playtimes) {
+      Object.entries(backupData.playtimes).forEach(([key, value]) => {
+        tsStore.set(key as any, value as any)
+      })
+    }
 
     sendFrontendMessage('refreshLibrary')
-    return { success: true }
+    return {
+      success: true,
+      localStorageData: backupData.localStorageData || {}
+    }
   } catch (error) {
     logError(['Failed to import backup:', error], LogPrefix.Backend)
+    return { success: false, error: String(error) }
+  }
+})
+
+addHandler('connectCloudProvider', async (event, provider) => {
+  return connectCloudProvider(provider)
+})
+
+addHandler('disconnectCloudProvider', async () => {
+  clearCloudTokens()
+})
+
+addHandler('getCloudProviderStatus', async () => {
+  return getCloudProviderStatus()
+})
+
+addHandler('uploadBackupToCloud', async (event, frontendData?: { localStorageData?: Record<string, string> }) => {
+  try {
+    if (frontendData?.localStorageData) {
+      (configStore as any).set('settings.localStorageBackup', frontendData.localStorageData)
+    }
+    const backupData = await getBackupPayload()
+    return await uploadBackupToCloud(backupData)
+  } catch (error) {
+    logError(['Failed to upload backup to cloud:', error], LogPrefix.Backend)
+    return { success: false, error: String(error) }
+  }
+})
+
+addHandler('downloadBackupFromCloud', async () => {
+  try {
+    const res = await downloadBackupFromCloud()
+    if (res.success && res.data) {
+      return { success: true, data: res.data }
+    }
+    return { success: false, error: res.error || 'Falha ao baixar da nuvem.' }
+  } catch (error) {
+    logError(['Failed to download backup from cloud:', error], LogPrefix.Backend)
     return { success: false, error: String(error) }
   }
 })
