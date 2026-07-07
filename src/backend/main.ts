@@ -397,7 +397,7 @@ if (!gotTheLock) {
     if (isWindows) {
       app.setAppUserModelId('com.ghostgameslauncher.ghost')
       try {
-        const currentExePath = app.getPath('exe')
+        const currentExePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
         const desktopFolder = app.getPath('desktop')
         const shortcutNames = ['Ghost.lnk', 'Ghost Games Launcher.lnk']
         for (const name of shortcutNames) {
@@ -438,7 +438,7 @@ if (!gotTheLock) {
       try {
         app.setLoginItemSettings({
           openAtLogin: settings.startAtLogin === true,
-          path: app.getPath('exe')
+          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
         })
       } catch (err) {
         logError(`Failed to initialize login item settings: ${err}`, LogPrefix.Backend)
@@ -778,7 +778,8 @@ addHandler('getCurrentChangelog', async () => {
 
 addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
   const { downloadFile } = await import('./utils')
-  const currentExeName = path.basename(app.getPath('exe')).toLowerCase()
+  const exePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
+  const currentExeName = path.basename(exePath).toLowerCase()
   const isPortable = currentExeName.includes('portable')
 
   // Find matching asset
@@ -1129,7 +1130,7 @@ addListener('setSetting', (event, { appName, key, value }) => {
       try {
         app.setLoginItemSettings({
           openAtLogin: value === true,
-          path: app.getPath('exe')
+          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
         })
         logInfo(`Set startAtLogin to ${value}`, LogPrefix.Backend)
       } catch (err) {
