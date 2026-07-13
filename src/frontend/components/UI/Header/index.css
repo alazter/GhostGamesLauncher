@@ -5,7 +5,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
-  padding: var(--space-md);
+  padding: 12px var(--space-md) 4px var(--space-md);
   background: var(--gradient-body-background, var(--body-background));
   color: var(--text-secondary);
 }

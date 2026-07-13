@@ -1827,7 +1827,7 @@ export default memo(function Library(): JSX.Element {
         style={{
           display: 'flex',
           flexDirection: 'column',
-          height: 'calc(100vh - 45px)'
+          height: 'calc(100vh - 32px)'
         }}
       >
         <Header />
@@ -1842,7 +1842,7 @@ export default memo(function Library(): JSX.Element {
             flexDirection: 'row',
             flex: 1,
             minHeight: 0,
-            paddingTop: '15px'
+            paddingTop: '4px'
           }}
         >
           {selectedInlineGame && (
@@ -1954,7 +1954,7 @@ export default memo(function Library(): JSX.Element {
           id="zoom-controls-container"
           style={{
             position: 'fixed',
-            bottom: '3px',
+            bottom: '-3px',
             right: '50px',
             height: '38px',
             padding: '0 12px',
@@ -2094,10 +2094,10 @@ export default memo(function Library(): JSX.Element {
           </div>
 
           <style>{`
-            .gameList {
+             .gameList {
               grid-template-columns: repeat(auto-fill, minmax(${cardZoom}px, 1fr)) !important;
-              gap: 30px !important; 
-              padding: 0px 20px 20px 20px !important;
+              gap: 20px !important; 
+              padding: 15px 20px 20px 20px !important;
             }
             .gameCard {
               scroll-margin-top: 150px !important;
@@ -2129,7 +2129,7 @@ export default memo(function Library(): JSX.Element {
         onMouseLeave={() => setIsHovered(false)}
         style={{
           position: 'fixed',
-          bottom: '3px',
+          bottom: '-3px',
           left: 'calc(var(--sidebar-width, 60px) + 15px)',
           height: '38px',
           zIndex: 9998,
@@ -2149,7 +2149,7 @@ export default memo(function Library(): JSX.Element {
             borderRadius: '50%',
             flexShrink: 0,
             transition: 'background 0.3s ease',
-            background: isHovered && !isUploading ? 'rgba(255, 255, 255, 0.05)' : 'transparent'
+            background: 'transparent'
           }}
         >
           <FontAwesomeIcon

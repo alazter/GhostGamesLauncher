@@ -885,6 +885,10 @@ class GlobalState extends PureComponent<Props> {
   }
 
   async componentDidMount() {
+    const startZoomPercent = configStore.get('zoomPercent', 100)
+    if (startZoomPercent !== 100) {
+      window.api.setZoomFactor((startZoomPercent / 100).toString())
+    }
     const {
       epic,
       gog,

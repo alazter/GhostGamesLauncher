@@ -410,17 +410,35 @@ if (!gotTheLock) {
       try {
         const currentExePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
         const desktopFolder = app.getPath('desktop')
-        const shortcutNames = ['Ghost.lnk', 'Ghost Games Launcher.lnk']
-        for (const name of shortcutNames) {
-          const shortcutPath = path.join(desktopFolder, name)
-          shell.writeShortcutLink(shortcutPath, 'create', {
-            target: currentExePath,
-            description: 'Ghost Games Launcher',
-            icon: currentExePath,
-            iconIndex: 0,
-            appUserModelId: 'com.ghostgameslauncher.ghost'
-          })
-        }
+        
+        // Remove old Ghost.lnk shortcut
+        try {
+          const oldShortcut = path.join(desktopFolder, 'Ghost.lnk')
+          if (existsSync(oldShortcut)) {
+            require('fs').unlinkSync(oldShortcut)
+          }
+        } catch {}
+
+        const permanentIconPath = path.join(app.getPath('userData'), 'win_icon.ico')
+        const unpackedIconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'win_icon.ico')
+        let iconToUse = currentExePath
+        try {
+          if (existsSync(unpackedIconPath)) {
+            require('fs').copyFileSync(unpackedIconPath, permanentIconPath)
+            iconToUse = permanentIconPath
+          } else if (existsSync(permanentIconPath)) {
+            iconToUse = permanentIconPath
+          }
+        } catch {}
+
+        const shortcutPath = path.join(desktopFolder, 'Ghost Games Launcher.lnk')
+        shell.writeShortcutLink(shortcutPath, 'create', {
+          target: currentExePath,
+          description: 'Ghost Games Launcher',
+          icon: iconToUse,
+          iconIndex: 0,
+          appUserModelId: 'com.ghostgameslauncher.ghost'
+        })
       } catch (err) {
         logError(`Failed to create desktop shortcut on startup: ${err}`, LogPrefix.Backend)
       }
@@ -842,16 +860,35 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
     if (process.platform === 'win32') {
       try {
         const desktopFolder = app.getPath('desktop')
-        const shortcutNames = ['Ghost.lnk', 'Ghost Games Launcher.lnk']
-        for (const name of shortcutNames) {
-          const shortcutPath = path.join(desktopFolder, name)
-          shell.writeShortcutLink(shortcutPath, 'create', {
-            target: destPath,
-            description: 'Ghost Games Launcher',
-            icon: destPath,
-            iconIndex: 0
-          })
-        }
+        
+        // Remove old Ghost.lnk shortcut
+        try {
+          const oldShortcut = path.join(desktopFolder, 'Ghost.lnk')
+          if (existsSync(oldShortcut)) {
+            require('fs').unlinkSync(oldShortcut)
+          }
+        } catch {}
+
+        const permanentIconPath = path.join(app.getPath('userData'), 'win_icon.ico')
+        const unpackedIconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'win_icon.ico')
+        let iconToUse = destPath
+        try {
+          if (existsSync(unpackedIconPath)) {
+            require('fs').copyFileSync(unpackedIconPath, permanentIconPath)
+            iconToUse = permanentIconPath
+          } else if (existsSync(permanentIconPath)) {
+            iconToUse = permanentIconPath
+          }
+        } catch {}
+
+        const shortcutPath = path.join(desktopFolder, 'Ghost Games Launcher.lnk')
+        shell.writeShortcutLink(shortcutPath, 'create', {
+          target: destPath,
+          description: 'Ghost Games Launcher',
+          icon: iconToUse,
+          iconIndex: 0,
+          appUserModelId: 'com.ghostgameslauncher.ghost'
+        })
       } catch (err) {
         logError(['Failed to create desktop shortcut for update:', err], LogPrefix.Backend)
       }

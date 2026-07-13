@@ -285,18 +285,18 @@ const GamesList = ({
         <div
           style={{
             position: 'fixed',
-            bottom: '30px',
+            bottom: '15px',
             left: '50%',
             transform: 'translateX(-50%)',
             background: 'rgba(30, 34, 40, 0.95)',
             backdropFilter: 'blur(10px)',
-            padding: '15px 30px',
-            borderRadius: '12px',
+            padding: '8px 24px',
+            borderRadius: '8px',
             zIndex: 9999,
             display: 'flex',
-            gap: '15px',
+            gap: '12px',
             alignItems: 'center',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             color: '#fff'
           }}
