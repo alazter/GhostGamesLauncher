@@ -7,3 +7,4 @@
 - **Title Format**: Always title releases as `👻 Ghost v[Version]` (e.g., `👻 Ghost v0.1.4-beta`).
 - **Release Description Header**: Right under the header `## Notas de Lançamento da Versão v...` in the release body description, always insert this exact HTML image:
   `<img width="192" height="191" alt="notas da atualização oficial" src="https://github.com/user-attachments/assets/17ab8642-b2fa-4c17-a76e-2573d38b5586" />`
+- **Version Auto-Detection**: Always verify the last published version via git tags/GitHub releases, and increment it logically (e.g., bump patch version like 0.1.3 -> 0.1.4) to determine the next release version.
