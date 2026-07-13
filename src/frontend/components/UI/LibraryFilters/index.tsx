@@ -36,7 +36,9 @@ export default function LibraryFilters() {
     showThirdPartyManagedOnly,
     setShowThirdPartyManagedOnly,
     showUpdatesOnly,
-    setShowUpdatesOnly
+    setShowUpdatesOnly,
+    sortByRecent,
+    setSortByRecent
   } = useContext(LibraryContext)
 
   const toggleShowHidden = () => {
@@ -170,6 +172,7 @@ export default function LibraryFilters() {
     setShowSupportOfflineOnly(false)
     setShowThirdPartyManagedOnly(false)
     setShowUpdatesOnly(false)
+    setSortByRecent(false)
   }
 
   return (
@@ -245,6 +248,13 @@ export default function LibraryFilters() {
         handleChange={() => toggleUpdatesOnly()}
         value={showUpdatesOnly}
         title={t('header.show_updates_only', 'Show games with updates only')}
+      />
+      <ToggleSwitch
+        key="sort-by-recent"
+        htmlId="sort-by-recent"
+        handleChange={() => setSortByRecent(!sortByRecent)}
+        value={sortByRecent}
+        title={t('header.sort_by_recent', 'Sort by Last Played')}
       />
       <hr />
       <button

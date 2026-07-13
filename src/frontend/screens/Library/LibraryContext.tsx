@@ -30,6 +30,8 @@ const initialContext: LibraryContextType = {
   setSortDescending: () => null,
   sortInstalled: true,
   setSortInstalled: () => null,
+  sortByRecent: false,
+  setSortByRecent: () => null,
   showSupportOfflineOnly: false,
   setShowSupportOfflineOnly: () => null,
   showThirdPartyManagedOnly: false,

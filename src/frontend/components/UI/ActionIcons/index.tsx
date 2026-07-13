@@ -123,9 +123,8 @@ export default React.memo(function ActionIcons({
           }
         >
           <FontAwesomeIcon
-            className={classNames('FormControl__segmentedFaIcon', {
-              ['fa-spin']: refreshing
-            })}
+            className="FormControl__segmentedFaIcon"
+            spin={refreshing}
             data-tour="library-refresh"
             icon={faSyncAlt}
           />

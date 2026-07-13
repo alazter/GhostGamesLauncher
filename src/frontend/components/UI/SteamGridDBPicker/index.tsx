@@ -57,7 +57,7 @@ export default function SteamGridDBPicker({
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [fetchingMore, setFetchingMore] = useState(false)
-
+ 
   const handleSelectGame = useCallback(
     async (gameId: number) => {
       setSelectedGameId(gameId)
@@ -87,7 +87,7 @@ export default function SteamGridDBPicker({
             t('steamgriddb.error.no-grids', 'No covers found for this game.')
           )
         }
-        if (results.length < 50) {
+        if (results.length === 0) {
           setHasMore(false)
         }
       } catch (err) {
@@ -99,7 +99,7 @@ export default function SteamGridDBPicker({
     },
     [t, mode, dimensions, styles]
   )
-
+ 
   const handleLoadMore = useCallback(async () => {
     if (selectedGameId === null || fetchingMore || !hasMore) return
     setFetchingMore(true)
@@ -123,7 +123,7 @@ export default function SteamGridDBPicker({
         setGrids((prev) => [...prev, ...results])
         setPage(nextPage)
       }
-      if (results.length < 50) {
+      if (results.length === 0) {
         setHasMore(false)
       }
     } catch (err) {

@@ -388,9 +388,14 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
     }
 
     logInfo(`Backup successfully uploaded to ${provider}`, LogPrefix.Backend)
+    const storeAny = configStore as any
+    storeAny.set('backup.lastSuccess', Date.now())
+    storeAny.delete('backup.lastError')
     return { success: true }
   } catch (err) {
     logError(`Cloud backup upload failed: ${err}`, LogPrefix.Backend)
+    const storeAny = configStore as any
+    storeAny.set('backup.lastError', String(err))
     return { success: false, error: String(err) }
   }
 }

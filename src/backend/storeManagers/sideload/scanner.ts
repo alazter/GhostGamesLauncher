@@ -215,6 +215,7 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
 
     // 3. For each library path, look in steamapps for appmanifest_*.acf files
     for (const libPath of libraryPaths) {
+      if (isScanAborted) break
       const steamappsDir = join(libPath, 'steamapps')
       if (!existsSync(steamappsDir)) continue
 
@@ -222,6 +223,7 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
       const acfFiles = files.filter(f => f.toLowerCase().startsWith('appmanifest_') && f.toLowerCase().endsWith('.acf'))
 
       for (const acfFile of acfFiles) {
+        if (isScanAborted) break
         try {
           const acfPath = join(steamappsDir, acfFile)
           const acfContent = readFileSync(acfPath, 'utf8')
@@ -238,7 +240,7 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
             const gameFolder = join(steamappsDir, 'common', installDir)
 
             if (existsSync(gameFolder)) {
-              const exeCandidates = findExecutables(gameFolder)
+              const exeCandidates = await findExecutables(gameFolder)
               if (exeCandidates.length === 0) continue
 
               // Filter out invalid candidates using our smart validator
@@ -380,27 +382,30 @@ function isDuplicateGame(
   return false
 }
 
-function findExecutables(dir: string, depth = 0): string[] {
+async function findExecutables(dir: string, depth = 0): Promise<string[]> {
+  if (isScanAborted) return []
   if (depth > 2) return []
   const results: string[] = []
   try {
-    const items = readdirSync(dir)
+    const items = await readdir(dir)
     for (const item of items) {
+      if (isScanAborted) return results
       const fullPath = join(dir, item)
-      let stat
+      let stats
       try {
-        stat = statSync(fullPath)
+        stats = await stat(fullPath)
       } catch {
         continue
       }
-      if (stat.isDirectory()) {
+      if (stats.isDirectory()) {
         const nameLower = item.toLowerCase()
         // Skip common directories that don't contain game binaries
         if (['engine', 'plugins', 'feature', 'support', 'directx', 'redist', 'uninstall', 'mono', 'dotnet', 'eac', 'easyanticheat', 'subsystem'].includes(nameLower)) {
           continue
         }
-        results.push(...findExecutables(fullPath, depth + 1))
-      } else if (stat.isFile() && item.toLowerCase().endsWith('.exe')) {
+        const subResults = await findExecutables(fullPath, depth + 1)
+        results.push(...subResults)
+      } else if (stats.isFile() && item.toLowerCase().endsWith('.exe')) {
         results.push(fullPath)
       }
     }
@@ -424,6 +429,7 @@ const NON_GAME_KEYWORDS = [
 ]
 
 export async function scanInstalledGames(): Promise<{ count: number; games: string[] }> {
+  isScanAborted = false
   if (process.platform !== 'win32') {
     return { count: 0, games: [] }
   }
@@ -458,6 +464,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
   const addedGames: string[] = []
 
   for (const entry of rawEntries) {
+    if (isScanAborted) break
     const { DisplayName, InstallLocation, DisplayIcon } = entry
     if (!DisplayName || !InstallLocation) continue
 
@@ -511,7 +518,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
 
     // Option 2: Search folder recursively for .exe candidates
     if (!executablePath) {
-      const candidates = findExecutables(folder)
+      const candidates = await findExecutables(folder)
       if (candidates.length === 0) continue
 
       // Filter candidates
@@ -689,6 +696,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
 }
 
 export async function discoverInstalledGames(): Promise<GameCandidate[]> {
+  isScanAborted = false
   if (process.platform !== 'win32') {
     return []
   }
@@ -724,6 +732,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
   const candidates: GameCandidate[] = []
 
   for (const entry of rawEntries) {
+    if (isScanAborted) break
     const { DisplayName, InstallLocation, DisplayIcon, PSChildName } = entry
     if (!DisplayName || !InstallLocation) continue
 
@@ -760,7 +769,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
 
     // Option 2: Search folder recursively for .exe candidates
     if (!executablePath) {
-      const exeCandidates = findExecutables(folder)
+      const exeCandidates = await findExecutables(folder)
       if (exeCandidates.length === 0) continue
 
       // Filter candidates
@@ -1057,6 +1066,7 @@ async function scanDirectoryForGamesAsync(
   maxDepth: number,
   results: GameCandidate[]
 ): Promise<void> {
+  if (isScanAborted) return
   if (depth > maxDepth) return
 
   // Fast directory-name rule matching optimization
@@ -1110,6 +1120,7 @@ async function scanDirectoryForGamesAsync(
     const exes: string[] = []
 
     for (const item of items) {
+      if (isScanAborted) return
       const fullPath = join(dir, item)
       try {
         const stats = await stat(fullPath)
@@ -1200,12 +1211,20 @@ async function scanDirectoryForGamesAsync(
     }
 
     for (const subdir of subdirs) {
+      if (isScanAborted) return
       await scanDirectoryForGamesAsync(subdir, searchTerms, depth + 1, maxDepth, results)
     }
   } catch {}
 }
 
+let isScanAborted = false
+
+export function abortScan(): void {
+  isScanAborted = true
+}
+
 export async function discoverAllGames(searchTitles?: string[], selectedDrives?: string[]): Promise<GameCandidate[]> {
+  isScanAborted = false
   if (process.platform !== 'win32') {
     return []
   }
@@ -1257,6 +1276,7 @@ export async function discoverAllGames(searchTitles?: string[], selectedDrives?:
 
   // 2. Perform the directory scan to discover loose/DRM-free games
   for (const drive of drivesToScan) {
+    if (isScanAborted) break
     await scanDirectoryForGamesAsync(drive, searchTerms, 1, 8, results)
   }
 

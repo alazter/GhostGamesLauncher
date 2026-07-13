@@ -89,3 +89,11 @@ export async function handleNonAvailableGames(appName: string, runner: Runner) {
   }
   return gameAvailable
 }
+
+export function clearAvailabilityCache(appName?: string, runner?: Runner) {
+  if (appName && runner) {
+    availabilityCache.delete(`${appName}_${runner}`)
+  } else {
+    availabilityCache.clear()
+  }
+}

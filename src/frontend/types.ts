@@ -242,6 +242,8 @@ export interface LibraryContextType {
   setSortDescending: (value: boolean) => void
   sortInstalled: boolean
   setSortInstalled: (value: boolean) => void
+  sortByRecent: boolean
+  setSortByRecent: (value: boolean) => void
   showSupportOfflineOnly: boolean
   setShowSupportOfflineOnly: (value: boolean) => void
   showThirdPartyManagedOnly: boolean

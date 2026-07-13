@@ -53,6 +53,7 @@ export default React.memo(function Sidebar() {
     }
 
     sidebarEl.current.style.setProperty('--sidebar-width', `${sidebarSize}px`)
+    document.documentElement.style.setProperty('--sidebar-width', `${sidebarSize}px`)
   }, [sidebarEl])
 
   useEffect(() => {
@@ -126,6 +127,7 @@ export default React.memo(function Sidebar() {
         }
 
         sidebarEl.current.style.setProperty('--sidebar-width', `${newWidth}px`)
+        document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`)
       }
 
       if (dragging) {

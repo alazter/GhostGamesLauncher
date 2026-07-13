@@ -101,6 +101,8 @@ export default function SideloadDialog({
   const [scannedCandidates, setScannedCandidates] = useState<GameCandidate[]>([])
   const [scanningCandidates, setScanningCandidates] = useState(false)
   const [scanPhase, setScanPhase] = useState<'initial' | 'registry_done' | 'full_done'>('initial')
+  const [activeScan, setActiveScan] = useState<'quick' | 'full' | null>(null)
+  const [isAbortingScan, setIsAbortingScan] = useState(false)
   const [searchTitlesInput, setSearchTitlesInput] = useState('')
   const [searchOnlyByName, setSearchOnlyByName] = useState(true)
   const [importSelection, setImportSelection] = useState<Record<string, 'import' | 'blacklist' | 'none'>>({})
@@ -511,6 +513,7 @@ export default function SideloadDialog({
   // Auto-scanner functions
   const handleScanCandidates = async () => {
     setScanningCandidates(true)
+    setActiveScan('quick')
     try {
       const results = await window.api.discoverInstalledGames()
       results.sort((a, b) => a.title.localeCompare(b.title))
@@ -553,6 +556,8 @@ export default function SideloadDialog({
       window.api.logError(`Error discovering games: ${err}`)
     } finally {
       setScanningCandidates(false)
+      setActiveScan(null)
+      setIsAbortingScan(false)
     }
   }
 
@@ -564,6 +569,7 @@ export default function SideloadDialog({
     }
 
     setScanningCandidates(true)
+    setActiveScan('full')
     try {
       const searchTitles = (activeSearchOnlyByName && searchTitlesInput)
         ? searchTitlesInput.split(/[;,]/).map((s) => s.trim()).filter(Boolean)
@@ -614,6 +620,17 @@ export default function SideloadDialog({
       window.api.logError(`Error scanning all games: ${err}`)
     } finally {
       setScanningCandidates(false)
+      setActiveScan(null)
+      setIsAbortingScan(false)
+    }
+  }
+
+  const handleAbortScan = async () => {
+    setIsAbortingScan(true)
+    try {
+      await window.api.abortScan()
+    } catch (err) {
+      window.api.logError(`Error aborting scan: ${err}`)
     }
   }
 
@@ -1010,9 +1027,6 @@ export default function SideloadDialog({
                   type="button"
                   onClick={() => {
                     setActiveTab('scanner')
-                    if (scannedCandidates.length === 0) {
-                      handleScanCandidates()
-                    }
                   }}
                   style={{
                     background: 'transparent',
@@ -1239,28 +1253,52 @@ export default function SideloadDialog({
                           onClick={handleViewBlacklist}
                           className="button is-warning is-outlined"
                           style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
+                          disabled={scanningCandidates}
                         >
                           Ver Blacklist ({blacklistCount})
                         </button>
-                        <button
-                          type="button"
-                          onClick={scanPhase === 'initial' ? handleScanCandidates : handleScanAll}
-                          className="button is-secondary"
-                          style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
-                          disabled={scanningCandidates}
-                        >
-                          {scanningCandidates ? (
-                            <>
-                              <FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '6px' }} />
-                              Escaneando...
-                            </>
-                          ) : (
-                            <>
+                        {scanningCandidates ? (
+                          <button
+                            type="button"
+                            onClick={handleAbortScan}
+                            className="button is-danger"
+                            style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
+                            disabled={isAbortingScan}
+                          >
+                            {isAbortingScan ? (
+                              <>
+                                <FontAwesomeIcon icon={faSpinner} spin style={{ marginRight: '6px' }} />
+                                Cancelando...
+                              </>
+                            ) : (
+                              <>
+                                <FontAwesomeIcon icon={faTimes} style={{ marginRight: '6px' }} />
+                                Cancelar Varredura
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={handleScanCandidates}
+                              className="button is-secondary"
+                              style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
+                            >
                               <FontAwesomeIcon icon={faSyncAlt} style={{ marginRight: '6px' }} />
-                              {scanPhase === 'initial' ? 'Escanear PC' : 'Escanear Tudo'}
-                            </>
-                          )}
-                        </button>
+                              Varredura Rápida
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleScanAll}
+                              className="button is-secondary"
+                              style={{ padding: '4px 12px', fontSize: '12px', height: '32px' }}
+                            >
+                              <FontAwesomeIcon icon={faSyncAlt} style={{ marginRight: '6px' }} />
+                              Varredura Completa
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -1322,42 +1360,40 @@ export default function SideloadDialog({
                       </div>
                     )}
 
-                    {scanPhase !== 'initial' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '13px',
-                          color: 'rgba(255, 255, 255, 0.75)',
-                          cursor: 'pointer',
-                          userSelect: 'none'
-                        }}>
-                          <input
-                            type="checkbox"
-                            checked={searchOnlyByName}
-                            onChange={(e) => setSearchOnlyByName(e.target.checked)}
-                            style={{
-                              width: '16px',
-                              height: '16px',
-                              accentColor: '#00ffff',
-                              cursor: 'pointer'
-                            }}
-                          />
-                          Desabilitar escaneamento completo (buscar apenas pelos nomes digitados)
-                        </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '4px' }}>
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '13px',
+                        color: 'rgba(255, 255, 255, 0.75)',
+                        cursor: 'pointer',
+                        userSelect: 'none'
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={searchOnlyByName}
+                          onChange={(e) => setSearchOnlyByName(e.target.checked)}
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            accentColor: '#00ffff',
+                            cursor: 'pointer'
+                          }}
+                        />
+                        Desabilitar escaneamento completo (buscar apenas pelos nomes digitados)
+                      </label>
 
-                        {searchOnlyByName && (
-                          <TextInputField
-                            label="Buscar Jogos Específicos (separados por vírgula)"
-                            placeholder="Digite o nome dos jogos, ex: GTA, Cyberpunk, Witcher"
-                            onChange={(newValue) => setSearchTitlesInput(newValue)}
-                            htmlId="scanner-search-titles"
-                            value={searchTitlesInput}
-                          />
-                        )}
-                      </div>
-                    )}
+                      {searchOnlyByName && (
+                        <TextInputField
+                          label="Buscar Jogos Específicos (separados por vírgula)"
+                          placeholder="Digite o nome dos jogos, ex: GTA, Cyberpunk, Witcher"
+                          onChange={(newValue) => setSearchTitlesInput(newValue)}
+                          htmlId="scanner-search-titles"
+                          value={searchTitlesInput}
+                        />
+                      )}
+                    </div>
          
                     {scannedCandidates.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', marginTop: '-8px', marginBottom: '-4px' }}>
@@ -1425,7 +1461,7 @@ export default function SideloadDialog({
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '12px', flex: 1 }}>
                         <FontAwesomeIcon icon={faSpinner} spin size="2x" style={{ color: '#00e5ff' }} />
                         <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>
-                          {scanPhase === 'initial'
+                          {activeScan === 'quick'
                             ? 'Escaneando o registro do Windows por executáveis de jogos...'
                             : 'Procurando por jogos (Isso pode levar alguns minutos dependendo do seu PC)...'}
                         </span>
@@ -1436,8 +1472,8 @@ export default function SideloadDialog({
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px dashed rgba(255, 255, 255, 0.1)', flex: 1 }}>
                         <span style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.5)' }}>
                           {scanPhase === 'initial'
-                            ? 'Nenhum candidato encontrado. Clique em "Escanear PC" acima.'
-                            : 'Nenhum candidato encontrado. Clique em "Escanear Tudo" acima.'}
+                            ? 'Nenhum candidato encontrado. Clique em "Varredura Rápida" ou "Varredura Completa" acima.'
+                            : 'Nenhum candidato encontrado. Tente outra varredura.'}
                         </span>
                       </div>
                     )}

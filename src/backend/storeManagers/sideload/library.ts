@@ -83,28 +83,57 @@ export async function refresh() {
   }
 
   const games = libraryStore.get('games', []) as GameInfo[]
-  let updatedAny = false
-
-  for (const game of games) {
+  const gamesToUpdate = games.filter((game) => {
     const hasNoCover = !game.art_cover || game.art_cover.includes('heroic-icon.svg') || game.art_cover.includes('heroic_card.jpg')
     const hasNoSquare = !game.art_square || game.art_square.includes('heroic-icon.svg') || game.art_square.includes('heroic_card.jpg')
+    return (hasNoCover || hasNoSquare) && game.title
+  })
 
-    if ((hasNoCover || hasNoSquare) && game.title) {
-      logInfo(`[Sideload Library] Searching SteamGridDB cover for: ${game.title}`)
-      const coverData = await fetchCoverFromSteamGridDB(apiKey, game.title)
-      if (coverData) {
-        game.art_cover = coverData.art_cover
-        game.art_square = coverData.art_square
-        updatedAny = true
-        logInfo(`[Sideload Library] Applied SteamGridDB cover for: ${game.title}`)
+  if (gamesToUpdate.length === 0) {
+    return null
+  }
+
+  // Execute the cover fetching in background to avoid blocking launcher startup
+  const runBackgroundRefresh = async () => {
+    let updatedAny = false
+    const pool = new Set<Promise<void>>()
+    const concurrencyLimit = 3
+
+    for (const game of gamesToUpdate) {
+      const promise: Promise<void> = (async () => {
+        logInfo(`[Sideload Library] Searching SteamGridDB cover for: ${game.title}`)
+        try {
+          const coverData = await fetchCoverFromSteamGridDB(apiKey, game.title)
+          if (coverData) {
+            game.art_cover = coverData.art_cover
+            game.art_square = coverData.art_square
+            updatedAny = true
+            logInfo(`[Sideload Library] Applied SteamGridDB cover for: ${game.title}`)
+          }
+        } catch (err) {
+          logError([`[Sideload Library] Failed fetching SteamGridDB cover for ${game.title}:`, err])
+        }
+      })().then(() => {
+        pool.delete(promise)
+      })
+
+      pool.add(promise)
+      if (pool.size >= concurrencyLimit) {
+        await Promise.race(pool)
       }
+    }
+
+    await Promise.all(pool)
+
+    if (updatedAny) {
+      libraryStore.set('games', games)
+      sendFrontendMessage('refreshLibrary', 'sideload')
     }
   }
 
-  if (updatedAny) {
-    libraryStore.set('games', games)
-    sendFrontendMessage('refreshLibrary', 'sideload')
-  }
+  runBackgroundRefresh().catch((err) => {
+    logError([`[Sideload Library] Error in background cover refresh:`, err])
+  })
 
   return null
 }

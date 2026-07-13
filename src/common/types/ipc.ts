@@ -392,6 +392,7 @@ interface AsyncIPCFunctions {
   }) => Promise<string>
   discoverInstalledGames: () => Promise<GameCandidate[]>
   discoverAllGames: (searchTitles?: string[], selectedDrives?: string[]) => Promise<GameCandidate[]>
+  abortScan: () => Promise<void>
   getLogicalDrives: () => Promise<string[]>
   importSelectedGames: (args: {
     gamesToImport: GameCandidate[]

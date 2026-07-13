@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import useSetting from 'frontend/hooks/useSetting'
 import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
+import { configStore } from 'frontend/helpers/electronStores'
 
 export const BackupRestoreSettings: React.FC = () => {
   const [exporting, setExporting] = useState(false)
@@ -125,6 +126,7 @@ export const BackupRestoreSettings: React.FC = () => {
   const handleUploadCloud = async () => {
     setUploadingCloud(true)
     setMessage(null)
+    window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: true } }))
     try {
       syncLocalStorageToBackend()
       await new Promise(r => setTimeout(r, 100))
@@ -139,6 +141,7 @@ export const BackupRestoreSettings: React.FC = () => {
       setMessage({ type: 'error', text: String(err) })
     } finally {
       setUploadingCloud(false)
+      window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: false } }))
     }
   }
 
@@ -158,6 +161,9 @@ export const BackupRestoreSettings: React.FC = () => {
             window.dispatchEvent(new Event('heroicSettingsChanged'))
             window.dispatchEvent(new Event('customBgChanged'))
           }
+          ;(configStore as any).set('backup.lastSuccess', Date.now())
+          ;(configStore as any).delete('backup.lastError')
+          window.dispatchEvent(new Event('backupStateChanged'))
           setMessage({ type: 'success', text: 'Backup baixado e restaurado com sucesso!' })
         } else {
           setMessage({ type: 'error', text: restoreRes.error || 'Erro ao restaurar backup baixado.' })

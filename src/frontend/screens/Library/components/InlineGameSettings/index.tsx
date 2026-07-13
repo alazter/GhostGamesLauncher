@@ -16,7 +16,8 @@ import BeforeLaunchScriptPath from 'frontend/screens/Settings/components/BeforeL
 import AfterLaunchScriptPath from 'frontend/screens/Settings/components/AfterLaunchScriptPath'
 import EnvVariablesTable from 'frontend/screens/Settings/components/EnvVariablesTable'
 import AlternativeExe from 'frontend/screens/Settings/components/AlternativeExe'
-import { sideloadLibrary, gameOverridesStore } from 'frontend/helpers/electronStores'
+import { sideloadLibrary, gameOverridesStore, configStore } from 'frontend/helpers/electronStores'
+import { clearAvailabilityCache } from 'frontend/hooks/constants'
 
 // Material Icons para as Ações do Jogo e Visibilidade
 import {
@@ -64,6 +65,7 @@ const DEFAULT_ACTIONS: ActionItem[] = [
 
 const syncFrontendStoreForSideload = (updatedGame: GameInfo) => {
   try {
+    clearAvailabilityCache(updatedGame.app_name, updatedGame.runner)
     const games = sideloadLibrary.get('games', [])
     const idx = games.findIndex((g) => g.app_name === updatedGame.app_name)
     if (idx !== -1) {
@@ -71,7 +73,9 @@ const syncFrontendStoreForSideload = (updatedGame: GameInfo) => {
     } else {
       games.push(updatedGame)
     }
-    sideloadLibrary.set('games', games)
+    sideloadLibrary.set('games', games);
+    (configStore as any).set('backup.lastModified', Date.now())
+    window.dispatchEvent(new Event('backupStateChanged'))
 
     if (updatedGame.title) {
       const overrides = gameOverridesStore.get('overrides', {})
@@ -122,7 +126,9 @@ const syncFrontendStoreForOverride = (
       }
     }
     gameOverridesStore.set('overrides', overrides)
-    useGlobalState.getState().setGameOverrides(overrides)
+    useGlobalState.getState().setGameOverrides(overrides);
+    (configStore as any).set('backup.lastModified', Date.now())
+    window.dispatchEvent(new Event('backupStateChanged'))
   } catch (err) {
     console.error('Error syncing frontend overrides:', err)
   }

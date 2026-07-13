@@ -120,6 +120,7 @@ import {
   scanInstalledGames,
   discoverInstalledGames,
   discoverAllGames,
+  abortScan,
   importSelectedGames,
   undoImport,
   addGameToBlacklist,
@@ -1668,6 +1669,7 @@ addListener('addNewApp', (e, args) => addNewApp(args))
 addHandler('scanInstalledGames', () => scanInstalledGames())
 addHandler('discoverInstalledGames', () => discoverInstalledGames())
 addHandler('discoverAllGames', (e, searchTitles, selectedDrives) => discoverAllGames(searchTitles, selectedDrives))
+addHandler('abortScan', () => abortScan())
 addHandler('getLogicalDrives', () => getDrives())
 addHandler('importSelectedGames', (e, args) => importSelectedGames(args))
 addHandler('undoImport', (e, args) => undoImport(args))

@@ -23,6 +23,8 @@ import { getGameInfo, getLegendaryConfig } from '../helpers'
 import { i18n, t, TFunction } from 'i18next'
 
 import ContextProvider from './ContextProvider'
+import { clearAvailabilityCache } from 'frontend/hooks/constants'
+import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
 
 import {
   configStore,
@@ -783,6 +785,8 @@ class GlobalState extends PureComponent<Props> {
   }: RefreshOptions): Promise<void> => {
     if (this.state.refreshing) return
 
+    clearAvailabilityCache()
+
     this.setState({
       refreshing: true,
       refreshingInTheBackground: runInBackground
@@ -790,9 +794,11 @@ class GlobalState extends PureComponent<Props> {
     window.api.logInfo(`Refreshing ${library} Library`)
     try {
       await window.api.refreshLibrary(library)
-      return await this.refresh(library, checkForUpdates)
+      await this.refresh(library, checkForUpdates)
     } catch (error) {
       window.api.logError(`Library refresh failed: ${String(error)}`)
+    } finally {
+      this.setState({ refreshing: false })
     }
   }
 
@@ -1034,6 +1040,47 @@ class GlobalState extends PureComponent<Props> {
 
     this.setPrimaryFontFamily(this.state.primaryFontFamily, false)
     this.setSecondaryFontFamily(this.state.secondaryFontFamily, false)
+
+    window.addEventListener('heroicSettingsChanged', () => {
+      ;(configStore as any).set('backup.lastModified', Date.now())
+      window.dispatchEvent(new Event('backupStateChanged'))
+    })
+    window.addEventListener('customBgChanged', () => {
+      ;(configStore as any).set('backup.lastModified', Date.now())
+      window.dispatchEvent(new Event('backupStateChanged'))
+    })
+
+    // Delayed daily automatic upload routine (runs after 2 minutes of startup)
+    setTimeout(async () => {
+      try {
+        const settings = (configStore as any).get('settings', {}) as any
+        const provider = settings.cloudBackupProvider || 'none'
+        const lastSuccess = (configStore as any).get('backup.lastSuccess', 0) as number
+        const lastModified = (configStore as any).get('backup.lastModified', 0) as number
+
+        if (provider !== 'none' && lastModified > lastSuccess) {
+          const oneDay = 24 * 60 * 60 * 1000
+          if (Date.now() - lastSuccess >= oneDay) {
+            window.api.logInfo('[Cloud Backup] Running daily automatic background backup upload...')
+            window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: true } }))
+            
+            syncLocalStorageToBackend()
+            await new Promise(r => setTimeout(r, 100))
+
+            const res = await window.api.uploadBackupToCloud()
+            if (res.success) {
+              window.api.logInfo('[Cloud Backup] Daily automatic background backup completed successfully')
+            } else {
+              window.api.logError(`[Cloud Backup] Daily automatic backup failed: ${res.error}`)
+            }
+            
+            window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: false } }))
+          }
+        }
+      } catch (err) {
+        window.api.logError(`[Cloud Backup] Failed during auto-backup checks: ${err}`)
+      }
+    }, 120000)
 
     window.api.frontendReady()
   }

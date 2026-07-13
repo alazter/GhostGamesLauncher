@@ -1,4 +1,4 @@
-# Review das Alterações - 07/07/2026
+# Review das Alterações - 12/07/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -74,6 +74,21 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 ### 12. Lançamento das Versões `v0.1.1-beta` e `v0.1.2-beta`
 * **Solução:** Incremento de versão e publicação automatizada das novas releases no GitHub.
 
+### 13. Paralelização na Busca de Capas (Startup Speedup)
+* **Problema:** A busca síncrona por capas de jogos sideloaded no SteamGridDB atrasava a inicialização do launcher em até 10 segundos.
+* **Solução:**
+  - Reformulamos a lógica em `sideload/library.ts` para executar a busca e cache em segundo plano (background thread) de maneira concorrente, com limite de concorrência igual a 3. O startup agora é instantâneo.
+
+### 14. Filtro e Ordenação por Jogos Recentes (Recent Games Sort)
+* **Problema:** Usuários precisavam rolar ou buscar para encontrar os jogos jogados recentemente.
+* **Solução:**
+  - Adicionada opção de ordenação rápida `sortByRecent` na biblioteca, priorizando no grid/lista os últimos 12 títulos que foram executados.
+
+### 15. Widget de Status do Cloud Backup
+* **Problema:** Falta de feedback visual em tempo real sobre o estado de sincronização com o Cloud Backup.
+* **Solução:**
+  - Implementado widget de nuvem no rodapé da biblioteca, exibindo dinamicamente o status (atualizado, pendente, erro ou inativo) com cores e mensagens informativas no hover.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -98,9 +113,11 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils.ts)
 - [MODIFY] [heroicVersion.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/systeminfo/heroicVersion.ts)
 - [MODIFY] [index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/systeminfo/index.ts)
+- [MODIFY] [progress_bar.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/progress_bar.test.ts)
+- [MODIFY] [steamgridHelper.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/steamgridHelper.ts)
+- [MODIFY] [sideload/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/library.ts)
 - [NEW] [cloudBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/cloudBackup.ts)
 - [NEW] [backupHelper.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/backupHelper.ts)
-- [MODIFY] [progress_bar.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/progress_bar.test.ts)
 
 ### Preload & API
 - [MODIFY] [misc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/misc.ts)
@@ -118,7 +135,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [HeroicVersion/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/HeroicVersion/index.tsx)
 - [MODIFY] [HeroicVersion/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/HeroicVersion/index.scss)
 - [MODIFY] [SidebarLinks/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/SidebarLinks/index.tsx)
+- [MODIFY] [Sidebar/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/index.tsx)
 - [MODIFY] [Library/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/index.tsx)
+- [MODIFY] [LibraryContext.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/LibraryContext.tsx)
 - [MODIFY] [GameCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.tsx)
 - [MODIFY] [GameCard/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.css)
 - [MODIFY] [GamesList/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GamesList/index.tsx)
@@ -130,6 +149,11 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [BackupRestoreSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/BackupRestoreSettings.tsx)
 - [MODIFY] [constants.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/constants.ts)
 - [MODIFY] [hasStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/hasStatus.ts)
+- [MODIFY] [GlobalState.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/state/GlobalState.tsx)
+- [MODIFY] [types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/types.ts)
+- [MODIFY] [ActionIcons/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.tsx)
+- [MODIFY] [LibraryFilters/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/LibraryFilters/index.tsx)
+- [MODIFY] [SteamGridDBPicker/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/SteamGridDBPicker/index.tsx)
 - [NEW] [localStorageBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/utils/localStorageBackup.ts)
 - [NEW] [update-ghost.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/assets/update-ghost.png)
 - [NEW] [UpdatePopupModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/UpdatePopupModal/index.tsx)

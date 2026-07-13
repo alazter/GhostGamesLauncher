@@ -366,7 +366,9 @@ const GamesList = ({
               borderRadius: '6px',
               outline: 'none',
               fontSize: '12px',
-              cursor: selectedGames.length === 0 ? 'not-allowed' : 'pointer'
+              cursor: selectedGames.length === 0 ? 'not-allowed' : 'pointer',
+              minWidth: '160px',
+              width: 'auto'
             }}
           >
             <option value="">Atribuir à Loja...</option>

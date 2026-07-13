@@ -41,6 +41,10 @@ import LibraryTour from './components/LibraryTour'
 import HeroPanel from './components/HeroPanel'
 import InlineGameSettings from './components/InlineGameSettings'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
+import { configStore } from 'frontend/helpers/electronStores'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCloud, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
 const storage = window.localStorage
 
 type SearchableGame = {
@@ -88,6 +92,119 @@ export default memo(function Library(): JSX.Element {
     if (steps.includes(stored)) return stored
     return steps.reduce((prev, curr) => Math.abs(curr - stored) < Math.abs(prev - stored) ? curr : prev, 180)
   })
+
+  const [backupState, setBackupState] = useState<'inactive' | 'error' | 'outdated' | 'updated'>('inactive')
+  const [isUploading, setIsUploading] = useState(false)
+  const [lastSuccessTime, setLastSuccessTime] = useState<number>(0)
+  const [lastErrorMsg, setLastErrorMsg] = useState<string>('')
+  const [cloudBackupProvider, setCloudBackupProvider] = useState<string>('none')
+  const [isHovered, setIsHovered] = useState(false)
+
+  const loadBackupStatus = useCallback(() => {
+    const settings = (configStore as any).get('settings', {}) as any
+    const provider = settings.cloudBackupProvider || 'none'
+    setCloudBackupProvider(provider)
+
+    const lastSuccess = (configStore as any).get('backup.lastSuccess', 0) as number
+    const lastError = (configStore as any).get('backup.lastError', '') as string
+    const lastModified = (configStore as any).get('backup.lastModified', 0) as number
+
+    setLastSuccessTime(lastSuccess)
+    setLastErrorMsg(lastError)
+
+    if (provider === 'none') {
+      setBackupState('inactive')
+    } else if (lastError) {
+      setBackupState('error')
+    } else if (lastSuccess === 0) {
+      setBackupState('inactive')
+    } else if (lastModified > lastSuccess) {
+      setBackupState('outdated')
+    } else {
+      setBackupState('updated')
+    }
+  }, [])
+
+  useEffect(() => {
+    loadBackupStatus()
+
+    const handleStateChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ uploading?: boolean }>
+      if (customEvent.detail && typeof customEvent.detail.uploading === 'boolean') {
+        setIsUploading(customEvent.detail.uploading)
+      }
+      loadBackupStatus()
+    }
+
+    window.addEventListener('backupStateChanged', handleStateChange)
+    return () => window.removeEventListener('backupStateChanged', handleStateChange)
+  }, [loadBackupStatus])
+
+  const handleCloudIconClick = async () => {
+    if (cloudBackupProvider === 'none') {
+      window.location.hash = '#/settings/backup'
+      return
+    }
+
+    if (isUploading) return
+
+    setIsUploading(true)
+    ;(configStore as any).delete('backup.lastError')
+    loadBackupStatus()
+
+    try {
+      syncLocalStorageToBackend()
+      await new Promise(r => setTimeout(r, 100))
+
+      const res = await window.api.uploadBackupToCloud()
+      if (res.success) {
+        // Success
+      } else {
+        // Error
+      }
+    } catch (err) {
+      ;(configStore as any).set('backup.lastError', String(err))
+    } finally {
+      setIsUploading(false)
+      loadBackupStatus()
+      window.dispatchEvent(new Event('backupStateChanged'))
+    }
+  }
+
+  const getCloudIconProps = () => {
+    let color = 'rgba(255, 255, 255, 0.4)'
+    let title = t('backup.status.inactive', 'Backup em nuvem inativo. Clique para configurar.')
+    let label = t('backup.label.inactive', 'Backup inativo (clique para configurar)')
+    
+    if (isUploading) {
+      title = t('backup.status.uploading', 'Enviando backup para a nuvem...')
+      label = t('backup.label.uploading', 'Enviando backup para a nuvem...')
+    } else {
+      switch (backupState) {
+        case 'error':
+          color = '#ff1744'
+          title = `${t('backup.status.error', 'Erro no último backup')}: ${lastErrorMsg || t('backup.status.unknown_error', 'Erro desconhecido')}. ${t('backup.status.retry', 'Clique para tentar novamente.')}`
+          label = `${t('backup.label.error', 'Erro no backup')}: ${lastErrorMsg || t('backup.status.unknown_error', 'Erro desconhecido')}`
+          break
+        case 'outdated':
+          color = '#ffea00'
+          title = `${t('backup.status.outdated', 'Backup desatualizado (alterações locais pendentes)')}. ${t('backup.status.last_success', 'Último sucesso')}: ${lastSuccessTime ? new Date(lastSuccessTime).toLocaleString() : t('backup.status.never', 'Nunca')}. ${t('backup.status.click_to_sync', 'Clique para sincronizar agora.')}`
+          label = t('backup.label.outdated', 'Backup desatualizado (clique para sincronizar)')
+          break
+        case 'updated':
+          color = '#00e676'
+          title = `${t('backup.status.updated', 'Backup atualizado na nuvem')}. ${t('backup.status.last_success', 'Último sucesso')}: ${new Date(lastSuccessTime).toLocaleString()}. ${t('backup.status.click_to_sync_again', 'Clique para fazer backup novamente.')}`
+          label = `${t('backup.label.updated', 'Backup atualizado')} (${lastSuccessTime ? new Date(lastSuccessTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''})`
+          break
+        default:
+          break
+      }
+    }
+
+    return { color, title, label }
+  }
+
+  const { color: cloudColor, title: cloudTitle, label: cloudLabel } = getCloudIconProps()
 
   useEffect(() => {
     const timer = setTimeout(
@@ -966,6 +1083,14 @@ export default memo(function Library(): JSX.Element {
     setSortInstalled(value)
   }
 
+  const [sortByRecent, setSortByRecent] = useState<boolean>(() => {
+    return JSON.parse(storage?.getItem('sortByRecent') || 'false') as boolean
+  })
+  function handleSortByRecent(value: boolean) {
+    storage.setItem('sortByRecent', JSON.stringify(value))
+    setSortByRecent(value)
+  }
+
   const backToTopElement = useRef<HTMLButtonElement | null>(null)
   const goToBottomElement = useRef<HTMLButtonElement | null>(null)
 
@@ -1569,17 +1694,35 @@ export default memo(function Library(): JSX.Element {
         ? -gameA.localeCompare(gameB)
         : gameA.localeCompare(gameB)
     })
-    const installed = library.filter((game) => game?.is_installed)
-    const notInstalled = library.filter(
-      (game) => !game?.is_installed && !installing.includes(game?.app_name)
-    )
-    const installingGames = library.filter(
-      (g) => !g.is_installed && installing.includes(g.app_name)
-    )
 
-    library = sortInstalled
-      ? [...installed, ...installingGames, ...notInstalled]
-      : library
+    if (sortByRecent) {
+      const recentGames = configStore.get('games.recent', [])
+      const recentAppNames = recentGames.map((rg: any) => rg.appName)
+      const recentPart: GameInfo[] = []
+      const remainingPart = [...library]
+
+      for (const appName of recentAppNames) {
+        if (recentPart.length >= 12) break
+        const idx = remainingPart.findIndex((g) => g.app_name === appName)
+        if (idx !== -1) {
+          recentPart.push(remainingPart[idx])
+          remainingPart.splice(idx, 1)
+        }
+      }
+      library = [...recentPart, ...remainingPart]
+    } else {
+      const installed = library.filter((game) => game?.is_installed)
+      const notInstalled = library.filter(
+        (game) => !game?.is_installed && !installing.includes(game?.app_name)
+      )
+      const installingGames = library.filter(
+        (g) => !g.is_installed && installing.includes(g.app_name)
+      )
+
+      library = sortInstalled
+        ? [...installed, ...installingGames, ...notInstalled]
+        : library
+    }
 
     return [...library]
   }, [
@@ -1587,11 +1730,12 @@ export default memo(function Library(): JSX.Element {
     alphabetFilterLetter,
     sortDescending,
     sortInstalled,
+    sortByRecent,
     installing,
     activeStoreFilter,
     assignments,
     customCategories,
-    showUnclassifiedOnly // <--- Agora nosso filtro brinca isolado
+    showUnclassifiedOnly
   ])
 
   useEffect(() => {
@@ -1666,6 +1810,8 @@ export default memo(function Library(): JSX.Element {
         setShowUpdatesOnly: handleShowUpdatesOnly,
         sortDescending,
         sortInstalled,
+        sortByRecent,
+        setSortByRecent: handleSortByRecent,
         handleAddGameButtonClick: () =>
           openInstallGameModal({ appName: '', runner: 'sideload', gameInfo: null }),
         setShowCategories,
@@ -1974,6 +2120,66 @@ export default memo(function Library(): JSX.Element {
       )}
 
       {showCategories && <CategoriesManager />}
+
+      <div
+        id="backup-status-container"
+        className="footer-cloud-backup"
+        onClick={handleCloudIconClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{
+          position: 'fixed',
+          bottom: '3px',
+          left: 'calc(var(--sidebar-width, 60px) + 15px)',
+          height: '38px',
+          zIndex: 9998,
+          display: 'flex',
+          alignItems: 'center',
+          userSelect: 'none',
+          cursor: isUploading ? 'default' : 'pointer'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '38px',
+            height: '38px',
+            borderRadius: '50%',
+            flexShrink: 0,
+            transition: 'background 0.3s ease',
+            background: isHovered && !isUploading ? 'rgba(255, 255, 255, 0.05)' : 'transparent'
+          }}
+        >
+          <FontAwesomeIcon
+            icon={isUploading ? faSpinner : faCloud}
+            spin={isUploading}
+            style={{
+              color: cloudColor,
+              fontSize: '17px',
+              transition: 'color 0.3s ease'
+            }}
+          />
+        </div>
+        
+        <span
+          style={{
+            marginLeft: '8px',
+            fontSize: '13px',
+            color: 'rgba(255, 255, 255, 0.8)',
+            opacity: isHovered ? 1 : 0,
+            transform: isHovered ? 'translateX(0)' : 'translateX(-5px)',
+            whiteSpace: 'nowrap',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+            pointerEvents: 'none',
+            fontWeight: 500,
+            letterSpacing: '0.2px'
+          }}
+        >
+          {cloudLabel}
+        </span>
+      </div>
     </LibraryContext.Provider>
   )
 })
