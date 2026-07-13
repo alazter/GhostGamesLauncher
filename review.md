@@ -1,4 +1,4 @@
-# Review das Alterações - 12/07/2026
+# Review das Alterações - 13/07/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -66,10 +66,10 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Ajustamos a resolução do caminho do executável usando `PORTABLE_EXECUTABLE_FILE` no Windows ao gerar os atalhos.
 
 ### 11. Sistema de Backup e Restauração na Nuvem (Cloud Backup)
-* **Problema:** Necessidade de salvar e sincronizar backups de configurações na nuvem.
+* **Problema:** Sincronizar backups de configurações na nuvem.
 * **Solução:**
-  - Criação de helpers de backup (`cloudBackup.ts`, `backupHelper.ts` e `localStorageBackup.ts`) para lidar com empacotamento, envio e recepção segura de arquivos de backup.
-  - Atualização visual e lógica do painel `BackupRestoreSettings.tsx` suportando opções de backup na nuvem.
+  - Helpers de backup para empacotamento, envio e recepção de arquivos de backup.
+  - Lógica do painel `BackupRestoreSettings.tsx` suportando opções de backup na nuvem.
 
 ### 12. Lançamento das Versões `v0.1.1-beta` e `v0.1.2-beta`
 * **Solução:** Incremento de versão e publicação automatizada das novas releases no GitHub.
@@ -77,7 +77,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 ### 13. Paralelização na Busca de Capas (Startup Speedup)
 * **Problema:** A busca síncrona por capas de jogos sideloaded no SteamGridDB atrasava a inicialização do launcher em até 10 segundos.
 * **Solução:**
-  - Reformulamos a lógica em `sideload/library.ts` para executar a busca e cache em segundo plano (background thread) de maneira concorrente, com limite de concorrência igual a 3. O startup agora é instantâneo.
+  - Reformulamos a lógica em `sideload/library.ts` para executar a busca e cache em segundo plano de maneira concorrente, com limite de concorrência igual a 3. O startup agora é instantâneo.
 
 ### 14. Filtro e Ordenação por Jogos Recentes (Recent Games Sort)
 * **Problema:** Usuários precisavam rolar ou buscar para encontrar os jogos jogados recentemente.
@@ -89,6 +89,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 * **Solução:**
   - Implementado widget de nuvem no rodapé da biblioteca, exibindo dinamicamente o status (atualizado, pendente, erro ou inativo) com cores e mensagens informativas no hover.
 
+### 16. Lançamento das Versões `v0.1.3-beta` e `v0.1.4-beta`
+* **Solução:** Incremento de versão no package.json e publicação automatizada das novas releases estáveis (Beta) no GitHub.
+
+### 17. Documentação das Regras de Lançamento
+* **Solução:**
+  - Criação de `.agents/AGENTS.md` para documentar e aplicar os padrões de lançamento do Ghost Launcher (como cabeçalhos de descrição, tags, imagem de atualização oficial e auto-detecção lógica de semver).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -97,6 +104,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [package.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/package.json)
 - [MODIFY] [electron-builder.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron-builder.yml)
 - [MODIFY] [review.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/review.md)
+- [NEW] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
 
 ### Backend & Core
 - [MODIFY] [updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
@@ -129,6 +137,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/index.scss)
 - [MODIFY] [CachedImage/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/CachedImage/index.tsx)
 - [MODIFY] [Header/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.tsx)
+- [MODIFY] [Header/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.css)
 - [MODIFY] [Personalization/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.tsx)
 - [MODIFY] [Personalization/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.css)
 - [MODIFY] [StoreLogos/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/StoreLogos/index.tsx)
@@ -137,6 +146,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [SidebarLinks/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/SidebarLinks/index.tsx)
 - [MODIFY] [Sidebar/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/index.tsx)
 - [MODIFY] [Library/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/index.tsx)
+- [MODIFY] [LibraryHeader/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/LibraryHeader/index.tsx)
 - [MODIFY] [LibraryContext.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/LibraryContext.tsx)
 - [MODIFY] [GameCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.tsx)
 - [MODIFY] [GameCard/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.css)
