@@ -14,10 +14,21 @@ export function getApiKey(): string {
   }
 }
 
+const failedSearchCache = new Set<string>()
+const successfulSearchCache = new Map<string, { art_cover: string; art_square: string }>()
+
 export async function fetchCoverFromSteamGridDB(
   apiKey: string,
   title: string
 ): Promise<{ art_cover: string; art_square: string } | null> {
+  const normalizedKey = title.trim().toLowerCase()
+  if (failedSearchCache.has(normalizedKey)) {
+    return null
+  }
+  if (successfulSearchCache.has(normalizedKey)) {
+    return successfulSearchCache.get(normalizedKey)!
+  }
+
   const cleanTitle = (t: string) => {
     return t
       .replace(/[®™©]/g, '') // Remove logos de registro/marca
@@ -54,14 +65,21 @@ export async function fetchCoverFromSteamGridDB(
 
   // 1. Tenta com o título original
   let result = await trySearch(title)
-  if (result) return result
+  if (result) {
+    successfulSearchCache.set(normalizedKey, result)
+    return result
+  }
 
   // 2. Se falhar, tenta com o título limpo
   const cleaned = cleanTitle(title)
   if (cleaned !== title) {
     result = await trySearch(cleaned)
-    if (result) return result
+    if (result) {
+      successfulSearchCache.set(normalizedKey, result)
+      return result
+    }
   }
 
+  failedSearchCache.add(normalizedKey)
   return null
 }

@@ -19,6 +19,16 @@ export const initImagesCache = () => {
 }
 
 const pending = new Map<string, Promise<void>>()
+const activeDownloads = new Set<Promise<void>>()
+const MAX_CONCURRENT_DOWNLOADS = 8
+const downloadQueue: (() => void)[] = []
+
+const processDownloadQueue = () => {
+  while (activeDownloads.size < MAX_CONCURRENT_DOWNLOADS && downloadQueue.length > 0) {
+    const next = downloadQueue.shift()
+    if (next) next()
+  }
+}
 
 const getForwardHeaders = (request: Request): Record<string, string> => {
   const headers: Record<string, string> = {}
@@ -72,15 +82,15 @@ const getImageFromCache = (request: Request) => {
     return net.fetch(pathToFileURL(cachePath).toString())
   }
 
-  // Download in background if not already downloading
+  // Download in background with concurrency throttling if not already downloading
   if (!pending.has(digest)) {
-    pending.set(
-      digest,
-      axios({
+    const startDownload = () => {
+      const downloadTask = axios({
         method: 'get',
         url: realUrl,
         responseType: 'stream',
-        headers: getForwardHeaders(request)
+        headers: getForwardHeaders(request),
+        timeout: 15000
       })
         .then((response) => {
           const writer = createWriteStream(cachePath)
@@ -93,8 +103,26 @@ const getImageFromCache = (request: Request) => {
         .catch(() => {})
         .finally(() => {
           pending.delete(digest)
+          activeDownloads.delete(startPromise)
+          processDownloadQueue()
         })
-    )
+
+      return downloadTask
+    }
+
+    let startPromise: Promise<void>
+    const runTask = () => {
+      startPromise = startDownload()
+      activeDownloads.add(startPromise)
+    }
+
+    if (activeDownloads.size < MAX_CONCURRENT_DOWNLOADS) {
+      runTask()
+    } else {
+      downloadQueue.push(runTask)
+    }
+
+    pending.set(digest, Promise.resolve())
   }
 
   // Stream directly from remote URL using Electron net.fetch

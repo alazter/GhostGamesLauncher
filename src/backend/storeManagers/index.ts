@@ -83,9 +83,13 @@ export function autoUpdate(runner: Runner, gamesToUpdate: string[]) {
 }
 
 export async function initStoreManagers() {
-  await LegendaryLibraryManager.initLegendaryLibraryManager()
-  await GOGLibraryManager.initGOGLibraryManager()
-  await NileLibraryManager.initNileLibraryManager()
-  if (GlobalConfig.get().getSettings().experimentalFeatures?.zoomPlatform)
-    await ZoomLibraryManager.initZoomLibraryManager()
+  const inits: Promise<unknown>[] = [
+    LegendaryLibraryManager.initLegendaryLibraryManager(),
+    GOGLibraryManager.initGOGLibraryManager(),
+    NileLibraryManager.initNileLibraryManager()
+  ]
+  if (GlobalConfig.get().getSettings().experimentalFeatures?.zoomPlatform) {
+    inits.push(ZoomLibraryManager.initZoomLibraryManager())
+  }
+  await Promise.allSettled(inits)
 }
