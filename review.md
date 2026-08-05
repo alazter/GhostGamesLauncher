@@ -102,6 +102,12 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Melhorias e ajustes no gerenciador de lojas (`storeManagers/index.ts`) e ajudantes do SteamGridDB (`steamgridHelper.ts`).
   - Otimização da estratégia de cache de imagens (`images_cache.ts`).
 
+### 19. Limpeza e Sanitização de Títulos Sideload e Refatoração de Executáveis
+* **Problema:** Nomes de jogos escaneados do registro vinham com sufixos/lixo de versão ou desinstaladores, e a lógica de seleção do melhor `.exe` estava duplicada.
+* **Solução:**
+  - Adicionada função `cleanScannedGameTitle` e `sanitizeExistingSideloadLibrary` no backend do sideload scanner para limpar e higienizar títulos na biblioteca existente e ao escanear.
+  - Criado o utilitário `findBestExecutable` para unificar a seleção do executável principal dos jogos escaneados.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados

@@ -36,6 +36,45 @@ interface ScannerRules {
 import loadedRulesJson from './scanner_rules.json'
 const loadedRules = loadedRulesJson as ScannerRules
 
+export function cleanScannedGameTitle(rawTitle: string): string {
+  if (!rawTitle) return ''
+  let t = rawTitle.trim()
+
+  // 1. Remove bracketed/parenthesized scene/repack/release/translation tags
+  t = t.replace(/\[(?:fitgirl|repack|steam\.rip|p2p|nosteam|deadc0de|insaneramzes|gog|dvd|iso)[^\]]*\]/gi, '')
+  t = t.replace(/\((?:off\s*line\s*version|tradução|traducao|repack|portable|nosTEAM)[^)]*\)/gi, '')
+
+  // 2. Remove trailing scene/release group tags
+  t = t.replace(/[-.](?:P2P|nosTEAM|0xdeadc0de|InsaneRamZes|FitGirl|Dodi|EMPRESS|SKIDROW|CODEX|RELOADED|FLT|HOODLUM|PLAZA|RAZOR1911)$/gi, '')
+
+  // 3. Remove version / build suffixes
+  t = t.replace(/(?:\bversion\b|\bbuild\b|\bver\b)?\s*v?\d+(?:\.\d+)+(?:[._-][a-z0-9]+)*/gi, '')
+  t = t.replace(/[._-]build[._-]\d+/gi, '')
+  t = t.replace(/[._-]alpha[._-]win[._-]v?\d+([._-]\d+)*/gi, '')
+
+  // 4. Replace dot-separated title words if dot-concatenated (e.g. Cities.Skylines.II or Luma.Island or TCG.Card.Shop.Simulator)
+  if (t.includes('.') && !/^[a-z]\.([a-z]\.)+/i.test(t)) {
+    const parts = t.split('.')
+    if (parts.length > 2 && parts.every(p => p.length > 1 || /^\d+$/.test(p))) {
+      t = parts.join(' ')
+    }
+  }
+
+  // 5. Replace underscore separators if used as spaces (e.g. Besiege_Alpha -> Besiege Alpha)
+  if (t.includes('_') && !t.includes(' ')) {
+    t = t.replace(/_/g, ' ')
+  }
+
+  // 6. Remove junk prefixes
+  t = t.replace(/^path_nocd_/gi, '')
+  t = t.replace(/^path_/gi, '')
+
+  // Clean trailing spaces and extra whitespace
+  t = t.replace(/\s+/g, ' ').trim()
+
+  return t || rawTitle
+}
+
 function getSimilarity(s1: string, s2: string): number {
   const norm1 = s1.toLowerCase().replace(/[^a-z0-9]/g, '')
   const norm2 = s2.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -93,39 +132,57 @@ function isAcronym(exeName: string, folderTitle: string): boolean {
 function isCandidateExeValid(exePath: string, folderTitle: string, matchedRule?: ScannerRule, bypassStrictFilters = false): boolean {
   const fileName = basename(exePath).toLowerCase()
 
-  // 1. If it's a known game and is the preferred exe, it's always valid
-  if (matchedRule) {
-    if (matchedRule.preferred_exe && fileName === matchedRule.preferred_exe.toLowerCase()) {
-      return true
-    }
-  }
-
-  // 2. Filter out general installer/updater/tool keywords in the file name
-  if (['unins', 'uninstall', 'setup', 'install', 'crash', 'reporter', 'config', 'settings', 'tool', 'cef', 'browser', 'unity', 'easyanticheat', 'eac', 'vc_redist', 'dxsetup', 'touchup', 'gfn', 'geforce'].some(k => fileName.includes(k))) {
+  // Must end with .exe (prevents text files like steam_appid.txt)
+  if (!fileName.endsWith('.exe')) {
     return false
   }
 
-  // 3. Rules-based blacklist and ignore exes
+  // 1. Known ignore exes
+  if (matchedRule && matchedRule.ignore_exes && matchedRule.ignore_exes.some(k => fileName.includes(k.toLowerCase()))) {
+    return false
+  }
+
+  // 2. Known launcher/store exes that should never be selected as a game runner
+  if (['steam.exe', 'epicgameslauncher.exe', 'galaxyclient.exe', 'ea.exe', 'origin.exe', 'riotclientservices.exe'].includes(fileName)) {
+    return false
+  }
+
+  // 3. Blacklisted tool/auxiliary keywords
+  const blacklistKeywords = [
+    'unins', 'uninstall', 'setup', 'install', 'crash', 'reporter', 'report', 'config',
+    'settings', 'tool', 'cef', 'browser', 'unitycrash', 'easyanticheat', 'eac', 'vc_redist',
+    'dxsetup', 'touchup', 'gfn', 'geforce', 'uploader', 'workshop', 'bssndrpt', 'jabswitch',
+    'makeres', 'activationui', 'editor', 'roedlaa', 'register', 'helper', 'patch'
+  ]
+  if (blacklistKeywords.some(k => fileName.includes(k))) {
+    return false
+  }
+
+  // 4. Rules-based blacklist
   if (loadedRules.blacklisted_exes && loadedRules.blacklisted_exes.some(k => fileName.includes(k.toLowerCase()))) {
     return false
   }
-  if (matchedRule && matchedRule.ignore_exes.some(k => fileName.includes(k.toLowerCase()))) {
-    return false
-  }
 
-  // 4. Subfolder exclusion: check if file path contains common redist/tools/support/scripts/shims directories
+  // 5. Subfolder exclusion: check if file path contains common redist/tools/support/scripts/shims/jre/jdk/mono directories
   const pathParts = exePath.toLowerCase().split(/[\\/]/)
-  const ignoredSubfolders = ['redist', 'support', 'tools', 'scripts', 'shims', '_redist', '__installer']
+  const ignoredSubfolders = [
+    'redist', 'support', 'tools', 'scripts', 'shims', '_redist', '__installer',
+    'jre', 'jre64', 'jdk', 'mono', 'dotnet', 'activation'
+  ]
   if (pathParts.some(part => ignoredSubfolders.includes(part))) {
     return false
   }
 
-  // If we bypass strict filters (for verified Steam/Registry app folders), skip size and similarity checks
+  // 6. If it's a known game and is the preferred exe, it's always valid
+  if (matchedRule && matchedRule.preferred_exe && fileName === matchedRule.preferred_exe.toLowerCase()) {
+    return true
+  }
+
   if (bypassStrictFilters) {
     return true
   }
 
-  // 5. File size filter (must be >= 3 MB for unknown games)
+  // File size filter (must be >= 3 MB for unknown games)
   let sizeInMB = 0
   try {
     const stats = statSync(exePath)
@@ -133,18 +190,12 @@ function isCandidateExeValid(exePath: string, folderTitle: string, matchedRule?:
     if (sizeInMB < 3) {
       return false
     }
-  } catch {
-    // Fail-safe to true if stat fails
-  }
+  } catch {}
 
-  // If the executable size is relatively large (>= 15 MB), it is highly likely to be
-  // the main game runner, so we bypass similarity check to avoid missing games
-  // with non-standard executable filenames.
   if (sizeInMB >= 15) {
     return true
   }
 
-  // 6. Name similarity check between exe name (no extension) and parent folder / title
   const exeBase = basename(exePath, '.exe')
   const similarity = getSimilarity(exeBase, folderTitle)
   if (similarity < 0.12 && !isAcronym(exeBase, folderTitle)) {
@@ -152,6 +203,65 @@ function isCandidateExeValid(exePath: string, folderTitle: string, matchedRule?:
   }
 
   return true
+}
+
+function findBestExecutable(candidates: string[], title: string, gameFolder: string, matchedRule?: ScannerRule): string {
+  if (candidates.length === 0) return ''
+
+  if (matchedRule && matchedRule.preferred_exe) {
+    const preferred = candidates.find(path =>
+      basename(path).toLowerCase() === matchedRule.preferred_exe.toLowerCase()
+    )
+    if (preferred) return preferred
+  }
+
+  const cleanTitleStr = cleanScannedGameTitle(title).toLowerCase()
+  const normTitle = cleanTitleStr.replace(/[^a-z0-9]/g, '')
+  const normFolder = normalizePathForComparison(gameFolder)
+
+  let bestCandidate = candidates[0]
+  let bestScore = -9999
+
+  for (const path of candidates) {
+    const fileName = basename(path, '.exe').toLowerCase()
+    const normFile = fileName.replace(/[^a-z0-9]/g, '')
+    const dirPath = normalizePathForComparison(dirname(path))
+    const isRoot = dirPath === normFolder
+
+    let score = 0
+
+    // Root folder bonus (+500 pts)
+    if (isRoot) {
+      score += 500
+    } else {
+      score -= 200
+    }
+
+    // Exact filename match to clean title (+400 pts)
+    if (normFile === normTitle && normTitle.length > 0) {
+      score += 400
+    } else if (normTitle.includes(normFile) || normFile.includes(normTitle)) {
+      score += 150
+    }
+
+    // Acronym match (+300 pts)
+    if (isAcronym(fileName, title)) {
+      score += 300
+    }
+
+    // File size bonus
+    try {
+      const stats = statSync(path)
+      score += Math.floor(stats.size / (1024 * 1024))
+    } catch {}
+
+    if (score > bestScore) {
+      bestScore = score
+      bestCandidate = path
+    }
+  }
+
+  return bestCandidate
 }
 
 function detectAntiCheat(dir: string, depth = 0): boolean {
@@ -235,7 +345,7 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
           const appid = appidMatch ? appidMatch[1] : ''
 
           if (nameMatch && dirMatch) {
-            const title = nameMatch[1].trim()
+            const title = cleanScannedGameTitle(nameMatch[1].trim())
             const installDir = dirMatch[1].trim()
             const gameFolder = join(steamappsDir, 'common', installDir)
 
@@ -243,42 +353,13 @@ async function discoverSteamGames(): Promise<GameCandidate[]> {
               const exeCandidates = await findExecutables(gameFolder)
               if (exeCandidates.length === 0) continue
 
-              // Filter out invalid candidates using our smart validator
               const matchedRule = loadedRules.known_games.find(rule => 
                 title.toLowerCase().includes(rule.displayNamePattern.toLowerCase())
               )
               const filtered = exeCandidates.filter(path => isCandidateExeValid(path, title, matchedRule, true))
               if (filtered.length === 0) continue
 
-              // Determine the best executable
-              let executablePath = ''
-              if (matchedRule) {
-                const preferred = filtered.find(path => 
-                  basename(path).toLowerCase() === matchedRule.preferred_exe.toLowerCase()
-                )
-                if (preferred) executablePath = preferred
-              }
-
-              if (!executablePath) {
-                let bestCandidate = filtered[0]
-                let bestScore = -1
-                for (const path of filtered) {
-                  const file = basename(path, '.exe').toLowerCase()
-                  let score = 0
-                  if (title.toLowerCase().includes(file) || file.includes(title.toLowerCase())) {
-                    score += 100
-                  }
-                  try {
-                    const stats = statSync(path)
-                    score += Math.floor(stats.size / (1024 * 1024))
-                  } catch {}
-                  if (score > bestScore) {
-                    bestScore = score
-                    bestCandidate = path
-                  }
-                }
-                executablePath = bestCandidate
-              }
+              const executablePath = findBestExecutable(filtered, title, gameFolder, matchedRule)
 
               if (executablePath) {
                 const steamExe = join(steamPath, 'steam.exe')
@@ -468,7 +549,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
     const { DisplayName, InstallLocation, DisplayIcon } = entry
     if (!DisplayName || !InstallLocation) continue
 
-    const title = DisplayName.trim()
+    const title = cleanScannedGameTitle(DisplayName)
     const folder = InstallLocation.trim()
 
     if (!title || !folder || !existsSync(folder)) continue
@@ -507,10 +588,9 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
 
     // Option 1: Parse DisplayIcon
     if (DisplayIcon) {
-      // Clean icon path (remove comma index and quotes)
       const cleanIcon = DisplayIcon.replace(/,\d+$/, '').replace(/"/g, '').trim()
       if (cleanIcon.toLowerCase().endsWith('.exe') && existsSync(cleanIcon)) {
-        if (isCandidateExeValid(cleanIcon, title, matchedRule, true)) {
+        if (isCandidateExeValid(cleanIcon, title, matchedRule, false)) {
           executablePath = cleanIcon
         }
       }
@@ -521,49 +601,10 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
       const candidates = await findExecutables(folder)
       if (candidates.length === 0) continue
 
-      // Filter candidates
       const filtered = candidates.filter(path => isCandidateExeValid(path, title, matchedRule, true))
-
       if (filtered.length === 0) continue
 
-      // Try to find preferred_exe first
-      if (matchedRule) {
-        const preferred = filtered.find(path => 
-          basename(path).toLowerCase() === matchedRule.preferred_exe.toLowerCase()
-        )
-        if (preferred) {
-          executablePath = preferred
-        }
-      }
-
-      if (!executablePath) {
-        // Score candidates to find the best match
-        let bestCandidate = filtered[0]
-        let bestScore = -1
-
-        for (const path of filtered) {
-          const file = basename(path, '.exe').toLowerCase()
-          let score = 0
-
-          // High score if filename is similar to the game title
-          if (titleLower.includes(file) || file.includes(titleLower)) {
-            score += 100
-          }
-
-          // Add file size to score (larger is more likely to be the game)
-          try {
-            const stats = statSync(path)
-            score += Math.floor(stats.size / (1024 * 1024)) // 1 point per MB
-          } catch {}
-
-          if (score > bestScore) {
-            bestScore = score
-            bestCandidate = path
-          }
-        }
-
-        executablePath = bestCandidate
-      }
+      executablePath = findBestExecutable(filtered, title, folder, matchedRule)
     }
 
     if (!executablePath) continue
@@ -736,7 +777,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
     const { DisplayName, InstallLocation, DisplayIcon, PSChildName } = entry
     if (!DisplayName || !InstallLocation) continue
 
-    const title = DisplayName.trim()
+    const title = cleanScannedGameTitle(DisplayName)
     const folder = InstallLocation.trim()
 
     if (!title || !folder || !existsSync(folder)) continue
@@ -758,10 +799,9 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
 
     // Option 1: Parse DisplayIcon
     if (DisplayIcon) {
-      // Clean icon path (remove comma index and quotes)
       const cleanIcon = DisplayIcon.replace(/,\d+$/, '').replace(/"/g, '').trim()
       if (cleanIcon.toLowerCase().endsWith('.exe') && existsSync(cleanIcon)) {
-        if (isCandidateExeValid(cleanIcon, title, matchedRule, true)) {
+        if (isCandidateExeValid(cleanIcon, title, matchedRule, false)) {
           executablePath = cleanIcon
         }
       }
@@ -772,49 +812,10 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
       const exeCandidates = await findExecutables(folder)
       if (exeCandidates.length === 0) continue
 
-      // Filter candidates
       const filtered = exeCandidates.filter(path => isCandidateExeValid(path, title, matchedRule, true))
-
       if (filtered.length === 0) continue
 
-      // Try to find preferred_exe first
-      if (matchedRule) {
-        const preferred = filtered.find(path => 
-          basename(path).toLowerCase() === matchedRule.preferred_exe.toLowerCase()
-        )
-        if (preferred) {
-          executablePath = preferred
-        }
-      }
-
-      if (!executablePath) {
-        // Score candidates to find the best match
-        let bestCandidate = filtered[0]
-        let bestScore = -1
-
-        for (const path of filtered) {
-          const file = basename(path, '.exe').toLowerCase()
-          let score = 0
-
-          // High score if filename is similar to the game title
-          if (titleLower.includes(file) || file.includes(titleLower)) {
-            score += 100
-          }
-
-          // Add file size to score (larger is more likely to be the game)
-          try {
-            const stats = statSync(path)
-            score += Math.floor(stats.size / (1024 * 1024)) // 1 point per MB
-          } catch {}
-
-          if (score > bestScore) {
-            bestScore = score
-            bestCandidate = path
-          }
-        }
-
-        executablePath = bestCandidate
-      }
+      executablePath = findBestExecutable(filtered, title, folder, matchedRule)
     }
 
     if (!executablePath) continue
@@ -1415,4 +1416,25 @@ export async function clearBlacklist(): Promise<void> {
 
 export async function getBlacklist(): Promise<Array<{ title: string; executable: string }>> {
   return libraryStore.get('blacklist', [])
+}
+
+export function sanitizeExistingSideloadLibrary(): void {
+  const games = libraryStore.get('games', []) as any[]
+  if (!games || games.length === 0) return
+
+  let updated = false
+  for (const game of games) {
+    if (!game.title) continue
+    const cleaned = cleanScannedGameTitle(game.title)
+    if (cleaned !== game.title && cleaned.length > 0) {
+      logInfo(`[Sideload Library] Sanitizing cluttered game title: "${game.title}" -> "${cleaned}"`)
+      game.title = cleaned
+      updated = true
+    }
+  }
+
+  if (updated) {
+    libraryStore.set('games', games)
+    sendFrontendMessage('refreshLibrary', 'sideload')
+  }
 }

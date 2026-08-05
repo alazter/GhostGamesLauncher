@@ -75,7 +75,10 @@ export function installState() {
   logWarning(`installState not implemented on Sideload Library Manager`)
 }
 
+import { sanitizeExistingSideloadLibrary } from './scanner'
+
 export async function refresh() {
+  sanitizeExistingSideloadLibrary()
   const apiKey = getApiKey()
   if (!apiKey) {
     logInfo('[Sideload Library] Skip cover auto-update: SteamGridDB API key is missing.')
