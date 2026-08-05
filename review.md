@@ -1,4 +1,4 @@
-# Review das Alterações - 13/07/2026
+# Review das Alterações - 04/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -96,6 +96,12 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 * **Solução:**
   - Criação de `.agents/AGENTS.md` para documentar e aplicar os padrões de lançamento do Ghost Launcher (como cabeçalhos de descrição, tags, imagem de atualização oficial e auto-detecção lógica de semver).
 
+### 18. Lançamento da Versão `v0.1.5-beta` e Otimizações de Imagens / Lojas
+* **Solução:**
+  - Incremento de versão para `v0.1.5-beta` no `package.json`.
+  - Melhorias e ajustes no gerenciador de lojas (`storeManagers/index.ts`) e ajudantes do SteamGridDB (`steamgridHelper.ts`).
+  - Otimização da estratégia de cache de imagens (`images_cache.ts`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -114,6 +120,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [game_overrides/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/game_overrides/index.ts)
 - [MODIFY] [scanner.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner.ts)
 - [MODIFY] [scanner_rules.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner_rules.json)
+- [MODIFY] [storeManagers/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/index.ts)
 - [MODIFY] [tray_icon.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/tray_icon/tray_icon.ts)
 - [MODIFY] [types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
 - [MODIFY] [ipc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/ipc.ts)
