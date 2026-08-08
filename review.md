@@ -1,4 +1,4 @@
-# Review das Alterações - 04/08/2026
+# Review das Alterações - 08/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -108,6 +108,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Adicionada função `cleanScannedGameTitle` e `sanitizeExistingSideloadLibrary` no backend do sideload scanner para limpar e higienizar títulos na biblioteca existente e ao escanear.
   - Criado o utilitário `findBestExecutable` para unificar a seleção do executável principal dos jogos escaneados.
 
+### 20. Resolução Definitiva de Ícone Permanente e Tratamento de Erros OAuth (Google Cloud)
+* **Problema:** Ícones de atalhos e janelas perdiam o formato HD em certos ambientes portáteis e o login OAuth do Google Cloud apresentava erro 403 (access_denied) sem explicação clara.
+* **Solução:**
+  - Criada a função `ensurePermanentAppIcon()` em `paths.ts` com busca em múltiplos caminhos e cópia resiliente do `win_icon.ico` para `userDataPath`.
+  - Atualizada a criação da janela principal e dos atalhos da área de trabalho para usarem o ícone permanente.
+  - Implementada captura e tratamento de erros OAuth (como `access_denied`/403) no servidor HTTP callback de `cloudBackup.ts`.
+  - Adicionadas dicas visuais de configuração de usuários de teste no painel `BackupRestoreSettings.tsx`.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -122,6 +130,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
 - [MODIFY] [main.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main.ts)
 - [MODIFY] [main_window.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main_window.ts)
+- [MODIFY] [constants/paths.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/constants/paths.ts)
 - [MODIFY] [images_cache.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/images_cache.ts)
 - [MODIFY] [game_overrides/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/game_overrides/index.ts)
 - [MODIFY] [scanner.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner.ts)
@@ -137,7 +146,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [progress_bar.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/progress_bar.test.ts)
 - [MODIFY] [steamgridHelper.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/steamgridHelper.ts)
 - [MODIFY] [sideload/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/library.ts)
-- [NEW] [cloudBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/cloudBackup.ts)
+- [MODIFY] [cloudBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/cloudBackup.ts)
 - [NEW] [backupHelper.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/backupHelper.ts)
 
 ### Preload & API

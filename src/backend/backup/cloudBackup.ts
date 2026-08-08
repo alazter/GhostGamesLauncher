@@ -130,6 +130,23 @@ export function connectCloudProvider(provider: 'google' | 'onedrive' | 'dropbox'
       if (parsedUrl.pathname === '/callback') {
         const code = parsedUrl.query.code as string
         const returnedState = parsedUrl.query.state as string
+        const oauthError = parsedUrl.query.error as string
+
+        if (oauthError) {
+          res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' })
+          let msg = `Erro na autorização: ${oauthError}`
+          if (oauthError === 'access_denied') {
+            msg = 'Acesso negado (Erro 403). Certifique-se de adicionar seu e-mail em "Usuários de teste" no Google Cloud Console ou publicar o app.'
+          }
+          res.end(`<h1>Erro de Autenticação</h1><p>${msg}</p>`)
+          clearTimeout(timeoutId)
+          if (oauthServer) {
+            oauthServer.close()
+            oauthServer = null
+          }
+          resolve({ success: false, error: msg })
+          return
+        }
 
         // Verify CSRF state
         if (!returnedState || returnedState !== secureState) {

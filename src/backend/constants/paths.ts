@@ -70,6 +70,41 @@ export function fixAsarPath(origin: string): string {
   return origin
 }
 
+import { existsSync } from 'fs'
+
 export const windowIcon = fixAsarPath(
   join(publicDir, isWindows ? 'win_icon.ico' : 'icon.png')
 )
+
+export function ensurePermanentAppIcon(): string {
+  if (!isWindows) {
+    return windowIcon
+  }
+
+  const permanentIconPath = join(userDataPath, 'win_icon.ico')
+  const possibleSources = [
+    join(process.resourcesPath || '', 'app.asar.unpacked', 'build', 'win_icon.ico'),
+    join(process.resourcesPath || '', 'app.asar.unpacked', 'public', 'win_icon.ico'),
+    windowIcon,
+    join(publicDir, 'win_icon.ico'),
+    join(app.getAppPath(), 'public', 'win_icon.ico'),
+    join(app.getAppPath(), 'build', 'win_icon.ico'),
+    resolve(__dirname, '..', 'public', 'win_icon.ico'),
+    resolve(__dirname, '../..', 'public', 'win_icon.ico')
+  ]
+
+  for (const src of possibleSources) {
+    if (src && existsSync(src)) {
+      try {
+        require('fs').copyFileSync(src, permanentIconPath)
+        return permanentIconPath
+      } catch {}
+    }
+  }
+
+  if (existsSync(permanentIconPath)) {
+    return permanentIconPath
+  }
+
+  return process.execPath
+}

@@ -2,7 +2,7 @@ import { AppSettings, WindowProps } from 'common/types'
 import { BrowserWindow, screen } from 'electron'
 import path from 'path'
 import { configStore } from './constants/key_value_stores'
-import { windowIcon } from './constants/paths'
+import { windowIcon, ensurePermanentAppIcon } from './constants/paths'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -88,7 +88,7 @@ export const createMainWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
     ...props,
-    icon: windowIcon,
+    icon: ensurePermanentAppIcon(),
     minHeight: 345,
     minWidth: 600,
     show: false,

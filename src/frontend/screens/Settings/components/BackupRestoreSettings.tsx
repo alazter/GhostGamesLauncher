@@ -351,6 +351,9 @@ export const BackupRestoreSettings: React.FC = () => {
                         style={{ width: '100%', padding: '6px 10px', fontSize: '12px', borderRadius: '4px', backgroundColor: '#141418', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.15)' }}
                       />
                     </div>
+                    <p style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>
+                      💡 <strong>Dica de Permissão (Erro 403)</strong>: Se o Google exibir <em>"Erro 403: access_denied / app em fase de testes"</em>, acesse o <strong>Google Cloud Console &gt; Tela de Permissão OAuth</strong> e adicione seu e-mail em <strong>Usuários de teste</strong> (ou clique em <strong>Publicar Aplicativo</strong>).
+                    </p>
                     <button
                       type="button"
                       onClick={handleSaveGoogleCreds}

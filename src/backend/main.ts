@@ -177,7 +177,8 @@ import {
   publicDir,
   userHome,
   webviewPreloadPath,
-  windowIcon
+  windowIcon,
+  ensurePermanentAppIcon
 } from './constants/paths'
 import { supportedLanguages } from 'common/languages'
 import MigrationSystem from './migration'
@@ -421,17 +422,7 @@ if (!gotTheLock) {
           }
         } catch {}
 
-        const permanentIconPath = path.join(app.getPath('userData'), 'win_icon.ico')
-        const unpackedIconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'win_icon.ico')
-        let iconToUse = currentExePath
-        try {
-          if (existsSync(unpackedIconPath)) {
-            require('fs').copyFileSync(unpackedIconPath, permanentIconPath)
-            iconToUse = permanentIconPath
-          } else if (existsSync(permanentIconPath)) {
-            iconToUse = permanentIconPath
-          }
-        } catch {}
+        const iconToUse = ensurePermanentAppIcon()
 
         const shortcutPath = path.join(desktopFolder, 'Ghost Games Launcher.lnk')
         shell.writeShortcutLink(shortcutPath, 'create', {
@@ -871,17 +862,7 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
           }
         } catch {}
 
-        const permanentIconPath = path.join(app.getPath('userData'), 'win_icon.ico')
-        const unpackedIconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'win_icon.ico')
-        let iconToUse = destPath
-        try {
-          if (existsSync(unpackedIconPath)) {
-            require('fs').copyFileSync(unpackedIconPath, permanentIconPath)
-            iconToUse = permanentIconPath
-          } else if (existsSync(permanentIconPath)) {
-            iconToUse = permanentIconPath
-          }
-        } catch {}
+        const iconToUse = ensurePermanentAppIcon()
 
         const shortcutPath = path.join(desktopFolder, 'Ghost Games Launcher.lnk')
         shell.writeShortcutLink(shortcutPath, 'create', {
