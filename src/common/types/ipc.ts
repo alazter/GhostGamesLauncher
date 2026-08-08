@@ -410,6 +410,8 @@ interface AsyncIPCFunctions {
   connectCloudProvider: (provider: 'google' | 'onedrive' | 'dropbox') => Promise<{ success: boolean; error?: string; accountName?: string }>
   disconnectCloudProvider: () => Promise<void>
   getCloudProviderStatus: () => Promise<{ connected: boolean; provider?: string; accountName?: string }>
+  getGoogleCredentials: () => Promise<{ clientId: string; clientSecret: string }>
+  setGoogleCredentials: (clientId: string, clientSecret: string) => Promise<void>
   uploadBackupToCloud: (frontendData?: { localStorageData?: Record<string, string> }) => Promise<{ success: boolean; error?: string }>
   downloadBackupFromCloud: () => Promise<{ success: boolean; data?: any; error?: string }>
 }

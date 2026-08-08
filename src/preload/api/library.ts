@@ -40,6 +40,8 @@ export const importGhostBackup = makeHandlerInvoker('importGhostBackup')
 export const connectCloudProvider = makeHandlerInvoker('connectCloudProvider')
 export const disconnectCloudProvider = makeHandlerInvoker('disconnectCloudProvider')
 export const getCloudProviderStatus = makeHandlerInvoker('getCloudProviderStatus')
+export const getGoogleCredentials = makeHandlerInvoker('getGoogleCredentials')
+export const setGoogleCredentials = makeHandlerInvoker('setGoogleCredentials')
 export const uploadBackupToCloud = makeHandlerInvoker('uploadBackupToCloud')
 export const downloadBackupFromCloud = makeHandlerInvoker('downloadBackupFromCloud')
 

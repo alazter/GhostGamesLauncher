@@ -187,7 +187,9 @@ import {
   clearCloudTokens,
   getCloudProviderStatus,
   uploadBackupToCloud,
-  downloadBackupFromCloud
+  downloadBackupFromCloud,
+  getGoogleCredentials,
+  setGoogleCredentials
 } from './backup/cloudBackup'
 
 import { getBackupPayload } from './backup/backupHelper'
@@ -1008,6 +1010,14 @@ addHandler('disconnectCloudProvider', async () => {
 
 addHandler('getCloudProviderStatus', async () => {
   return getCloudProviderStatus()
+})
+
+addHandler('getGoogleCredentials', async () => {
+  return getGoogleCredentials()
+})
+
+addHandler('setGoogleCredentials', async (event, clientId, clientSecret) => {
+  setGoogleCredentials(clientId, clientSecret)
 })
 
 addHandler('uploadBackupToCloud', async (event, frontendData?: { localStorageData?: Record<string, string> }) => {

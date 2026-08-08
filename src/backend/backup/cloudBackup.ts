@@ -6,8 +6,25 @@ import { configStore } from '../constants/key_value_stores'
 import { logInfo, logError, LogPrefix } from '../logger'
 
 // Client IDs (In a production app, these would be configured in your developer consoles)
-const GOOGLE_CLIENT_ID = '1015930605141-eskj18s06ge3or3mm9i8u96jju1lc3as' + '.apps.googleusercontent.com'
-const GOOGLE_CLIENT_SECRET = 'GOCSPX-' + 'UdPE9nT-qpuMB7DlZsQiIxF0UPGt'
+const DEFAULT_GOOGLE_CLIENT_ID = '760032386127-n1b6brgba9h7o6oln5dnr6r5dq3ukr5h' + '.apps.googleusercontent.com'
+const DEFAULT_GOOGLE_CLIENT_SECRET = 'GOCSPX-' + 'v5zglxklLQkVSmAzHaPomo1ZXJ-N'
+
+export function getGoogleCredentials(): { clientId: string; clientSecret: string } {
+  const storeAny = configStore as any
+  const customId = storeAny.get('google_client_id', '')
+  const customSecret = storeAny.get('google_client_secret', '')
+  return {
+    clientId: customId || DEFAULT_GOOGLE_CLIENT_ID,
+    clientSecret: customSecret || DEFAULT_GOOGLE_CLIENT_SECRET
+  }
+}
+
+export function setGoogleCredentials(clientId: string, clientSecret: string): void {
+  const storeAny = configStore as any
+  storeAny.set('google_client_id', clientId.trim())
+  storeAny.set('google_client_secret', clientSecret.trim())
+}
+
 const DROPBOX_CLIENT_ID = 'j01l30j4ay8cor1'
 const DROPBOX_CLIENT_SECRET = 'a5zsl2zk741' + 'obkz'
 const ONEDRIVE_CLIENT_ID = '84232d7f-cd4e-47ce-9bb0-6d592d32d884'
@@ -177,8 +194,10 @@ export function connectCloudProvider(provider: 'google' | 'onedrive' | 'dropbox'
 
 function getAuthUrl(provider: string, state: string): string {
   switch (provider) {
-    case 'google':
-      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent&state=${state}`
+    case 'google': {
+      const { clientId } = getGoogleCredentials()
+      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent&state=${state}`
+    }
     case 'dropbox':
       return `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&token_access_type=offline&state=${state}`
     case 'onedrive':
@@ -193,8 +212,9 @@ async function exchangeCodeForTokens(provider: string, code: string): Promise<Cl
   let body = ''
 
   if (provider === 'google') {
+    const { clientId, clientSecret } = getGoogleCredentials()
     tokenUrl = 'https://oauth2.googleapis.com/token'
-    body = `code=${code}&client_id=${GOOGLE_CLIENT_ID}&client_secret=${GOOGLE_CLIENT_SECRET}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
+    body = `code=${code}&client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
   } else if (provider === 'dropbox') {
     tokenUrl = 'https://api.dropboxapi.com/oauth2/token'
     body = `code=${code}&client_id=${DROPBOX_CLIENT_ID}&client_secret=${DROPBOX_CLIENT_SECRET}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
@@ -275,8 +295,9 @@ async function getValidAccessToken(provider: string, tokens: CloudTokens): Promi
   let body = ''
 
   if (provider === 'google') {
+    const { clientId, clientSecret } = getGoogleCredentials()
     tokenUrl = 'https://oauth2.googleapis.com/token'
-    body = `refresh_token=${tokens.refresh_token}&client_id=${GOOGLE_CLIENT_ID}&client_secret=${GOOGLE_CLIENT_SECRET}&grant_type=refresh_token`
+    body = `refresh_token=${tokens.refresh_token}&client_id=${clientId}&client_secret=${clientSecret}&grant_type=refresh_token`
   } else if (provider === 'dropbox') {
     tokenUrl = 'https://api.dropboxapi.com/oauth2/token'
     body = `refresh_token=${tokens.refresh_token}&client_id=${DROPBOX_CLIENT_ID}&client_secret=${DROPBOX_CLIENT_SECRET}&grant_type=refresh_token`

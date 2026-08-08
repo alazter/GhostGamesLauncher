@@ -27,6 +27,9 @@ export const BackupRestoreSettings: React.FC = () => {
   const [connecting, setConnecting] = useState(false)
   const [uploadingCloud, setUploadingCloud] = useState(false)
   const [downloadingCloud, setDownloadingCloud] = useState(false)
+  const [googleClientId, setGoogleClientId] = useState('')
+  const [googleClientSecret, setGoogleClientSecret] = useState('')
+  const [showGoogleCreds, setShowGoogleCreds] = useState(false)
   
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -42,6 +45,12 @@ export const BackupRestoreSettings: React.FC = () => {
 
   useEffect(() => {
     fetchCloudStatus()
+    if (window.api.getGoogleCredentials) {
+      window.api.getGoogleCredentials().then(creds => {
+        setGoogleClientId(creds.clientId || '')
+        setGoogleClientSecret(creds.clientSecret || '')
+      })
+    }
   }, [cloudProvider])
 
   const handleExport = async () => {
@@ -178,6 +187,17 @@ export const BackupRestoreSettings: React.FC = () => {
     }
   }
 
+  const handleSaveGoogleCreds = async () => {
+    try {
+      if (window.api.setGoogleCredentials) {
+        await window.api.setGoogleCredentials(googleClientId, googleClientSecret)
+        setMessage({ type: 'success', text: 'Credenciais do Google Drive atualizadas com sucesso!' })
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: String(err) })
+    }
+  }
+
   const getProviderLabel = (prov: string) => {
     switch (prov) {
       case 'google': return 'Google Drive'
@@ -301,6 +321,48 @@ export const BackupRestoreSettings: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {cloudProvider === 'google' && (
+              <div style={{ marginTop: '4px', padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(0, 0, 0, 0.2)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => setShowGoogleCreds(!showGoogleCreds)}>
+                  <span style={{ fontSize: '12px', color: '#00e5ff', fontWeight: 'bold' }}>
+                    {showGoogleCreds ? '▲ Ocultar Credenciais de API do Google' : '▼ Credenciais de API do Google OAuth'}
+                  </span>
+                </div>
+                {showGoogleCreds && (
+                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.7)', display: 'block', marginBottom: '4px' }}>Client ID do Google:</label>
+                      <input
+                        type="text"
+                        value={googleClientId}
+                        onChange={(e) => setGoogleClientId(e.target.value)}
+                        placeholder="ID do Cliente Google (.apps.googleusercontent.com)"
+                        style={{ width: '100%', padding: '6px 10px', fontSize: '12px', borderRadius: '4px', backgroundColor: '#141418', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.15)' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.7)', display: 'block', marginBottom: '4px' }}>Chave Secreta do Cliente (Client Secret):</label>
+                      <input
+                        type="password"
+                        value={googleClientSecret}
+                        onChange={(e) => setGoogleClientSecret(e.target.value)}
+                        placeholder="Chave secreta GOCSPX-..."
+                        style={{ width: '100%', padding: '6px 10px', fontSize: '12px', borderRadius: '4px', backgroundColor: '#141418', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.15)' }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveGoogleCreds}
+                      className="button is-secondary"
+                      style={{ alignSelf: 'flex-start', fontSize: '12px', padding: '6px 12px', borderRadius: '4px' }}
+                    >
+                      Salvar Credenciais
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Cloud Sync Operations */}
             {cloudStatus.connected && cloudStatus.provider === cloudProvider && (
