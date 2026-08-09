@@ -1,0 +1,16 @@
+.Releases {
+  grid-area: content;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--color-background-primary, #0c0d14);
+  overflow: hidden;
+}
+
+.Releases__webview {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

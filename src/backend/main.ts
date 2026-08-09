@@ -267,6 +267,13 @@ async function initializeWindow(): Promise<BrowserWindow> {
   mainWindow.setIcon(windowIcon)
   app.commandLine.appendSwitch('enable-spatial-navigation')
 
+  // Configure Quad9 Secure DNS over HTTPS (DoH) for encrypted, privacy-first, malware-protected DNS
+  app.commandLine.appendSwitch('enable-features', 'DnsOverHttps')
+  app.commandLine.appendSwitch(
+    'dns-over-https-templates',
+    'https://dns.quad9.net/dns-query'
+  )
+
   mainWindow.on('maximize', () => sendFrontendMessage('maximized'))
   mainWindow.on('unmaximize', () => sendFrontendMessage('unmaximized'))
   mainWindow.on('enter-full-screen', () =>
@@ -407,6 +414,52 @@ if (!gotTheLock) {
       )
     }
 
+    // Network-level Ad & Tracker Blocker (Cancels socket connections to ad networks)
+    const AD_TRACKER_DOMAINS = [
+      'googlesyndication.com',
+      'doubleclick.net',
+      'googleadservices.com',
+      'adservice.google.com',
+      'amazon-adsystem.com',
+      'taboola.com',
+      'outbrain.com',
+      'adnxs.com',
+      'rubiconproject.com',
+      'criteo.com',
+      'popads.net',
+      'adroll.com',
+      'scorecardresearch.com',
+      'connect.facebook.net',
+      'analytics.tiktok.com',
+      'clarity.ms',
+      'media.net',
+      'pubmatic.com',
+      'openx.net',
+      'casalemedia.com'
+    ]
+
+    try {
+      session.defaultSession.webRequest.onBeforeRequest(
+        { urls: ['*://*/*'] },
+        (details, callback) => {
+          const isAd = AD_TRACKER_DOMAINS.some((domain) =>
+            details.url.includes(domain)
+          )
+          if (isAd) {
+            logInfo(
+              `🛡️ [Security AdBlocker] CANCELLED network connection to ad server: ${details.url}`,
+              LogPrefix.Backend
+            )
+            callback({ cancel: true })
+          } else {
+            callback({ cancel: false })
+          }
+        }
+      )
+    } catch (err) {
+      logError(`Failed to setup network ad blocker: ${err}`, LogPrefix.Backend)
+    }
+
     // try to fix notification app name on windows
     if (isWindows) {
       app.setAppUserModelId('com.ghostgameslauncher.ghost')
@@ -460,7 +513,9 @@ if (!gotTheLock) {
       try {
         app.setLoginItemSettings({
           openAtLogin: settings.startAtLogin === true,
-          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
+          openAsHidden: settings.startInTray === true,
+          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe'),
+          args: settings.startInTray ? ['--hidden'] : []
         })
       } catch (err) {
         logError(`Failed to initialize login item settings: ${err}`, LogPrefix.Backend)
@@ -519,11 +574,21 @@ if (!gotTheLock) {
       openUrlArgument,
       ...process.argv
     ])
+    const isOpenedAtLogin =
+      process.argv.includes('--hidden') ||
+      process.argv.includes('--minimized') ||
+      Boolean(app.getLoginItemSettings?.().wasOpenedAsHidden) ||
+      Boolean(app.getLoginItemSettings?.().wasOpenedAtLogin)
+
     const headless =
       isCLINoGui ||
       hideForProtocol ||
-      (settings.startInTray && !settings.noTrayIcon)
-    if (!headless) {
+      (settings.startInTray && !settings.noTrayIcon) ||
+      (settings.startAtLogin && isOpenedAtLogin && !settings.noTrayIcon)
+
+    if (headless) {
+      mainWindow.hide()
+    } else {
       const isWayland = Boolean(process.env.WAYLAND_DISPLAY)
       const showWindow = () => {
         const props = configStore.get('window-props', {
@@ -1211,13 +1276,16 @@ addHandler('writeConfig', (event, { appName, config }) =>
 addListener('setSetting', (event, { appName, key, value }) => {
   if (appName === 'default') {
     GlobalConfig.get().setSetting(key, value)
-    if (key === 'startAtLogin') {
+    if (key === 'startAtLogin' || key === 'startInTray') {
       try {
+        const curSettings = GlobalConfig.get().getSettings()
         app.setLoginItemSettings({
-          openAtLogin: value === true,
-          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
+          openAtLogin: curSettings.startAtLogin === true,
+          openAsHidden: curSettings.startInTray === true,
+          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe'),
+          args: curSettings.startInTray ? ['--hidden'] : []
         })
-        logInfo(`Set startAtLogin to ${value}`, LogPrefix.Backend)
+        logInfo(`Updated login item settings (startAtLogin: ${curSettings.startAtLogin}, startInTray: ${curSettings.startInTray})`, LogPrefix.Backend)
       } catch (err) {
         logError(`Failed to set login item settings: ${err}`, LogPrefix.Backend)
       }

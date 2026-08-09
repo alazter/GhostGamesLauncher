@@ -469,6 +469,41 @@ export const normalizeTitle = (title: string) => {
   return title.replace(/[^\w\s]/g, '').toLowerCase()
 }
 
+export const normalizeTitleForDuplicateCheck = (rawTitle: string): string => {
+  if (!rawTitle) return ''
+  let t = rawTitle.trim()
+  t = t.replace(/\[(?:fitgirl|repack|steam\.rip|p2p|nosteam|deadc0de|insaneramzes|gog|dvd|iso)[^\]]*\]/gi, '')
+  t = t.replace(/\((?:off\s*line\s*version|tradução|traducao|repack|portable|nosTEAM)[^)]*\)/gi, '')
+  t = t.replace(/[-.](?:P2P|nosTEAM|0xdeadc0de|InsaneRamZes|FitGirl|Dodi|EMPRESS|SKIDROW|CODEX|RELOADED|FLT|HOODLUM|PLAZA|RAZOR1911)$/gi, '')
+  t = t.replace(/(?:\bversion\b|\bbuild\b|\bver\b)?\s*v?\d+(?:\.\d+)+(?:[._-][a-z0-9]+)*/gi, '')
+  t = t.replace(/[._-]build[._-]\d+/gi, '')
+  t = t.replace(/^path_nocd_/gi, '')
+  return t.toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+export const getDuplicateGameIds = (allGames: any[]): Set<string> => {
+  const map = new Map<string, string[]>()
+  allGames.forEach((game) => {
+    if (!game || game.install?.is_dlc) return
+    const rawTitle = game.overrides?.title || game.title || ''
+    const norm = normalizeTitleForDuplicateCheck(rawTitle)
+    if (!norm) return
+    const gameId = `${game.app_name}_${game.runner}`
+    if (!map.has(norm)) {
+      map.set(norm, [])
+    }
+    map.get(norm)!.push(gameId)
+  })
+
+  const duplicateIds = new Set<string>()
+  map.forEach((ids) => {
+    if (ids.length > 1) {
+      ids.forEach((id) => duplicateIds.add(id))
+    }
+  })
+  return duplicateIds
+}
+
 export const epicCategories = ['all', 'legendary', 'epic']
 export const gogCategories = ['all', 'gog']
 export const sideloadedCategories = ['all', 'sideload']

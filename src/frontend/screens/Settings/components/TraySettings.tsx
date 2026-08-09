@@ -31,9 +31,15 @@ const TraySettings = () => {
       <ToggleSwitch
         htmlId="startInTray"
         value={startInTray && !noTrayIcon}
-        handleChange={() => setStartInTray(!startInTray)}
+        handleChange={() => {
+          const nextVal = !startInTray
+          setStartInTray(nextVal)
+          if (nextVal && !exitToTray) {
+            setExitToTray(true)
+          }
+        }}
         title={t('setting.start-in-tray', 'Start Minimized')}
-        disabled={!exitToTray || noTrayIcon}
+        disabled={noTrayIcon}
       />
     </>
   )

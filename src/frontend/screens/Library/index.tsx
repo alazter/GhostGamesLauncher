@@ -29,7 +29,9 @@ import {
   gogCategories,
   sideloadedCategories,
   zoomCategories,
-  normalizeTitle
+  normalizeTitle,
+  getDuplicateGameIds,
+  normalizeTitleForDuplicateCheck
 } from 'frontend/helpers/library'
 import RecentlyPlayed from './components/RecentlyPlayed'
 import LibraryContext from './LibraryContext'
@@ -1023,6 +1025,7 @@ export default memo(function Library(): JSX.Element {
   // NOVO ESCUTADOR PARA O FILTRO LIMPO (Sem tocar no Heroic original)
   // ====================================================================
   const [showUnclassifiedOnly, setShowUnclassifiedOnly] = useState(false)
+  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false)
 
   useEffect(() => {
     const handleUnclassifiedFilter = (e: Event) => {
@@ -1040,15 +1043,40 @@ export default memo(function Library(): JSX.Element {
         )
       }
     }
+    const handleDuplicatesFilter = (e: Event) => {
+      const customEvent = e as CustomEvent<{ active: boolean }>
+      const isActive = customEvent.detail?.active || false
+      setShowDuplicatesOnly(isActive)
+
+      if (isActive) {
+        localStorage.removeItem('heroic_active_store_filter')
+        setActiveStoreFilter(null)
+        window.dispatchEvent(
+          new CustomEvent('heroicFilterChanged', {
+            detail: { storeFilter: null }
+          })
+        )
+      }
+    }
+
     window.addEventListener(
       'heroicToggleUnclassifiedFilter',
       handleUnclassifiedFilter
     )
-    return () =>
+    window.addEventListener(
+      'heroicToggleDuplicatesFilter',
+      handleDuplicatesFilter
+    )
+    return () => {
       window.removeEventListener(
         'heroicToggleUnclassifiedFilter',
         handleUnclassifiedFilter
       )
+      window.removeEventListener(
+        'heroicToggleDuplicatesFilter',
+        handleDuplicatesFilter
+      )
+    }
   }, [])
   // ====================================================================
 
@@ -1651,7 +1679,21 @@ export default memo(function Library(): JSX.Element {
     // ====================================================================
     // O FILTRO INDEPENDENTE QUE DEIXA O HEROIC EM PAZ
     // ====================================================================
-    if (showUnclassifiedOnly) {
+    if (showDuplicatesOnly) {
+      const duplicateIds = getDuplicateGameIds(makeLibrary())
+      library = library.filter((game) =>
+        duplicateIds.has(`${game.app_name}_${game.runner}`)
+      )
+      library = library.sort((a, b) => {
+        const titleA = normalizeTitleForDuplicateCheck(
+          a.overrides?.title || a.title || ''
+        )
+        const titleB = normalizeTitleForDuplicateCheck(
+          b.overrides?.title || b.title || ''
+        )
+        return titleA.localeCompare(titleB)
+      })
+    } else if (showUnclassifiedOnly) {
       const safeCategoriesList =
         customCategories && customCategories.list ? customCategories.list : {}
       const categorizedGames = new Set(Object.values(safeCategoriesList).flat())

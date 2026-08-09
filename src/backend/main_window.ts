@@ -102,9 +102,5 @@ export const createMainWindow = () => {
     }
   })
 
-  if (props.maximized) {
-    mainWindow.maximize()
-  }
-
   return mainWindow
 }

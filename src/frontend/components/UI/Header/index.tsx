@@ -3,6 +3,7 @@ import LibrarySearchBar from '../LibrarySearchBar'
 import CategoryFilter from '../CategoryFilter'
 import LibraryFilters from '../LibraryFilters'
 import ContextProvider from 'frontend/state/ContextProvider'
+import { getDuplicateGameIds } from 'frontend/helpers/library'
 import './index.css'
 
 export default function Header() {
@@ -10,6 +11,7 @@ export default function Header() {
 
   // 1. O novo estado isolado que não interfere no Heroic
   const [isUnclassifiedActive, setIsUnclassifiedActive] = useState(false)
+  const [isDuplicatesActive, setIsDuplicatesActive] = useState(false)
 
   const { epic, gog, amazon, zoom, sideloadedLibrary, customCategories } =
     useContext(ContextProvider)
@@ -26,6 +28,19 @@ export default function Header() {
     return () =>
       window.removeEventListener('gameAssignmentsChanged', loadAssignments)
   }, [])
+
+  const duplicateGameIds = useMemo(() => {
+    const allGames = [
+      ...(epic?.library || []),
+      ...(gog?.library || []),
+      ...(amazon?.library || []),
+      ...(zoom?.library || []),
+      ...(sideloadedLibrary || [])
+    ]
+    return getDuplicateGameIds(allGames)
+  }, [epic, gog, amazon, zoom, sideloadedLibrary])
+
+  const hasDuplicateGames = duplicateGameIds.size > 0
 
   const hasUnclassifiedGames = useMemo(() => {
     const allGames = [
@@ -64,14 +79,24 @@ export default function Header() {
       new CustomEvent('heroicToggleMassEdit', { detail: { active: newState } })
     )
 
-    // Desliga nosso filtro se o usuário cancelar a edição
-    if (!newState && isUnclassifiedActive) {
-      setIsUnclassifiedActive(false)
-      window.dispatchEvent(
-        new CustomEvent('heroicToggleUnclassifiedFilter', {
-          detail: { active: false }
-        })
-      )
+    // Desliga nossos filtros se o usuário cancelar a edição
+    if (!newState) {
+      if (isUnclassifiedActive) {
+        setIsUnclassifiedActive(false)
+        window.dispatchEvent(
+          new CustomEvent('heroicToggleUnclassifiedFilter', {
+            detail: { active: false }
+          })
+        )
+      }
+      if (isDuplicatesActive) {
+        setIsDuplicatesActive(false)
+        window.dispatchEvent(
+          new CustomEvent('heroicToggleDuplicatesFilter', {
+            detail: { active: false }
+          })
+        )
+      }
     }
   }
 
@@ -81,6 +106,14 @@ export default function Header() {
     setIsUnclassifiedActive(newState)
 
     if (newState) {
+      if (isDuplicatesActive) {
+        setIsDuplicatesActive(false)
+        window.dispatchEvent(
+          new CustomEvent('heroicToggleDuplicatesFilter', {
+            detail: { active: false }
+          })
+        )
+      }
       localStorage.removeItem('heroic_active_store_filter')
       window.dispatchEvent(
         new CustomEvent('heroicFilterChanged', {
@@ -91,6 +124,40 @@ export default function Header() {
 
     window.dispatchEvent(
       new CustomEvent('heroicToggleUnclassifiedFilter', {
+        detail: { active: newState }
+      })
+    )
+
+    // Entra/sai do modo de edição em massa automaticamente
+    setIsMassEditMode(newState)
+    window.dispatchEvent(
+      new CustomEvent('heroicToggleMassEdit', { detail: { active: newState } })
+    )
+  }
+
+  const toggleDuplicatesFilter = () => {
+    const newState = !isDuplicatesActive
+    setIsDuplicatesActive(newState)
+
+    if (newState) {
+      if (isUnclassifiedActive) {
+        setIsUnclassifiedActive(false)
+        window.dispatchEvent(
+          new CustomEvent('heroicToggleUnclassifiedFilter', {
+            detail: { active: false }
+          })
+        )
+      }
+      localStorage.removeItem('heroic_active_store_filter')
+      window.dispatchEvent(
+        new CustomEvent('heroicFilterChanged', {
+          detail: { storeFilter: null }
+        })
+      )
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('heroicToggleDuplicatesFilter', {
         detail: { active: newState }
       })
     )
@@ -115,17 +182,35 @@ export default function Header() {
             })
           )
         }
+        if (isDuplicatesActive) {
+          setIsDuplicatesActive(false)
+          window.dispatchEvent(
+            new CustomEvent('heroicToggleDuplicatesFilter', {
+              detail: { active: false }
+            })
+          )
+        }
       }
     }
     const handleFilterChanged = () => {
       const activeStore = localStorage.getItem('heroic_active_store_filter')
-      if (activeStore && isUnclassifiedActive) {
-        setIsUnclassifiedActive(false)
-        window.dispatchEvent(
-          new CustomEvent('heroicToggleUnclassifiedFilter', {
-            detail: { active: false }
-          })
-        )
+      if (activeStore) {
+        if (isUnclassifiedActive) {
+          setIsUnclassifiedActive(false)
+          window.dispatchEvent(
+            new CustomEvent('heroicToggleUnclassifiedFilter', {
+              detail: { active: false }
+            })
+          )
+        }
+        if (isDuplicatesActive) {
+          setIsDuplicatesActive(false)
+          window.dispatchEvent(
+            new CustomEvent('heroicToggleDuplicatesFilter', {
+              detail: { active: false }
+            })
+          )
+        }
       }
     }
 
@@ -135,15 +220,48 @@ export default function Header() {
       window.removeEventListener('heroicToggleMassEdit', handleExternalCancel)
       window.removeEventListener('heroicFilterChanged', handleFilterChanged)
     }
-  }, [isUnclassifiedActive])
+  }, [isUnclassifiedActive, isDuplicatesActive])
 
 
   return (
     <>
       <div className="Header" style={{ display: 'block' }}>
-        <LibrarySearchBar isUnclassifiedActive={isUnclassifiedActive}>
+        <LibrarySearchBar isUnclassifiedActive={isUnclassifiedActive || isDuplicatesActive}>
           <span className="Header__filters">
-            {hasUnclassifiedGames && (
+            {hasDuplicateGames && (
+              <button
+                onClick={toggleDuplicatesFilter}
+                style={{
+                  background: isDuplicatesActive
+                    ? 'rgba(156, 39, 176, 0.85)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  color: '#fff',
+                  border: isDuplicatesActive
+                    ? '1px solid #ab47bc'
+                    : '1px solid rgba(255, 255, 255, 0.25)',
+                  padding: '0 18px',
+                  height: '42px',
+                  borderRadius: '20px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(5px)',
+                  transition: 'all 0.2s',
+                  boxShadow: isDuplicatesActive
+                    ? '0 0 10px rgba(156, 39, 176, 0.4)'
+                    : 'none'
+                }}
+              >
+                {isDuplicatesActive
+                  ? 'Sair da Edição'
+                  : 'Jogos Duplicados'}
+              </button>
+            )}
+
+            {hasUnclassifiedGames && !isDuplicatesActive && (
               <button
                 onClick={toggleUnclassifiedFilter}
                 style={{
@@ -172,7 +290,8 @@ export default function Header() {
                   : 'Jogos Sem Classificação'}
               </button>
             )}
-            {!isUnclassifiedActive && (
+
+            {!isUnclassifiedActive && !isDuplicatesActive && (
               <button
                 onClick={toggleMassEdit}
                 style={{
@@ -219,7 +338,7 @@ export default function Header() {
               </button>
             )}
 
-            <div style={isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4, display: 'flex', gap: 'inherit', alignItems: 'center' } : { display: 'flex', gap: 'inherit', alignItems: 'center' }}>
+            <div style={isUnclassifiedActive || isDuplicatesActive ? { pointerEvents: 'none', opacity: 0.4, display: 'flex', gap: 'inherit', alignItems: 'center' } : { display: 'flex', gap: 'inherit', alignItems: 'center' }}>
               <CategoryFilter />
               <LibraryFilters />
             </div>

@@ -8,7 +8,8 @@ import {
   faWineGlass,
   faBarsProgress,
   faTv,
-  faPaintBrush
+  faPaintBrush,
+  faClock
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { useContext, useState, useEffect } from 'react'
@@ -46,6 +47,7 @@ export default function SidebarLinks() {
       'personalization',
       'login',
       'stores',
+      'releases',
       'divider-1',
       'settings',
       'console',
@@ -245,6 +247,17 @@ export default function SidebarLinks() {
               </div>
             )}
           </div>
+        )
+      case 'releases':
+        return (
+          <SidebarItem
+            key="releases"
+            url="/releases"
+            icon={faClock}
+            label={t('sidebar.releases', 'Lançamentos')}
+            dataTour="sidebar-releases"
+            {...dragProps}
+          />
         )
       case 'divider-1':
       case 'divider-2':

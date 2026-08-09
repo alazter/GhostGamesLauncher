@@ -1,4 +1,4 @@
-# Review das Alterações - 08/08/2026
+# Review das Alterações - 09/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -116,6 +116,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Implementada captura e tratamento de erros OAuth (como `access_denied`/403) no servidor HTTP callback de `cloudBackup.ts`.
   - Adicionadas dicas visuais de configuração de usuários de teste no painel `BackupRestoreSettings.tsx`.
 
+### 21. AdBlocker de Rede / DoH, Tela de Releases, Filtro de Duplicados e Otimização de Tray
+* **Problema:** Exibição de anúncios em webviews, falta de visualização histórica de lançamentos no launcher, duplicatas de títulos de lojas/sideload e inicialização minimizada ao ligar o Windows.
+* **Solução:**
+  - Configurado DNS criptografado via HTTPS (Quad9 Secure DoH) e bloqueador de anúncios/trackers via `onBeforeRequest` no backend (`main.ts`).
+  - Criada a tela de **Lançamentos** (`/releases`) integrada com atalho na Sidebar.
+  - Criada detecção e filtro inteligente de **Jogos Duplicados** no cabeçalho da Biblioteca (`getDuplicateGameIds`).
+  - Otimizadas as configurações de inicialização com o Windows (`startAtLogin` + `startInTray`), abrindo oculto/minimizado na bandeja automaticamente.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -179,6 +187,8 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [LogSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/LogSettings/index.tsx)
 - [MODIFY] [GeneralSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/GeneralSettings/index.tsx)
 - [MODIFY] [BackupRestoreSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/BackupRestoreSettings.tsx)
+- [MODIFY] [TraySettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/TraySettings.tsx)
+- [MODIFY] [helpers/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/library.ts)
 - [MODIFY] [constants.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/constants.ts)
 - [MODIFY] [hasStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/hasStatus.ts)
 - [MODIFY] [GlobalState.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/state/GlobalState.tsx)
@@ -186,6 +196,8 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [ActionIcons/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.tsx)
 - [MODIFY] [LibraryFilters/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/LibraryFilters/index.tsx)
 - [MODIFY] [SteamGridDBPicker/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/SteamGridDBPicker/index.tsx)
+- [NEW] [Releases/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/index.tsx)
+- [NEW] [Releases/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/index.css)
 - [NEW] [localStorageBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/utils/localStorageBackup.ts)
 - [NEW] [update-ghost.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/assets/update-ghost.png)
 - [NEW] [UpdatePopupModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/UpdatePopupModal/index.tsx)
