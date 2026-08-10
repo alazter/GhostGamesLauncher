@@ -25,7 +25,7 @@ Right now it supports launching games from the Epic Games Store using [Legendary
 - Download queue
 - Add Games and Applications outside GOG, Epic Games and Amazon Games
 - Define your categories to organize your collection
-
+- Games release date
 
 - English
 - Portuguese (Brazil)
