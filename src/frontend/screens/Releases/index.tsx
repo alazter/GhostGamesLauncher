@@ -35,16 +35,27 @@ export default function Releases() {
           /* Left Sidebar Expansion & rgba(3, 4, 5, 1) Background */
           aside,
           nav,
-          div[class*="sidebar"],
-          div[class*="Sidebar"],
-          div[class*="menu"],
-          div[class*="Menu"],
+          div[class*="sidebar"]:not([class*="AtMenu"]),
+          div[class*="Sidebar"]:not([class*="AtMenu"]),
+          div[class*="menu"]:not([class*="AtMenu"]):not([class*="atmenu"]),
+          div[class*="Menu"]:not([class*="AtMenu"]):not([class*="atmenu"]),
           div[class*="left-nav"],
           div[class*="LeftNav"] {
             min-width: 280px !important;
             width: 280px !important;
             background-color: rgba(3, 4, 5, 1) !important;
             background: rgba(3, 4, 5, 1) !important;
+          }
+
+          /* Ensure Header Date Dropdown (AtMenu) is not expanded or painted black */
+          .RWP-Calendar-AtMenu,
+          [class*="RWP-Calendar-AtMenu"],
+          [class*="AtMenu"],
+          [class*="HeaderPointDropdownControl"] {
+            min-width: unset !important;
+            width: auto !important;
+            background-color: transparent !important;
+            background: transparent !important;
           }
 
           aside a,
@@ -71,20 +82,7 @@ export default function Releases() {
             overflow: visible !important;
           }
 
-          /* Right Sidebar & all its inner filter option lists */
-          div[class*="right-nav"],
-          div[class*="RightNav"],
-          div[class*="filter-container"],
-          div[class*="Filter-container"],
-          aside:last-of-type,
-          [class*="filter-panel"],
-          [class*="filter-section"],
-          [class*="filter-option"],
-          [class*="Filter-panel"],
-          [class*="Filter-section"] {
-            background-color: rgba(3, 4, 5, 1) !important;
-            background: rgba(3, 4, 5, 1) !important;
-          }
+
 
           /* Left Sidebar Footer & Theme Switcher Background */
           .RWPC-Nav-ThemeMode,
@@ -110,26 +108,25 @@ export default function Releases() {
             box-shadow: none !important;
           }
 
-          /* Top Page Header Area -> rgba(3, 4, 5, 1) */
-          header,
-          header[class],
-          div[class*="site-header"],
-          div[class*="SiteHeader"],
-          div[class*="top-nav"],
-          div[class*="TopNav"],
-          div[class*="nav-header"],
-          div[class*="NavHeader"],
-          .RWP-Calendar-Header,
-          [class*="RWP-Calendar-Header"],
-          [class*="Calendar-Header"],
-          [class*="Header-StartPanel"],
-          [class*="Header-MidPanel"],
-          [class*="Header-EndPanel"],
-          [class*="HeaderMid"],
-          [class*="AtMenu"] {
+          /* Right Sidebar & Filter Panel Boxes -> rgba(3, 4, 5, 1) */
+          aside:last-of-type,
+          div[class*="right-nav"],
+          div[class*="RightNav"],
+          div[class*="Calendar-Filter"],
+          div[class*="calendar-filter"] {
             background-color: rgba(3, 4, 5, 1) !important;
             background: rgba(3, 4, 5, 1) !important;
           }
+
+          div[class*="Calendar-Filter"] div,
+          div[class*="calendar-filter"] div,
+          aside:last-of-type div {
+            background-color: rgba(3, 4, 5, 1);
+          }
+
+
+
+
 
           /* Central Page Main Area */
           main,
@@ -463,12 +460,22 @@ export default function Releases() {
               // 1. Left Sidebar Expansion & rgba(3, 4, 5, 1) Background
               const leftElements = document.querySelectorAll('aside, nav, div[class*="sidebar"], div[class*="Sidebar"], div[class*="menu"], div[class*="Menu"], div[class*="left-nav"], div[class*="LeftNav"]');
               leftElements.forEach(el => {
-                if (!el.closest('main')) {
+                const className = (el.className || '').toString();
+                if (!el.closest('main') && !el.closest('.RWP-Calendar-Header') && !el.closest('header') && !className.includes('AtMenu') && !className.includes('atmenu')) {
                   el.style.setProperty('min-width', '280px', 'important');
                   el.style.setProperty('width', '280px', 'important');
                   el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
                   el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
                 }
+              });
+
+              // 1a. Reset AtMenu in header to prevent black rectangle
+              const atMenus = document.querySelectorAll('.RWP-Calendar-AtMenu, [class*="AtMenu"], [class*="HeaderPointDropdownControl"]');
+              atMenus.forEach(el => {
+                el.style.removeProperty('min-width');
+                el.style.removeProperty('width');
+                el.style.setProperty('background-color', 'transparent', 'important');
+                el.style.setProperty('background', 'transparent', 'important');
               });
 
               // 1b. Left Sidebar Footer / Theme Controls -> rgba(3, 4, 5, 1)
@@ -483,18 +490,20 @@ export default function Releases() {
               });
 
               // 2. Right Sidebar & all its filter boxes/checkboxes -> rgba(3, 4, 5, 1)
-              const rightSidebar = document.querySelector('[class*="right-nav"], [class*="RightNav"], [class*="filter-container"], [class*="Filter-container"], div[class*="filter"], div[class*="Filter"]');
-              if (rightSidebar) {
-                rightSidebar.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
-                rightSidebar.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
-                rightSidebar.querySelectorAll('[class*="panel"], [class*="section"], [class*="option"], [class*="content"], ul, li, div').forEach(el => {
-                  const className = (el.className || '').toString();
-                  if (!className.includes('btn') && !className.includes('button') && !className.includes('checkbox')) {
-                    el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
-                    el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
-                  }
-                });
-              }
+              const rightSidebars = document.querySelectorAll('aside:last-of-type, [class*="right-nav"], [class*="RightNav"], [class*="Calendar-Filter"], [class*="calendar-filter"]');
+              rightSidebars.forEach(rightSidebar => {
+                if (rightSidebar && !rightSidebar.closest('.RWP-Calendar-Header') && !rightSidebar.closest('header')) {
+                  rightSidebar.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                  rightSidebar.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+                  rightSidebar.querySelectorAll('div, section, ul, li').forEach(el => {
+                    const className = (el.className || '').toString();
+                    if (!className.includes('btn') && !className.includes('button') && !className.includes('checkbox') && !el.closest('.RWP-Calendar-Header')) {
+                      el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                      el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+                    }
+                  });
+                }
+              });
 
               // 3. Central Main Content Area
               const mainCentral = document.querySelectorAll('main, [class*="main-content"], [class*="MainContent"]');
@@ -512,14 +521,9 @@ export default function Releases() {
                   child.style.setProperty('background-color', 'transparent', 'important');
                   child.style.setProperty('background', 'transparent', 'important');
                 });
-              });
 
-              // 4. Top Page Header Area -> rgba(3, 4, 5, 1)
-              const pageHeaders = document.querySelectorAll('header, [class*="site-header"], [class*="SiteHeader"], [class*="top-nav"], [class*="TopNav"], [class*="nav-header"], [class*="NavHeader"], .RWP-Calendar-Header, [class*="RWP-Calendar-Header"], [class*="Calendar-Header"], [class*="Header-StartPanel"], [class*="Header-MidPanel"], [class*="Header-EndPanel"], [class*="HeaderMid"], [class*="AtMenu"]');
-              pageHeaders.forEach(el => {
-                el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
-                el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
-              });
+
+
             }
             updateTheme();
             const observer = new MutationObserver(() => updateTheme());

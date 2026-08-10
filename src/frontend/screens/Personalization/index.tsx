@@ -1076,10 +1076,10 @@ export default function PersonalizationScreen() {
     const saved = localStorage.getItem('heroic_sidebar_order')
     const defaultOrder = [
       { id: 'library', icon: faGamepad, active: false },
+      { id: 'releases', icon: faClock, active: false },
       { id: 'personalization', icon: faPaintBrush, active: true },
       { id: 'login', icon: faUser, active: false },
       { id: 'stores', icon: faStore, active: false },
-      { id: 'releases', icon: faClock, active: false },
       { id: 'divider-1', isDivider: true },
       { id: 'settings', icon: faSlidersH, active: false },
       { id: 'console', icon: faTv, active: false },

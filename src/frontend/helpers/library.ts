@@ -482,23 +482,30 @@ export const normalizeTitleForDuplicateCheck = (rawTitle: string): string => {
 }
 
 export const getDuplicateGameIds = (allGames: any[]): Set<string> => {
-  const map = new Map<string, string[]>()
+  const map = new Map<string, Array<{ gameId: string; appName: string }>>()
   allGames.forEach((game) => {
     if (!game || game.install?.is_dlc) return
     const rawTitle = game.overrides?.title || game.title || ''
     const norm = normalizeTitleForDuplicateCheck(rawTitle)
     if (!norm) return
-    const gameId = `${game.app_name}_${game.runner}`
+    const runner = game.runner || 'sideload'
+    const gameId = `${game.app_name}_${runner}`
     if (!map.has(norm)) {
       map.set(norm, [])
     }
-    map.get(norm)!.push(gameId)
+    const list = map.get(norm)!
+    if (!list.some((g) => g.gameId === gameId || g.appName === game.app_name)) {
+      list.push({ gameId, appName: game.app_name })
+    }
   })
 
   const duplicateIds = new Set<string>()
-  map.forEach((ids) => {
-    if (ids.length > 1) {
-      ids.forEach((id) => duplicateIds.add(id))
+  map.forEach((gamesList) => {
+    if (gamesList.length > 1) {
+      gamesList.forEach((g) => {
+        duplicateIds.add(g.gameId)
+        duplicateIds.add(g.appName)
+      })
     }
   })
   return duplicateIds

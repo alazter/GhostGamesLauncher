@@ -1034,6 +1034,7 @@ export default memo(function Library(): JSX.Element {
       setShowUnclassifiedOnly(isActive)
 
       if (isActive) {
+        setShowDuplicatesOnly(false)
         localStorage.removeItem('heroic_active_store_filter')
         setActiveStoreFilter(null)
         window.dispatchEvent(
@@ -1049,6 +1050,7 @@ export default memo(function Library(): JSX.Element {
       setShowDuplicatesOnly(isActive)
 
       if (isActive) {
+        setShowUnclassifiedOnly(false)
         localStorage.removeItem('heroic_active_store_filter')
         setActiveStoreFilter(null)
         window.dispatchEvent(
@@ -1082,6 +1084,18 @@ export default memo(function Library(): JSX.Element {
 
   const [selectedInlineGame, setSelectedInlineGame] = useState<GameInfo | null>(null)
   const [showInlineSettings, setShowInlineSettings] = useState(false)
+
+  useEffect(() => {
+    const handleSelectInlineGame = (e: Event) => {
+      const customEvent = e as CustomEvent<{ game: GameInfo }>
+      if (customEvent.detail?.game) {
+        setSelectedInlineGame(customEvent.detail.game)
+      }
+    }
+    window.addEventListener('heroicSelectInlineGame', handleSelectInlineGame)
+    return () =>
+      window.removeEventListener('heroicSelectInlineGame', handleSelectInlineGame)
+  }, [])
 
   const [showAlphabetFilter, setShowAlphabetFilter] = useState<boolean>(
     JSON.parse(storage.getItem('showAlphabetFilter') || 'true') as boolean
@@ -1680,11 +1694,15 @@ export default memo(function Library(): JSX.Element {
     // O FILTRO INDEPENDENTE QUE DEIXA O HEROIC EM PAZ
     // ====================================================================
     if (showDuplicatesOnly) {
-      const duplicateIds = getDuplicateGameIds(makeLibrary())
-      library = library.filter((game) =>
-        duplicateIds.has(`${game.app_name}_${game.runner}`)
-      )
-      library = library.sort((a, b) => {
+      const allGames = makeLibrary()
+      const duplicateIds = getDuplicateGameIds(allGames)
+      const duplicateGames = allGames.filter((game) => {
+        if (!game || game.install?.is_dlc) return false
+        const runner = game.runner || 'sideload'
+        const gameId = `${game.app_name}_${runner}`
+        return duplicateIds.has(gameId) || duplicateIds.has(game.app_name)
+      })
+      return duplicateGames.sort((a, b) => {
         const titleA = normalizeTitleForDuplicateCheck(
           a.overrides?.title || a.title || ''
         )
@@ -1699,14 +1717,18 @@ export default memo(function Library(): JSX.Element {
       const categorizedGames = new Set(Object.values(safeCategoriesList).flat())
 
       library = library.filter((game) => {
+        if (!game || game.install?.is_dlc) return false
         const explicitlyAssignedStore = assignments[game.app_name]
-        const gameId = `${game.app_name}_${game.runner}`
+        const runner = game.runner || 'sideload'
+        const gameId = `${game.app_name}_${runner}`
 
-        const hasCategory = categorizedGames.has(gameId)
+        const hasCategory =
+          categorizedGames.has(gameId) ||
+          categorizedGames.has(game.app_name) ||
+          categorizedGames.has(`${game.app_name}_sideload`)
         const hasAssignment = !!explicitlyAssignedStore
-        const isSideloaded = game.runner === 'sideload'
 
-        return isSideloaded && !hasCategory && !hasAssignment
+        return !hasCategory && !hasAssignment
       })
     } else if (activeStoreFilter) {
       library = library.filter((game) => {
@@ -1777,7 +1799,14 @@ export default memo(function Library(): JSX.Element {
     activeStoreFilter,
     assignments,
     customCategories,
-    showUnclassifiedOnly
+    showUnclassifiedOnly,
+    showDuplicatesOnly,
+    makeLibrary,
+    epic,
+    gog,
+    amazon,
+    zoom,
+    sideloadedLibrary
   ])
 
   useEffect(() => {

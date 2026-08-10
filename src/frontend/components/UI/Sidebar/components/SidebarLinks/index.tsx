@@ -44,10 +44,10 @@ export default function SidebarLinks() {
     const saved = localStorage.getItem('heroic_sidebar_order')
     const defaultOrder = [
       'library',
+      'releases',
       'personalization',
       'login',
       'stores',
-      'releases',
       'divider-1',
       'settings',
       'console',

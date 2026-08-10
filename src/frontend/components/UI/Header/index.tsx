@@ -56,11 +56,15 @@ export default function Header() {
     )
 
     return allGames.some((game) => {
-      const gameId = `${game.app_name}_${game.runner}`
-      const hasCategory = categorizedGames.has(gameId)
+      if (!game || game.install?.is_dlc) return false
+      const runner = game.runner || 'sideload'
+      const gameId = `${game.app_name}_${runner}`
+      const hasCategory =
+        categorizedGames.has(gameId) ||
+        categorizedGames.has(game.app_name) ||
+        categorizedGames.has(`${game.app_name}_sideload`)
       const hasAssignment = !!assignments[game.app_name]
-      const isSideloaded = game.runner === 'sideload'
-      return isSideloaded && !hasCategory && !hasAssignment && !game.install?.is_dlc
+      return !hasCategory && !hasAssignment
     })
   }, [
     epic,

@@ -464,6 +464,13 @@ const GamesList = ({
                     } else {
                       setSelectedGames([...selectedGames, gameInfo])
                     }
+
+                    // Dispatch event so HeroPanel updates to display the LAST clicked game!
+                    window.dispatchEvent(
+                      new CustomEvent('heroicSelectInlineGame', {
+                        detail: { game: gameInfo }
+                      })
+                    )
                   }
                 }}
               >
