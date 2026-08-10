@@ -45,10 +45,11 @@ This project is a customized fork and rebranding of the excellent [Heroic Games 
 
 [![jump](https://img.shields.io/badge/Back%20to%20top-%20?style=flat&color=grey&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0ZGRkZGRiI+PHBhdGggZD0iTTAgMGgyNHYyNEgwVjB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQgMTJsMS40MSAxLjQxTDExIDcuODNWMjBoMlY3LjgzbDUuNTggNS41OUwyMCAxMmwtOC04LTggOHoiLz48L3N2Zz4=)](#heroic-games-launcher)
 
-### Tools We Use to Run Games
+### Tools We Use
 
 Ghost Games Launcher would not be possible without the work done in many other projects:
 
+- Release.com - https://www.releases.com/
 - Heroic Games Launcher: https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher
 - Legendary: https://github.com/derrod/legendary (we use [a fork of it](https://github.com/Heroic-Games-Launcher/legendary))
 - GOGdl: https://github.com/Heroic-Games-Launcher/heroic-gogdl
