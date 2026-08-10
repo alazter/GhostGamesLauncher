@@ -32,10 +32,7 @@ export default function Releases() {
     const handleLoad = () => {
       webviewEl
         .insertCSS(`
-          body {
-            background-color: #121216 !important;
-            color: #e0e0e0 !important;
-          }
+          /* Left Sidebar Expansion & rgba(3, 4, 5, 1) Background */
           aside,
           nav,
           div[class*="sidebar"],
@@ -44,9 +41,12 @@ export default function Releases() {
           div[class*="Menu"],
           div[class*="left-nav"],
           div[class*="LeftNav"] {
-            min-width: 270px !important;
-            width: 270px !important;
+            min-width: 280px !important;
+            width: 280px !important;
+            background-color: rgba(3, 4, 5, 1) !important;
+            background: rgba(3, 4, 5, 1) !important;
           }
+
           aside a,
           aside button,
           aside span,
@@ -70,6 +70,85 @@ export default function Releases() {
             text-overflow: clip !important;
             overflow: visible !important;
           }
+
+          /* Right Sidebar & all its inner filter option lists */
+          div[class*="right-nav"],
+          div[class*="RightNav"],
+          div[class*="filter-container"],
+          div[class*="Filter-container"],
+          aside:last-of-type,
+          [class*="filter-panel"],
+          [class*="filter-section"],
+          [class*="filter-option"],
+          [class*="Filter-panel"],
+          [class*="Filter-section"] {
+            background-color: rgba(3, 4, 5, 1) !important;
+            background: rgba(3, 4, 5, 1) !important;
+          }
+
+          /* Left Sidebar Footer & Theme Switcher Background */
+          .RWPC-Nav-ThemeMode,
+          [class*="RWPC-Nav-ThemeMode"],
+          [class*="ThemeMode"],
+          [class*="themeMode"],
+          [class*="Theme-Mode"],
+          div[class*="mode-switch"],
+          div[class*="modeSwitch"],
+          div[class*="theme-toggle"],
+          div[class*="themeToggle"],
+          aside footer,
+          nav footer,
+          aside div[class*="footer"],
+          nav div[class*="footer"],
+          aside div[class*="bottom"],
+          nav div[class*="bottom"],
+          aside div[class*="switch"],
+          nav div[class*="switch"] {
+            background-color: rgba(3, 4, 5, 1) !important;
+            background: rgba(3, 4, 5, 1) !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
+          /* Top Page Header Area -> rgba(3, 4, 5, 1) */
+          header,
+          header[class],
+          div[class*="site-header"],
+          div[class*="SiteHeader"],
+          div[class*="top-nav"],
+          div[class*="TopNav"],
+          div[class*="nav-header"],
+          div[class*="NavHeader"],
+          .RWP-Calendar-Header,
+          [class*="RWP-Calendar-Header"],
+          [class*="Calendar-Header"],
+          [class*="Header-StartPanel"],
+          [class*="Header-MidPanel"],
+          [class*="Header-EndPanel"],
+          [class*="HeaderMid"],
+          [class*="AtMenu"] {
+            background-color: rgba(3, 4, 5, 1) !important;
+            background: rgba(3, 4, 5, 1) !important;
+          }
+
+          /* Central Page Main Area */
+          main,
+          div[class*="main-content"],
+          div[class*="MainContent"] {
+            background-color: hsl(242, 37%, 18%) !important;
+            background: hsl(242, 37%, 18%) !important;
+          }
+
+          /* Date Group Headers -> Native Original (Transparent Background) */
+          .RWP-Calendar-GroupHeader,
+          [class*="RWP-Calendar-GroupHeader"],
+          [class*="GroupHeader"],
+          .RWP-Calendar-GroupHeader *,
+          [class*="RWP-Calendar-GroupHeader"] * {
+            background-color: transparent !important;
+            background: transparent !important;
+          }
+
           iframe[src*="google"],
           iframe[src*="doubleclick"],
           iframe[src*="adservice"],
@@ -376,6 +455,76 @@ export default function Releases() {
             const sidebar = document.querySelector('aside, nav, [class*="sidebar"], [class*="Sidebar"]');
             if (sidebar) {
               sidebar.appendChild(wrap);
+            }
+          })();
+
+          (function applyCleanLayoutTheme() {
+            function updateTheme() {
+              // 1. Left Sidebar Expansion & rgba(3, 4, 5, 1) Background
+              const leftElements = document.querySelectorAll('aside, nav, div[class*="sidebar"], div[class*="Sidebar"], div[class*="menu"], div[class*="Menu"], div[class*="left-nav"], div[class*="LeftNav"]');
+              leftElements.forEach(el => {
+                if (!el.closest('main')) {
+                  el.style.setProperty('min-width', '280px', 'important');
+                  el.style.setProperty('width', '280px', 'important');
+                  el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                  el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+                }
+              });
+
+              // 1b. Left Sidebar Footer / Theme Controls -> rgba(3, 4, 5, 1)
+              const leftFooters = document.querySelectorAll('.RWPC-Nav-ThemeMode, [class*="RWPC-Nav-ThemeMode"], [class*="ThemeMode"], [class*="themeMode"], [class*="mode-switch"], [class*="modeSwitch"], [class*="theme-toggle"], [class*="themeToggle"], footer, [class*="footer"], [class*="bottom"]');
+              leftFooters.forEach(el => {
+                if (!el.closest('main')) {
+                  el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                  el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+                  el.style.setProperty('border', 'none', 'important');
+                  el.style.setProperty('box-shadow', 'none', 'important');
+                }
+              });
+
+              // 2. Right Sidebar & all its filter boxes/checkboxes -> rgba(3, 4, 5, 1)
+              const rightSidebar = document.querySelector('[class*="right-nav"], [class*="RightNav"], [class*="filter-container"], [class*="Filter-container"], div[class*="filter"], div[class*="Filter"]');
+              if (rightSidebar) {
+                rightSidebar.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                rightSidebar.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+                rightSidebar.querySelectorAll('[class*="panel"], [class*="section"], [class*="option"], [class*="content"], ul, li, div').forEach(el => {
+                  const className = (el.className || '').toString();
+                  if (!className.includes('btn') && !className.includes('button') && !className.includes('checkbox')) {
+                    el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                    el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+                  }
+                });
+              }
+
+              // 3. Central Main Content Area
+              const mainCentral = document.querySelectorAll('main, [class*="main-content"], [class*="MainContent"]');
+              mainCentral.forEach(el => {
+                el.style.setProperty('background-color', 'hsl(242, 37%, 18%)', 'important');
+                el.style.setProperty('background', 'hsl(242, 37%, 18%)', 'important');
+              });
+
+              // 3b. Date Group Headers -> Native Original (Transparent Background)
+              const groupHeaders = document.querySelectorAll('.RWP-Calendar-GroupHeader, [class*="RWP-Calendar-GroupHeader"], [class*="GroupHeader"]');
+              groupHeaders.forEach(el => {
+                el.style.setProperty('background-color', 'transparent', 'important');
+                el.style.setProperty('background', 'transparent', 'important');
+                el.querySelectorAll('*').forEach(child => {
+                  child.style.setProperty('background-color', 'transparent', 'important');
+                  child.style.setProperty('background', 'transparent', 'important');
+                });
+              });
+
+              // 4. Top Page Header Area -> rgba(3, 4, 5, 1)
+              const pageHeaders = document.querySelectorAll('header, [class*="site-header"], [class*="SiteHeader"], [class*="top-nav"], [class*="TopNav"], [class*="nav-header"], [class*="NavHeader"], .RWP-Calendar-Header, [class*="RWP-Calendar-Header"], [class*="Calendar-Header"], [class*="Header-StartPanel"], [class*="Header-MidPanel"], [class*="Header-EndPanel"], [class*="HeaderMid"], [class*="AtMenu"]');
+              pageHeaders.forEach(el => {
+                el.style.setProperty('background-color', 'rgba(3, 4, 5, 1)', 'important');
+                el.style.setProperty('background', 'rgba(3, 4, 5, 1)', 'important');
+              });
+            }
+            updateTheme();
+            const observer = new MutationObserver(() => updateTheme());
+            if (document.body) {
+              observer.observe(document.body, { childList: true, subtree: true });
             }
           })();
         `)

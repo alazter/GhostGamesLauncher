@@ -1,4 +1,4 @@
-# Review das Alterações - 09/08/2026
+# Review das Alterações - 10/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -131,6 +131,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Implementado sistema de tradução injetado via Webview para converter datas relativas ("Aug 6th 3 days ago" -> "6 Agosto 3 dias atrás") e textos da interface em tempo real.
   - Adicionada barra de ferramentas e botões de bandeira com animação hover para rápida alternância de idioma.
 
+### 23. Guia de Expansão da Sidebar do Releases e Ajustes de Cores de Tema HSL/RGBA
+* **Problema:** A barra lateral esquerda da tela do Releases comprimia o logo `releases` e textos do menu, e as cores do topo e painéis precisavam de harmonização visual no tema escuro.
+* **Solução:**
+  - Criado o documento [docs/RELEASES_SIDEBAR_GUIDE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_SIDEBAR_GUIDE.md) definindo a regra de 280px de largura e remoção de cortes de texto.
+  - Adicionada regra no `.agents/AGENTS.md` para prescrever o guia em todas as futuras manutenções.
+  - Ajustados os seletores CSS injetados via Webview em `Releases/index.tsx` para fundos `rgba(3, 4, 5, 1)` (topbar/sidebars) e `hsl(242, 37%, 18%)` (área central de jogos).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -140,6 +147,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [electron-builder.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron-builder.yml)
 - [MODIFY] [review.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/review.md)
 - [NEW] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
+- [NEW] [docs/RELEASES_SIDEBAR_GUIDE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_SIDEBAR_GUIDE.md)
 
 ### Backend & Core
 - [MODIFY] [updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
