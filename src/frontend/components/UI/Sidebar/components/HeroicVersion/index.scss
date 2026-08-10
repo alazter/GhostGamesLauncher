@@ -113,3 +113,41 @@
     color: var(--accent);
   }
 }
+
+.SidebarLanguageFlags {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  -webkit-app-region: no-drag;
+
+  &__btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    line-height: 0;
+    display: inline-block;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: scale(1.15);
+    }
+  }
+
+  &__img {
+    width: 32px;
+    height: 21px;
+    object-fit: cover;
+    border-radius: 2px;
+    display: block;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality;
+  }
+}

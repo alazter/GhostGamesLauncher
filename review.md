@@ -124,6 +124,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Criada detecção e filtro inteligente de **Jogos Duplicados** no cabeçalho da Biblioteca (`getDuplicateGameIds`).
   - Otimizadas as configurações de inicialização com o Windows (`startAtLogin` + `startInTray`), abrindo oculto/minimizado na bandeja automaticamente.
 
+### 22. Seletor de Idioma (PT-BR / EN) com Bandeiras HD e Tradução Dinâmica na Tela de Lançamentos
+* **Problema:** A página de Lançamentos exibia o changelog em inglês sem opção intuitiva de alternar o idioma para Português (Brasil).
+* **Solução:**
+  - Adicionadas imagens de alta definição das bandeiras 🇧🇷 Brasil (`flag_br.png`) e 🇺🇸 Estados Unidos (`flag_us.png`).
+  - Implementado sistema de tradução injetado via Webview para converter datas relativas ("Aug 6th 3 days ago" -> "6 Agosto 3 dias atrás") e textos da interface em tempo real.
+  - Adicionada barra de ferramentas e botões de bandeira com animação hover para rápida alternância de idioma.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados

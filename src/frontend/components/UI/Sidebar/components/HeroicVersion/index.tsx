@@ -8,8 +8,14 @@ import './index.scss'
 import UpdatePopupModal from 'frontend/components/UI/UpdatePopupModal'
 import { Release } from 'common/types'
 
+import flagsB64 from 'frontend/assets/flags_b64.json'
+
 const storage = window.localStorage
 const lastVersion = storage.getItem('last_version')?.replaceAll('"', '')
+
+
+
+
 
 export default React.memo(function HeroicVersion() {
   const { t } = useTranslation()
