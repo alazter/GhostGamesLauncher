@@ -12,7 +12,8 @@ import {
   faTv,
   faPaintBrush,
   faPowerOff,
-  faQuestionCircle
+  faQuestionCircle,
+  faClock
 } from '@fortawesome/free-solid-svg-icons'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
@@ -1078,6 +1079,7 @@ export default function PersonalizationScreen() {
       { id: 'personalization', icon: faPaintBrush, active: true },
       { id: 'login', icon: faUser, active: false },
       { id: 'stores', icon: faStore, active: false },
+      { id: 'releases', icon: faClock, active: false },
       { id: 'divider-1', isDivider: true },
       { id: 'settings', icon: faSlidersH, active: false },
       { id: 'console', icon: faTv, active: false },

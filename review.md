@@ -120,7 +120,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 * **Problema:** Exibição de anúncios em webviews, falta de visualização histórica de lançamentos no launcher, duplicatas de títulos de lojas/sideload e inicialização minimizada ao ligar o Windows.
 * **Solução:**
   - Configurado DNS criptografado via HTTPS (Quad9 Secure DoH) e bloqueador de anúncios/trackers via `onBeforeRequest` no backend (`main.ts`).
-  - Criada a tela de **Lançamentos** (`/releases`) integrada com atalho na Sidebar.
+  - Criada a tela de **Lançamentos** (`/releases`) integrada com atalho na Sidebar e preview de atalhos na tela de Personalização (`Personalization/index.tsx`).
   - Criada detecção e filtro inteligente de **Jogos Duplicados** no cabeçalho da Biblioteca (`getDuplicateGameIds`).
   - Otimizadas as configurações de inicialização com o Windows (`startAtLogin` + `startInTray`), abrindo oculto/minimizado na bandeja automaticamente.
 
