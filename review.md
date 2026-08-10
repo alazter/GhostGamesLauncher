@@ -138,6 +138,11 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Adicionada regra no `.agents/AGENTS.md` para prescrever o guia em todas as futuras manutenções.
   - Ajustados os seletores CSS injetados via Webview em `Releases/index.tsx` para fundos `rgba(3, 4, 5, 1)` (topbar/sidebars) e `hsl(242, 37%, 18%)` (área central de jogos).
 
+### 24. Lançamento das Versões `v0.1.7-beta` e `v0.1.8-beta`
+* **Solução:**
+  - Incremento de versão no `package.json` para `v0.1.8-beta`.
+  - Atualização de regras de scanner em `scanner_rules.json` e publicação automatizada das novas releases no GitHub.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
