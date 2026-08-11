@@ -1,4 +1,4 @@
-# Review das Alterações - 10/08/2026
+# Review das Alterações - 11/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -142,6 +142,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 * **Solução:**
   - Incremento de versão no `package.json` para `v0.1.8-beta`.
   - Atualização de regras de scanner em `scanner_rules.json` e publicação automatizada das novas releases no GitHub.
+
+### 25. Badge Vermelho de Notificação de Lançamentos do Dia na Sidebar
+* **Problema:** Usuários não tinham ciência de lançamentos de jogos ocorrendo no dia atual sem abrir manualmente a tela de Lançamentos.
+* **Solução:**
+  - Criado o auxiliar de varredura `releasesScanner.ts` que consulta e identifica lançamentos para a data atual.
+  - Implementado o selo visual de notificação (`Sidebar__badge`) no ícone de "Lançamentos" da barra lateral com estilo circular vermelho neon em `SidebarItem`.
+  - Adicionada limpeza automática do badge ao clicar no item de menu e sincronização de eventos com `ghostReleasesBadgeChanged`.
 
 ---
 

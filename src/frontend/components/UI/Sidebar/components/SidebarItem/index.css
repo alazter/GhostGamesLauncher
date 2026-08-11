@@ -28,6 +28,29 @@
       width: 24px;
       display: inline-flex;
       justify-content: center;
+      position: relative;
+
+      .Sidebar__badge {
+        position: absolute;
+        top: -6px;
+        right: -8px;
+        background-color: #ff1744;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        box-shadow: 0 0 6px rgba(255, 23, 68, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+        border: none;
+        line-height: 1;
+        pointer-events: none;
+        z-index: 99;
+      }
     }
 
     &:focus-visible {

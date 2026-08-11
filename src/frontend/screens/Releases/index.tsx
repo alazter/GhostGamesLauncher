@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import flagsB64 from 'frontend/assets/flags_b64.json'
 import './index.css'
 
@@ -6,13 +7,25 @@ const flagBrData = 'data:image/png;base64,' + flagsB64.br
 const flagUsData = 'data:image/png;base64,' + flagsB64.us
 
 export default function Releases() {
+  const location = useLocation() as { state?: { targetUrl?: string } }
+  const defaultReleasesUrl =
+    'https://www.releases.com/calendar/products?f=t%3AGame&f=v%3APC&f=v%3APC%20%28Early%20Access%29'
+  const releasesUrl = location.state?.targetUrl || defaultReleasesUrl
+
   const [lang, setLang] = useState<'pt-br' | 'en'>(() => {
     return (localStorage.getItem('ghost_releases_lang') as 'pt-br' | 'en') || 'pt-br'
   })
 
   const webviewRef = useRef<Electron.WebviewTag>(null)
-  const releasesUrl =
-    'https://www.releases.com/calendar/products?f=t%3AGame&f=v%3APC&f=v%3APC%20%28Early%20Access%29'
+
+  useEffect(() => {
+    const webviewEl = webviewRef.current
+    if (!webviewEl) return
+    const target = location.state?.targetUrl || defaultReleasesUrl
+    if (webviewEl.src !== target && typeof webviewEl.loadURL === 'function') {
+      webviewEl.loadURL(target)
+    }
+  }, [location.state])
 
   const handleLangChange = (newLang: 'pt-br' | 'en') => {
     if (newLang === lang) return
@@ -533,6 +546,40 @@ export default function Releases() {
           })();
         `)
         .catch(() => {})
+
+      webviewEl
+        .executeJavaScript(`
+          (function() {
+            try {
+              const now = new Date();
+              const day = now.getDate();
+              const monthShort = now.toLocaleString('en-US', { month: 'short' });
+              
+              let count = 0;
+              const cards = document.querySelectorAll('.RWP-Calendar-ProductCard, [class*="ProductCard"], [class*="product-card"], article');
+              cards.forEach(card => {
+                const txt = card.textContent || '';
+                if (txt.includes(day + ' ' + monthShort) || txt.includes(monthShort + ' ' + day) || txt.toLowerCase().includes('today') || txt.toLowerCase().includes('hoje')) {
+                  count++;
+                }
+              });
+              return count;
+            } catch(e) {
+              return 0;
+            }
+          })()
+        `)
+        .then((count: number) => {
+          if (count > 0) {
+            const todayStr = new Date().toISOString().split('T')[0]
+            const lastCleared = localStorage.getItem('ghost_releases_last_cleared_date')
+            if (lastCleared !== todayStr) {
+              localStorage.setItem('ghost_releases_badge_count', count.toString())
+              window.dispatchEvent(new Event('ghostReleasesBadgeChanged'))
+            }
+          }
+        })
+        .catch(() => {})
     }
 
     const handleConsoleMessage = (e: any) => {
@@ -558,6 +605,7 @@ export default function Releases() {
         ref={webviewRef}
         className="Releases__webview"
         partition="persist:releases"
+        useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         src={releasesUrl}
         allowpopups={'true' as unknown as boolean}
       />

@@ -218,6 +218,14 @@ async function initializeWindow(): Promise<BrowserWindow> {
   configStore.set('userHome', userHome)
   const mainWindow = createMainWindow()
 
+  mainWindow.on('minimize', () => {
+    if (global.gc) {
+      try {
+        global.gc()
+      } catch (e) {}
+    }
+  })
+
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     logInfo(`[Renderer Console] [Level ${level}] [${sourceId}:${line}]: ${message}`)
   })

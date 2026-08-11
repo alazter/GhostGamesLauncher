@@ -10,6 +10,7 @@ import './index.css'
 interface SidebarItemProps {
   label: string
   url?: string
+  state?: any
   icon?: FontAwesomeIconProps['icon']
   isActiveFallback?: boolean
   onClick?: MouseEventHandler
@@ -21,12 +22,14 @@ interface SidebarItemProps {
   onDragOver?: React.DragEventHandler
   onDragEnd?: React.DragEventHandler
   style?: React.CSSProperties
+  badgeCount?: number
 }
 
 export default function SidebarItem({
   icon,
   label,
   url = '',
+  state,
   isActiveFallback = false,
   onClick,
   className,
@@ -36,13 +39,17 @@ export default function SidebarItem({
   onDragStart,
   onDragOver,
   onDragEnd,
-  style
+  style,
+  badgeCount
 }: SidebarItemProps) {
   const itemContent = (
     <>
       {icon && (
         <div className="Sidebar__itemIcon">
           <FontAwesomeIcon icon={icon} title={label} />
+          {typeof badgeCount === 'number' && badgeCount > 0 && (
+            <span className="Sidebar__badge">{badgeCount}</span>
+          )}
         </div>
       )}
       <span>{label}</span>
@@ -74,6 +81,7 @@ export default function SidebarItem({
             })
           }
           to={url}
+          state={state}
           onClick={onClick}
           data-tour={dataTour}
           draggable={draggable}

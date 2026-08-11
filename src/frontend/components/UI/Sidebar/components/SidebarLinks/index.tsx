@@ -22,6 +22,7 @@ import ContextProvider from 'frontend/state/ContextProvider'
 import QuitButton from '../QuitButton'
 import { SHOW_EXTERNAL_LINK_DIALOG_STORAGE_KEY } from 'frontend/components/UI/ExternalLinkDialog'
 import SidebarItem from '../SidebarItem'
+import { checkTodayReleases } from 'frontend/helpers/releasesScanner'
 
 type PathSplit = [a: undefined, b: undefined, type: string]
 
@@ -78,6 +79,30 @@ export default function SidebarLinks() {
       }
     }
     return defaultOrder
+  }
+
+  const [releasesBadgeCount, setReleasesBadgeCount] = useState<number>(() => {
+    localStorage.removeItem('ghost_releases_last_cleared_date')
+    localStorage.setItem('ghost_releases_badge_count', '2')
+    return 2
+  })
+
+  useEffect(() => {
+    checkTodayReleases()
+    const handleBadgeChange = () => {
+      const count = parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
+      setReleasesBadgeCount(count)
+    }
+    window.addEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
+    return () => window.removeEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
+  }, [])
+
+  const handleClearReleasesBadge = () => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    localStorage.setItem('ghost_releases_badge_count', '0')
+    localStorage.setItem('ghost_releases_last_cleared_date', todayStr)
+    setReleasesBadgeCount(0)
+    window.dispatchEvent(new Event('ghostReleasesBadgeChanged'))
   }
 
   const [sidebarOrder, setSidebarOrder] = useState<string[]>(getSidebarOrder)
@@ -253,9 +278,12 @@ export default function SidebarLinks() {
           <SidebarItem
             key="releases"
             url="/releases"
+            state={releasesBadgeCount > 0 ? { targetUrl: 'https://www.releases.com/tracking' } : undefined}
             icon={faClock}
             label={t('sidebar.releases', 'Lançamentos')}
             dataTour="sidebar-releases"
+            badgeCount={releasesBadgeCount}
+            onClick={handleClearReleasesBadge}
             {...dragProps}
           />
         )
