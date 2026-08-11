@@ -4,7 +4,7 @@
 [![GitHub all releases](https://img.shields.io/github/downloads-pre/alazter/GhostGamesLauncher/total?style=for-the-badge&color=00B000)](https://github.com/alazter/GhostGamesLauncher/releases/)
 [![GPLv3 license](https://img.shields.io/github/license/alazter/GhostGamesLauncher?style=for-the-badge&color=blue)](https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING)  
 
-Ghost Games Launcher is an Open Source Game Launcher for Windows based on the excellent [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
+Ghost Games Launcher is an Open Source Game Launcher for Windows based on [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
   
 ## Features available right now
 
