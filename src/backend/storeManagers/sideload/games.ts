@@ -32,7 +32,6 @@ export default class SideloadGame implements Game {
   constructor(id: string) {
     this.id = id
   }
-  }
 
   getGameInfo(): GameInfo {
     const store = libraryStore.get('games', [])

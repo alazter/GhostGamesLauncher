@@ -128,14 +128,11 @@ export default class SideloadLibraryManager implements LibraryManager {
 
   getLaunchOptions = () => []
 
-<<<<<<< HEAD
-  sendFrontendMessage('refreshLibrary', 'sideload')
-
-  return
-}
-
-export function installState() {
-  logWarning(`installState not implemented on Sideload Library Manager`)
+  changeVersionPinnedStatus() {
+    logWarning(
+      'changeVersionPinnedStatus not implemented on Sideload Library Manager'
+    )
+  }
 }
 
 import { sanitizeExistingSideloadLibrary } from './scanner'
@@ -241,12 +238,6 @@ export async function getInstallInfo(): Promise<undefined> {
 
 export const getLaunchOptions = () => []
 
-export function changeVersionPinnedStatus() {
-  logWarning(
-    'changeVersionPinnedStatus not implemented on Sideload Library Manager'
-  )
-}
-
 export function updateSideloadedApps(appsToUpdate: GameInfo[]): void {
   const current = libraryStore.get('games', [])
   for (const app of appsToUpdate) {
@@ -258,11 +249,3 @@ export function updateSideloadedApps(appsToUpdate: GameInfo[]): void {
   libraryStore.set('games', current)
   sendFrontendMessage('refreshLibrary', 'sideload')
 }
-=======
-  changeVersionPinnedStatus() {
-    logWarning(
-      'changeVersionPinnedStatus not implemented on Sideload Library Manager'
-    )
-  }
-}
->>>>>>> upstream/main

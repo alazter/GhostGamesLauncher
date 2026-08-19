@@ -3,13 +3,12 @@ import { existsSync, readdirSync, statSync, readFileSync } from 'graceful-fs'
 import { readdir, stat } from 'fs/promises'
 import { join, dirname, basename } from 'path'
 import { libraryStore } from './electronStores'
-import { addNewApp } from './library'
+import { libraryManagerMap } from 'backend/storeManagers'
 import { GlobalConfig } from 'backend/config'
 import { GameConfig } from 'backend/game_config'
 import { logInfo, logError } from 'backend/logger'
 import short from 'short-uuid'
 import { GameCandidate } from 'common/types'
-import { uninstall } from './games'
 import { sendFrontendMessage } from 'backend/ipc'
 import { getApiKey, fetchCoverFromSteamGridDB } from './steamgridHelper'
 
@@ -628,7 +627,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
     // Add to library
     const app_name = short.generate().toString()
     try {
-      addNewApp({
+      libraryManagerMap['sideload'].addNewApp({
         app_name,
         title,
         runner: 'sideload',
@@ -698,7 +697,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
 
     const app_name = short.generate().toString()
     try {
-      addNewApp({
+      libraryManagerMap['sideload'].addNewApp({
         app_name,
         title: sGame.title,
         runner: 'sideload',
@@ -821,7 +820,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
     if (!executablePath) continue
 
     // Check if already in the library
-    const existingGame = alreadySideloaded.find(g => isDuplicateGame(g, title, executablePath))
+    const existingGame = alreadySideloaded.find((g: any) => isDuplicateGame(g, title, executablePath))
     if (existingGame) {
       if ((!existingGame.art_cover || existingGame.art_cover.includes('heroic-icon.svg') || existingGame.art_cover.includes('heroic_card.jpg')) && apiKey) {
         try {
@@ -876,7 +875,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
     const alreadyInCandidates = candidates.some(c => c.executable.toLowerCase() === sGame.executable.toLowerCase())
     if (alreadyInCandidates) continue
 
-    const existingGame = alreadySideloaded.find(g => isDuplicateGame(g, sGame.title, sGame.executable))
+    const existingGame = alreadySideloaded.find((g: any) => isDuplicateGame(g, sGame.title, sGame.executable))
     if (existingGame) {
       if ((!existingGame.art_cover || existingGame.art_cover.includes('heroic-icon.svg') || existingGame.art_cover.includes('heroic_card.jpg')) && apiKey) {
         try {
@@ -1285,7 +1284,7 @@ export async function discoverAllGames(searchTitles?: string[], selectedDrives?:
   const blacklist: Array<{ title: string; executable: string }> = libraryStore.get('blacklist', [])
 
   const filteredResults = results.filter(candidate => {
-    const isAdded = alreadySideloaded.some(g => isDuplicateGame(g, candidate.title, candidate.executable))
+    const isAdded = alreadySideloaded.some((g: any) => isDuplicateGame(g, candidate.title, candidate.executable))
     const isBlacklisted = blacklist.some(b => isDuplicateGame({ title: b.title, install: { executable: b.executable } }, candidate.title, candidate.executable))
     return !isAdded && !isBlacklisted
   })
@@ -1319,7 +1318,7 @@ export async function importSelectedGames({
   for (const game of gamesToImport) {
     const app_name = short.generate().toString()
     try {
-      addNewApp({
+      libraryManagerMap['sideload'].addNewApp({
         app_name,
         title: game.title,
         runner: 'sideload',
@@ -1380,7 +1379,7 @@ export async function undoImport(appNames: string[]): Promise<void> {
   logInfo(`Undoing import for appNames: ${appNames.join(', ')}`)
   for (const appName of appNames) {
     try {
-      await uninstall({ appName, shouldRemovePrefix: false, deleteFiles: false })
+      await libraryManagerMap['sideload'].getGame(appName).uninstall({ shouldRemovePrefix: false, deleteFiles: false })
     } catch (err) {
       logError([`Failed to undo import for appName ${appName}:`, err])
     }

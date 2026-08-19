@@ -15,7 +15,6 @@ import { existsSync, readdirSync, rmSync } from 'graceful-fs'
 import i18next from 'i18next'
 import { join } from 'path'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
-import { getGameInfo as getSideloadGameInfo } from 'backend/storeManagers/sideload/games'
 import { removeShortcuts as removeShortcutsUtil } from 'backend/shortcuts/shortcuts/shortcuts'
 import { removeNonSteamGame } from 'backend/shortcuts/nonesteamgame/nonesteamgame'
 import { removeRecentGame } from 'backend/recent_games/recent_games'
@@ -168,13 +167,14 @@ export const bulkUninstallCallback = async (
           runner: 'sideload',
           status: 'uninstalling'
         })
-        const gameInfo = getSideloadGameInfo(app.appName)
+        const sideloadGame = libraryManagerMap['sideload'].getGame(app.appName)
+        const gameInfo = sideloadGame.getGameInfo()
         if (shouldRemovePrefix) {
           await removePrefix(app.appName, 'sideload')
         }
-        removeShortcutsUtil(gameInfo)
+        removeShortcutsUtil(sideloadGame)
         removeRecentGame(app.appName)
-        removeNonSteamGame({ gameInfo })
+        removeNonSteamGame(sideloadGame)
 
         sendGameStatusUpdate({
           appName: app.appName,
@@ -200,8 +200,7 @@ export const bulkUninstallCallback = async (
         runner: app.runner,
         status: 'uninstalling'
       })
-      await gameManagerMap[app.runner].uninstall({
-        appName: app.appName,
+      await libraryManagerMap[app.runner].getGame(app.appName).uninstall({
         shouldRemovePrefix
       })
       if (shouldRemovePrefix) {

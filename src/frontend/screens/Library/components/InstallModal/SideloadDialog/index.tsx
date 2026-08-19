@@ -43,7 +43,9 @@ import { NavLink, useNavigate } from 'react-router-dom'
 type Props = {
   availablePlatforms: AvailablePlatforms
   winePrefix: string
+  setWinePrefix?: (prefix: string) => void
   wineVersion: WineInstallation | undefined
+  crossoverBottle?: string
   children: React.ReactNode
   platformToInstall: InstallPlatform
   backdropClick: () => void
@@ -57,7 +59,9 @@ export default function SideloadDialog({
   availablePlatforms,
   backdropClick,
   winePrefix,
+  setWinePrefix,
   wineVersion,
+  crossoverBottle,
   platformToInstall,
   children,
   appName,
@@ -193,7 +197,7 @@ export default function SideloadDialog({
     if (editMode) return
     window.api.requestAppSettings().then(({ defaultWinePrefixDir }) => {
       const suggestedWinePrefix = `${defaultWinePrefixDir}/${title}`
-      setWinePrefix(suggestedWinePrefix)
+      setWinePrefix?.(suggestedWinePrefix)
     })
   }, [title, editMode])
 

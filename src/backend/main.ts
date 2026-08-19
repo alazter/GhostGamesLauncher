@@ -109,7 +109,7 @@ import {
   initStoreManagers,
   libraryManagerMap
 } from './storeManagers'
-import { addNewApp, updateSideloadedApps } from './storeManagers/sideload/library'
+import { updateSideloadedApps } from './storeManagers/sideload/library'
 import {
   scanInstalledGames,
   discoverInstalledGames,
@@ -306,10 +306,12 @@ async function initializeWindow(): Promise<BrowserWindow> {
     isCLIConsoleMode || globalConf.startInConsoleMode ? '/console' : undefined
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    await import('electron-devtools-installer').then(
-      ({ installExtension, REACT_DEVELOPER_TOOLS }) =>
+    // @ts-expect-error optional dev dependency
+    await import('electron-devtools-installer')
+      .then(({ installExtension, REACT_DEVELOPER_TOOLS }) =>
         installExtension(REACT_DEVELOPER_TOOLS)
-    )
+      )
+      .catch(() => {})
 
     const devUrl = startHash
       ? `${process.env.ELECTRON_RENDERER_URL}#${startHash}`
