@@ -38,6 +38,10 @@ import { GOGUser } from './storeManagers/gog/user'
 import gogPresence from './storeManagers/gog/presence'
 import { NileUser } from './storeManagers/nile/user'
 import { ZoomUser } from './storeManagers/zoom/user'
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.ghostgameslauncher.ghost')
+}
 import {
   clearCache,
   isEpicServiceOffline,
@@ -471,30 +475,46 @@ if (!gotTheLock) {
     // try to fix notification app name on windows
     if (isWindows) {
       app.setAppUserModelId('com.ghostgameslauncher.ghost')
-      try {
-        const currentExePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
-        const desktopFolder = app.getPath('desktop')
-        
-        // Remove old Ghost.lnk shortcut
+      if (app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) {
         try {
-          const oldShortcut = path.join(desktopFolder, 'Ghost.lnk')
-          if (existsSync(oldShortcut)) {
-            require('fs').unlinkSync(oldShortcut)
+          const currentExePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
+          const desktopFolder = app.getPath('desktop')
+          const startMenuFolder = path.join(app.getPath('appData'), 'Microsoft', 'Windows', 'Start Menu', 'Programs')
+
+          // Remove old Ghost.lnk shortcut
+          try {
+            const oldShortcut = path.join(desktopFolder, 'Ghost.lnk')
+            if (existsSync(oldShortcut)) {
+              require('fs').unlinkSync(oldShortcut)
+            }
+          } catch {}
+
+          const iconToUse = ensurePermanentAppIcon()
+
+          // Desktop shortcut
+          const desktopShortcutPath = path.join(desktopFolder, 'Ghost Games Launcher.lnk')
+          shell.writeShortcutLink(desktopShortcutPath, 'create', {
+            target: currentExePath,
+            description: 'Ghost Games Launcher',
+            icon: iconToUse,
+            iconIndex: 0,
+            appUserModelId: 'com.ghostgameslauncher.ghost'
+          })
+
+          // Start Menu shortcut (crucial for Windows Taskbar pin matching)
+          if (existsSync(startMenuFolder)) {
+            const startMenuShortcutPath = path.join(startMenuFolder, 'Ghost Games Launcher.lnk')
+            shell.writeShortcutLink(startMenuShortcutPath, 'create', {
+              target: currentExePath,
+              description: 'Ghost Games Launcher',
+              icon: iconToUse,
+              iconIndex: 0,
+              appUserModelId: 'com.ghostgameslauncher.ghost'
+            })
           }
-        } catch {}
-
-        const iconToUse = ensurePermanentAppIcon()
-
-        const shortcutPath = path.join(desktopFolder, 'Ghost Games Launcher.lnk')
-        shell.writeShortcutLink(shortcutPath, 'create', {
-          target: currentExePath,
-          description: 'Ghost Games Launcher',
-          icon: iconToUse,
-          iconIndex: 0,
-          appUserModelId: 'com.ghostgameslauncher.ghost'
-        })
-      } catch (err) {
-        logError(`Failed to create desktop shortcut on startup: ${err}`, LogPrefix.Backend)
+        } catch (err) {
+          logError(`Failed to create shortcuts on startup: ${err}`, LogPrefix.Backend)
+        }
       }
     }
 
@@ -1544,7 +1564,10 @@ addHandler(
 
 addHandler('kill', async (event, appName, runner) => {
   callAbortController(appName)
-  return gameManagerMap[runner].stop(appName)
+  sendGameStatusUpdate({ appName, runner, status: 'done' })
+  const res = await gameManagerMap[runner].stop(appName)
+  sendGameStatusUpdate({ appName, runner, status: 'done' })
+  return res
 })
 
 addHandler('changeInstallPath', async (event, { appName, path, runner }) => {

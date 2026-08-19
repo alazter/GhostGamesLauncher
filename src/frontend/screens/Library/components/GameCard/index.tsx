@@ -261,13 +261,30 @@ const GameCard = ({
   const assignedCategory = useMemo(() => {
     if (!customCategories || !customCategories.list) return null
 
-    const gameId = `${appName}_${runner}`
+    const mainKey = `${appName}_${runner}`
+    const legKey = `${appName}_legendary`
+    const epicKey = `${appName}_epic`
+    const nileKey = `${appName}_nile`
+    const amzKey = `${appName}_amazon`
+    const gogKey = `${appName}_gog`
+    const steamKey = `${appName}_steam`
 
     for (const [categoryName, gamesArray] of Object.entries(
       customCategories.list
     )) {
-      if (Array.isArray(gamesArray) && gamesArray.includes(gameId)) {
-        return categoryName
+      if (Array.isArray(gamesArray)) {
+        if (
+          gamesArray.includes(mainKey) ||
+          gamesArray.includes(legKey) ||
+          gamesArray.includes(epicKey) ||
+          gamesArray.includes(nileKey) ||
+          gamesArray.includes(amzKey) ||
+          gamesArray.includes(gogKey) ||
+          gamesArray.includes(steamKey) ||
+          gamesArray.includes(appName)
+        ) {
+          return categoryName
+        }
       }
     }
     return null

@@ -81,9 +81,8 @@ export async function launch(
 }
 
 export async function stop(appName: string): Promise<void> {
-  const {
-    install: { executable = undefined }
-  } = getGameInfo(appName)
+  const game = getGameInfo(appName)
+  const executable = game?.install?.executable
 
   if (executable) {
     const gameSettings = await getSettings(appName)
@@ -95,6 +94,10 @@ export async function stop(appName: string): Promise<void> {
     if (!isNative(appName)) {
       shutdownWine(gameSettings)
     }
+  }
+
+  if (appName) {
+    killPattern(appName)
   }
 }
 

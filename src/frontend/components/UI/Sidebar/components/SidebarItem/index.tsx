@@ -14,6 +14,8 @@ interface SidebarItemProps {
   icon?: FontAwesomeIconProps['icon']
   isActiveFallback?: boolean
   onClick?: MouseEventHandler
+  onMouseEnter?: React.MouseEventHandler
+  onMouseLeave?: React.MouseEventHandler
   className?: string
   elementType?: 'a' | 'button'
   dataTour?: string
@@ -23,6 +25,7 @@ interface SidebarItemProps {
   onDragEnd?: React.DragEventHandler
   style?: React.CSSProperties
   badgeCount?: number
+  children?: React.ReactNode
 }
 
 export default function SidebarItem({
@@ -32,6 +35,8 @@ export default function SidebarItem({
   state,
   isActiveFallback = false,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   className,
   elementType,
   dataTour,
@@ -40,7 +45,8 @@ export default function SidebarItem({
   onDragOver,
   onDragEnd,
   style,
-  badgeCount
+  badgeCount,
+  children
 }: SidebarItemProps) {
   const itemContent = (
     <>
@@ -53,6 +59,7 @@ export default function SidebarItem({
         </div>
       )}
       <span>{label}</span>
+      {children}
     </>
   )
 
@@ -62,6 +69,8 @@ export default function SidebarItem({
         <button
           className="Sidebar__item"
           onClick={onClick}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           data-tour={dataTour}
           draggable={draggable}
           onDragStart={onDragStart}
@@ -83,6 +92,8 @@ export default function SidebarItem({
           to={url}
           state={state}
           onClick={onClick}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           data-tour={dataTour}
           draggable={draggable}
           onDragStart={onDragStart}

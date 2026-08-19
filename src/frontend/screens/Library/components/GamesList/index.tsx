@@ -179,16 +179,55 @@ const GamesList = ({
   const filteredLibrary = useMemo(() => {
     if (!activeStoreFilter) return library
     return library.filter((game) => {
-      const explicitlyAssignedStore = assignments[game.app_name]
-      if (explicitlyAssignedStore)
-        return explicitlyAssignedStore === activeStoreFilter
-      if (activeStoreFilter === 'epic' && game.runner === 'legendary')
+      const explicitlyAssignedStore = (assignments[game.app_name] || '').toLowerCase()
+      const activeFilterLower = activeStoreFilter.toLowerCase()
+      const runnerLower = (game.runner || '').toLowerCase()
+
+      if (explicitlyAssignedStore) {
+        if (explicitlyAssignedStore === activeFilterLower) return true
+        if (
+          (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+          (explicitlyAssignedStore === 'epic' ||
+            explicitlyAssignedStore === 'legendary' ||
+            explicitlyAssignedStore === 'epic games')
+        )
+          return true
+        if (
+          (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+          (explicitlyAssignedStore === 'amazon' ||
+            explicitlyAssignedStore === 'nile' ||
+            explicitlyAssignedStore === 'amazon games')
+        )
+          return true
+        if (activeFilterLower === 'gog' && explicitlyAssignedStore === 'gog') return true
+        if (activeFilterLower === 'steam' && explicitlyAssignedStore === 'steam') return true
+        if (activeFilterLower === 'zoom' && explicitlyAssignedStore === 'zoom') return true
+        if (
+          (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+          (explicitlyAssignedStore === 'sideload' || explicitlyAssignedStore === 'sideloaded')
+        )
+          return true
+      }
+
+      if (
+        (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+        (runnerLower === 'legendary' || runnerLower === 'epic')
+      )
         return true
-      if (activeStoreFilter === 'gog' && game.runner === 'gog') return true
-      if (activeStoreFilter === 'amazon' && game.runner === 'nile') return true
-      if (activeStoreFilter === 'zoom' && game.runner === 'zoom') return true
-      if (activeStoreFilter === 'sideloaded' && game.runner === 'sideload')
+      if (activeFilterLower === 'gog' && runnerLower === 'gog') return true
+      if (
+        (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+        (runnerLower === 'nile' || runnerLower === 'amazon')
+      )
         return true
+      if (activeFilterLower === 'steam' && runnerLower === 'steam') return true
+      if (activeFilterLower === 'zoom' && runnerLower === 'zoom') return true
+      if (
+        (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+        (runnerLower === 'sideload' || runnerLower === 'sideloaded')
+      )
+        return true
+
       return false
     })
   }, [library, activeStoreFilter, assignments])

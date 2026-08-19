@@ -24,6 +24,8 @@ const validStoredUrl = (url: string, store: string) => {
       return url.includes('gaming.amazon.com')
     case 'zoom':
       return url.includes('zoom-platform.com')
+    case 'steam':
+      return url.includes('steampowered.com') || url.includes('steamcommunity.com')
     default:
       return false
   }
@@ -63,6 +65,7 @@ export default function WebView() {
   const gogStore = `https://af.gog.com?as=1838482841`
   const amazonStore = `https://gaming.amazon.com`
   const zoomStore = `https://www.zoom-platform.com`
+  const steamStore = `https://store.steampowered.com/`
   const wikiURL =
     'https://github.com/alazter/HeroicGamesLauncher/wiki'
   const gogEmbedRegExp = new RegExp('https://embed.gog.com/on_login_success?')
@@ -78,6 +81,7 @@ export default function WebView() {
     '/store/gog': gogStore,
     '/store/amazon': amazonStore,
     '/store/zoom': zoomStore,
+    '/store/steam': steamStore,
     '/wiki': wikiURL,
     '/loginEpic': epicLoginUrl,
     '/loginGOG': gogLoginUrl,
@@ -162,13 +166,6 @@ export default function WebView() {
     if (webview) {
       const loadstop = async () => {
         setLoading({ ...loading, refresh: false })
-        const userAgent =
-          startUrl === epicLoginUrl
-            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) EpicGamesLauncher'
-            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/200.0'
-        if (webview.getUserAgent() != userAgent) {
-          webview.setUserAgent(userAgent)
-        }
         // Ignore the login handling if not on login page
         if (!runner) {
           return
@@ -306,26 +303,42 @@ export default function WebView() {
     useState<boolean>(false)
 
   useEffect(() => {
+    const checkWarning = (targetStore: 'epic' | 'gog' | 'amazon' | 'zoom') => {
+      if (localStorage.getItem(`ghost_dont_show_login_warning_${targetStore}`) === 'true') {
+        return null
+      }
+      return targetStore
+    }
+
+    const isEpicLoggedIn = !!epic.username
+    const isGogLoggedIn = !!gog.username
+    const isAmazonLoggedIn = !!(amazon.username || amazon.user_id)
+    const isZoomLoggedIn = !!zoom.username
+
     if (
-      startUrl.match(/epicgames\.com/) &&
-      startUrl.indexOf('/id/login') < 0 &&
-      !epic.username
+      (store === 'epic' || (startUrl.match(/epicgames\.com/) && startUrl.indexOf('/id/login') < 0)) &&
+      !isEpicLoggedIn
     ) {
-      setShowLoginWarningFor('epic')
+      setShowLoginWarningFor(checkWarning('epic'))
     } else if (
-      startUrl.match(/gog\.com/) &&
-      !startUrl.match(/auth\.gog\.com/) &&
-      !gog.username
+      (store === 'gog' || (startUrl.match(/gog\.com/) && !startUrl.match(/auth\.gog\.com/))) &&
+      !isGogLoggedIn
     ) {
-      setShowLoginWarningFor('gog')
-    } else if (startUrl.match(/gaming\.amazon\.com/) && !amazon.user_id) {
-      setShowLoginWarningFor('amazon')
-    } else if (startUrl.match(/zoom-platform\.com\/$/) && !zoom.username) {
-      setShowLoginWarningFor('zoom')
+      setShowLoginWarningFor(checkWarning('gog'))
+    } else if (
+      (store === 'amazon' || startUrl.match(/gaming\.amazon\.com/) || startUrl.match(/amazon/)) &&
+      !isAmazonLoggedIn
+    ) {
+      setShowLoginWarningFor(checkWarning('amazon'))
+    } else if (
+      (store === 'zoom' || startUrl.match(/zoom-platform\.com/)) &&
+      !isZoomLoggedIn
+    ) {
+      setShowLoginWarningFor(checkWarning('zoom'))
     } else {
       setShowLoginWarningFor(null)
     }
-  }, [startUrl])
+  }, [startUrl, store, epic.username, gog.username, amazon.username, amazon.user_id, zoom.username])
 
   const onLoginWarningClosed = () => {
     setShowLoginWarningFor(null)
@@ -377,10 +390,21 @@ export default function WebView() {
       )}
       {loading.refresh && <UpdateComponent message={loading.message} />}
       <webview
-        key={store}
+        key={store || pathname}
         ref={webviewRef}
         className="WebView__webview"
-        partition={`persist:${startUrl === epicLoginUrl ? 'epicstore' : store}`}
+        partition={`persist:${
+          store === 'epic' || startUrl === epicLoginUrl
+            ? 'epicstore'
+            : store === 'gog' || startUrl === gogLoginUrl
+            ? 'gogstore'
+            : store === 'amazon'
+            ? 'amazonstore'
+            : store === 'steam'
+            ? 'steamstore'
+            : store || 'store'
+        }`}
+        useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         src={startUrl}
         allowpopups={trueAsStr}
         preload={webviewPreloadPath}

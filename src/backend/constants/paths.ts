@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, nativeImage, NativeImage } from 'electron'
 import { mkdirSync } from 'graceful-fs'
 import { homedir } from 'os'
 import { join, resolve } from 'path'
@@ -107,4 +107,30 @@ export function ensurePermanentAppIcon(): string {
   }
 
   return process.execPath
+}
+
+export function getAppNativeIcon(): NativeImage {
+  const possiblePngSources = [
+    join(publicDir, 'icon.png'),
+    join(publicDir, 'icon-dark.png'),
+    join(publicDir, 'logo.png'),
+    join(app.getAppPath(), 'public', 'icon.png'),
+    join(app.getAppPath(), 'build', 'icon.png'),
+    join(process.resourcesPath || '', 'app.asar.unpacked', 'public', 'icon.png'),
+    join(userDataPath, 'icon.png')
+  ]
+
+  for (const src of possiblePngSources) {
+    if (src && existsSync(src)) {
+      try {
+        const img = nativeImage.createFromPath(src)
+        if (!img.isEmpty()) {
+          return img
+        }
+      } catch {}
+    }
+  }
+
+  const icoPath = ensurePermanentAppIcon()
+  return nativeImage.createFromPath(icoPath)
 }

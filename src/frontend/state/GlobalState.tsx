@@ -25,6 +25,8 @@ import { i18n, t, TFunction } from 'i18next'
 import ContextProvider from './ContextProvider'
 import { clearAvailabilityCache } from 'frontend/hooks/constants'
 import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
+import { syncAutoStoreCategories } from 'frontend/helpers/autoStoreCategories'
+import { syncAutoStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
 
 import {
   configStore,
@@ -459,6 +461,13 @@ class GlobalState extends PureComponent<Props> {
     this.setCurrentCustomCategories(newCurrentCustomCategories)
   }
 
+  setCustomCategoriesBatch = (newCustomCategories: Record<string, string[]>) => {
+    this.setState({
+      customCategories: newCustomCategories
+    })
+    configStore.set('games.customCategories', newCustomCategories)
+  }
+
   addGameToCustomCategory = (category: string, appName: string) => {
     const gamesInCategory = this.state.customCategories[category] || []
     gamesInCategory.push(appName)
@@ -775,6 +784,16 @@ class GlobalState extends PureComponent<Props> {
     if (currentLibraryLength !== epicLibrary.length) {
       window.api.logInfo('Force Update')
       this.forceUpdate()
+    }
+
+    try {
+      syncAutoStoreCategories(epicLibrary, this.state.customCategories, this.setCustomCategoriesBatch, 'legendary')
+      syncAutoStoreCategories(gogLibrary, this.state.customCategories, this.setCustomCategoriesBatch, 'gog')
+      syncAutoStoreCategories(amazonLibrary, this.state.customCategories, this.setCustomCategoriesBatch, 'nile')
+      syncAutoStoreCategories(zoomLibrary, this.state.customCategories, this.setCustomCategoriesBatch, 'zoom')
+      syncAutoStoreAssignments(epicLibrary, gogLibrary, amazonLibrary)
+    } catch (e) {
+      console.error('Error syncing auto store categories:', e)
     }
   }
 

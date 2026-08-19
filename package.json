@@ -20,7 +20,7 @@
   },
   "packageManager": "pnpm@10.28.0",
   "scripts": {
-    "start": "electron-vite dev --watch",
+    "start": "node scripts/patch_dev_exe.js && electron-vite dev --watch",
     "debug:react": "pnpm start & react-devtools",
     "codecheck": "tsc --noEmit",
     "find-deadcode": "ts-prune --error",

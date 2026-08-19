@@ -1,8 +1,47 @@
-.notLoggedIn {
+.notLoggedIn.GhostDialog {
   max-width: 500px;
-  .button {
-    display: block;
-    background: var(--accent);
-    margin-top: var(--space-xl);
+  background: rgba(3, 4, 5, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(16px) !important;
+  color: #ffffff;
+
+  p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #cccccc;
+    margin-bottom: 16px;
+  }
+
+  .LoginWarning__dontShowAgain {
+    margin: 16px 0;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+  }
+
+  .button.GhostButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-decoration: none;
+    transition: background-color 150ms ease, transform 100ms ease;
+
+    &:hover {
+      background: #e6e6e6 !important;
+      color: #000000 !important;
+      transform: translateY(-1px);
+    }
   }
 }

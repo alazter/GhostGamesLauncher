@@ -22,12 +22,30 @@ import ContextProvider from 'frontend/state/ContextProvider'
 import QuitButton from '../QuitButton'
 import { SHOW_EXTERNAL_LINK_DIALOG_STORAGE_KEY } from 'frontend/components/UI/ExternalLinkDialog'
 import SidebarItem from '../SidebarItem'
+import StoreHoverMenu from '../StoreHoverMenu'
 import { checkTodayReleases } from 'frontend/helpers/releasesScanner'
 
 type PathSplit = [a: undefined, b: undefined, type: string]
 
 export default function SidebarLinks() {
   const { t } = useTranslation()
+  const [isStoreHovered, setIsStoreHovered] = useState(false)
+  const [storeAnchorRect, setStoreAnchorRect] = useState<DOMRect | null>(null)
+  const hoverTimeoutRef = useState<{ timer: NodeJS.Timeout | null }>({ timer: null })[0]
+
+  const handleStoreMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (hoverTimeoutRef.timer) clearTimeout(hoverTimeoutRef.timer)
+    if (e.currentTarget) {
+      setStoreAnchorRect(e.currentTarget.getBoundingClientRect())
+    }
+    setIsStoreHovered(true)
+  }
+
+  const handleStoreMouseLeave = () => {
+    hoverTimeoutRef.timer = setTimeout(() => {
+      setIsStoreHovered(false)
+    }, 200)
+  }
   const location = useLocation() as { pathname: string }
   const [, , type] = location.pathname.split('/') as PathSplit
 
@@ -235,44 +253,34 @@ export default function SidebarLinks() {
             {...dragProps}
           />
         )
-      case 'stores':
+      case 'stores': {
+        const lastSelectedStore =
+          localStorage.getItem('ghost_last_selected_store') || defaultStore || 'epic'
         return (
-          <div key="stores" className="SidebarItemWithSubmenu" {...dragProps}>
+          <div
+            key="stores"
+            className="SidebarItemWithSubmenu"
+            onMouseEnter={handleStoreMouseEnter}
+            onMouseLeave={handleStoreMouseLeave}
+            {...dragProps}
+          >
             <SidebarItem
               isActiveFallback={location.pathname.includes('store')}
-              url={`/store/${defaultStore}`}
+              url={`/store/${lastSelectedStore}`}
               icon={faStore}
-              label={t('stores', 'Stores')}
+              label={t('stores', 'Lojas')}
               dataTour="sidebar-stores"
-            />
-            {inWebviewScreen && (
-              <div className="SidebarSubmenu">
-                <SidebarItem
-                  className="SidebarLinks__subItem"
-                  url="/store/epic"
-                  label={t('store', 'Epic Store')}
+            >
+              {isStoreHovered && (
+                <StoreHoverMenu
+                  anchorRect={storeAnchorRect}
+                  onClose={() => setIsStoreHovered(false)}
                 />
-                <SidebarItem
-                  className="SidebarLinks__subItem"
-                  url="/store/gog"
-                  label={t('gog-store', 'GOG Store')}
-                />
-                <SidebarItem
-                  className="SidebarLinks__subItem"
-                  url="/store/amazon"
-                  label={t('amazon-luna', 'Amazon Luna')}
-                />
-                {zoom.enabled && (
-                  <SidebarItem
-                    className="SidebarLinks__subItem"
-                    url="/store/zoom"
-                    label={t('zoom-store', 'Zoom Store')}
-                  />
-                )}
-              </div>
-            )}
+              )}
+            </SidebarItem>
           </div>
         )
+      }
       case 'releases':
         return (
           <SidebarItem

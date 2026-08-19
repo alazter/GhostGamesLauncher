@@ -18,6 +18,8 @@ import { useTranslation } from 'react-i18next'
 import Fuse from 'fuse.js'
 
 import ContextProvider from 'frontend/state/ContextProvider'
+import { syncAutoStoreCategories } from 'frontend/helpers/autoStoreCategories'
+import { syncAutoStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
 
 import GamesList from './components/GamesList'
 import { FavouriteGame, GameInfo, HiddenGame, Runner } from 'common/types'
@@ -1538,6 +1540,41 @@ export default memo(function Library(): JSX.Element {
     }
   }, [epic, gog, sideloadedLibrary, amazon, zoom, selectedInlineGame, makeLibrary])
 
+  useEffect(() => {
+    if (
+      customCategories &&
+      customCategories.list &&
+      (epic.library.length ||
+        gog.library.length ||
+        amazon.library.length ||
+        zoom.library.length)
+    ) {
+      const updateBatch = (newCat: Record<string, string[]>) => {
+        Object.keys(newCat).forEach((cat) => {
+          if (!customCategories.listCategories().includes(cat)) {
+            customCategories.addCategory(cat)
+          }
+          newCat[cat].forEach((gameId) => {
+            if (!customCategories.list[cat]?.includes(gameId)) {
+              customCategories.addToGame(cat, gameId)
+            }
+          })
+        })
+      }
+      syncAutoStoreCategories(epic.library, customCategories.list, updateBatch, 'legendary')
+      syncAutoStoreCategories(gog.library, customCategories.list, updateBatch, 'gog')
+      syncAutoStoreCategories(amazon.library, customCategories.list, updateBatch, 'nile')
+      syncAutoStoreCategories(zoom.library, customCategories.list, updateBatch, 'zoom')
+      syncAutoStoreAssignments(epic.library, gog.library, amazon.library)
+    }
+  }, [
+    epic.library,
+    gog.library,
+    amazon.library,
+    zoom.library,
+    customCategories
+  ])
+
   const gamesForAlphabetFilter = useMemo(() => {
     let library: Array<GameInfo> = makeLibrary()
 
@@ -1575,9 +1612,28 @@ export default memo(function Library(): JSX.Element {
           }
         })
 
-        library = library.filter((game) =>
-          gamesInSelectedCategories.has(`${game.app_name}_${game.runner}`)
-        )
+        library = library.filter((game) => {
+          const mainKey = `${game.app_name}_${game.runner}`
+          const legKey = `${game.app_name}_legendary`
+          const epicKey = `${game.app_name}_epic`
+          const nileKey = `${game.app_name}_nile`
+          const amzKey = `${game.app_name}_amazon`
+          const gogKey = `${game.app_name}_gog`
+          const steamKey = `${game.app_name}_steam`
+          const zoomKey = `${game.app_name}_zoom`
+
+          return (
+            gamesInSelectedCategories.has(mainKey) ||
+            gamesInSelectedCategories.has(legKey) ||
+            gamesInSelectedCategories.has(epicKey) ||
+            gamesInSelectedCategories.has(nileKey) ||
+            gamesInSelectedCategories.has(amzKey) ||
+            gamesInSelectedCategories.has(gogKey) ||
+            gamesInSelectedCategories.has(steamKey) ||
+            gamesInSelectedCategories.has(zoomKey) ||
+            gamesInSelectedCategories.has(game.app_name)
+          )
+        })
       }
 
       if (showSupportOfflineOnly) {
@@ -1732,19 +1788,53 @@ export default memo(function Library(): JSX.Element {
       })
     } else if (activeStoreFilter) {
       library = library.filter((game) => {
-        const explicitlyAssignedStore = assignments[game.app_name]
+        const explicitlyAssignedStore = (assignments[game.app_name] || '').toLowerCase()
+        const activeFilterLower = activeStoreFilter.toLowerCase()
+        const runnerLower = (game.runner || '').toLowerCase()
 
         if (explicitlyAssignedStore) {
-          return explicitlyAssignedStore === activeStoreFilter
+          if (explicitlyAssignedStore === activeFilterLower) return true
+          if (
+            (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+            (explicitlyAssignedStore === 'epic' ||
+              explicitlyAssignedStore === 'legendary' ||
+              explicitlyAssignedStore === 'epic games')
+          )
+            return true
+          if (
+            (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+            (explicitlyAssignedStore === 'amazon' ||
+              explicitlyAssignedStore === 'nile' ||
+              explicitlyAssignedStore === 'amazon games')
+          )
+            return true
+          if (activeFilterLower === 'gog' && explicitlyAssignedStore === 'gog') return true
+          if (activeFilterLower === 'steam' && explicitlyAssignedStore === 'steam') return true
+          if (activeFilterLower === 'zoom' && explicitlyAssignedStore === 'zoom') return true
+          if (
+            (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+            (explicitlyAssignedStore === 'sideload' || explicitlyAssignedStore === 'sideloaded')
+          )
+            return true
         }
 
-        if (activeStoreFilter === 'epic' && game.runner === 'legendary')
+        if (
+          (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+          (runnerLower === 'legendary' || runnerLower === 'epic')
+        )
           return true
-        if (activeStoreFilter === 'gog' && game.runner === 'gog') return true
-        if (activeStoreFilter === 'amazon' && game.runner === 'nile')
+        if (activeFilterLower === 'gog' && runnerLower === 'gog') return true
+        if (
+          (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+          (runnerLower === 'nile' || runnerLower === 'amazon')
+        )
           return true
-        if (activeStoreFilter === 'zoom' && game.runner === 'zoom') return true
-        if (activeStoreFilter === 'sideloaded' && game.runner === 'sideload')
+        if (activeFilterLower === 'steam' && runnerLower === 'steam') return true
+        if (activeFilterLower === 'zoom' && runnerLower === 'zoom') return true
+        if (
+          (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+          (runnerLower === 'sideload' || runnerLower === 'sideloaded')
+        )
           return true
 
         return false

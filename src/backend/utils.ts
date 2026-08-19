@@ -842,12 +842,16 @@ function getInfo(appName: string, runner: Runner): GameInfo {
 // can be removed if legendary and gogdl handle SIGTERM and SIGKILL
 // for us
 function killPattern(pattern: string) {
+  if (!pattern) return
   logInfo(['Trying to kill', pattern], LogPrefix.Backend)
   let ret
   if (isWindows) {
-    ret = spawnSync('Stop-Process', ['-name', pattern], {
-      shell: 'powershell.exe'
-    })
+    const cleanPattern = pattern.replace(/\.exe$/i, '')
+    const exePattern = `${cleanPattern}.exe`
+    ret = spawnSync('taskkill', ['/F', '/T', '/IM', exePattern])
+    if (ret.status !== 0) {
+      spawnSync('taskkill', ['/F', '/T', '/IM', cleanPattern])
+    }
   } else {
     ret = spawnSync('pkill', ['-f', pattern])
   }

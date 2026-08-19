@@ -1,8 +1,8 @@
 import { AppSettings, WindowProps } from 'common/types'
-import { BrowserWindow, screen } from 'electron'
+import { BrowserWindow, nativeImage, screen } from 'electron'
 import path from 'path'
 import { configStore } from './constants/key_value_stores'
-import { windowIcon, ensurePermanentAppIcon } from './constants/paths'
+import { windowIcon, ensurePermanentAppIcon, getAppNativeIcon } from './constants/paths'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -85,10 +85,13 @@ export const createMainWindow = () => {
 
   windowProps = props
 
+  const appNativeIcon = getAppNativeIcon()
+  const fallbackIconPath = ensurePermanentAppIcon()
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     ...props,
-    icon: ensurePermanentAppIcon(),
+    icon: appNativeIcon.isEmpty() ? fallbackIconPath : appNativeIcon,
     minHeight: 345,
     minWidth: 600,
     show: false,
@@ -100,6 +103,22 @@ export const createMainWindow = () => {
       preload: path.join(__dirname, '../preload/index.js')
     }
   })
+
+  if (!appNativeIcon.isEmpty()) {
+    try {
+      mainWindow.setIcon(appNativeIcon)
+    } catch {}
+    mainWindow.once('ready-to-show', () => {
+      try {
+        mainWindow?.setIcon(appNativeIcon)
+      } catch {}
+    })
+    mainWindow.on('show', () => {
+      try {
+        mainWindow?.setIcon(appNativeIcon)
+      } catch {}
+    })
+  }
 
   return mainWindow
 }

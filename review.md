@@ -1,4 +1,4 @@
-# Review das Alterações - 11/08/2026
+# Review das Alterações - 19/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -150,9 +150,24 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Implementado o selo visual de notificação (`Sidebar__badge`) no ícone de "Lançamentos" da barra lateral com estilo circular vermelho neon em `SidebarItem`.
   - Adicionada limpeza automática do badge ao clicar no item de menu e sincronização de eventos com `ghostReleasesBadgeChanged`.
 
+### 26. Submenu Hover de Lojas na Sidebar, Categorias Automáticas por Loja e Suporte a Steam no WebView
+* **Problema:** Necessidade de atalhos diretos para navegar em cada loja na Sidebar, separação automática de jogos por loja na biblioteca e opção de silenciar o aviso de login não efetuado.
+* **Solução:**
+  - Criado o componente `StoreHoverMenu` (com estilos CSS dedicados) no item de Lojas da barra lateral.
+  - Implementados os auxiliares `autoStoreCategories.ts` e `autoStoreAssignments.ts` para agrupar jogos automaticamente por loja.
+  - Adicionada integração para a loja Steam (`/store/steam`) no WebView do launcher com partição `steamstore`.
+  - Adicionada a opção "Não mostrar novamente" com `ToggleSwitch` no modal de aviso de login `LoginWarning`.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
+
+### Configuração e Build
+- [MODIFY] [package.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/package.json)
+- [MODIFY] [electron-builder.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron-builder.yml)
+- [MODIFY] [review.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/review.md)
+- [NEW] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
+- [NEW] [docs/RELEASES_SIDEBAR_GUIDE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_SIDEBAR_GUIDE.md)
 
 ### Configuração e Build
 - [MODIFY] [package.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/package.json)

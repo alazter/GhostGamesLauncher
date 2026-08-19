@@ -1084,12 +1084,17 @@ export async function forceUninstall(appName: string) {
 // Could be removed if legendary handles SIGKILL and SIGTERM for us
 // which is send via AbortController
 export async function stop(appName: string, stopWine = true) {
-  // until the legendary bug gets fixed, kill legendary on mac
-  // not a perfect solution but it's the only choice for now
-
-  // @adityaruplaha: this is kinda arbitary and I don't understand it.
-  const pattern = isWindows ? 'legendary' : appName
-  killPattern(pattern)
+  killPattern('legendary')
+  if (appName) {
+    killPattern(appName)
+    const game = getGameInfo(appName)
+    if (game?.install?.executable) {
+      const exeName = game.install.executable.split(/[/\\]/).pop()
+      if (exeName) {
+        killPattern(exeName)
+      }
+    }
+  }
 
   if (stopWine && !isNative(appName)) {
     const gameSettings = await getSettings(appName)
