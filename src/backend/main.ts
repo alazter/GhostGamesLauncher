@@ -306,12 +306,15 @@ async function initializeWindow(): Promise<BrowserWindow> {
     isCLIConsoleMode || globalConf.startInConsoleMode ? '/console' : undefined
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    // @ts-expect-error optional dev dependency
-    await import('electron-devtools-installer')
-      .then(({ installExtension, REACT_DEVELOPER_TOOLS }) =>
-        installExtension(REACT_DEVELOPER_TOOLS)
+    try {
+      const devToolsModule = 'electron-devtools-installer'
+      const { installExtension, REACT_DEVELOPER_TOOLS } = await import(
+        /* @vite-ignore */ devToolsModule
       )
-      .catch(() => {})
+      await installExtension(REACT_DEVELOPER_TOOLS)
+    } catch {
+      // optional dev dependency
+    }
 
     const devUrl = startHash
       ? `${process.env.ELECTRON_RENDERER_URL}#${startHash}`
