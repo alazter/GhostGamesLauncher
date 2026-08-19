@@ -1,4 +1,4 @@
-import { existsSync, createWriteStream, mkdirSync } from 'graceful-fs'
+import { existsSync, createWriteStream, mkdirSync, readdirSync } from 'graceful-fs'
 import { createHash } from 'crypto'
 import { join } from 'path'
 import axios from 'axios'
@@ -7,10 +7,20 @@ import { pathToFileURL } from 'url'
 import { appFolder } from './constants/paths'
 
 const imagesCachePath = join(appFolder, 'images-cache')
+const cachedHashes = new Set<string>()
 
 export const initImagesCache = () => {
   if (!existsSync(imagesCachePath)) {
     mkdirSync(imagesCachePath)
+  } else {
+    try {
+      const files = readdirSync(imagesCachePath)
+      for (const file of files) {
+        cachedHashes.add(file)
+      }
+    } catch (err) {
+      console.error('[ImagesCache] Error indexing cache directory:', err)
+    }
   }
 
   protocol.handle('imagecache', (request) => {
@@ -20,7 +30,7 @@ export const initImagesCache = () => {
 
 const pending = new Map<string, Promise<void>>()
 const activeDownloads = new Set<Promise<void>>()
-const MAX_CONCURRENT_DOWNLOADS = 8
+const MAX_CONCURRENT_DOWNLOADS = 20
 const downloadQueue: (() => void)[] = []
 
 const processDownloadQueue = () => {
@@ -78,7 +88,8 @@ const getImageFromCache = (request: Request) => {
   const cachePath = join(imagesCachePath, digest)
 
   // Serves from local cache asynchronously via Chromium C++ thread
-  if (existsSync(cachePath)) {
+  if (cachedHashes.has(digest) || existsSync(cachePath)) {
+    cachedHashes.add(digest)
     return net.fetch(pathToFileURL(cachePath).toString())
   }
 
@@ -96,7 +107,10 @@ const getImageFromCache = (request: Request) => {
           const writer = createWriteStream(cachePath)
           response.data.pipe(writer)
           return new Promise<void>((resolve) => {
-            writer.on('finish', () => resolve())
+            writer.on('finish', () => {
+              cachedHashes.add(digest)
+              resolve()
+            })
             writer.on('error', () => resolve())
           })
         })

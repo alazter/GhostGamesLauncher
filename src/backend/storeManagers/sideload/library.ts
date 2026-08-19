@@ -160,7 +160,7 @@ export async function refresh() {
   const runBackgroundRefresh = async () => {
     let updatedAny = false
     const pool = new Set<Promise<void>>()
-    const concurrencyLimit = 6
+    const concurrencyLimit = 12
 
     for (const game of gamesToUpdate) {
       const promise: Promise<void> = (async () => {
