@@ -32,6 +32,10 @@ import {
   libraryStore
 } from 'backend/storeManagers/legendary/electronStores'
 import {
+  legendaryConfigPath,
+  legendaryUserInfo
+} from './storeManagers/legendary/constants'
+import {
   achievementStore as GOGAchievementStore,
   apiInfoCache as GOGapiInfoCache,
   installInfoStore as GOGinstallInfoStore,
@@ -308,6 +312,25 @@ async function errorHandler(
     return
   }
 
+  if (error.includes(expiredCredentials)) {
+    if (existsSync(legendaryUserInfo)) {
+      try {
+        rmSync(legendaryUserInfo, { force: true })
+        configStore.delete('userInfo')
+      } catch (e) {
+        logError(['Failed to remove stale legendaryUserInfo file:', e], LogPrefix.Legendary)
+      }
+    }
+    return showDialogBoxModalAuto({
+      title: plat,
+      message: i18next.t(
+        'box.error.credentials.message',
+        'Your Credentials have expired, Logout and Login Again!'
+      ),
+      type: 'ERROR'
+    })
+  }
+
   if (legendaryRegex.test(error)) {
     const MemoryError = 'MemoryError: '
     if (error.includes(MemoryError)) {
@@ -320,17 +343,6 @@ async function errorHandler(
         'box.error.legendary.generic',
         'An error has occurred! Try to Logout and Login on your Epic account. {{newline}}  {{error}}',
         { error, newline: '\n' }
-      ),
-      type: 'ERROR'
-    })
-  }
-
-  if (error.includes(expiredCredentials)) {
-    return showDialogBoxModalAuto({
-      title: plat,
-      message: i18next.t(
-        'box.error.credentials.message',
-        'Your Crendentials have expired, Logout and Login Again!'
       ),
       type: 'ERROR'
     })
