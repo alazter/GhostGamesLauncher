@@ -54,21 +54,22 @@ const LauncherArgs = () => {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'end', rowGap: '4px' }}>
-      <label htmlFor="launcherArgs" style={{ margin: 0, fontSize: 'var(--text-md)', fontWeight: 'normal', color: 'var(--text-secondary)', justifySelf: 'start', textAlign: 'left' }}>
-        {t('options.gameargs.title')}
-      </label>
-      {launcherArgsInfo}
-      <div style={{ gridColumn: '1 / -1' }}>
-        <TextInputField
-          htmlId="launcherArgs"
-          placeholder={t('options.gameargs.placeholder')}
-          value={launcherArgs}
-          onChange={handleLauncherArgs}
-          afterInput={errorDiv}
-        />
-      </div>
-    </div>
+    <TextInputField
+      label={t(
+        'options.gameargs.title',
+        'Game Arguments (appended to game launch command)'
+      )}
+      htmlId="launcherArgs"
+      placeholder={t('options.gameargs.placeholder')}
+      value={launcherArgs}
+      onChange={handleLauncherArgs}
+      afterInput={
+        <>
+          {errorDiv}
+          {launcherArgsInfo}
+        </>
+      }
+    />
   )
 }
 

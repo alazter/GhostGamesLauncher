@@ -127,6 +127,8 @@ export interface AppSettings extends GameSettings {
   egsLinkedPath: string
   enableUpdates: boolean
   exitToTray: boolean
+  gamepadRepeatDelay: number
+  gamepadInitialRepeatDelay: number
   noTrayIcon: boolean
   experimentalFeatures?: ExperimentalFeatures
   framelessWindow: boolean
@@ -580,8 +582,12 @@ export interface WineVersionInfo extends VersionInfo {
 export type GamepadActionStatus = Record<
   ValidGamepadAction,
   {
+    // handles basic repeat delay
     triggeredAt: { [key: number]: number }
     repeatDelay: false | number
+    // for initial post activation delay
+    activationDelay?: false | number
+    hasRepeated?: boolean
   }
 >
 
@@ -617,6 +623,8 @@ interface GamepadActionArgsWithoutMetadata {
     | 'mainAction'
     | 'back'
     | 'altAction'
+    | 'prevPage'
+    | 'nextPage'
     | 'esc'
     | 'tab'
     | 'shiftTab'
@@ -782,6 +790,7 @@ export type Type =
   | 'Wine-Crossover'
   | 'Wine-Staging-macOS'
   | 'Game-Porting-Toolkit'
+  | 'Proton-CachyOS'
 
 /**
  * Interface contains information about a version
@@ -807,13 +816,13 @@ export interface VersionInfo {
  * Enum for the supported repositorys
  */
 export enum Repositorys {
-  WINEGE,
   PROTONGE,
   PROTON,
   WINELUTRIS,
   WINECROSSOVER,
   WINESTAGINGMACOS,
-  GPTK
+  GPTK,
+  PROTONCACHYOS
 }
 
 export type WineManagerStatus =
@@ -896,6 +905,7 @@ export type ReleasesInfo = Record<
   | 'ge-proton'
   | 'wine-ge'
   | 'game-porting-toolkit'
+  | 'proton-cachyos'
   | 'wine-staging'
   | 'wine-crossover'
   | 'dxvk'

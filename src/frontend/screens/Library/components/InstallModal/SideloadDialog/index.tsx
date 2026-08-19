@@ -43,30 +43,34 @@ import { NavLink, useNavigate } from 'react-router-dom'
 type Props = {
   availablePlatforms: AvailablePlatforms
   winePrefix: string
-  crossoverBottle: string
   wineVersion: WineInstallation | undefined
-  setWinePrefix: React.Dispatch<React.SetStateAction<string>>
   children: React.ReactNode
   platformToInstall: InstallPlatform
   backdropClick: () => void
   appName?: string
   initialSgdbTarget?: 'cover' | 'square' | null
+  title?: string
+  setTitle?: (title: string) => void
 }
 
 export default function SideloadDialog({
   availablePlatforms,
   backdropClick,
   winePrefix,
-  crossoverBottle,
   wineVersion,
   platformToInstall,
-  setWinePrefix,
   children,
   appName,
-  initialSgdbTarget = null
+  initialSgdbTarget = null,
+  title: initialTitle,
+  setTitle: setExternalTitle
 }: Props) {
   const { t, i18n } = useTranslation(['gamepage', 'translation'])
-  const [title, setTitle] = useState<string>(t('sideload.field.title', 'Title'))
+  const [title, setTitleState] = useState<string>(initialTitle || t('sideload.field.title', 'Title'))
+  const setTitle = (val: string) => {
+    setTitleState(val)
+    if (setExternalTitle) setExternalTitle(val)
+  }
   const [selectedExe, setSelectedExe] = useState('')
   const [gameUrl, setGameUrl] = useState('')
   const [customUserAgent, setCustomUserAgent] = useState('')

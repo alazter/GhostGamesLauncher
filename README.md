@@ -47,6 +47,7 @@ Ghost Games Launcher would not be possible without the work done in many other p
 - Nile: https://github.com/imLinguin/nile
 - Comet: https://github.com/imLinguin/comet
 - GE-Proton: https://github.com/GloriousEggroll/proton-ge-custom
+- Proton-cachyos: https://github.com/CachyOS/proton-cachyos
 - umu-launcher: https://github.com/Open-Wine-Components/umu-launcher
 - DXVK: https://github.com/doitsujin/dxvk
 - VKD3D: https://github.com/HansKristian-Work/vkd3d-proton

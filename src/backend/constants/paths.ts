@@ -4,7 +4,7 @@ import { homedir } from 'os'
 import { join, resolve } from 'path'
 import { env } from 'process'
 import { dirSync } from 'tmp'
-import { isSnap, isWindows } from './environment'
+import { isWindows } from './environment'
 
 let configFolder = app.getPath('appData')
 // If we're running tests, we want a config folder independent of the normal
@@ -19,7 +19,7 @@ if (process.env.CI === 'e2e') {
 }
 
 export const flatpakHome = env.XDG_DATA_HOME?.replace('/data', '') || homedir()
-export const userHome = isSnap ? env.SNAP_REAL_HOME! : homedir()
+export const userHome = homedir()
 
 export const appFolder = join(configFolder, 'ghost')
 export const userDataPath = app.getPath('userData')
@@ -46,6 +46,13 @@ export const publicDir = resolve(
   app.isPackaged || process.env.CI === 'e2e' ? '' : '../public'
 )
 
+// Built preload scripts live next to the main process bundle
+// (`build/preload/`). The webview preload is built from
+// `src/webviewPreload/index.ts` — see `electron.vite.config.ts`.
+const preloadDir = resolve(__dirname, '..', 'preload')
+
+export const mainPreloadPath = join(preloadDir, 'index.js')
+
 export const fakeEpicExePath = fixAsarPath(
   join(publicDir, 'bin', 'x64', 'win32', 'EpicGamesLauncher.exe')
 )
@@ -55,7 +62,7 @@ export const galaxyCommunicationExePath = fixAsarPath(
 )
 
 export const webviewPreloadPath = fixAsarPath(
-  join('file://', publicDir, 'webviewPreload.js')
+  join('file://', preloadDir, 'webviewPreload.js')
 )
 
 /**

@@ -6,7 +6,7 @@ import {
 } from 'backend/constants/paths'
 import { notify } from 'backend/dialog/dialog'
 import { logError, logInfo, LogPrefix } from 'backend/logger'
-import { gameManagerMap } from 'backend/storeManagers'
+import { libraryManagerMap } from 'backend/storeManagers'
 import { sendGameStatusUpdate } from 'backend/utils'
 import { Runner, GameInfo } from 'common/types'
 import { storeMap } from 'common/utils'
@@ -23,7 +23,9 @@ import { sendFrontendMessage } from 'backend/ipc'
 
 
 export const removePrefix = async (appName: string, runner: Runner) => {
-  const { winePrefix } = await gameManagerMap[runner].getSettings(appName)
+  const { winePrefix } = await libraryManagerMap[runner]
+    .getGame(appName)
+    .getSettings()
   logInfo(`Removing prefix ${winePrefix}`, LogPrefix.Backend)
 
   if (!existsSync(winePrefix)) {
@@ -109,12 +111,13 @@ export const uninstallGameCallback = async (
     status: 'uninstalling'
   })
 
-  const { title } = gameManagerMap[runner].getGameInfo(appName)
+  const game = libraryManagerMap[runner].getGame(appName)
+  const { title } = game.getGameInfo()
 
   let uninstalled = false
 
   try {
-    await gameManagerMap[runner].uninstall({ appName, shouldRemovePrefix })
+    await game.uninstall({ shouldRemovePrefix })
     uninstalled = true
   } catch (error) {
     notify({

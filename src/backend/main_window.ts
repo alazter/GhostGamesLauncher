@@ -1,8 +1,7 @@
 import { AppSettings, WindowProps } from 'common/types'
 import { BrowserWindow, nativeImage, screen } from 'electron'
-import path from 'path'
 import { configStore } from './constants/key_value_stores'
-import { windowIcon, ensurePermanentAppIcon, getAppNativeIcon } from './constants/paths'
+import { mainPreloadPath, windowIcon, ensurePermanentAppIcon, getAppNativeIcon } from './constants/paths'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -100,7 +99,7 @@ export const createMainWindow = () => {
       webviewTag: true,
       contextIsolation: true,
       nodeIntegration: true,
-      preload: path.join(__dirname, '../preload/index.js')
+      preload: mainPreloadPath
     }
   })
 
