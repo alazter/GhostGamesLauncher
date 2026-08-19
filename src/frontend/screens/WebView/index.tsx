@@ -215,16 +215,47 @@ export default function WebView() {
         } else if (runner == 'legendary') {
           const pageUrl = webview.getURL()
           const parsedUrl = new URL(pageUrl)
-          if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname.includes('legendary.gl')) {
-            const code = parsedUrl.searchParams.get('code') || parsedUrl.searchParams.get('sid')
-            if (code) {
-              setLoading({
-                refresh: true,
-                message: t('status.logging', 'Logging In...')
-              })
-              epic.login(code).then(() => handleSuccessfulLogin())
-            }
+          let code = parsedUrl.searchParams.get('code') || parsedUrl.searchParams.get('sid')
+
+          if (!code && parsedUrl.hash) {
+            const hashParams = new URLSearchParams(parsedUrl.hash.replace(/^#/, ''))
+            code = hashParams.get('code') || hashParams.get('sid')
           }
+
+          if (code) {
+            setLoading({
+              refresh: true,
+              message: t('status.logging', 'Logging In...')
+            })
+            epic.login(code).then(() => handleSuccessfulLogin())
+            return
+          }
+
+          webview
+            .executeJavaScript('document.body.innerText')
+            .then((text: string) => {
+              if (text && text.includes('authorizationCode')) {
+                try {
+                  const data = JSON.parse(text)
+                  const extractedCode =
+                    data.authorizationCode ||
+                    data.sid ||
+                    (data.redirectUrl
+                      ? new URL(data.redirectUrl).searchParams.get('code')
+                      : null)
+                  if (extractedCode) {
+                    setLoading({
+                      refresh: true,
+                      message: t('status.logging', 'Logging In...')
+                    })
+                    epic.login(extractedCode).then(() => handleSuccessfulLogin())
+                  }
+                } catch {
+                  // Not valid JSON
+                }
+              }
+            })
+            .catch(() => {})
         }
       }
 
