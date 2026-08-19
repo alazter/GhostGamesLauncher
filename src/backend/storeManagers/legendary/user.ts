@@ -15,9 +15,33 @@ export class LegendaryUser {
   public static async login(
     authorizationCode: string
   ): Promise<{ status: 'done' | 'failed'; data: UserInfo | undefined }> {
+    let cleanCode = authorizationCode.trim()
+    if (cleanCode.startsWith('{') && cleanCode.includes('authorizationCode')) {
+      try {
+        const parsed = JSON.parse(cleanCode)
+        cleanCode =
+          parsed.authorizationCode ||
+          parsed.sid ||
+          (parsed.redirectUrl
+            ? new URL(parsed.redirectUrl).searchParams.get('code') || cleanCode
+            : cleanCode)
+      } catch {}
+    } else if (
+      cleanCode.startsWith('http://') ||
+      cleanCode.startsWith('https://')
+    ) {
+      try {
+        const parsedUrl = new URL(cleanCode)
+        cleanCode =
+          parsedUrl.searchParams.get('code') ||
+          parsedUrl.searchParams.get('sid') ||
+          cleanCode
+      } catch {}
+    }
+
     const command: LegendaryCommand = {
       subcommand: 'auth',
-      '--code': NonEmptyString.parse(authorizationCode)
+      '--code': NonEmptyString.parse(cleanCode)
     }
 
     const errorMessage = (
