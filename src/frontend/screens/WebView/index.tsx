@@ -1,21 +1,10 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useState
-} from 'react'
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 
 import { ToggleSwitch, UpdateComponent } from 'frontend/components/UI'
 import WebviewControls from 'frontend/components/UI/WebviewControls'
 import ContextProvider from 'frontend/state/ContextProvider'
-import {
-  isUsingGamepad,
-  setWebviewInputTarget,
-  toggleWebviewFocus
-} from 'frontend/helpers/gamepad'
 import './index.css'
 import LoginWarning from '../Login/components/LoginWarning'
 import { NileLoginData } from 'common/types/nile'
@@ -35,8 +24,6 @@ const validStoredUrl = (url: string, store: string) => {
       return url.includes('gaming.amazon.com')
     case 'zoom':
       return url.includes('zoom-platform.com')
-    case 'steam':
-      return url.includes('steampowered.com') || url.includes('steamcommunity.com')
     default:
       return false
   }
@@ -58,14 +45,7 @@ export default function WebView() {
     null
   )
   const navigate = useNavigate()
-  // Keep the webview element in state (via a callback ref) instead of a plain
-  // ref so that mounting/remounting it — e.g. when switching stores — triggers
-  // a re-render and propagates the live element to children like
-  // WebviewControls. A mutable ref wouldn't, leaving them with a stale webview.
-  const [webview, setWebview] = useState<Electron.WebviewTag | null>(null)
-  const webviewRef = useCallback((node: Electron.WebviewTag | null) => {
-    setWebview(node)
-  }, [])
+  const webviewRef = useRef<Electron.WebviewTag>(null)
 
   // `store` is set to epic/gog/amazon depending on which storefront we're
   // supposed to show, `runner` is set to a runner if we're supposed to show its
@@ -77,13 +57,12 @@ export default function WebView() {
     lang = 'pt-BR'
   }
 
-  const epicLoginUrl = 'https://legendary.gl/epiclogin'
+  const epicLoginUrl = 'https://www.epicgames.com/id/login?responseType=code'
 
   const epicStore = `https://www.epicgames.com/store/${lang}/`
   const gogStore = `https://af.gog.com?as=1838482841`
   const amazonStore = `https://gaming.amazon.com`
   const zoomStore = `https://www.zoom-platform.com`
-  const steamStore = `https://store.steampowered.com/`
   const wikiURL =
     'https://github.com/alazter/HeroicGamesLauncher/wiki'
   const gogEmbedRegExp = new RegExp('https://embed.gog.com/on_login_success?')
@@ -99,7 +78,6 @@ export default function WebView() {
     '/store/gog': gogStore,
     '/store/amazon': amazonStore,
     '/store/zoom': zoomStore,
-    '/store/steam': steamStore,
     '/wiki': wikiURL,
     '/loginEpic': epicLoginUrl,
     '/loginGOG': gogLoginUrl,
@@ -180,12 +158,16 @@ export default function WebView() {
   }, [])
 
   useLayoutEffect(() => {
+    const webview = webviewRef.current
     if (webview) {
-      const loadstop = () => {
+      const loadstop = async () => {
         setLoading({ ...loading, refresh: false })
-        if (isUsingGamepad()) {
-          toggleWebviewFocus(true)
-          webview.send('heroic-webview', { type: 'enter' })
+        const userAgent =
+          startUrl === epicLoginUrl
+            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) EpicGamesLauncher'
+            : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/200.0'
+        if (webview.getUserAgent() != userAgent) {
+          webview.setUserAgent(userAgent)
         }
         // Ignore the login handling if not on login page
         if (!runner) {
@@ -215,47 +197,16 @@ export default function WebView() {
         } else if (runner == 'legendary') {
           const pageUrl = webview.getURL()
           const parsedUrl = new URL(pageUrl)
-          let code = parsedUrl.searchParams.get('code') || parsedUrl.searchParams.get('sid')
-
-          if (!code && parsedUrl.hash) {
-            const hashParams = new URLSearchParams(parsedUrl.hash.replace(/^#/, ''))
-            code = hashParams.get('code') || hashParams.get('sid')
+          if (parsedUrl.hostname === 'localhost') {
+            const code = parsedUrl.searchParams.get('code')
+            if (code) {
+              setLoading({
+                refresh: true,
+                message: t('status.logging', 'Logging In...')
+              })
+              epic.login(code).then(() => handleSuccessfulLogin())
+            }
           }
-
-          if (code) {
-            setLoading({
-              refresh: true,
-              message: t('status.logging', 'Logging In...')
-            })
-            epic.login(code).then(() => handleSuccessfulLogin())
-            return
-          }
-
-          webview
-            .executeJavaScript('document.body.innerText')
-            .then((text: string) => {
-              if (text && text.includes('authorizationCode')) {
-                try {
-                  const data = JSON.parse(text)
-                  const extractedCode =
-                    data.authorizationCode ||
-                    data.sid ||
-                    (data.redirectUrl
-                      ? new URL(data.redirectUrl).searchParams.get('code')
-                      : null)
-                  if (extractedCode) {
-                    setLoading({
-                      refresh: true,
-                      message: t('status.logging', 'Logging In...')
-                    })
-                    epic.login(extractedCode).then(() => handleSuccessfulLogin())
-                  }
-                } catch {
-                  // Not valid JSON
-                }
-              }
-            })
-            .catch(() => {})
         }
       }
 
@@ -299,9 +250,10 @@ export default function WebView() {
       }
     }
     return
-  }, [webview, amazonLoginData, runner, webviewPreloadPath])
+  }, [webviewRef.current, amazonLoginData, runner, webviewPreloadPath])
 
   useEffect(() => {
+    const webview = webviewRef.current
     if (webview) {
       const onNavigate = () => {
         if (store) {
@@ -341,7 +293,7 @@ export default function WebView() {
     }
 
     return
-  }, [webview, store, runner])
+  }, [webviewRef.current, store, runner])
 
   const [showLoginWarningFor, setShowLoginWarningFor] = useState<
     null | 'epic' | 'gog' | 'amazon' | 'zoom'
@@ -354,97 +306,36 @@ export default function WebView() {
     useState<boolean>(false)
 
   useEffect(() => {
-    const checkWarning = (targetStore: 'epic' | 'gog' | 'amazon' | 'zoom') => {
-      if (localStorage.getItem(`ghost_dont_show_login_warning_${targetStore}`) === 'true') {
-        return null
-      }
-      return targetStore
-    }
-
-    const isEpicLoggedIn = !!epic.username
-    const isGogLoggedIn = !!gog.username
-    const isAmazonLoggedIn = !!(amazon.username || amazon.user_id)
-    const isZoomLoggedIn = !!zoom.username
-
     if (
-      (store === 'epic' || (startUrl.match(/epicgames\.com/) && startUrl.indexOf('/id/login') < 0)) &&
-      !isEpicLoggedIn
+      startUrl.match(/epicgames\.com/) &&
+      startUrl.indexOf('/id/login') < 0 &&
+      !epic.username
     ) {
-      setShowLoginWarningFor(checkWarning('epic'))
+      setShowLoginWarningFor('epic')
     } else if (
-      (store === 'gog' || (startUrl.match(/gog\.com/) && !startUrl.match(/auth\.gog\.com/))) &&
-      !isGogLoggedIn
+      startUrl.match(/gog\.com/) &&
+      !startUrl.match(/auth\.gog\.com/) &&
+      !gog.username
     ) {
-      setShowLoginWarningFor(checkWarning('gog'))
-    } else if (
-      (store === 'amazon' || startUrl.match(/gaming\.amazon\.com/) || startUrl.match(/amazon/)) &&
-      !isAmazonLoggedIn
-    ) {
-      setShowLoginWarningFor(checkWarning('amazon'))
-    } else if (
-      (store === 'zoom' || startUrl.match(/zoom-platform\.com/)) &&
-      !isZoomLoggedIn
-    ) {
-      setShowLoginWarningFor(checkWarning('zoom'))
+      setShowLoginWarningFor('gog')
+    } else if (startUrl.match(/gaming\.amazon\.com/) && !amazon.user_id) {
+      setShowLoginWarningFor('amazon')
+    } else if (startUrl.match(/zoom-platform\.com\/$/) && !zoom.username) {
+      setShowLoginWarningFor('zoom')
     } else {
       setShowLoginWarningFor(null)
     }
-  }, [startUrl, store, epic.username, gog.username, amazon.username, amazon.user_id, zoom.username])
+  }, [startUrl])
 
   const onLoginWarningClosed = () => {
     setShowLoginWarningFor(null)
   }
 
-  // Register the webview as the gamepad input target while it's mounted so the
-  // host's gamepad handler can forward processed inputs to the guest preload
-  // (`src/webviewPreload/index.ts`) and trigger host-side actions: focus the
-  // webview (arm forwarding), exit back to the sidebar, or focus the URL bar.
-  // Arming is explicit (loadstop / first gamepad press); we only listen for
-  // `blur` as a best-effort disarm when focus leaves the webview.
-  useEffect(() => {
-    if (!webview) return
-
-    const onBlur = () => toggleWebviewFocus(false)
-    webview.addEventListener('blur', onBlur)
-
-    const focusUrlBar = () => {
-      // Exit "webview drives gamepad" mode so the host handles input while
-      // the user is in the URL bar.
-      toggleWebviewFocus(false)
-      const urlInput = document.querySelector<HTMLInputElement>(
-        '.WebviewControls__urlInput'
-      )
-      urlInput?.focus()
-      urlInput?.select()
-    }
-
-    setWebviewInputTarget({
-      send: (cmd) => webview.send('heroic-webview', cmd),
-      exit: () => {
-        // B leaves the webview: disarm, clear the guest cursor, and drop the
-        // user back on the sidebar "Stores" item so they can keep navigating
-        // with the controller.
-        toggleWebviewFocus(false)
-        webview.send('heroic-webview', { type: 'exit' })
-        const storesItem = document.querySelector<HTMLElement>(
-          '[data-tour="sidebar-stores"]'
-        )
-        if (storesItem) storesItem.focus()
-        else document.body.focus()
-      },
-      focusUrlBar
-    })
-
-    return () => {
-      webview.removeEventListener('blur', onBlur)
-      setWebviewInputTarget(null)
-      toggleWebviewFocus(false)
-    }
-  }, [webview])
-
   // Handle back/forward mouse buttons to navigate inside webview
   useEffect(() => {
-    if (!webview) return
+    if (!webviewRef.current) return
+
+    const webview = webviewRef.current
 
     const handleMouseBackForward = (ev: MouseEvent) => {
       // 3 and 4 are the typical `button` value for mouse back/forward buttons on mouseup events
@@ -469,7 +360,7 @@ export default function WebView() {
     return () => {
       document.removeEventListener('mouseup', handleMouseBackForward)
     }
-  }, [webview])
+  }, [webviewRef.current])
 
   if (!webviewPreloadPath) {
     return <></>
@@ -477,31 +368,19 @@ export default function WebView() {
 
   return (
     <div className="WebView">
-      {webview && (
+      {webviewRef.current && (
         <WebviewControls
-          key={`controls-${store}`}
-          webview={webview}
+          webview={webviewRef.current}
           initURL={startUrl}
           openInBrowser={!startUrl.startsWith('login')}
         />
       )}
       {loading.refresh && <UpdateComponent message={loading.message} />}
       <webview
-        key={store || pathname}
+        key={store}
         ref={webviewRef}
         className="WebView__webview"
-        partition={`persist:${
-          store === 'epic' || startUrl === epicLoginUrl
-            ? 'epicstore'
-            : store === 'gog' || startUrl === gogLoginUrl
-            ? 'gogstore'
-            : store === 'amazon'
-            ? 'amazonstore'
-            : store === 'steam'
-            ? 'steamstore'
-            : store || 'store'
-        }`}
-        useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+        partition={`persist:${startUrl === epicLoginUrl ? 'epicstore' : store}`}
         src={startUrl}
         allowpopups={trueAsStr}
         preload={webviewPreloadPath}
