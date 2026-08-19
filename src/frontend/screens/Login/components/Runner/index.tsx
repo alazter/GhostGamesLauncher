@@ -15,6 +15,7 @@ interface RunnerProps {
   logoutAction: () => any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alternativeLoginAction?: () => any
+  customLoginAction?: () => void
   buttonText: string
   disabled: boolean
 }
@@ -35,6 +36,11 @@ export default function Runner(props: RunnerProps) {
 
   function handleLogin() {
     if (props.disabled) {
+      return
+    }
+
+    if (props.customLoginAction) {
+      props.customLoginAction()
       return
     }
 

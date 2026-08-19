@@ -120,11 +120,16 @@ export default React.memo(function NewLogin() {
               class="epic"
               buttonText={t('login.epic', 'Epic Games Login')}
               loginUrl={epicLoginPath}
+              customLoginAction={() => {
+                window.api.openLoginPage()
+                setShowSidLogin(true)
+              }}
               icon={() => <EpicLogo />}
               isLoggedIn={isEpicLoggedIn}
               user={epic.username}
               logoutAction={epic.logout}
               alternativeLoginAction={() => {
+                window.api.openLoginPage()
                 setShowSidLogin(true)
               }}
               disabled={oldMac}
