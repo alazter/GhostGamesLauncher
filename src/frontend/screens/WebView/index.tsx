@@ -77,7 +77,7 @@ export default function WebView() {
     lang = 'pt-BR'
   }
 
-  const epicLoginUrl = 'https://www.epicgames.com/id/login?responseType=code'
+  const epicLoginUrl = 'https://legendary.gl/epiclogin'
 
   const epicStore = `https://www.epicgames.com/store/${lang}/`
   const gogStore = `https://af.gog.com?as=1838482841`
@@ -215,8 +215,8 @@ export default function WebView() {
         } else if (runner == 'legendary') {
           const pageUrl = webview.getURL()
           const parsedUrl = new URL(pageUrl)
-          if (parsedUrl.hostname === 'localhost') {
-            const code = parsedUrl.searchParams.get('code')
+          if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname.includes('legendary.gl')) {
+            const code = parsedUrl.searchParams.get('code') || parsedUrl.searchParams.get('sid')
             if (code) {
               setLoading({
                 refresh: true,
