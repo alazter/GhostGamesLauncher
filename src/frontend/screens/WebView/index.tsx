@@ -57,8 +57,7 @@ export default function WebView() {
     lang = 'pt-BR'
   }
 
-  const epicLoginUrl =
-    'https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code'
+  const epicLoginUrl = 'https://legendary.gl/epiclogin'
 
   const epicStore = `https://www.epicgames.com/store/${lang}/`
   const gogStore = `https://af.gog.com?as=1838482841`

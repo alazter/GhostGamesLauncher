@@ -1,5 +1,4 @@
-export const epicLoginUrl =
-  'https://www.epicgames.com/id/api/redirect?clientId=34a02cf8f4414e29b15921876da36f9a&responseType=code'
+export const epicLoginUrl = 'https://legendary.gl/epiclogin'
 export const sidInfoUrl =
   'https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/wiki/How-To:-Epic-Alternative-Login'
 export const heroicGithubURL =
