@@ -1,5 +1,10 @@
 # Custom Rules & Active Reminders
 
+## Central Skills & Chronic Error Protocol (`C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher`)
+- **Pre-Implementation Consultation**: Before creating, refactoring, or modifying ANY feature, UI element, or backend logic, ALWAYS consult the skills directory `C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher\` (specifically `regras.md`, `erros_corrigidos.md`, `sistema_update.md`, `sistema_scaneamento.md`, `designer_interface.md`, `relatorios_bugs.md`) to verify that no existing rules or chronic bug prevention patterns are violated.
+- **Continuous Knowledge Feeding**: Every time a new technology is implemented, a bug is fixed, a new rule is established, or a design guideline is applied, ALWAYS update/feed the corresponding `.md` file in `C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher\`.
+- **Chronic Bug Prevention (`erros_corrigidos.md`)**: Whenever a difficult or recurring bug is resolved, immediately document its root cause, symptoms, and prevention rules in `C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher\erros_corrigidos.md` so that the exact failure is never repeated in future tasks.
+
 ## Release Publishing Pattern
 - **Title Format**: Always title releases as `👻 Ghost v[Version]` (e.g., `👻 Ghost v0.1.4-beta`).
 - **Release Description Header**: Right under the header `## Notas de Lançamento da Versão v...` in the release body description, always insert this exact HTML image:
