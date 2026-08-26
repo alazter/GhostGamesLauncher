@@ -206,12 +206,20 @@ export interface SettingsContextType {
   isLinuxNative: boolean
 }
 
+export interface CustomStore {
+  id: string
+  name: string
+  icon: string | null
+  isVisible?: boolean
+}
+
 export interface StoresFilters {
-  legendary: boolean
-  gog: boolean
-  nile: boolean
-  sideload: boolean
-  zoom: boolean
+  legendary?: boolean
+  gog?: boolean
+  nile?: boolean
+  sideload?: boolean
+  zoom?: boolean
+  [key: string]: boolean | undefined
 }
 
 export interface PlatformsFilters {

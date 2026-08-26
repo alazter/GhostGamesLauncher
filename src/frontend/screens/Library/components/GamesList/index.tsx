@@ -6,13 +6,12 @@ import ContextProvider from 'frontend/state/ContextProvider'
 import { useTranslation } from 'react-i18next'
 import { sideloadLibrary, gameOverridesStore } from 'frontend/helpers/electronStores'
 import useGlobalState from 'frontend/state/GlobalStateV2'
-
-interface CustomStore {
-  id: string
-  name: string
-  icon: string | null
-  isVisible?: boolean
-}
+import { CustomStore } from 'frontend/types'
+import LibraryContext from 'frontend/screens/Library/LibraryContext'
+import {
+  isGameAssignedToStore,
+  isGameVisibleInAllGames
+} from 'frontend/helpers/customStoreFiltering'
 
 interface Props {
   library: GameInfo[]
@@ -59,6 +58,7 @@ const GamesList = ({
 }: Props): JSX.Element => {
   const { gameUpdates, allTilesInColor, titlesAlwaysVisible, refreshLibrary } =
     useContext(ContextProvider)
+  const { storesFilters } = useContext(LibraryContext)
   const { t } = useTranslation()
   const listRef = useRef<HTMLDivElement | null>(null)
   const { activeController } = useContext(ContextProvider)
@@ -177,121 +177,28 @@ const GamesList = ({
   }
 
   const filteredLibrary = useMemo(() => {
-    if (!activeStoreFilter) return library
-    const activeFilterLower = activeStoreFilter.toLowerCase()
-    const activeStoreObj = customStores.find(
-      (s) => s.id.toLowerCase() === activeFilterLower
+    // 1. When a specific Custom Store is active: show all games belonging to that store
+    if (activeStoreFilter) {
+      const activeFilterLower = activeStoreFilter.toLowerCase()
+      const activeStoreObj = customStores.find(
+        (s) => s.id.toLowerCase() === activeFilterLower
+      ) || {
+        id: activeStoreFilter,
+        name: activeStoreFilter,
+        icon: null,
+        isVisible: true
+      }
+
+      return library.filter((game) =>
+        isGameAssignedToStore(game, activeStoreObj, assignments)
+      )
+    }
+
+    // 2. When in "Todos os Jogos": filter games based on storesFilters toggle state
+    return library.filter((game) =>
+      isGameVisibleInAllGames(game, customStores, assignments, storesFilters)
     )
-    const activeStoreNameLower = activeStoreObj ? activeStoreObj.name.toLowerCase() : ''
-
-    return library.filter((game) => {
-      const explicitlyAssignedStore = (assignments[game.app_name] || '').toLowerCase()
-      const runnerLower = (game.runner || '').toLowerCase()
-
-      if (explicitlyAssignedStore) {
-        if (explicitlyAssignedStore === activeFilterLower) return true
-        if (activeStoreObj && explicitlyAssignedStore === activeStoreObj.id.toLowerCase()) return true
-        if (activeStoreNameLower && explicitlyAssignedStore === activeStoreNameLower) return true
-      }
-
-      // Epic Games
-      const isEpicStore =
-        activeFilterLower === 'epic' ||
-        activeFilterLower === 'legendary' ||
-        activeStoreNameLower.includes('epic')
-      if (isEpicStore) {
-        if (
-          explicitlyAssignedStore === 'epic' ||
-          explicitlyAssignedStore === 'legendary' ||
-          explicitlyAssignedStore === 'epic games' ||
-          runnerLower === 'legendary' ||
-          runnerLower === 'epic'
-        ) {
-          return true
-        }
-      }
-
-      // GOG
-      const isGOGStore =
-        activeFilterLower === 'gog' ||
-        activeStoreNameLower.includes('gog')
-      if (isGOGStore) {
-        if (
-          explicitlyAssignedStore === 'gog' ||
-          runnerLower === 'gog'
-        ) {
-          return true
-        }
-      }
-
-      // Amazon Games
-      const isAmazonStore =
-        activeFilterLower === 'amazon' ||
-        activeFilterLower === 'nile' ||
-        activeStoreNameLower.includes('amazon')
-      if (isAmazonStore) {
-        if (
-          explicitlyAssignedStore === 'amazon' ||
-          explicitlyAssignedStore === 'nile' ||
-          explicitlyAssignedStore === 'amazon games' ||
-          runnerLower === 'nile' ||
-          runnerLower === 'amazon'
-        ) {
-          return true
-        }
-      }
-
-      // Steam
-      const isSteamStore =
-        activeFilterLower === 'steam' ||
-        activeStoreNameLower.includes('steam')
-      if (isSteamStore) {
-        if (
-          explicitlyAssignedStore === 'steam' ||
-          runnerLower === 'steam'
-        ) {
-          return true
-        }
-      }
-
-      // Zoom
-      const isZoomStore =
-        activeFilterLower === 'zoom' ||
-        activeStoreNameLower.includes('zoom')
-      if (isZoomStore) {
-        if (
-          explicitlyAssignedStore === 'zoom' ||
-          runnerLower === 'zoom'
-        ) {
-          return true
-        }
-      }
-
-      // Sideload / Piratas / Indies
-      const isSideloadStore =
-        activeFilterLower === 'sideloaded' ||
-        activeFilterLower === 'sideload' ||
-        activeStoreNameLower.includes('sideload') ||
-        activeStoreNameLower.includes('pirata') ||
-        activeStoreNameLower.includes('indie')
-      if (isSideloadStore) {
-        if (
-          explicitlyAssignedStore === activeFilterLower ||
-          (activeStoreObj && explicitlyAssignedStore === activeStoreObj.id.toLowerCase()) ||
-          explicitlyAssignedStore === 'sideload' ||
-          explicitlyAssignedStore === 'sideloaded' ||
-          explicitlyAssignedStore === 'piratas' ||
-          explicitlyAssignedStore === 'indies' ||
-          runnerLower === 'sideload' ||
-          runnerLower === 'sideloaded'
-        ) {
-          return true
-        }
-      }
-
-      return false
-    })
-  }, [library, activeStoreFilter, assignments, customStores])
+  }, [library, activeStoreFilter, assignments, customStores, storesFilters])
 
   useEffect(() => {
     (window as any).heroicActiveLibrary = filteredLibrary

@@ -1,8 +1,13 @@
 import { memo, useContext, useMemo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GameInfo } from 'common/types'
+import { CustomStore } from 'frontend/types'
 import LibraryContext from '../../LibraryContext'
 import AlphabetFilter from '../AlphabetFilter'
+import {
+  isGameAssignedToStore,
+  isGameVisibleInAllGames
+} from 'frontend/helpers/customStoreFiltering'
 import './index.css'
 
 type Props = {
@@ -11,7 +16,25 @@ type Props = {
 
 export default memo(function LibraryHeader({ list }: Props) {
   const { t } = useTranslation()
-  const { showFavourites, showAlphabetFilter, showUnclassifiedOnly } = useContext(LibraryContext)
+  const {
+    showFavourites,
+    showAlphabetFilter,
+    showUnclassifiedOnly,
+    storesFilters
+  } = useContext(LibraryContext)
+
+  const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
+    () => localStorage.getItem('heroic_active_store_filter')
+  )
+  const [assignments, setAssignments] = useState<Record<string, string>>(() => {
+    return JSON.parse(
+      localStorage.getItem('heroic_game_assignments') || '{}'
+    ) as Record<string, string>
+  })
+  const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
+    const saved = localStorage.getItem('heroic_custom_stores')
+    return saved ? (JSON.parse(saved) as CustomStore[]) : []
+  })
 
   const [alignment, setAlignment] = useState<string>(() => {
     return localStorage.getItem('heroic_alphabet_alignment') || 'center'
@@ -70,18 +93,64 @@ export default memo(function LibraryHeader({ list }: Props) {
       const savedRadius = localStorage.getItem('heroic_alphabet_btn_border_radius')
       setBtnBorderRadius(savedRadius !== null ? Number(savedRadius) : 18)
     }
+
+    const handleFilterChange = () =>
+      setActiveStoreFilter(localStorage.getItem('heroic_active_store_filter'))
+    const handleAssignmentsChange = () =>
+      setAssignments(
+        JSON.parse(
+          localStorage.getItem('heroic_game_assignments') || '{}'
+        ) as Record<string, string>
+      )
+    const handleStoresChange = () => {
+      const saved = localStorage.getItem('heroic_custom_stores')
+      if (saved) setCustomStores(JSON.parse(saved) as CustomStore[])
+    }
+
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
-    return () => window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
+    window.addEventListener('heroicFilterChanged', handleFilterChange)
+    window.addEventListener('gameAssignmentsChanged', handleAssignmentsChange)
+    window.addEventListener('customStoresChanged', handleStoresChange)
+
+    return () => {
+      window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
+      window.removeEventListener('heroicFilterChanged', handleFilterChange)
+      window.removeEventListener(
+        'gameAssignmentsChanged',
+        handleAssignmentsChange
+      )
+      window.removeEventListener('customStoresChanged', handleStoresChange)
+    }
   }, [])
 
   const numberOfGames = useMemo(() => {
     if (!list) return 0
-    const dlcCount = list.filter(
-      (lib) => lib.runner !== 'sideload' && lib.install.is_dlc
-    ).length
-    const total = list.length - dlcCount
-    return total > 0 ? `${total}` : 0
-  }, [list])
+    let effectiveList = list.filter(
+      (lib) => lib.runner === 'sideload' || !lib.install?.is_dlc
+    )
+
+    if (activeStoreFilter) {
+      const activeFilterLower = activeStoreFilter.toLowerCase()
+      const activeStoreObj = customStores.find(
+        (s) => s.id.toLowerCase() === activeFilterLower
+      ) || {
+        id: activeStoreFilter,
+        name: activeStoreFilter,
+        icon: null,
+        isVisible: true
+      }
+
+      effectiveList = effectiveList.filter((game) =>
+        isGameAssignedToStore(game, activeStoreObj, assignments)
+      )
+    } else {
+      effectiveList = effectiveList.filter((game) =>
+        isGameVisibleInAllGames(game, customStores, assignments, storesFilters)
+      )
+    }
+
+    return effectiveList.length > 0 ? `${effectiveList.length}` : 0
+  }, [list, activeStoreFilter, customStores, assignments, storesFilters])
 
   const hexToRgb = (hex: string) => {
     const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i

@@ -1,23 +1,14 @@
-import { useContext } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import ToggleSwitch from '../ToggleSwitch'
 import { useTranslation } from 'react-i18next'
 import LibraryContext from 'frontend/screens/Library/LibraryContext'
-import { Category, PlatformsFilters } from 'frontend/types'
+import { PlatformsFilters, CustomStore, StoresFilters } from 'frontend/types'
 import ContextProvider from 'frontend/state/ContextProvider'
-import type { Runner } from 'common/types'
 import Dropdown from '../Dropdown'
-
-const RunnerToStore = {
-  legendary: 'Epic Games',
-  gog: 'GOG',
-  nile: 'Amazon Games',
-  sideload: 'Other',
-  zoom: 'ZOOM Platform'
-}
 
 export default function LibraryFilters() {
   const { t } = useTranslation()
-  const { platform, epic, gog, amazon, zoom } = useContext(ContextProvider)
+  const { platform } = useContext(ContextProvider)
   const {
     setShowFavourites,
     setShowHidden,
@@ -40,6 +31,36 @@ export default function LibraryFilters() {
     sortByRecent,
     setSortByRecent
   } = useContext(LibraryContext)
+
+  const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
+    const saved = localStorage.getItem('heroic_custom_stores')
+    if (saved) {
+      try {
+        return JSON.parse(saved) as CustomStore[]
+      } catch {}
+    }
+    return [
+      { id: 'epic', name: 'Epic Games', icon: null, isVisible: true },
+      { id: 'gog', name: 'GOG', icon: null, isVisible: true },
+      { id: 'amazon', name: 'Amazon Games', icon: null, isVisible: true },
+      { id: 'steam', name: 'Steam', icon: null, isVisible: true },
+      { id: 'zoom', name: 'Zoom Platform', icon: null, isVisible: true },
+      { id: 'sideload', name: 'Sideloaded', icon: null, isVisible: true }
+    ]
+  })
+
+  useEffect(() => {
+    const handleStoresChange = () => {
+      const saved = localStorage.getItem('heroic_custom_stores')
+      if (saved) {
+        try {
+          setCustomStores(JSON.parse(saved) as CustomStore[])
+        } catch {}
+      }
+    }
+    window.addEventListener('customStoresChanged', handleStoresChange)
+    return () => window.removeEventListener('customStoresChanged', handleStoresChange)
+  }, [])
 
   const toggleShowHidden = () => {
     setShowHidden(!showHidden)
@@ -69,9 +90,22 @@ export default function LibraryFilters() {
     setShowUpdatesOnly(!showUpdatesOnly)
   }
 
-  const toggleStoreFilter = (store: Runner) => {
-    const currentValue = storesFilters[store]
-    const newFilters = { ...storesFilters, [store]: !currentValue }
+  const toggleStoreFilter = (storeId: string) => {
+    const currentValue = storesFilters[storeId] !== false
+    const newFilters: StoresFilters = { ...storesFilters, [storeId]: !currentValue }
+
+    const storeObj = customStores.find((s) => s.id === storeId)
+    const nameLower = (storeObj?.name || storeId).toLowerCase()
+    const idLower = storeId.toLowerCase()
+
+    if (nameLower.includes('epic') || idLower === 'epic') newFilters['legendary'] = !currentValue
+    if (nameLower.includes('gog') || idLower === 'gog') newFilters['gog'] = !currentValue
+    if (nameLower.includes('amazon') || idLower === 'amazon') newFilters['nile'] = !currentValue
+    if (nameLower.includes('zoom') || idLower === 'zoom') newFilters['zoom'] = !currentValue
+    if (nameLower.includes('sideload') || idLower === 'sideload' || nameLower.includes('pirata') || nameLower.includes('indie')) {
+      newFilters['sideload'] = !currentValue
+    }
+
     setStoresFilters(newFilters)
   }
 
@@ -86,15 +120,27 @@ export default function LibraryFilters() {
     newFilters = { ...newFilters, [plat]: true }
     setPlatformsFilters(newFilters)
   }
-  const setStoreOnly = (store: Category) => {
-    let newFilters = {
-      legendary: false,
-      gog: false,
-      nile: false,
-      sideload: false,
-      zoom: false
-    }
-    newFilters = { ...newFilters, [store]: true }
+
+  const setStoreOnly = (selectedStoreId: string) => {
+    const newFilters: StoresFilters = {}
+    customStores.forEach((s) => {
+      newFilters[s.id] = s.id === selectedStoreId
+    })
+
+    const selectedStore = customStores.find((s) => s.id === selectedStoreId)
+    const nameLower = (selectedStore?.name || selectedStoreId).toLowerCase()
+    const idLower = selectedStoreId.toLowerCase()
+
+    newFilters['legendary'] = nameLower.includes('epic') || idLower === 'epic'
+    newFilters['gog'] = nameLower.includes('gog') || idLower === 'gog'
+    newFilters['nile'] = nameLower.includes('amazon') || idLower === 'amazon'
+    newFilters['zoom'] = nameLower.includes('zoom') || idLower === 'zoom'
+    newFilters['sideload'] =
+      nameLower.includes('sideload') ||
+      idLower === 'sideload' ||
+      nameLower.includes('pirata') ||
+      nameLower.includes('indie')
+
     setStoresFilters(newFilters)
   }
 
@@ -109,10 +155,6 @@ export default function LibraryFilters() {
     )
   }
 
-  // t('platforms.browser', 'Browser')
-  // t('platforms.linux', 'Linux')
-  // t('platforms.mac', 'Mac')
-  // t('platforms.win', 'Windows')
   const platformToggle = (plat: keyof PlatformsFilters) => {
     const toggle = (
       <ToggleSwitch
@@ -131,34 +173,35 @@ export default function LibraryFilters() {
     return toggleWithOnly(toggle, onOnlyClick)
   }
 
-  // t('Epic Games', 'Epic Games')
-  // t('GOG', 'GOG')
-  // t('Amazon Games', 'Amazon Games')
-  // t('Other', 'Other')
-  const storeToggle = (store: Runner) => {
+  const storeToggle = (store: CustomStore) => {
+    const isChecked = storesFilters[store.id] !== false
     const toggle = (
       <ToggleSwitch
-        key={store}
-        htmlId={store}
-        handleChange={() => toggleStoreFilter(store)}
-        value={storesFilters[store]}
-        title={t(RunnerToStore[store])}
+        key={store.id}
+        htmlId={`store-filter-${store.id}`}
+        handleChange={() => toggleStoreFilter(store.id)}
+        value={isChecked}
+        title={store.name}
       />
     )
     const onOnlyClick = () => {
-      setStoreOnly(store)
+      setStoreOnly(store.id)
     }
     return toggleWithOnly(toggle, onOnlyClick)
   }
 
   const resetFilters = () => {
-    setStoresFilters({
+    const defaultStores: StoresFilters = {
       legendary: true,
       gog: true,
       nile: true,
       sideload: true,
       zoom: true
+    }
+    customStores.forEach((s) => {
+      defaultStores[s.id] = true
     })
+    setStoresFilters(defaultStores)
     setPlatformsFilters({
       win: true,
       linux: true,
@@ -183,11 +226,9 @@ export default function LibraryFilters() {
       data-tour="library-filters"
       popUpOnHover
     >
-      {epic.username && storeToggle('legendary')}
-      {gog.username && storeToggle('gog')}
-      {amazon.user_id && storeToggle('nile')}
-      {zoom.enabled && zoom.username && storeToggle('zoom')} {}
-      {storeToggle('sideload')}
+      {customStores
+        .filter((store) => store.isVisible !== false)
+        .map((store) => storeToggle(store))}
       <hr />
       {platformToggle('win')}
       {platform === 'linux' && platformToggle('linux')}
