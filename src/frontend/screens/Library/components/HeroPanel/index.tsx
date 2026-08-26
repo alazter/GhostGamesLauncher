@@ -215,7 +215,10 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
 
   return (
     <div style={{
-      width: '380px',
+      width: '340px',
+      maxHeight: 'calc(100vh - 100px)',
+      overflowY: 'auto',
+      scrollbarWidth: 'none',
       height: 'fit-content',
       alignSelf: 'flex-start',
       boxSizing: 'border-box',
@@ -233,14 +236,14 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       border: '1px solid rgba(255, 255, 255, 0.1)',
       boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
     }}>
-      {/* Imagem */}
+      {/* Imagem com a mesma proporção oficial (173/275) dos cards da biblioteca */}
       <CachedImage
-        src={panelSquare || panelCover || fallbackImage}
+        src={panelCover || panelSquare || fallbackImage}
         fallback={fallbackImage}
         alt={panelTitle}
         style={{
           width: 'calc(100% + 30px)',
-          height: '460px',
+          aspectRatio: '173 / 275',
           marginTop: '-15px',
           marginLeft: '-15px',
           marginRight: '-15px',
