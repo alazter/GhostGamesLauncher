@@ -60,6 +60,10 @@ const PathSelectionBox = ({
       return
     }
 
+    // Determine the most accurate defaultPath (current input path > prop path > prop defaultPath)
+    const effectiveDefaultPath =
+      tmpPath || path || pathDialogDefaultPath || undefined
+
     // "Folder" icon was pressed
     window.api
       .openDialog({
@@ -67,12 +71,12 @@ const PathSelectionBox = ({
         properties: type === 'directory' ? ['openDirectory'] : ['openFile'],
         title: pathDialogTitle,
         filters: pathDialogFilters,
-        defaultPath: pathDialogDefaultPath
+        defaultPath: effectiveDefaultPath
       })
       .then((selectedPath) => {
         if (selectedPath) {
           onPathChange(selectedPath)
-          setTmpPath(path)
+          setTmpPath(selectedPath)
         }
       })
   }

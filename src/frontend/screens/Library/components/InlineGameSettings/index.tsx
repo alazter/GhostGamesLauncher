@@ -1433,7 +1433,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                       path={sideloadExe}
                       placeholder={t('sideload.info.exe', 'Select Executable')}
                       pathDialogTitle={t('box.sideload.exe', 'Select Executable')}
-                      pathDialogDefaultPath={game.install?.install_path || ''}
+                      pathDialogDefaultPath={sideloadExe || game.install?.executable || game.install?.install_path || ''}
                       htmlId="sideload-exe-inline"
                       noDeleteButton
                     />

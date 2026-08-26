@@ -21,13 +21,19 @@ const AlternativeExe = () => {
         : 'Select the game executable to monitor (if it starts via another launcher/Steam)')
       : t('setting.change-target-exe', 'Select an alternative EXE to run')
 
+  const defaultPath =
+    targetExe ||
+    gameInfo?.install?.executable ||
+    gameInfo?.install?.install_path ||
+    ''
+
   return (
     <PathSelectionBox
       type="file"
       onPathChange={setTargetExe}
       path={targetExe}
       pathDialogTitle={t('box.select.exe', 'Select EXE')}
-      pathDialogDefaultPath={gameInfo?.install.install_path}
+      pathDialogDefaultPath={defaultPath}
       placeholder={targetExe || t('box.select.exe', 'Select EXE...')}
       label={label}
       htmlId="setinstallpath"
