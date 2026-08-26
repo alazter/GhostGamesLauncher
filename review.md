@@ -166,6 +166,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Criado o seletor automático de pasta raiz no file picker de executáveis nas configurações do jogo.
   - Atualizado o `.agents/AGENTS.md` com protocolos de consulta às habilidades em `C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher\`.
 
+### 28. HeroPanel Cover Art, Notificações de Tracking de Lançamentos e Lembretes de Afazeres
+* **Problema:** O HeroPanel cortava capas ou exibia capas genéricas sem aplicar as customizações do usuário, e faltava notificação em tempo real de jogos em tracking do Releases.com para a data atual.
+* **Solução:**
+  - Unificada a proporção de tela dos cards (173/275) e utilizado `getImageFormatting` em `HeroPanel` para renderizar a capa exata configurada pelo usuário.
+  - Otimizadas as dimensões do HeroPanel (310px) e removido o botão redundante de configurações na base.
+  - Implementada notificação silenciosa de lançamentos em tracking baseada na data do Windows (`releasesScanner.ts`).
+  - Adicionados os lembretes de prioridade para a próxima sessão em `.agents/AGENTS.md`.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
