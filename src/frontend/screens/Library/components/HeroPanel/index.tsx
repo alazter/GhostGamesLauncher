@@ -216,7 +216,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
 
   return (
     <div style={{
-      width: '340px',
+      width: '310px',
       maxHeight: 'calc(100vh - 100px)',
       overflowY: 'auto',
       scrollbarWidth: 'none',
@@ -227,13 +227,13 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       background: 'rgba(30, 34, 40, 0.4)',
       backdropFilter: 'blur(10px)',
       borderRadius: '16px',
-      padding: '15px 15px 8px 15px',
+      padding: '15px 15px 10px 15px',
       marginLeft: '15px',
       marginRight: '15px',
-      marginTop: '-9px',
+      marginTop: '0px',
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px',
+      gap: '4px',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
     }}>
@@ -399,11 +399,6 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             <HeroLink emoji="👤" label="Perfil do Usuário" onClick={() => navigate('/login')} />
             <HeroLink emoji="📰" label="Notícias" onClick={() => {}} />
           </div>
-        </div>
-
-        {/* Item Centralizado na Base */}
-        <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginTop: '0px' }}>
-          <HeroLink emoji="⚙️" label="Configurações do Launcher" onClick={() => navigate('/settings/general')} center />
         </div>
       </div>
     </div>
