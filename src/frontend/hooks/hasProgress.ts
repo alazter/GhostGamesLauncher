@@ -5,19 +5,33 @@ import { useInstallProgress } from 'frontend/state/InstallProgress'
 const storage: Storage = window.localStorage
 
 export const hasProgress = (appName: string, runner: Runner) => {
-  const [previousProgress] = useState<InstallProgress>(
-    JSON.parse(
-      storage.getItem(`${appName}_${runner}_progress`) || '{}'
-    ) as InstallProgress
+  const installationProgress = useInstallProgress(
+    (state) => state[`${appName}_${runner}`]
   )
 
-  const [currentProgress, setProgress] = useState<InstallProgress>(
-    previousProgress ?? {
-      bytes: '0.00MB',
-      eta: '00:00:00',
-      percent: 0
+  const [previousProgress] = useState<InstallProgress>(() => {
+    if (!installationProgress) return {} as InstallProgress
+    try {
+      return JSON.parse(
+        storage.getItem(`${appName}_${runner}_progress`) || '{}'
+      ) as InstallProgress
+    } catch {
+      return {} as InstallProgress
     }
-  )
+  })
+
+  const [currentProgress, setProgress] = useState<InstallProgress>(() => {
+    if (previousProgress && previousProgress.percent) {
+      return previousProgress
+    }
+    return (
+      installationProgress ?? {
+        bytes: '0.00MB',
+        eta: '00:00:00',
+        percent: 0
+      }
+    )
+  })
 
   const calculatePercent = useCallback(
     (newProgress: InstallProgress) => {
@@ -33,10 +47,6 @@ export const hasProgress = (appName: string, runner: Runner) => {
       return newProgress.percent
     },
     [previousProgress]
-  )
-
-  const installationProgress = useInstallProgress(
-    (state) => state[`${appName}_${runner}`]
   )
 
   useEffect(() => {

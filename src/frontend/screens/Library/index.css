@@ -5,6 +5,7 @@
   grid-gap: 1.5rem;
   padding: 0 var(--space-md-fixed) var(--space-3xl);
   margin: 0 0 var(--space-md);
+  contain: layout style;
 }
 
 .gameList.firstLane {

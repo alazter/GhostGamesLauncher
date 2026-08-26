@@ -458,7 +458,10 @@ const GamesList = ({
                   cursor: isMassEditMode ? 'pointer' : 'default',
                   display: 'flex',
                   width: '100%',
-                  height: '100%'
+                  height: '100%',
+                  contentVisibility: 'auto',
+                  containIntrinsicSize: '156px 240px',
+                  contain: 'layout style'
                 }}
                 onClickCapture={(e) => {
                   if (isMassEditMode) {

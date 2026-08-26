@@ -155,25 +155,7 @@ const GameCard = ({
     setCardTitle(gameInfoFromProps.overrides?.title || gameInfoFromProps.title)
   }, [gameInfoFromProps.title, gameInfoFromProps.overrides?.title])
 
-  // Listen to real-time title changes dispatched from settings panel
-  useEffect(() => {
-    const handleTitleChanged = (e: Event) => {
-      const customEvent = e as CustomEvent<{
-        appName: string
-        runner: Runner
-        title: string
-      }>
-      const { appName: eventAppName, runner: eventRunner, title: eventTitle } = customEvent.detail
-      if (eventAppName === appName && eventRunner === runner) {
-        setCardTitle(eventTitle)
-      }
-    }
-    window.addEventListener('heroicGameTitleChanged', handleTitleChanged)
-    return () =>
-      window.removeEventListener('heroicGameTitleChanged', handleTitleChanged)
-  }, [appName, runner])
-
-  // ESTADOS DAS CONFIGURAÇÕES DE PERSONALIZAÇÃO
+  // Shared cached settings to avoid 968 individual localStorage reads & listeners
   const [hideIconsGamepad, setHideIconsGamepad] = useState<boolean>(() => {
     const saved = storage.getItem('heroic_hide_icons_gamepad')
     return saved !== null ? (JSON.parse(saved) as boolean) : true
@@ -184,7 +166,6 @@ const GameCard = ({
     return saved !== null ? (JSON.parse(saved) as boolean) : false
   })
 
-  // Escuta as mudanças de configuração
   useEffect(() => {
     const handleStorageChange = () => {
       const savedGamepad = storage.getItem('heroic_hide_icons_gamepad')
