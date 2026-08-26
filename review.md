@@ -1,4 +1,4 @@
-# Review das Alterações - 19/08/2026
+# Review das Alterações - 26/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -157,6 +157,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Implementados os auxiliares `autoStoreCategories.ts` e `autoStoreAssignments.ts` para agrupar jogos automaticamente por loja.
   - Adicionada integração para a loja Steam (`/store/steam`) no WebView do launcher com partição `steamstore`.
   - Adicionada a opção "Não mostrar novamente" com `ToggleSwitch` no modal de aviso de login `LoginWarning`.
+
+### 27. Performance Virtualizada para 900+ Jogos, Ocultação de Duplicados e Protocolos de Skills
+* **Problema:** Lentidão na navegação da biblioteca com centenas de jogos, necessidade de atribuir jogos a lojas customizadas e esconder jogos duplicados manualmente.
+* **Solução:**
+  - Implementada virtualização CSS nativa com contenção por GPU (`contain: layout style paint`) e lazy storage lookups em `Library`, `GamesList` e `GameCard`.
+  - Adicionado modo de edição de duplicados com botão de ocultar rastreamento (`hideFromDuplicates`) e filtro visual para exibir/ocultar duplicados.
+  - Criado o seletor automático de pasta raiz no file picker de executáveis nas configurações do jogo.
+  - Atualizado o `.agents/AGENTS.md` com protocolos de consulta às habilidades em `C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher\`.
 
 ---
 
