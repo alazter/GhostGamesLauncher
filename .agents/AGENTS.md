@@ -15,6 +15,5 @@
 ## Releases.com Left Sidebar Expansion
 - **Permanent Solution Guide**: When modifying or fixing the left sidebar on the Releases screen (`src/frontend/screens/Releases/index.tsx`), ALWAYS refer to [docs/RELEASES_SIDEBAR_GUIDE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_SIDEBAR_GUIDE.md). Apply the exact comprehensive selectors (`aside, nav, div[class*="sidebar"], div[class*="Sidebar"], div[class*="menu"], div[class*="Menu"], div[class*="left-nav"], div[class*="LeftNav"]`) with `280px` width, and unclip internal text via `white-space: nowrap !important; word-break: keep-all !important; text-overflow: clip !important; overflow: visible !important;`. NEVER use `querySelectorAll('*')` on left sidebar children.
 
-## Próximos Afazeres Prioritários (Lembrar o Usuário na Próxima Sessão)
-1. **Verificar se o sistema de notificação de jogos está funcional**: Validar a contagem de jogos em tracking do Releases.com para o dia atual do Windows.
-2. **Bolar um plano de implementação de jogos da Steam ao Ghost**: Estruturar arquitetura de detecção, metadados e lançamento de jogos Steam dentro do Ghost.
+## Próximos Afazeres Prioritários
+1. **Plano e Implementação de Jogos da Steam no Ghost**: Estruturar arquitetura de detecção, metadados, capas e lançamento de jogos Steam dentro do Ghost.
