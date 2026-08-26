@@ -100,27 +100,19 @@ export default function SidebarLinks() {
   }
 
   const [releasesBadgeCount, setReleasesBadgeCount] = useState<number>(() => {
-    const todayStr = new Date().toISOString().split('T')[0]
-    const lastClearedDate = localStorage.getItem('ghost_releases_last_cleared_date')
-    if (lastClearedDate === todayStr) return 0
+    localStorage.removeItem('ghost_releases_last_cleared_date')
     return parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
   })
 
   useEffect(() => {
-    // Consulta silenciosa em segundo plano após o launcher estabilizar (4 segundos)
+    // Consulta silenciosa em segundo plano após o launcher estabilizar (3 segundos)
     const timer = setTimeout(() => {
       checkTodayReleases()
-    }, 4000)
+    }, 3000)
 
     const handleBadgeChange = () => {
-      const todayStr = new Date().toISOString().split('T')[0]
-      const lastClearedDate = localStorage.getItem('ghost_releases_last_cleared_date')
-      if (lastClearedDate === todayStr) {
-        setReleasesBadgeCount(0)
-      } else {
-        const count = parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
-        setReleasesBadgeCount(count)
-      }
+      const count = parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
+      setReleasesBadgeCount(count)
     }
     window.addEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
     return () => {
@@ -130,11 +122,9 @@ export default function SidebarLinks() {
   }, [])
 
   const handleClearReleasesBadge = () => {
-    const todayStr = new Date().toISOString().split('T')[0]
-    localStorage.setItem('ghost_releases_badge_count', '0')
-    localStorage.setItem('ghost_releases_last_cleared_date', todayStr)
+    // Zera o badge na sessão ao clicar
     setReleasesBadgeCount(0)
-    window.dispatchEvent(new Event('ghostReleasesBadgeChanged'))
+    localStorage.setItem('ghost_releases_badge_count', '0')
   }
 
   const [sidebarOrder, setSidebarOrder] = useState<string[]>(getSidebarOrder)

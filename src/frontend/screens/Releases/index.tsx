@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import flagsB64 from 'frontend/assets/flags_b64.json'
+import { checkTodayReleases } from 'frontend/helpers/releasesScanner'
 import './index.css'
 
 const flagBrData = 'data:image/png;base64,' + flagsB64.br
@@ -17,6 +18,13 @@ export default function Releases() {
   })
 
   const webviewRef = useRef<Electron.WebviewTag>(null)
+
+  useEffect(() => {
+    return () => {
+      // Re-verifica lançamentos rastreados ao sair da aba
+      checkTodayReleases()
+    }
+  }, [])
 
   useEffect(() => {
     const webviewEl = webviewRef.current
@@ -545,40 +553,6 @@ export default function Releases() {
             }
           })();
         `)
-        .catch(() => {})
-
-      webviewEl
-        .executeJavaScript(`
-          (function() {
-            try {
-              const now = new Date();
-              const day = now.getDate();
-              const monthShort = now.toLocaleString('en-US', { month: 'short' });
-              
-              let count = 0;
-              const cards = document.querySelectorAll('.RWP-Calendar-ProductCard, [class*="ProductCard"], [class*="product-card"], article');
-              cards.forEach(card => {
-                const txt = card.textContent || '';
-                if (txt.includes(day + ' ' + monthShort) || txt.includes(monthShort + ' ' + day) || txt.toLowerCase().includes('today') || txt.toLowerCase().includes('hoje')) {
-                  count++;
-                }
-              });
-              return count;
-            } catch(e) {
-              return 0;
-            }
-          })()
-        `)
-        .then((count: number) => {
-          if (count > 0) {
-            const todayStr = new Date().toISOString().split('T')[0]
-            const lastCleared = localStorage.getItem('ghost_releases_last_cleared_date')
-            if (lastCleared !== todayStr) {
-              localStorage.setItem('ghost_releases_badge_count', count.toString())
-              window.dispatchEvent(new Event('ghostReleasesBadgeChanged'))
-            }
-          }
-        })
         .catch(() => {})
     }
 

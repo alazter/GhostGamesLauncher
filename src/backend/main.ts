@@ -12,7 +12,8 @@ import {
   screen,
   clipboard,
   session,
-  shell
+  shell,
+  Notification
 } from 'electron'
 import {
   addHandler,
@@ -917,9 +918,27 @@ addHandler('checkTodayTrackedReleases', async (): Promise<{ count: number; title
       const titleClean = clean
         .replace(/PC\d*Today$/i, '')
         .replace(/Today$/i, '')
+        .replace(/\s+PC$/i, '')
         .trim()
       if (titleClean) {
         trackedTitles.push(titleClean)
+      }
+    }
+
+    if (trackedTitles.length > 0 && Notification.isSupported()) {
+      try {
+        const gameNames = trackedTitles.join(', ')
+        const notif = new Notification({
+          title: '👻 Ghost - Lançamento Hoje!',
+          body:
+            trackedTitles.length === 1
+              ? `${gameNames} foi lançado hoje!`
+              : `${trackedTitles.length} jogos monitorados foram lançados hoje: ${gameNames}`,
+          icon: ensurePermanentAppIcon()
+        })
+        notif.show()
+      } catch (notifErr) {
+        logError(`Erro ao disparar notificação do Windows: ${notifErr}`, LogPrefix.Backend)
       }
     }
 
