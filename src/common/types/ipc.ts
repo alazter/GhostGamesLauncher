@@ -187,6 +187,7 @@ interface AsyncIPCFunctions {
   downloadLauncherUpdate: (
     assets: any[]
   ) => Promise<{ success: boolean; destPath?: string; error?: string }>
+  checkTodayTrackedReleases: () => Promise<{ count: number; titles: string[] }>
   getGameInfo: (appName: string, runner: Runner) => Promise<GameInfo | null>
   getAchievements: (
     appName: string,

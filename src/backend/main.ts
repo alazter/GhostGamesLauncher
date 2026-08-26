@@ -872,6 +872,67 @@ addHandler('getCurrentChangelog', async () => {
   return getCurrentChangelog()
 })
 
+addHandler('checkTodayTrackedReleases', async (): Promise<{ count: number; titles: string[] }> => {
+  try {
+    const ses = session.fromPartition('persist:releases')
+    const url = 'https://www.releases.com/tracking?f=t%3AGame&f=v%3APC&f=v%3APC%20%28Early%20Access%29'
+    const response = await ses.fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept':
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+      }
+    })
+
+    if (!response.ok) return { count: 0, titles: [] }
+
+    const html = await response.text()
+
+    // Locate current today header
+    const currentHeaderMatch = html.match(
+      /<h2[^>]*class="[^"]*RWP-Calendar-GroupHeader-Current[^"]*"[^>]*>([\s\S]*?)<\/h2>/i
+    )
+    if (!currentHeaderMatch) return { count: 0, titles: [] }
+
+    const afterHeader = html.slice(
+      currentHeaderMatch.index! + currentHeaderMatch[0].length
+    )
+    const nextHeaderIndex = afterHeader.search(
+      /<h2[^>]*class="[^"]*RWP-Calendar-GroupHeader/i
+    )
+    const todaySection =
+      nextHeaderIndex !== -1 ? afterHeader.slice(0, nextHeaderIndex) : afterHeader
+
+    // Match card inner elements inside today section
+    const cardMatches =
+      todaySection.match(
+        /<div[^>]*class="[^"]*RWPCC-CalendarItems-CardControl-Inner[^"]*"[^>]*>([\s\S]*?)<\/div>/gi
+      ) || []
+
+    const trackedTitles: string[] = []
+    for (const card of cardMatches) {
+      const clean = card.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      const titleClean = clean
+        .replace(/PC\d*Today$/i, '')
+        .replace(/Today$/i, '')
+        .trim()
+      if (titleClean) {
+        trackedTitles.push(titleClean)
+      }
+    }
+
+    return {
+      count: trackedTitles.length,
+      titles: trackedTitles
+    }
+  } catch (err) {
+    logError(`Error checking today tracked releases: ${err}`, LogPrefix.Backend)
+    return { count: 0, titles: [] }
+  }
+})
+
 addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
   const { downloadFile } = await import('./utils')
   const exePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')

@@ -100,19 +100,33 @@ export default function SidebarLinks() {
   }
 
   const [releasesBadgeCount, setReleasesBadgeCount] = useState<number>(() => {
-    localStorage.removeItem('ghost_releases_last_cleared_date')
-    localStorage.setItem('ghost_releases_badge_count', '2')
-    return 2
+    const todayStr = new Date().toISOString().split('T')[0]
+    const lastClearedDate = localStorage.getItem('ghost_releases_last_cleared_date')
+    if (lastClearedDate === todayStr) return 0
+    return parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
   })
 
   useEffect(() => {
-    checkTodayReleases()
+    // Consulta silenciosa em segundo plano após o launcher estabilizar (4 segundos)
+    const timer = setTimeout(() => {
+      checkTodayReleases()
+    }, 4000)
+
     const handleBadgeChange = () => {
-      const count = parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
-      setReleasesBadgeCount(count)
+      const todayStr = new Date().toISOString().split('T')[0]
+      const lastClearedDate = localStorage.getItem('ghost_releases_last_cleared_date')
+      if (lastClearedDate === todayStr) {
+        setReleasesBadgeCount(0)
+      } else {
+        const count = parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
+        setReleasesBadgeCount(count)
+      }
     }
     window.addEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
-    return () => window.removeEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
+    }
   }, [])
 
   const handleClearReleasesBadge = () => {
