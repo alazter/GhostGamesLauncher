@@ -62,6 +62,17 @@ export default function LibraryFilters() {
     return () => window.removeEventListener('customStoresChanged', handleStoresChange)
   }, [])
 
+  const [showHiddenDuplicates, setShowHiddenDuplicates] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_show_hidden_duplicates') === 'true'
+  })
+
+  const toggleShowHiddenDuplicates = () => {
+    const nextVal = !showHiddenDuplicates
+    setShowHiddenDuplicates(nextVal)
+    localStorage.setItem('heroic_show_hidden_duplicates', String(nextVal))
+    window.dispatchEvent(new Event('heroicDuplicatesChanged'))
+  }
+
   const toggleShowHidden = () => {
     setShowHidden(!showHidden)
   }
@@ -216,6 +227,9 @@ export default function LibraryFilters() {
     setShowThirdPartyManagedOnly(false)
     setShowUpdatesOnly(false)
     setSortByRecent(false)
+    setShowHiddenDuplicates(false)
+    localStorage.removeItem('heroic_show_hidden_duplicates')
+    window.dispatchEvent(new Event('heroicDuplicatesChanged'))
   }
 
   return (
@@ -241,6 +255,13 @@ export default function LibraryFilters() {
         handleChange={() => toggleShowHidden()}
         value={showHidden}
         title={t('header.show_hidden', 'Show Hidden')}
+      />
+      <ToggleSwitch
+        key="show-hidden-duplicates"
+        htmlId="show-hidden-duplicates"
+        handleChange={toggleShowHiddenDuplicates}
+        value={showHiddenDuplicates}
+        title="👁️ Jogos duplicados ocultados"
       />
       <ToggleSwitch
         key="show-non-available"

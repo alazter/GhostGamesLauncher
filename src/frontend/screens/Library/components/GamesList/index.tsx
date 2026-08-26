@@ -64,6 +64,7 @@ const GamesList = ({
   const { activeController } = useContext(ContextProvider)
 
   const [isMassEditMode, setIsMassEditMode] = useState(false)
+  const [isDuplicatesMode, setIsDuplicatesMode] = useState(false)
   const [selectedGames, setSelectedGames] = useState<GameInfo[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('')
   const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
@@ -139,9 +140,14 @@ const GamesList = ({
           localStorage.getItem('heroic_game_assignments') || '{}'
         ) as Record<string, string>
       )
+    const handleDupFilter = (e: Event) => {
+      const customEvent = e as CustomEvent<{ active: boolean }>
+      setIsDuplicatesMode(!!customEvent.detail?.active)
+    }
 
     window.addEventListener('heroicFilterChanged', handleFilterChange)
     window.addEventListener('gameAssignmentsChanged', handleAssignmentsChange)
+    window.addEventListener('heroicToggleDuplicatesFilter', handleDupFilter)
 
     return () => {
       window.removeEventListener('heroicFilterChanged', handleFilterChange)
@@ -149,6 +155,7 @@ const GamesList = ({
         'gameAssignmentsChanged',
         handleAssignmentsChange
       )
+      window.removeEventListener('heroicToggleDuplicatesFilter', handleDupFilter)
     }
   }, [])
 
@@ -158,10 +165,51 @@ const GamesList = ({
       return
     }
 
+    if (selectedStore === '__hide_from_duplicates__') {
+      const existingHidden: string[] = JSON.parse(
+        localStorage.getItem('heroic_hidden_duplicate_ids') || '[]'
+      )
+      const hiddenSet = new Set(existingHidden)
+      selectedGames.forEach((game) => {
+        const runner = (game.runner || 'sideload').toLowerCase()
+        hiddenSet.add(`${game.app_name}_${runner}`)
+        hiddenSet.add(game.app_name)
+      })
+      localStorage.setItem(
+        'heroic_hidden_duplicate_ids',
+        JSON.stringify(Array.from(hiddenSet))
+      )
+      window.dispatchEvent(new Event('heroicDuplicatesChanged'))
+      window.dispatchEvent(
+        new CustomEvent('heroicToggleMassEdit', { detail: { active: false } })
+      )
+      setSelectedGames([])
+      setSelectedStore('')
+      return
+    }
+
     const newAssignments = { ...assignments }
     selectedGames.forEach((game) => {
       newAssignments[game.app_name] = selectedStore
     })
+
+    // If the game was hidden from duplicates and is now assigned to a store, restore it
+    const existingHidden: string[] = JSON.parse(
+      localStorage.getItem('heroic_hidden_duplicate_ids') || '[]'
+    )
+    if (existingHidden.length > 0) {
+      const hiddenSet = new Set(existingHidden)
+      selectedGames.forEach((game) => {
+        const runner = (game.runner || 'sideload').toLowerCase()
+        hiddenSet.delete(`${game.app_name}_${runner}`)
+        hiddenSet.delete(game.app_name)
+      })
+      localStorage.setItem(
+        'heroic_hidden_duplicate_ids',
+        JSON.stringify(Array.from(hiddenSet))
+      )
+      window.dispatchEvent(new Event('heroicDuplicatesChanged'))
+    }
 
     localStorage.setItem(
       'heroic_game_assignments',
@@ -379,6 +427,9 @@ const GamesList = ({
             }}
           >
             <option value="">Atribuir à Loja...</option>
+            {isDuplicatesMode && (
+              <option value="__hide_from_duplicates__">Ocultar</option>
+            )}
             {customStores.map((store) => (
               <option key={store.id} value={store.id}>
                 {store.name}

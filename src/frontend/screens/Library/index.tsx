@@ -1081,6 +1081,15 @@ export default memo(function Library(): JSX.Element {
       )
     }
   }, [])
+
+  const [duplicatesVersion, setDuplicatesVersion] = useState(0)
+
+  useEffect(() => {
+    const handleDupChange = () => setDuplicatesVersion((v) => v + 1)
+    window.addEventListener('heroicDuplicatesChanged', handleDupChange)
+    return () =>
+      window.removeEventListener('heroicDuplicatesChanged', handleDupChange)
+  }, [])
   // ====================================================================
 
   const [selectedInlineGame, setSelectedInlineGame] = useState<GameInfo | null>(null)
@@ -1862,6 +1871,7 @@ export default memo(function Library(): JSX.Element {
     customCategories,
     showUnclassifiedOnly,
     showDuplicatesOnly,
+    duplicatesVersion,
     makeLibrary,
     epic,
     gog,

@@ -494,6 +494,19 @@ export const isManualSideloadGame = (game: any): boolean => {
 }
 
 export const getDuplicateGameIds = (allGames: any[]): Set<string> => {
+  let hiddenDuplicateIds = new Set<string>()
+  let showHiddenDuplicates = false
+  try {
+    showHiddenDuplicates =
+      localStorage.getItem('heroic_show_hidden_duplicates') === 'true'
+    if (!showHiddenDuplicates) {
+      const saved = localStorage.getItem('heroic_hidden_duplicate_ids')
+      if (saved) {
+        hiddenDuplicateIds = new Set(JSON.parse(saved))
+      }
+    }
+  } catch {}
+
   const map = new Map<
     string,
     Array<{ gameId: string; appName: string; isOfficial: boolean; isManual: boolean }>
@@ -501,11 +514,21 @@ export const getDuplicateGameIds = (allGames: any[]): Set<string> => {
 
   allGames.forEach((game) => {
     if (!game || game.install?.is_dlc) return
+    const runner = (game.runner || 'sideload').toLowerCase()
+    const gameId = `${game.app_name}_${runner}`
+
+    // Skip games hidden from duplicate tracking unless the toggle is enabled
+    if (
+      !showHiddenDuplicates &&
+      (hiddenDuplicateIds.has(gameId) || hiddenDuplicateIds.has(game.app_name))
+    ) {
+      return
+    }
+
     const rawTitle = game.overrides?.title || game.title || ''
     const norm = normalizeTitleForDuplicateCheck(rawTitle)
     if (!norm) return
-    const runner = (game.runner || 'sideload').toLowerCase()
-    const gameId = `${game.app_name}_${runner}`
+
     const isOfficial = runner !== 'sideload' && runner !== 'sideloaded'
     const isManual = !isOfficial
 

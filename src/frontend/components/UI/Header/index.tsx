@@ -29,6 +29,15 @@ export default function Header() {
       window.removeEventListener('gameAssignmentsChanged', loadAssignments)
   }, [])
 
+  const [duplicatesVersion, setDuplicatesVersion] = useState(0)
+
+  useEffect(() => {
+    const handleDupChange = () => setDuplicatesVersion((v) => v + 1)
+    window.addEventListener('heroicDuplicatesChanged', handleDupChange)
+    return () =>
+      window.removeEventListener('heroicDuplicatesChanged', handleDupChange)
+  }, [])
+
   const duplicateGameIds = useMemo(() => {
     const allGames = [
       ...(epic?.library || []),
@@ -38,7 +47,7 @@ export default function Header() {
       ...(sideloadedLibrary || [])
     ]
     return getDuplicateGameIds(allGames)
-  }, [epic, gog, amazon, zoom, sideloadedLibrary])
+  }, [epic, gog, amazon, zoom, sideloadedLibrary, duplicatesVersion])
 
   const hasDuplicateGames = duplicateGameIds.size > 0
 
