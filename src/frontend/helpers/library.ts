@@ -481,27 +481,56 @@ export const normalizeTitleForDuplicateCheck = (rawTitle: string): string => {
   return t.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
+export const isOfficialStoreGame = (game: any): boolean => {
+  if (!game) return false
+  const runner = (game.runner || '').toLowerCase()
+  return runner !== 'sideload' && runner !== 'sideloaded'
+}
+
+export const isManualSideloadGame = (game: any): boolean => {
+  if (!game) return false
+  const runner = (game.runner || '').toLowerCase()
+  return runner === 'sideload' || runner === 'sideloaded'
+}
+
 export const getDuplicateGameIds = (allGames: any[]): Set<string> => {
-  const map = new Map<string, Array<{ gameId: string; appName: string }>>()
+  const map = new Map<
+    string,
+    Array<{ gameId: string; appName: string; isOfficial: boolean; isManual: boolean }>
+  >()
+
   allGames.forEach((game) => {
     if (!game || game.install?.is_dlc) return
     const rawTitle = game.overrides?.title || game.title || ''
     const norm = normalizeTitleForDuplicateCheck(rawTitle)
     if (!norm) return
-    const runner = game.runner || 'sideload'
+    const runner = (game.runner || 'sideload').toLowerCase()
     const gameId = `${game.app_name}_${runner}`
+    const isOfficial = runner !== 'sideload' && runner !== 'sideloaded'
+    const isManual = !isOfficial
+
     if (!map.has(norm)) {
       map.set(norm, [])
     }
     const list = map.get(norm)!
     if (!list.some((g) => g.gameId === gameId || g.appName === game.app_name)) {
-      list.push({ gameId, appName: game.app_name })
+      list.push({ gameId, appName: game.app_name, isOfficial, isManual })
     }
   })
 
   const duplicateIds = new Set<string>()
   map.forEach((gamesList) => {
-    if (gamesList.length > 1) {
+    // Only mark duplicates if there's a real conflict:
+    // 1. Conflict between an Official connected store game and a Manual/Sideload game (hasOfficial && hasManual)
+    // 2. OR two manual sideload copies of the exact same game (manualCount > 1)
+    // CRITICAL: Two official store games (e.g. Steam + Epic, or Epic + GOG) are NEVER marked as duplicates.
+    const hasOfficial = gamesList.some((g) => g.isOfficial)
+    const hasManual = gamesList.some((g) => g.isManual)
+    const manualCount = gamesList.filter((g) => g.isManual).length
+
+    const isDuplicate = (hasOfficial && hasManual) || manualCount > 1
+
+    if (isDuplicate) {
       gamesList.forEach((g) => {
         duplicateIds.add(g.gameId)
         duplicateIds.add(g.appName)
