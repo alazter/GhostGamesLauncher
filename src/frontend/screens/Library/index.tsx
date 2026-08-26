@@ -2050,8 +2050,8 @@ export default memo(function Library(): JSX.Element {
                   minHeight: 0,
                   paddingBottom: '30px',
                   paddingRight: '8px',
-                  marginTop: '-20px',
-                  paddingTop: '20px'
+                  marginTop: '0px',
+                  paddingTop: '6px'
                 }}
               >
                 <span id="top" />

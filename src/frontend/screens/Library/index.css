@@ -128,3 +128,26 @@
   flex-direction: column;
   flex-grow: 1;
 }
+
+#games-scroll-area::-webkit-scrollbar {
+  width: 10px;
+}
+
+#games-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#games-scroll-area::-webkit-scrollbar-thumb {
+  min-height: 60px;
+  border-radius: 6px;
+  background: var(--text-secondary);
+  border: 2px solid var(--current-background, var(--body-background));
+}
+
+#games-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-overlay, #33ebff);
+}
+
+#games-scroll-area::-webkit-scrollbar-thumb:active {
+  background: var(--accent, #00e5ff);
+}

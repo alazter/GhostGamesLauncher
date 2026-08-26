@@ -70,6 +70,8 @@ body {
   background: var(--text-secondary);
   border-radius: 5px;
   margin: 2px;
+  min-height: 55px;
+  min-width: 55px;
   border: 2px solid var(--current-background, var(--body-background));
 }
 
