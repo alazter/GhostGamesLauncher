@@ -12,6 +12,7 @@ import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
+import { getImageFormatting } from 'frontend/screens/Library/components/GameCard/constants'
 import useGlobalState from 'frontend/state/GlobalStateV2'
 
 interface Props {
@@ -236,9 +237,9 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       border: '1px solid rgba(255, 255, 255, 0.1)',
       boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)'
     }}>
-      {/* Imagem com a mesma proporção oficial (173/275) dos cards da biblioteca */}
+      {/* Imagem com a mesma proporção oficial (173/275) e a mesma capa do card da biblioteca */}
       <CachedImage
-        src={panelCover || panelSquare || fallbackImage}
+        src={getImageFormatting(panelSquare || panelCover, game.runner)}
         fallback={fallbackImage}
         alt={panelTitle}
         style={{
