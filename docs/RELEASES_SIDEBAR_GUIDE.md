@@ -14,46 +14,34 @@ O layout nativo do Releases.com limita a largura da barra lateral esquerda (gera
 
 Para expandir a barra lateral esquerda **sem quebrar o layout** nem distorcer os elementos internos, é necessário aplicar simultaneamente **duas regras essenciais** em `insertCSS` e no script dinâmico de `executeJavaScript`:
 
-### 1. Conjunto de Seletores Abrangentes de Largura & Cores de Fundo (Dual Theme)
-A barra lateral do Releases.com utiliza múltiplos contêineres e classes aninhadas. A largura de `280px` deve ser aplicada a todos os seletores principais. As cores de fundo devem se adaptar dinamicamente ao tema ativo (**Dark Mode** ou **Light Mode**):
+### 1. Conjunto de Seletores Abrangentes de Largura & Cor de Fundo
+A barra lateral do Releases.com utiliza múltiplos contêineres e classes aninhadas. A largura e o fundo `rgba(3, 4, 5, 1)` devem ser aplicados a todos os seletores principais (incluindo o contêiner de troca de temas `.RWPC-Nav-ThemeMode`):
 
 ```css
-/* Largura permanente de 280px */
 aside,
 nav,
-div[class*="sidebar"]:not([class*="AtMenu"]),
-div[class*="Sidebar"]:not([class*="AtMenu"]),
-div[class*="menu"]:not([class*="AtMenu"]):not([class*="atmenu"]),
-div[class*="Menu"]:not([class*="AtMenu"]):not([class*="atmenu"]),
+div[class*="sidebar"],
+div[class*="Sidebar"],
+div[class*="menu"],
+div[class*="Menu"],
 div[class*="left-nav"],
 div[class*="LeftNav"] {
   min-width: 280px !important;
   width: 280px !important;
-}
-
-/* Modo Escuro (Padrão) */
-body:not([class*="LightMode"]) aside,
-body:not([class*="LightMode"]) nav,
-body:not([class*="LightMode"]) div[class*="sidebar"]:not([class*="AtMenu"]),
-body:not([class*="LightMode"]) .RWPC-Nav-ThemeMode {
   background-color: rgba(3, 4, 5, 1) !important;
   background: rgba(3, 4, 5, 1) !important;
 }
 
-/* Modo Claro (Light Mode) */
-body[class*="LightMode"] aside,
-body[class*="LightMode"] nav,
-body[class*="LightMode"] div[class*="sidebar"]:not([class*="AtMenu"]),
-body[class*="LightMode"] .RWPC-Nav-ThemeMode {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  border-right: 1px solid #e5e7eb !important;
-}
-
-body[class*="LightMode"] aside a,
-body[class*="LightMode"] aside button,
-body[class*="LightMode"] aside span {
-  color: #1a1a1a !important;
+/* Contêiner do Alternador de Temas no Rodapé */
+.RWPC-Nav-ThemeMode,
+[class*="RWPC-Nav-ThemeMode"],
+[class*="ThemeMode"],
+[class*="themeMode"],
+[class*="Theme-Mode"] {
+  background-color: rgba(3, 4, 5, 1) !important;
+  background: rgba(3, 4, 5, 1) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 ```
 
