@@ -18,7 +18,6 @@ import { useTranslation } from 'react-i18next'
 import Fuse from 'fuse.js'
 
 import ContextProvider from 'frontend/state/ContextProvider'
-import { syncAutoStoreCategories } from 'frontend/helpers/autoStoreCategories'
 import { syncAutoStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
 
 import GamesList from './components/GamesList'
@@ -1542,30 +1541,26 @@ export default memo(function Library(): JSX.Element {
 
   useEffect(() => {
     if (
-      customCategories &&
-      customCategories.list &&
-      (epic.library.length ||
-        gog.library.length ||
-        amazon.library.length ||
-        zoom.library.length)
+      epic.library.length ||
+      gog.library.length ||
+      amazon.library.length ||
+      zoom.library.length
     ) {
-      const updateBatch = (newCat: Record<string, string[]>) => {
-        Object.keys(newCat).forEach((cat) => {
-          if (!customCategories.listCategories().includes(cat)) {
-            customCategories.addCategory(cat)
-          }
-          newCat[cat].forEach((gameId) => {
-            if (!customCategories.list[cat]?.includes(gameId)) {
-              customCategories.addToGame(cat, gameId)
-            }
-          })
-        })
-      }
-      syncAutoStoreCategories(epic.library, customCategories.list, updateBatch, 'legendary')
-      syncAutoStoreCategories(gog.library, customCategories.list, updateBatch, 'gog')
-      syncAutoStoreCategories(amazon.library, customCategories.list, updateBatch, 'nile')
-      syncAutoStoreCategories(zoom.library, customCategories.list, updateBatch, 'zoom')
-      syncAutoStoreAssignments(epic.library, gog.library, amazon.library)
+      syncAutoStoreAssignments(
+        epic.library,
+        gog.library,
+        amazon.library,
+        zoom.library
+      )
+    }
+
+    if (customCategories && customCategories.removeCategory) {
+      const autoInjected = ['Epic Games', 'GOG', 'Amazon Games', 'Zoom Platform']
+      autoInjected.forEach((cat) => {
+        if (customCategories.listCategories().includes(cat)) {
+          customCategories.removeCategory(cat)
+        }
+      })
     }
   }, [
     epic.library,

@@ -178,59 +178,120 @@ const GamesList = ({
 
   const filteredLibrary = useMemo(() => {
     if (!activeStoreFilter) return library
+    const activeFilterLower = activeStoreFilter.toLowerCase()
+    const activeStoreObj = customStores.find(
+      (s) => s.id.toLowerCase() === activeFilterLower
+    )
+    const activeStoreNameLower = activeStoreObj ? activeStoreObj.name.toLowerCase() : ''
+
     return library.filter((game) => {
       const explicitlyAssignedStore = (assignments[game.app_name] || '').toLowerCase()
-      const activeFilterLower = activeStoreFilter.toLowerCase()
       const runnerLower = (game.runner || '').toLowerCase()
 
       if (explicitlyAssignedStore) {
         if (explicitlyAssignedStore === activeFilterLower) return true
-        if (
-          (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
-          (explicitlyAssignedStore === 'epic' ||
-            explicitlyAssignedStore === 'legendary' ||
-            explicitlyAssignedStore === 'epic games')
-        )
-          return true
-        if (
-          (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
-          (explicitlyAssignedStore === 'amazon' ||
-            explicitlyAssignedStore === 'nile' ||
-            explicitlyAssignedStore === 'amazon games')
-        )
-          return true
-        if (activeFilterLower === 'gog' && explicitlyAssignedStore === 'gog') return true
-        if (activeFilterLower === 'steam' && explicitlyAssignedStore === 'steam') return true
-        if (activeFilterLower === 'zoom' && explicitlyAssignedStore === 'zoom') return true
-        if (
-          (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
-          (explicitlyAssignedStore === 'sideload' || explicitlyAssignedStore === 'sideloaded')
-        )
-          return true
+        if (activeStoreObj && explicitlyAssignedStore === activeStoreObj.id.toLowerCase()) return true
+        if (activeStoreNameLower && explicitlyAssignedStore === activeStoreNameLower) return true
       }
 
-      if (
-        (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
-        (runnerLower === 'legendary' || runnerLower === 'epic')
-      )
-        return true
-      if (activeFilterLower === 'gog' && runnerLower === 'gog') return true
-      if (
-        (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
-        (runnerLower === 'nile' || runnerLower === 'amazon')
-      )
-        return true
-      if (activeFilterLower === 'steam' && runnerLower === 'steam') return true
-      if (activeFilterLower === 'zoom' && runnerLower === 'zoom') return true
-      if (
-        (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
-        (runnerLower === 'sideload' || runnerLower === 'sideloaded')
-      )
-        return true
+      // Epic Games
+      const isEpicStore =
+        activeFilterLower === 'epic' ||
+        activeFilterLower === 'legendary' ||
+        activeStoreNameLower.includes('epic')
+      if (isEpicStore) {
+        if (
+          explicitlyAssignedStore === 'epic' ||
+          explicitlyAssignedStore === 'legendary' ||
+          explicitlyAssignedStore === 'epic games' ||
+          runnerLower === 'legendary' ||
+          runnerLower === 'epic'
+        ) {
+          return true
+        }
+      }
+
+      // GOG
+      const isGOGStore =
+        activeFilterLower === 'gog' ||
+        activeStoreNameLower.includes('gog')
+      if (isGOGStore) {
+        if (
+          explicitlyAssignedStore === 'gog' ||
+          runnerLower === 'gog'
+        ) {
+          return true
+        }
+      }
+
+      // Amazon Games
+      const isAmazonStore =
+        activeFilterLower === 'amazon' ||
+        activeFilterLower === 'nile' ||
+        activeStoreNameLower.includes('amazon')
+      if (isAmazonStore) {
+        if (
+          explicitlyAssignedStore === 'amazon' ||
+          explicitlyAssignedStore === 'nile' ||
+          explicitlyAssignedStore === 'amazon games' ||
+          runnerLower === 'nile' ||
+          runnerLower === 'amazon'
+        ) {
+          return true
+        }
+      }
+
+      // Steam
+      const isSteamStore =
+        activeFilterLower === 'steam' ||
+        activeStoreNameLower.includes('steam')
+      if (isSteamStore) {
+        if (
+          explicitlyAssignedStore === 'steam' ||
+          runnerLower === 'steam'
+        ) {
+          return true
+        }
+      }
+
+      // Zoom
+      const isZoomStore =
+        activeFilterLower === 'zoom' ||
+        activeStoreNameLower.includes('zoom')
+      if (isZoomStore) {
+        if (
+          explicitlyAssignedStore === 'zoom' ||
+          runnerLower === 'zoom'
+        ) {
+          return true
+        }
+      }
+
+      // Sideload / Piratas / Indies
+      const isSideloadStore =
+        activeFilterLower === 'sideloaded' ||
+        activeFilterLower === 'sideload' ||
+        activeStoreNameLower.includes('sideload') ||
+        activeStoreNameLower.includes('pirata') ||
+        activeStoreNameLower.includes('indie')
+      if (isSideloadStore) {
+        if (
+          explicitlyAssignedStore === activeFilterLower ||
+          (activeStoreObj && explicitlyAssignedStore === activeStoreObj.id.toLowerCase()) ||
+          explicitlyAssignedStore === 'sideload' ||
+          explicitlyAssignedStore === 'sideloaded' ||
+          explicitlyAssignedStore === 'piratas' ||
+          explicitlyAssignedStore === 'indies' ||
+          runnerLower === 'sideload' ||
+          runnerLower === 'sideloaded'
+        ) {
+          return true
+        }
+      }
 
       return false
     })
-  }, [library, activeStoreFilter, assignments])
+  }, [library, activeStoreFilter, assignments, customStores])
 
   useEffect(() => {
     (window as any).heroicActiveLibrary = filteredLibrary
