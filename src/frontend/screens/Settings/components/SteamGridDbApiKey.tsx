@@ -43,6 +43,39 @@ export default function SteamGridDbApiKey() {
     }
   }
 
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncStatusMsg, setSyncStatusMsg] = useState('')
+
+  useEffect(() => {
+    const unsub = (window.api as any).onCoversSyncFinished?.(
+      (data: { recoveredCount: number; success: boolean }) => {
+        setIsSyncing(false)
+        if (data?.success) {
+          setSyncStatusMsg(
+            `✅ Varredura concluída com sucesso! ${data.recoveredCount} novas capas recuperadas. Jogos com capas válidas permaneceram 100% intactos.`
+          )
+        } else {
+          setSyncStatusMsg('A varredura de capas em segundo plano foi finalizada.')
+        }
+      }
+    )
+    return () => {
+      unsub?.()
+    }
+  }, [])
+
+  const handleSyncMissingCovers = async () => {
+    setIsSyncing(true)
+    setSyncStatusMsg(
+      '⏳ Varredura em segundo plano iniciada! O Ghost está verificando capas no seu disco e na rede. Você pode navegar, jogar e usar o sistema livremente sem precisar esperar.'
+    )
+    try {
+      await (window.api.steamgriddb as any).syncMissingCovers()
+    } catch {
+      setIsSyncing(false)
+    }
+  }
+
   const placeholder = hasKey
     ? t(
         'settings.steamgriddb.apikey.placeholder_saved',
@@ -64,37 +97,112 @@ export default function SteamGridDbApiKey() {
       htmlId="steamgriddb-api-key"
       type="password"
       afterInput={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-          {hasKey && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            marginTop: '10px'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center',
+              flexWrap: 'wrap'
+            }}
+          >
             <button
               type="button"
-              className="button outline"
+              className="button primary"
+              disabled={isSyncing}
               style={{
                 alignSelf: 'flex-start',
-                borderColor: '#ff4444',
-                color: '#ff4444',
-                padding: '4px 12px',
+                background: isSyncing
+                  ? 'rgba(108, 92, 231, 0.4)'
+                  : '#6c5ce7',
+                color: '#fff',
+                border: '1px solid #a29bfe',
+                padding: '8px 18px',
                 fontSize: '13px',
+                fontWeight: '600',
                 borderRadius: '8px',
-                background: 'transparent',
-                cursor: 'pointer',
+                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: isSyncing
+                  ? 'none'
+                  : '0 4px 12px rgba(108, 92, 231, 0.3)',
                 transition: 'all 0.2s ease'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 68, 68, 0.1)'
+                if (!isSyncing) e.currentTarget.style.background = '#5844e3'
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.background = 'transparent'
+                if (!isSyncing) e.currentTarget.style.background = '#6c5ce7'
               }}
-              onClick={() => {
-                setValue('')
-                void window.api.steamgriddb.setApiKey('').then(() => {
-                  setHasKey(false)
-                })
+              onClick={handleSyncMissingCovers}
+            >
+              <span>{isSyncing ? '⏳' : '🔄'}</span>
+              <span>
+                {isSyncing
+                  ? 'Varredura em segundo plano em andamento...'
+                  : 'Sincronizar e Restaurar Capas Ausentes'}
+              </span>
+            </button>
+
+            {hasKey && (
+              <button
+                type="button"
+                className="button outline"
+                style={{
+                  alignSelf: 'flex-start',
+                  borderColor: '#ff4444',
+                  color: '#ff4444',
+                  padding: '6px 14px',
+                  fontSize: '13px',
+                  borderRadius: '8px',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 68, 68, 0.1)'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                }}
+                onClick={() => {
+                  setValue('')
+                  void window.api.steamgriddb.setApiKey('').then(() => {
+                    setHasKey(false)
+                  })
+                }}
+              >
+                {t('settings.steamgriddb.apikey.remove', 'Remover Chave')}
+              </button>
+            )}
+          </div>
+
+          {syncStatusMsg && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: 'rgba(108, 92, 231, 0.12)',
+                border: '1px solid rgba(162, 155, 254, 0.3)',
+                color: '#e2e8f0',
+                fontSize: '13px',
+                lineHeight: '1.5',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
-              {t('settings.steamgriddb.apikey.remove', 'Remover Chave')}
-            </button>
+              <span>{syncStatusMsg}</span>
+            </div>
           )}
 
           <InfoBox text={t('settings.advanced.details', 'Details')}>

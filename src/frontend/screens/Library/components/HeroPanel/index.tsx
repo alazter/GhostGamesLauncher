@@ -137,6 +137,10 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     const runner = game.runner
 
     if (!game.is_installed && status !== 'queued' && runner !== 'sideload') {
+      if (runner === 'steam') {
+        window.api.openExternalUrl(`steam://install/${appName}`)
+        return
+      }
       openInstallGameModal({ appName, runner, gameInfo: game })
       return
     }
@@ -183,6 +187,10 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     if (game.runner === 'gog') storeParam = 'gog'
     if (game.runner === 'nile') storeParam = 'amazon'
     if (game.runner === 'zoom') storeParam = 'zoom'
+    if (game.runner === 'steam') {
+      window.api.openExternalUrl(game.store_url || `https://store.steampowered.com/app/${game.app_name}/`)
+      return
+    }
     navigate(`/store/${storeParam}`)
   }
 

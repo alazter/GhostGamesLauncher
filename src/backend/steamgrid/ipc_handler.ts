@@ -1,10 +1,19 @@
 import { GlobalConfig } from 'backend/config'
 import { addHandler } from 'backend/ipc'
-import { logError, LogPrefix } from 'backend/logger'
+import { logError, logInfo, LogPrefix } from 'backend/logger'
 import * as SteamGridDB from './utils'
 import { encryptApiKey, decryptApiKey, isEncryptedValue } from './secureKey'
 import { join } from 'path'
-import { existsSync, mkdirSync, createWriteStream, readdirSync, unlinkSync } from 'graceful-fs'
+import {
+  existsSync,
+  mkdirSync,
+  createWriteStream,
+  readdirSync,
+  unlinkSync,
+  openSync,
+  readSync,
+  closeSync
+} from 'graceful-fs'
 import axios from 'axios'
 import { appFolder } from '../constants/paths'
 
@@ -159,3 +168,194 @@ addHandler('steamgriddb.downloadCover', async (event, args) => {
     throw error
   }
 })
+
+addHandler('steamgriddb.syncMissingCovers', async () => {
+  // Fire and forget: starts background processing immediately without blocking
+  setImmediate(async () => {
+    try {
+      logInfo(
+        '[CoversSync] Starting background cover synchronization for missing/generic covers...',
+        LogPrefix.Backend
+      )
+
+      let recoveredCount = 0
+      const apiKey = getDecryptedApiKey()
+
+      // 1. Steam Library: re-scan Steam with deep hash-subfolder asset resolver
+      try {
+        const { default: SteamLibraryManager } = await import(
+          'backend/storeManagers/steam/library'
+        )
+        const { SteamUser } = await import(
+          'backend/storeManagers/steam/user'
+        )
+        const { libraryStore: steamStore } = await import(
+          'backend/storeManagers/steam/electronStores'
+        )
+
+        if (await SteamUser.isLoggedIn()) {
+          const oldSteamGames = steamStore.get('games', [])
+          const steamMgr = new SteamLibraryManager()
+          await steamMgr.refresh()
+          const newSteamGames = steamStore.get('games', [])
+
+          for (const newGame of newSteamGames) {
+            const oldGame = oldSteamGames.find(
+              (g) => g.app_name === newGame.app_name
+            )
+            const hadValidLocal =
+              oldGame?.art_square &&
+              !oldGame.art_square.startsWith('http') &&
+              existsSync(oldGame.art_square)
+            const nowHasValidLocal =
+              newGame.art_square &&
+              !newGame.art_square.startsWith('http') &&
+              existsSync(newGame.art_square)
+
+            if (!hadValidLocal && nowHasValidLocal) {
+              recoveredCount++
+            }
+          }
+        }
+      } catch (err) {
+        logError(['[CoversSync] Error during Steam library cover scan:', err], LogPrefix.Backend)
+      }
+
+      // 2. SteamGridDB fallback for games still missing or with generic covers
+      if (apiKey) {
+        try {
+          const { fetchCoverFromSteamGridDB } = await import(
+            'backend/storeManagers/sideload/steamgridHelper'
+          )
+          const { gameOverridesStore } = await import(
+            'backend/game_overrides/electronStores'
+          )
+          const { libraryStore: steamStore } = await import(
+            'backend/storeManagers/steam/electronStores'
+          )
+          const { libraryStore: sideloadStore } = await import(
+            'backend/storeManagers/sideload/electronStores'
+          )
+
+          const { STEAM_MISSING_600x900 } = await import(
+            'backend/storeManagers/steam/constants'
+          )
+
+          const allCandidateGames = [
+            ...steamStore.get('games', []),
+            ...sideloadStore.get('games', [])
+          ]
+
+          const currentOverrides =
+            (gameOverridesStore.get('overrides', {}) as Record<
+              string,
+              any
+            >) || {}
+
+          const isGenericOrLetterbox = (candidate: any, sq: string | undefined): boolean => {
+            if (!sq) return true
+            if (
+              sq === 'fallback' ||
+              sq.includes('heroic_card.jpg') ||
+              sq.includes('default_cover')
+            ) {
+              return true
+            }
+            // Horizontal banners letterboxed into cards
+            if (sq.includes('header.jpg') || sq.includes('capsule_')) {
+              return true
+            }
+            // In legacy missing 600x900 list
+            if (candidate.runner === 'steam' && STEAM_MISSING_600x900.has(candidate.app_name)) {
+              return true
+            }
+            // Local file checks
+            if (!sq.startsWith('http')) {
+              if (!existsSync(sq)) return true
+              // Check if Steam auto-generated letterbox PNG disguised as .jpg
+              try {
+                const b = Buffer.alloc(4)
+                const fd = openSync(sq, 'r')
+                readSync(fd, b, 0, 4, 0)
+                closeSync(fd)
+                if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
+                  return true
+                }
+              } catch {}
+            }
+            return false
+          }
+
+          for (const game of allCandidateGames) {
+            const override = currentOverrides[game.app_name]
+            const activeSquare = override?.art_square || game.art_square
+
+            // Target missing, broken, horizontal letterbox, or generic covers!
+            if (isGenericOrLetterbox(game, activeSquare) && game.title) {
+              try {
+                const coverData = await fetchCoverFromSteamGridDB(
+                  apiKey,
+                  game.title,
+                  game.runner === 'steam' ? game.app_name : undefined
+                )
+                if (coverData?.art_square) {
+                  currentOverrides[game.app_name] = {
+                    ...currentOverrides[game.app_name],
+                    title: game.title,
+                    art_square: coverData.art_square,
+                    art_cover: coverData.art_cover || coverData.art_square
+                  }
+                  recoveredCount++
+                }
+              } catch (err) {
+                logError(
+                  [
+                    `[CoversSync] Failed fetching SGDB cover for ${game.title}:`,
+                    err
+                  ],
+                  LogPrefix.Backend
+                )
+              }
+            }
+          }
+
+          gameOverridesStore.set('overrides', currentOverrides)
+        } catch (err) {
+          logError(['[CoversSync] Error during SteamGridDB scan:', err], LogPrefix.Backend)
+        }
+      }
+
+      logInfo(
+        `[CoversSync] Background synchronization finished. Recovered ${recoveredCount} covers.`,
+        LogPrefix.Backend
+      )
+
+      // Notify the frontend via IPC
+      const { BrowserWindow } = await import('electron')
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('covers-sync-finished', {
+          recoveredCount,
+          success: true
+        })
+      }
+    } catch (err) {
+      logError(
+        ['[CoversSync] Background synchronization error:', err],
+        LogPrefix.Backend
+      )
+      const { BrowserWindow } = await import('electron')
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('covers-sync-finished', {
+          recoveredCount: 0,
+          success: false,
+          error: String(err)
+        })
+      }
+    }
+  })
+
+  return { started: true }
+})
+

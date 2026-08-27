@@ -4,7 +4,8 @@ export function syncAutoStoreAssignments(
   epicGames: GameInfo[] = [],
   gogGames: GameInfo[] = [],
   amazonGames: GameInfo[] = [],
-  zoomGames: GameInfo[] = []
+  zoomGames: GameInfo[] = [],
+  steamGames: GameInfo[] = []
 ) {
   try {
     const rawCustomStores = localStorage.getItem('heroic_custom_stores') || '[]'
@@ -29,6 +30,7 @@ export function syncAutoStoreAssignments(
     const gogStoreId = findStoreId((n, id) => n.includes('gog') || id === 'gog', 'gog')
     const amazonStoreId = findStoreId((n, id) => n.includes('amazon') || id === 'amazon' || id === 'nile', 'amazon')
     const zoomStoreId = findStoreId((n, id) => n.includes('zoom') || id === 'zoom', 'zoom')
+    const steamStoreId = findStoreId((n, id) => n.includes('steam') || id === 'steam', 'steam')
 
     const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
     let currentAssignments: Record<string, string> = {}
@@ -72,6 +74,15 @@ export function syncAutoStoreAssignments(
       const appName = game.app_name || (game as any).appName
       if (appName && currentAssignments[appName] !== zoomStoreId) {
         currentAssignments[appName] = zoomStoreId
+        hasChanges = true
+      }
+    })
+
+    // Process Steam Games -> steamStoreId
+    steamGames.forEach((game) => {
+      const appName = game.app_name || (game as any).appName
+      if (appName && currentAssignments[appName] !== steamStoreId) {
+        currentAssignments[appName] = steamStoreId
         hasChanges = true
       }
     })

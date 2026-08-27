@@ -8,6 +8,7 @@ import LibraryContext from 'frontend/screens/Library/LibraryContext'
 import { normalizeTitle } from 'frontend/helpers/library'
 import AddGameButton from 'frontend/screens/Library/components/AddGameButton'
 import ActionIcons from 'frontend/components/UI/ActionIcons'
+import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 import './index.css'
 
 function fixFilter(text: string) {
@@ -57,15 +58,7 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
     const saved = localStorage.getItem('heroic_custom_stores')
     if (saved) return JSON.parse(saved) as CustomStore[]
-
-    return [
-      { id: 'epic', name: 'Epic Games', icon: null, isVisible: true },
-      { id: 'gog', name: 'GOG', icon: null, isVisible: true },
-      { id: 'amazon', name: 'Amazon', icon: null, isVisible: true },
-      { id: 'zoom', name: 'Zoom', icon: null, isVisible: true },
-      { id: 'sideloaded', name: 'Sideloaded', icon: null, isVisible: true },
-      { id: 'steam', name: 'Steam', icon: null, isVisible: true }
-    ]
+    return DEFAULT_GHOST_CUSTOM_STORES
   })
 
   // Estado que guarda qual loja está clicada no momento

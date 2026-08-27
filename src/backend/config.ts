@@ -31,6 +31,19 @@ import {
 } from './constants/paths'
 import { join } from 'path'
 import { spawnSync } from 'child_process'
+import { app } from 'electron'
+
+function getSystemLocale(): string {
+  try {
+    const locale = (app?.getLocale ? app.getLocale() : '') || ''
+    const norm = locale.replace('-', '_')
+    if (['pt_BR', 'nb_NO', 'zh_Hans', 'zh_Hant'].includes(norm)) return norm
+    const short = norm.split('_')[0]
+    if (short === 'pt') return 'pt_BR'
+    if (short) return short
+  } catch {}
+  return 'pt_BR'
+}
 import {
   updateWineVersionInfos,
   wineDownloaderInfoStore
@@ -344,7 +357,7 @@ class GlobalConfigV0 extends GlobalConfig {
       defaultWinePrefix: defaultWinePrefixDir,
       defaultWinePrefixDir: defaultWinePrefixDir,
       hideChangelogsOnStartup: false,
-      language: 'pt_BR',
+      language: getSystemLocale(),
       exitToTray: true,
       startInTray: true,
       maxWorkers: 0,

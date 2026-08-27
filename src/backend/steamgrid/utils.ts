@@ -91,6 +91,34 @@ export async function getGrids(
 }
 
 /**
+ * Get grids for a Steam game by Steam AppID directly.
+ */
+export async function getGridsBySteamAppId(
+  apiKey: string,
+  appId: string
+): Promise<SGDBGrid[]> {
+  try {
+    const response = await axios.get<SGDBResponse<SGDBGrid[]>>(
+      `${SGDB_API_URL}/grids/steam/${appId}`,
+      {
+        params: {
+          dimensions: '600x900,342x482,660x930'
+        },
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'User-Agent': userAgent
+        }
+      }
+    )
+
+    if (response.data?.success && response.data.data) {
+      return response.data.data
+    }
+  } catch {}
+  return []
+}
+
+/**
  * Get heroes (wide hero/cover art) for a specific game.
  */
 export async function getHeroes(

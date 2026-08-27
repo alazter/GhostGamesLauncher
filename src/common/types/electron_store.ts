@@ -79,6 +79,16 @@ export interface StoreStructure {
     isLoggedIn: boolean
     username?: string
   }
+  steamConfigStore: {
+    isLoggedIn: boolean
+    username?: string
+    steamId?: string
+    steamId32?: string
+    avatar?: string
+  }
+  steamInstalledGamesStore: {
+    installed: InstalledInfo[]
+  }
   nileConfigStore: {
     userData?: NileUserData
   }

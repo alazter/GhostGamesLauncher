@@ -8,6 +8,7 @@ import {
   isGameAssignedToStore,
   isGameVisibleInAllGames
 } from 'frontend/helpers/customStoreFiltering'
+import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 import './index.css'
 
 type Props = {
@@ -33,11 +34,11 @@ export default memo(function LibraryHeader({ list }: Props) {
   })
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
     const saved = localStorage.getItem('heroic_custom_stores')
-    return saved ? (JSON.parse(saved) as CustomStore[]) : []
+    return saved ? (JSON.parse(saved) as CustomStore[]) : DEFAULT_GHOST_CUSTOM_STORES
   })
 
   const [alignment, setAlignment] = useState<string>(() => {
-    return localStorage.getItem('heroic_alphabet_alignment') || 'center'
+    return localStorage.getItem('heroic_alphabet_alignment') || 'fill'
   })
 
   // Alphabet styling synchronization

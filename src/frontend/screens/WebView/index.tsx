@@ -24,6 +24,8 @@ const validStoredUrl = (url: string, store: string) => {
       return url.includes('gaming.amazon.com')
     case 'zoom':
       return url.includes('zoom-platform.com')
+    case 'steam':
+      return url.includes('steampowered.com') || url.includes('steamcommunity.com')
     default:
       return false
   }
@@ -63,6 +65,10 @@ export default function WebView() {
   const gogStore = `https://af.gog.com?as=1838482841`
   const amazonStore = `https://gaming.amazon.com`
   const zoomStore = `https://www.zoom-platform.com`
+  const steamStore =
+    lang === 'pt-BR'
+      ? 'https://store.steampowered.com/?l=brazilian'
+      : 'https://store.steampowered.com/'
   const wikiURL =
     'https://github.com/alazter/HeroicGamesLauncher/wiki'
   const gogEmbedRegExp = new RegExp('https://embed.gog.com/on_login_success?')
@@ -78,6 +84,7 @@ export default function WebView() {
     '/store/gog': gogStore,
     '/store/amazon': amazonStore,
     '/store/zoom': zoomStore,
+    '/store/steam': steamStore,
     '/wiki': wikiURL,
     '/loginEpic': epicLoginUrl,
     '/loginGOG': gogLoginUrl,
@@ -86,7 +93,7 @@ export default function WebView() {
     '/loginweb/nile': amazonLoginData ? amazonLoginData.url : '',
     '/loginweb/zoom': zoomLoginUrl
   }
-  let startUrl = urls[pathname]
+  let startUrl = urls[pathname] || (store === 'steam' ? steamStore : '')
 
   if (store) {
     sessionStorage.setItem('last-store', store)
@@ -306,6 +313,11 @@ export default function WebView() {
     useState<boolean>(false)
 
   useEffect(() => {
+    if (!startUrl) {
+      setShowLoginWarningFor(null)
+      return
+    }
+
     if (
       startUrl.match(/epicgames\.com/) &&
       startUrl.indexOf('/id/login') < 0 &&
@@ -372,7 +384,7 @@ export default function WebView() {
         <WebviewControls
           webview={webviewRef.current}
           initURL={startUrl}
-          openInBrowser={!startUrl.startsWith('login')}
+          openInBrowser={Boolean(startUrl && !startUrl.startsWith('login'))}
         />
       )}
       {loading.refresh && <UpdateComponent message={loading.message} />}

@@ -1,4 +1,4 @@
-# Review das Alterações - 26/08/2026
+# Review das Alterações - 27/08/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -173,6 +173,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Otimizadas as dimensões do HeroPanel (310px) e removido o botão redundante de configurações na base.
   - Implementada notificação silenciosa de lançamentos em tracking baseada na data do Windows (`releasesScanner.ts`).
   - Adicionados os lembretes de prioridade para a próxima sessão em `.agents/AGENTS.md`.
+
+### 29. Suporte Nativo Completo à Conta Steam, Notificação de Lançamentos do Dia e Polimento de Temas
+* **Problema:** Ausência de suporte à integração da conta Steam como runner nativo com catálogo unificado de jogos instalados/não instalados, e notificações de desktop para lançamentos de jogos rastreados no Releases.com.
+* **Solução:**
+  - Implementada integração nativa completa com a Steam (`'steam'`), com escaneamento automático da conta local (`Alazter`), catálogo unificado de 341 jogos (87 instalados com botão "Jogar" e 254 não instalados com botão "Instalar").
+  - Adicionada resolução dinâmica de capas HD 600x900 via CDN oficial da Valve (`cdn.akamai.steamstatic.com`) e suporte a busca/seleção customizada de artes via SteamGridDB.
+  - Implementado sistema de notificações no desktop do Windows para jogos em tracking com lançamento no dia atual.
+  - Ajustados os estilos e temas na tela de Lançamentos com paletas confortáveis de modo escuro e transições suaves.
+  - Atualizada a documentação e regras ativas em `.agents/AGENTS.md`.
 
 ---
 

@@ -39,6 +39,7 @@ import { GOGUser } from './storeManagers/gog/user'
 import gogPresence from './storeManagers/gog/presence'
 import { NileUser } from './storeManagers/nile/user'
 import { ZoomUser } from './storeManagers/zoom/user'
+import { SteamUser } from './storeManagers/steam/user'
 
 if (process.platform === 'win32') {
   app.name = 'Ghost Games Launcher'
@@ -1337,6 +1338,10 @@ addHandler('authZoom', async (event, url) => {
 
 addListener('logoutZoom', () => ZoomUser.logout())
 addHandler('getZoomUserInfo', async () => ZoomUser.getUserDetails())
+
+addListener('logoutSteam', () => SteamUser.logout())
+addHandler('loginSteam', async () => SteamUser.login())
+addHandler('getSteamUserInfo', async () => SteamUser.getUserDetails())
 
 addHandler('getAlternativeWine', async () =>
   GlobalConfig.get().getAlternativeWine()

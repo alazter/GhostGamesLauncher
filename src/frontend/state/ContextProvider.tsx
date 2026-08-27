@@ -31,6 +31,15 @@ const initialContext: ContextType = {
     logout: async () => Promise.resolve(),
     enabled: false
   },
+  steam: {
+    library: [],
+    username: '',
+    steamId: '',
+    steamId32: '',
+    login: async () => Promise.resolve(false),
+    logout: async () => Promise.resolve(),
+    enabled: true
+  },
   installingEpicGame: false,
   sideloadedLibrary: [],
   error: false,
@@ -52,7 +61,9 @@ const initialContext: ContextType = {
   hiddenGames: {
     list: [],
     add: () => null,
-    remove: () => null
+    remove: () => null,
+    addMultiple: () => null,
+    removeMultiple: () => null
   },
   currentCustomCategories: [],
   setCurrentCustomCategories: () => null,

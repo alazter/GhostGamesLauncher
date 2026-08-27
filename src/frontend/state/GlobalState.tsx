@@ -39,7 +39,10 @@ import {
   sideloadLibrary,
   zoomConfigStore,
   zoomInstalledGamesStore,
-  zoomLibraryStore
+  zoomLibraryStore,
+  steamConfigStore,
+  steamInstalledGamesStore,
+  steamLibraryStore
 } from '../helpers/electronStores'
 import { IpcRendererEvent } from 'electron'
 import { NileRegisterData } from 'common/types/nile'
@@ -75,6 +78,13 @@ interface StateProps {
   zoom: {
     library: GameInfo[]
     username?: string
+    enabled: boolean
+  }
+  steam: {
+    library: GameInfo[]
+    username?: string
+    steamId?: string
+    steamId32?: string
     enabled: boolean
   }
   wineVersions: WineVersionInfo[]
@@ -195,6 +205,18 @@ class GlobalState extends PureComponent<Props> {
     return applyGameOverrides(games, overrides)
   }
 
+  loadSteamLibrary = (
+    overrides: Record<string, GameOverride> = currentOverrides()
+  ): Array<GameInfo> => {
+    const isLoggedIn = steamConfigStore.get('isLoggedIn', false)
+    const username = steamConfigStore.get_nodefault('username')
+    if (!isLoggedIn || !username) {
+      return []
+    }
+    const games = steamLibraryStore.get('games', [])
+    return applyGameOverrides(games, overrides)
+  }
+
   state: StateProps = {
     epic: {
       library: this.loadLegendaryLibrary(),
@@ -213,6 +235,13 @@ class GlobalState extends PureComponent<Props> {
       library: this.loadZoomLibrary(),
       username: zoomConfigStore.get_nodefault('username'),
       enabled: !!globalSettings?.experimentalFeatures?.zoomPlatform
+    },
+    steam: {
+      library: this.loadSteamLibrary(),
+      username: steamConfigStore.get_nodefault('username'),
+      steamId: steamConfigStore.get_nodefault('steamId'),
+      steamId32: steamConfigStore.get_nodefault('steamId32'),
+      enabled: true
     },
     wineVersions: wineDownloaderInfoStore.get('wine-releases', []),
     error: false,
@@ -368,6 +397,47 @@ class GlobalState extends PureComponent<Props> {
   unhideGame = (appNameToUnhide: string) => {
     const newHiddenGames = this.state.hiddenGames.filter(
       ({ appName }) => appName !== appNameToUnhide
+    )
+
+    this.setState({
+      hiddenGames: newHiddenGames
+    })
+    configStore.set('games.hidden', newHiddenGames)
+  }
+
+  hideMultipleGames = (
+    gamesToHide: Array<{
+      appName: string
+      title: string
+      runner?: string
+      art_cover?: string
+      art_square?: string
+    }>
+  ) => {
+    const map = new Map<string, HiddenGame>()
+    this.state.hiddenGames.forEach((g) => map.set(g.appName, g))
+    gamesToHide.forEach((g) => {
+      map.set(g.appName, {
+        appName: g.appName,
+        title: g.title,
+        runner: g.runner,
+        art_cover: g.art_cover,
+        art_square: g.art_square,
+        hiddenAt: Date.now()
+      })
+    })
+
+    const newHiddenGames = Array.from(map.values())
+    this.setState({
+      hiddenGames: newHiddenGames
+    })
+    configStore.set('games.hidden', newHiddenGames)
+  }
+
+  unhideMultipleGames = (appNamesToUnhide: string[]) => {
+    const set = new Set(appNamesToUnhide)
+    const newHiddenGames = this.state.hiddenGames.filter(
+      ({ appName }) => !set.has(appName)
     )
 
     this.setState({
@@ -674,6 +744,60 @@ class GlobalState extends PureComponent<Props> {
     window.location.reload()
   }
 
+  steamLogin = async () => {
+    console.log('Connecting Steam account')
+    const success = await window.api.loginSteam()
+
+    if (success) {
+      const userInfo = await window.api.getSteamUserInfo()
+      await window.api.refreshLibrary('steam')
+      const steamLibrary = this.loadSteamLibrary()
+      this.setState({
+        steam: {
+          library: steamLibrary,
+          username: userInfo?.username,
+          steamId: userInfo?.steamId,
+          steamId32: userInfo?.steamId32,
+          enabled: true
+        }
+      })
+
+      try {
+        const { epic, gog, amazon, zoom } = this.state
+        syncAutoStoreAssignments(
+          epic.library,
+          gog.library,
+          amazon.library,
+          zoom.library,
+          steamLibrary
+        )
+      } catch (e) {
+        console.error('Error syncing steam store assignments:', e)
+      }
+    }
+
+    return success
+  }
+
+  steamLogout = async () => {
+    await window.api.logoutSteam()
+    steamConfigStore.set('isLoggedIn', false)
+    steamConfigStore.delete('username')
+    steamConfigStore.delete('steamId')
+    steamConfigStore.delete('steamId32')
+    steamLibraryStore.set('games', [])
+    this.setState({
+      steam: {
+        library: [],
+        username: undefined,
+        steamId: undefined,
+        steamId32: undefined,
+        enabled: true
+      }
+    })
+    console.log('Logged out from steam')
+  }
+
   updateGameOverrides = (overrides: Record<string, GameOverride>) => {
     useGlobalState.getState().setGameOverrides(overrides)
     this.setState({
@@ -688,6 +812,10 @@ class GlobalState extends PureComponent<Props> {
       zoom: {
         ...this.state.zoom,
         library: this.loadZoomLibrary(overrides)
+      },
+      steam: {
+        ...this.state.steam,
+        library: this.loadSteamLibrary(overrides)
       },
       amazon: {
         ...this.state.amazon,
@@ -707,7 +835,7 @@ class GlobalState extends PureComponent<Props> {
   ): Promise<void> => {
     console.log('refreshing')
 
-    const { epic, gog, amazon, zoom, gameUpdates } = this.state
+    const { epic, gog, amazon, zoom, steam, gameUpdates } = this.state
 
     const overrides = overridesArg || currentOverrides()
 
@@ -746,6 +874,16 @@ class GlobalState extends PureComponent<Props> {
       }
     }
 
+    let steamLibrary: GameInfo[] = []
+    if (steam.enabled && steam.username) {
+      steamLibrary = this.loadSteamLibrary(overrides)
+      if (steam.username && (!steamLibrary.length || !steam.library.length)) {
+        window.api.logInfo('No cache found, getting data from steam...')
+        await window.api.refreshLibrary('steam')
+        steamLibrary = this.loadSteamLibrary(overrides)
+      }
+    }
+
     let amazonLibrary = nileLibraryStore.get('library', [])
     if (amazon.user_id && (!amazonLibrary.length || !amazon.library.length)) {
       window.api.logInfo('No cache found, getting data from nile...')
@@ -769,6 +907,13 @@ class GlobalState extends PureComponent<Props> {
         username: zoom.username,
         enabled: zoom.enabled
       },
+      steam: {
+        library: steamLibrary,
+        username: steam.username,
+        steamId: steam.steamId,
+        steamId32: steam.steamId32,
+        enabled: steam.enabled
+      },
       amazon: {
         library: amazonLibrary,
         user_id: amazon.user_id,
@@ -786,7 +931,7 @@ class GlobalState extends PureComponent<Props> {
     }
 
     try {
-      syncAutoStoreAssignments(epicLibrary, gogLibrary, amazonLibrary, zoomLibrary)
+      syncAutoStoreAssignments(epicLibrary, gogLibrary, amazonLibrary, zoomLibrary, steamLibrary)
     } catch (e) {
       console.error('Error syncing auto store assignments:', e)
     }
@@ -798,6 +943,10 @@ class GlobalState extends PureComponent<Props> {
     library = undefined
   }: RefreshOptions): Promise<void> => {
     if (this.state.refreshing) return
+
+    if (library === 'steam' && (!this.state.steam.username || !steamConfigStore.get('isLoggedIn', false))) {
+      return
+    }
 
     clearAvailabilityCache()
 
@@ -938,11 +1087,27 @@ class GlobalState extends PureComponent<Props> {
     })
 
     window.api.handleRefreshLibrary((e, runner) => {
+      if (
+        runner === 'steam' &&
+        (!this.state.steam.username || !steamConfigStore.get('isLoggedIn', false))
+      ) {
+        return
+      }
       this.refreshLibrary({
         checkForUpdates: false,
         runInBackground: true,
         library: runner
       })
+    })
+
+    window.addEventListener('focus', () => {
+      if (
+        this.state.steam.enabled &&
+        this.state.steam.username &&
+        steamConfigStore.get('isLoggedIn', false)
+      ) {
+        this.refresh('steam')
+      }
     })
 
     window.api.handleMetadataChanged((e, overrides) => {
@@ -985,6 +1150,22 @@ class GlobalState extends PureComponent<Props> {
             enabled: true
           }
         })
+      } else if (args.runner === 'steam') {
+        const library = [...this.state.steam.library]
+        const index = library.findIndex(
+          (game) => game.app_name === args.app_name
+        )
+        if (index !== -1) {
+          library[index] = args
+        } else {
+          library.push(args)
+        }
+        this.setState({
+          steam: {
+            ...this.state.steam,
+            library: [...library]
+          }
+        })
       }
     })
 
@@ -1006,6 +1187,7 @@ class GlobalState extends PureComponent<Props> {
     const gogUser = gogConfigStore.has('userData')
     const amazonUser = nileConfigStore.has('userData')
     const zoomUser = zoomConfigStore.has('isLoggedIn')
+    const steamUser = steamConfigStore.get('isLoggedIn', false) && Boolean(steamConfigStore.get_nodefault('username'))
 
     if (legendaryUser) {
       await window.api.getUserInfo()
@@ -1019,19 +1201,46 @@ class GlobalState extends PureComponent<Props> {
       await window.api.getZoomUserInfo()
     }
 
+    if (this.state.steam.enabled) {
+      try {
+        const sUser = await window.api.getSteamUserInfo()
+        if (sUser && sUser.isLoggedIn) {
+          this.setState({
+            steam: {
+              ...this.state.steam,
+              username: sUser.username,
+              steamId: sUser.steamId,
+              steamId32: sUser.steamId32
+            }
+          })
+        } else {
+          this.setState({
+            steam: {
+              ...this.state.steam,
+              library: [],
+              username: undefined,
+              steamId: undefined,
+              steamId32: undefined
+            }
+          })
+        }
+      } catch {}
+    }
+
     if (!gameUpdates.length) {
       const storedGameUpdates = JSON.parse(storage.getItem('updates') || '[]')
       this.setState({ gameUpdates: storedGameUpdates })
     }
 
-    if (legendaryUser || gogUser || amazonUser || (zoom.enabled && zoomUser)) {
+    if (legendaryUser || gogUser || amazonUser || (zoom.enabled && zoomUser) || steamUser) {
       this.refreshLibrary({
         checkForUpdates: true,
         runInBackground:
           epic.library.length !== 0 ||
           gog.library.length !== 0 ||
           amazon.library.length !== 0 ||
-          ((this.state.zoom.enabled && zoom.library) || []).length !== 0
+          ((this.state.zoom.enabled && zoom.library) || []).length !== 0 ||
+          (this.state.steam.library || []).length !== 0
       })
     }
 
@@ -1058,6 +1267,13 @@ class GlobalState extends PureComponent<Props> {
 
     this.setPrimaryFontFamily(this.state.primaryFontFamily, false)
     this.setSecondaryFontFamily(this.state.secondaryFontFamily, false)
+
+    // Listen for background cover synchronization finished event
+    if ((window.api as any).onCoversSyncFinished) {
+      ;(window.api as any).onCoversSyncFinished(() => {
+        void this.refreshLibrary({ runInBackground: true })
+      })
+    }
 
     window.addEventListener('heroicSettingsChanged', () => {
       ;(configStore as any).set('backup.lastModified', Date.now())
@@ -1170,6 +1386,7 @@ class GlobalState extends PureComponent<Props> {
       gog,
       amazon,
       zoom,
+      steam,
       favouriteGames,
       customCategories,
       hiddenGames,
@@ -1214,6 +1431,15 @@ class GlobalState extends PureComponent<Props> {
             logout: this.zoomLogout,
             enabled: this.state.zoom.enabled
           },
+          steam: {
+            library: this.state.steam.enabled ? steam.library : [],
+            username: this.state.steam.enabled ? steam.username : undefined,
+            steamId: this.state.steam.enabled ? steam.steamId : undefined,
+            steamId32: this.state.steam.enabled ? steam.steamId32 : undefined,
+            login: this.steamLogin,
+            logout: this.steamLogout,
+            enabled: this.state.steam.enabled
+          },
           installingEpicGame,
           setLanguage: this.setLanguage,
           isRTL,
@@ -1222,7 +1448,9 @@ class GlobalState extends PureComponent<Props> {
           hiddenGames: {
             list: hiddenGames,
             add: this.hideGame,
-            remove: this.unhideGame
+            remove: this.unhideGame,
+            addMultiple: this.hideMultipleGames,
+            removeMultiple: this.unhideMultipleGames
           },
           favouriteGames: {
             list: favouriteGames,

@@ -234,6 +234,10 @@ const GameCard = ({
   const isBrowserGame = gameInfo.install.platform === 'Browser'
 
   const onInstall = () => {
+    if (runner === 'steam') {
+      window.api.openExternalUrl(`steam://install/${appName}`)
+      return
+    }
     if (runner !== 'sideload' && handleGameCardClick) {
       handleGameCardClick(appName, runner, gameInfoFromProps)
     }
@@ -696,21 +700,28 @@ const GameCard = ({
             {justPlayed ? (
               <CachedImage
                 src={art_cover || fallBackImage}
+                fallback={fallBackImage}
                 className="justPlayedImg"
-                alt={title}
+                alt=""
               />
             ) : (
               <CachedImage
                 src={getImageFormatting(cover, runner)}
+                fallback={
+                  art_cover && art_cover !== cover
+                    ? [art_cover, fallBackImage]
+                    : fallBackImage
+                }
                 className={imgClasses}
-                alt="cover"
+                alt=""
               />
             )}
             {(justPlayed || runner !== 'nile') && logo && (
               <CachedImage
-                alt="logo"
+                alt=""
                 src={`${logo}?h=400&resize=1&w=300`}
                 className={logoClasses}
+                hideOnError
               />
             )}
             {haveStatus && (
@@ -838,6 +849,10 @@ const GameCard = ({
 
   async function handlePlay(runner: Runner) {
     if (!isInstalled && !isQueued && gameInfo.runner !== 'sideload') {
+      if (gameInfo.runner === 'steam') {
+        window.api.openExternalUrl(`steam://install/${appName}`)
+        return
+      }
       return install({
         gameInfo,
         installPath: folder || 'default',

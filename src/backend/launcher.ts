@@ -1137,6 +1137,10 @@ function setupWrapperEnvVars(wrapperEnv: WrapperEnv) {
       ret.HEROIC_APP_SOURCE = 'zoom'
       ret.STORE = 'zoomplatform'
       break
+    case 'steam':
+      ret.HEROIC_APP_SOURCE = 'steam'
+      ret.STORE = 'steam'
+      break
   }
 
   return ret

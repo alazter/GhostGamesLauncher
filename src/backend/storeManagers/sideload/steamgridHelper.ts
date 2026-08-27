@@ -1,7 +1,7 @@
 import { GlobalConfig } from 'backend/config'
 import * as SteamGridDB from 'backend/steamgrid/utils'
 import { decryptApiKey, isEncryptedValue } from 'backend/steamgrid/secureKey'
-import { logInfo, logError } from 'backend/logger'
+import { logInfo, logError, LogPrefix } from 'backend/logger'
 
 export function getApiKey(): string {
   const stored = GlobalConfig.get().getSettings().steamGridDbApiKey || ''
@@ -19,14 +19,32 @@ const successfulSearchCache = new Map<string, { art_cover: string; art_square: s
 
 export async function fetchCoverFromSteamGridDB(
   apiKey: string,
-  title: string
+  title: string,
+  steamAppId?: string
 ): Promise<{ art_cover: string; art_square: string } | null> {
-  const normalizedKey = title.trim().toLowerCase()
+  const normalizedKey = (steamAppId ? `steam_${steamAppId}_` : '') + title.trim().toLowerCase()
   if (failedSearchCache.has(normalizedKey)) {
     return null
   }
   if (successfulSearchCache.has(normalizedKey)) {
     return successfulSearchCache.get(normalizedKey)!
+  }
+
+  // 1. If it's a Steam game, query directly by official Steam AppID (100% precision)
+  if (steamAppId) {
+    try {
+      const grids = await SteamGridDB.getGridsBySteamAppId(apiKey, steamAppId)
+      if (grids && grids.length > 0) {
+        const res = {
+          art_cover: grids[0].url,
+          art_square: grids[0].url
+        }
+        successfulSearchCache.set(normalizedKey, res)
+        return res
+      }
+    } catch (err) {
+      logError([`SteamGridDB fetch by steamAppId ${steamAppId} failed:`, err], LogPrefix.Backend)
+    }
   }
 
   const cleanTitle = (t: string) => {
@@ -43,11 +61,10 @@ export async function fetchCoverFromSteamGridDB(
       const searchResults = await SteamGridDB.searchGame(apiKey, searchQuery)
       if (searchResults && searchResults.length > 0) {
         const gameId = searchResults[0].id
-        // Busca com as dimensões verticais padrão (modernas e legadas) e estilos adequados
+        // Busca com as dimensões verticais padrão sem restringir estilos
         const grids = await SteamGridDB.getGrids(apiKey, {
           gameId,
-          dimensions: ['600x900', '342x482', '660x930'],
-          styles: ['material', 'alternate', 'blurred']
+          dimensions: ['600x900', '342x482', '660x930']
         })
         if (grids && grids.length > 0) {
           return {
@@ -58,7 +75,7 @@ export async function fetchCoverFromSteamGridDB(
       }
     } catch (err: any) {
       const apiError = err.response?.data?.errors?.join(', ') || err.message
-      logError([`SteamGridDB search or grid fetch failed for query "${searchQuery}":`, apiError])
+      logError([`SteamGridDB search or grid fetch failed for query "${searchQuery}":`, apiError], LogPrefix.Backend)
     }
     return null
   }

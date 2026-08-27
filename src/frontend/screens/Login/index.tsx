@@ -9,6 +9,7 @@ import GOGLogo from 'frontend/assets/gog-logo.svg?react'
 import HeroicLogo from 'frontend/assets/heroic-icon.svg?react'
 import AmazonLogo from 'frontend/assets/amazon-logo.svg?react'
 import ZoomLogo from 'frontend/assets/zoom-logo.svg?react'
+import SteamLogo from 'frontend/assets/steam-logo.svg?react'
 
 import { LanguageSelector, UpdateComponent } from '../../components/UI'
 import { FlagPosition } from '../../components/UI/LanguageSelector'
@@ -23,7 +24,7 @@ export const amazonLoginPath = '/loginweb/nile'
 export const zoomLoginPath = '/loginweb/zoom'
 
 export default React.memo(function NewLogin() {
-  const { epic, gog, amazon, zoom, refreshLibrary } =
+  const { epic, gog, amazon, zoom, steam, refreshLibrary } =
     useContext(ContextProvider)
   const { t } = useTranslation()
 
@@ -42,6 +43,7 @@ export default React.memo(function NewLogin() {
     Boolean(amazon.user_id)
   )
   const [isZoomLoggedIn, setIsZoomLoggedIn] = useState(Boolean(zoom.username))
+  const [isSteamLoggedIn, setIsSteamLoggedIn] = useState(Boolean(steam.username))
 
   const systemInfo = useAwaited(window.api.systemInfo.get)
 
@@ -73,7 +75,8 @@ export default React.memo(function NewLogin() {
     setIsGogLoggedIn(Boolean(gog.username))
     setIsAmazonLoggedIn(Boolean(amazon.user_id))
     setIsZoomLoggedIn(Boolean(zoom.username))
-  }, [epic.username, gog.username, amazon.user_id, zoom.username, t])
+    setIsSteamLoggedIn(Boolean(steam.username))
+  }, [epic.username, gog.username, amazon.user_id, zoom.username, steam.username, t])
 
   async function handleLibraryClick() {
     await refreshLibrary({ runInBackground: false })
@@ -166,6 +169,19 @@ export default React.memo(function NewLogin() {
                 disabled={oldMac}
               />
             )}
+            <Runner
+              class="steam"
+              buttonText={t('login.steam', 'Conectar Conta Steam')}
+              icon={() => <SteamLogo />}
+              loginUrl=""
+              customLoginAction={async () => {
+                await steam.login()
+              }}
+              isLoggedIn={isSteamLoggedIn}
+              user={steam.username}
+              logoutAction={steam.logout}
+              disabled={oldMac}
+            />
           </div>
         </div>
         <button

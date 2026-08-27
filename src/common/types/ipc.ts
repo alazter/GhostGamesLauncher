@@ -130,6 +130,7 @@ interface SyncIPCFunctions {
     status: boolean
   ) => void
   logoutZoom: () => void
+  logoutSteam: () => void
   setGameMetadataOverride: (args: {
     appName: string
     title?: string
@@ -224,6 +225,13 @@ interface AsyncIPCFunctions {
     user: NileUserData | undefined
   }>
   authZoom: (url: string) => Promise<{ status: 'done' | 'error' }>
+  loginSteam: () => Promise<boolean>
+  getSteamUserInfo: () => Promise<{
+    username: string
+    steamId: string
+    steamId32: string
+    isLoggedIn: boolean
+  }>
   logoutLegendary: () => Promise<void>
   logoutAmazon: () => Promise<void>
   getAlternativeWine: () => Promise<WineInstallation[]>
@@ -398,6 +406,7 @@ interface AsyncIPCFunctions {
     appName: string
     targetType: 'cover' | 'square'
   }) => Promise<string>
+  'steamgriddb.syncMissingCovers': () => Promise<{ started: boolean }>
   discoverInstalledGames: () => Promise<GameCandidate[]>
   discoverAllGames: (searchTitles?: string[], selectedDrives?: string[]) => Promise<GameCandidate[]>
   abortScan: () => Promise<void>
@@ -471,6 +480,12 @@ interface FrontendMessages {
     speed: number
     percentage: number
     writingSpeed: number
+  }) => void
+
+  'covers-sync-finished': (data: {
+    recoveredCount: number
+    success: boolean
+    error?: string
   }) => void
 
   // Used inside tests, so we can be a bit lenient with the type checking here

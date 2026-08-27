@@ -13,6 +13,7 @@ import { configStore } from './helpers/electronStores'
 import { initOnlineMonitor } from './helpers/onlineMonitor'
 import { defaultThemes } from './components/UI/ThemeSelector'
 import Loading from './screens/Loading'
+import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 
 initOnlineMonitor()
 
@@ -33,10 +34,79 @@ initShortcuts()
 const storage: Storage = window.localStorage
 storage.removeItem('nonAvailableGames')
 
+// 1. Detect language automatically based on the user's Windows operating system
+function getSystemLanguage(): string {
+  const navLang = (navigator.language || '').replace('-', '_')
+  if (['pt_BR', 'nb_NO', 'zh_Hans', 'zh_Hant'].includes(navLang)) {
+    return navLang
+  }
+  const shortLang = navLang.split('_')[0]
+  if (shortLang === 'pt') return 'pt_BR'
+  const supported = [
+    'ar', 'az', 'be', 'bg', 'bs', 'ca', 'cs', 'de', 'el', 'en', 'es',
+    'et', 'eu', 'fa', 'fi', 'fr', 'ga', 'gl', 'he', 'hr', 'hu', 'ja',
+    'ko', 'lt', 'id', 'it', 'ml', 'nl', 'pl', 'pt', 'ro', 'ru', 'sr',
+    'sk', 'sv', 'ta', 'tr', 'uk', 'vi'
+  ]
+  if (supported.includes(shortLang)) {
+    return shortLang
+  }
+  return 'pt_BR'
+}
+
 const languageCode: string =
-  configStore.get_nodefault('language') ?? storage.getItem('language') ?? 'en'
+  configStore.get_nodefault('language') ??
+  storage.getItem('language') ??
+  getSystemLanguage()
 configStore.set('language', languageCode)
 document.querySelector('html')?.setAttribute('lang', languageCode)
+
+// 2. Replicate official Ghost customization as factory defaults on clean installations
+if (!storage.getItem('heroic_custom_stores')) {
+  storage.setItem('heroic_custom_stores', JSON.stringify(DEFAULT_GHOST_CUSTOM_STORES))
+}
+if (!storage.getItem('sidebar-width')) {
+  storage.setItem('sidebar-width', '68')
+}
+if (!storage.getItem('heroic_card_zoom')) {
+  storage.setItem('heroic_card_zoom', '210')
+}
+if (!storage.getItem('heroic_alphabet_alignment')) {
+  storage.setItem('heroic_alphabet_alignment', 'fill')
+}
+if (!storage.getItem('heroic_alphabet_bg_opacity')) {
+  storage.setItem('heroic_alphabet_bg_opacity', '0')
+}
+if (!storage.getItem('heroic_alphabet_btn_border_enabled')) {
+  storage.setItem('heroic_alphabet_btn_border_enabled', 'false')
+}
+if (!storage.getItem('heroic_store_btn_bg_opacity')) {
+  storage.setItem('heroic_store_btn_bg_opacity', '0')
+}
+if (!storage.getItem('heroic_store_btn_bg_color')) {
+  storage.setItem('heroic_store_btn_bg_color', '#506b6e')
+}
+if (!storage.getItem('heroic_store_btn_bg_color_2')) {
+  storage.setItem('heroic_store_btn_bg_color_2', '#000000')
+}
+if (!storage.getItem('heroic_store_btn_gradient_enabled')) {
+  storage.setItem('heroic_store_btn_gradient_enabled', 'true')
+}
+if (!storage.getItem('heroic_store_btn_border_radius')) {
+  storage.setItem('heroic_store_btn_border_radius', '10')
+}
+if (!storage.getItem('heroic_store_btn_active_opacity')) {
+  storage.setItem('heroic_store_btn_active_opacity', '0.12')
+}
+if (!storage.getItem('heroic_store_btn_hover_opacity')) {
+  storage.setItem('heroic_store_btn_hover_opacity', '0')
+}
+if (!storage.getItem('heroic_hide_icons_mouse')) {
+  storage.setItem('heroic_hide_icons_mouse', 'true')
+}
+if (!storage.getItem('heroic_hide_search_suggestions')) {
+  storage.setItem('heroic_hide_search_suggestions', 'true')
+}
 
 window.setCustomCSS = (cssString: string) => {
   const style = document.createElement('style')

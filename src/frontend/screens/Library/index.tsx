@@ -67,6 +67,7 @@ export default memo(function Library(): JSX.Element {
     gog,
     amazon,
     zoom,
+    steam,
     sideloadedLibrary,
     favouriteGames,
     libraryTopSection,
@@ -91,9 +92,9 @@ export default memo(function Library(): JSX.Element {
 
   const [cardZoom, setCardZoom] = useState<number>(() => {
     const steps = [160, 180, 210, 240, 280, 340, 360]
-    const stored = parseInt(storage.getItem('heroic_card_zoom') || '180')
+    const stored = parseInt(storage.getItem('heroic_card_zoom') || '210')
     if (steps.includes(stored)) return stored
-    return steps.reduce((prev, curr) => Math.abs(curr - stored) < Math.abs(prev - stored) ? curr : prev, 180)
+    return steps.reduce((prev, curr) => Math.abs(curr - stored) < Math.abs(prev - stored) ? curr : prev, 210)
   })
 
   const [backupState, setBackupState] = useState<'inactive' | 'error' | 'outdated' | 'updated'>('inactive')
@@ -1468,6 +1469,9 @@ export default memo(function Library(): JSX.Element {
       zoom.library.forEach((game) => {
         if (favouriteAppNames.includes(game.app_name)) tempArray.push(game)
       })
+      steam.library.forEach((game: GameInfo) => {
+        if (favouriteAppNames.includes(game.app_name)) tempArray.push(game)
+      })
     }
     return tempArray.sort((a, b) => {
       const gameA = a.title.toUpperCase().replace('THE ', '')
@@ -1482,7 +1486,8 @@ export default memo(function Library(): JSX.Element {
     gog,
     amazon,
     sideloadedLibrary,
-    zoom
+    zoom,
+    steam
   ])
 
   const favouritesIds = useMemo(() => {
@@ -1495,9 +1500,10 @@ export default memo(function Library(): JSX.Element {
       ...(epic.library ?? []),
       ...(gog.library ?? []),
       ...(amazon.library ?? []),
-      ...(zoom.library ?? [])
+      ...(zoom.library ?? []),
+      ...(steam.library ?? [])
     ]
-  }, [epic.library, gog.library, amazon.library, zoom.library, sideloadedLibrary])
+  }, [epic.library, gog.library, amazon.library, zoom.library, steam.library, sideloadedLibrary])
 
   // Keep selectedInlineGame synchronized with the latest library data
   useEffect(() => {
@@ -1522,20 +1528,22 @@ export default memo(function Library(): JSX.Element {
         setSelectedInlineGame(latestGame)
       }
     }
-  }, [epic, gog, sideloadedLibrary, amazon, zoom, selectedInlineGame, makeLibrary])
+  }, [epic, gog, sideloadedLibrary, amazon, zoom, steam, selectedInlineGame, makeLibrary])
 
   useEffect(() => {
     if (
       epic.library.length ||
       gog.library.length ||
       amazon.library.length ||
-      zoom.library.length
+      zoom.library.length ||
+      steam.library.length
     ) {
       syncAutoStoreAssignments(
         epic.library,
         gog.library,
         amazon.library,
-        zoom.library
+        zoom.library,
+        steam.library
       )
     }
 
@@ -1877,6 +1885,7 @@ export default memo(function Library(): JSX.Element {
     gog,
     amazon,
     zoom,
+    steam,
     sideloadedLibrary
   ])
 
@@ -1912,7 +1921,7 @@ export default memo(function Library(): JSX.Element {
     }
   }, [])
 
-  if (!epic && !gog && !amazon && !zoom) {
+  if (!epic && !gog && !amazon && !zoom && !steam) {
     return (
       <ErrorComponent
         message={t(

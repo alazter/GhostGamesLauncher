@@ -5,6 +5,7 @@ import LibraryContext from 'frontend/screens/Library/LibraryContext'
 import { PlatformsFilters, CustomStore, StoresFilters } from 'frontend/types'
 import ContextProvider from 'frontend/state/ContextProvider'
 import Dropdown from '../Dropdown'
+import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 
 export default function LibraryFilters() {
   const { t } = useTranslation()
@@ -39,14 +40,7 @@ export default function LibraryFilters() {
         return JSON.parse(saved) as CustomStore[]
       } catch {}
     }
-    return [
-      { id: 'epic', name: 'Epic Games', icon: null, isVisible: true },
-      { id: 'gog', name: 'GOG', icon: null, isVisible: true },
-      { id: 'amazon', name: 'Amazon Games', icon: null, isVisible: true },
-      { id: 'steam', name: 'Steam', icon: null, isVisible: true },
-      { id: 'zoom', name: 'Zoom Platform', icon: null, isVisible: true },
-      { id: 'sideload', name: 'Sideloaded', icon: null, isVisible: true }
-    ]
+    return DEFAULT_GHOST_CUSTOM_STORES
   })
 
   useEffect(() => {
@@ -113,6 +107,7 @@ export default function LibraryFilters() {
     if (nameLower.includes('gog') || idLower === 'gog') newFilters['gog'] = !currentValue
     if (nameLower.includes('amazon') || idLower === 'amazon') newFilters['nile'] = !currentValue
     if (nameLower.includes('zoom') || idLower === 'zoom') newFilters['zoom'] = !currentValue
+    if (nameLower.includes('steam') || idLower === 'steam') newFilters['steam'] = !currentValue
     if (nameLower.includes('sideload') || idLower === 'sideload' || nameLower.includes('pirata') || nameLower.includes('indie')) {
       newFilters['sideload'] = !currentValue
     }
@@ -146,6 +141,7 @@ export default function LibraryFilters() {
     newFilters['gog'] = nameLower.includes('gog') || idLower === 'gog'
     newFilters['nile'] = nameLower.includes('amazon') || idLower === 'amazon'
     newFilters['zoom'] = nameLower.includes('zoom') || idLower === 'zoom'
+    newFilters['steam'] = nameLower.includes('steam') || idLower === 'steam'
     newFilters['sideload'] =
       nameLower.includes('sideload') ||
       idLower === 'sideload' ||

@@ -141,6 +141,12 @@ export function isGameVisibleInAllGames(
       return false
     }
     if (
+      (storeIdLower === 'steam' || storeNameLower.includes('steam')) &&
+      storesFilters['steam'] === false
+    ) {
+      return false
+    }
+    if (
       (storeIdLower === 'sideload' ||
         storeNameLower.includes('sideload') ||
         storeNameLower.includes('pirata') ||
@@ -171,6 +177,9 @@ export function isGameVisibleInAllGames(
     return false
   }
   if (runner === 'zoom' && storesFilters['zoom'] === false) {
+    return false
+  }
+  if (runner === 'steam' && storesFilters['steam'] === false) {
     return false
   }
   if (

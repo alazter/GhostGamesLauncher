@@ -20,7 +20,7 @@ import type { HeroicHowLongToBeatEntry } from 'backend/wiki_game_info/howlongtob
 import type { Path } from 'backend/schemas'
 import type LogWriter from 'backend/logger/log_writer'
 
-export type Runner = 'legendary' | 'gog' | 'sideload' | 'nile' | 'zoom'
+export type Runner = 'legendary' | 'gog' | 'sideload' | 'nile' | 'zoom' | 'steam'
 
 // NOTE: Do not put enum's in this module or it will break imports
 
@@ -195,7 +195,7 @@ export type GOGAchievement = {
 export type GameAchievement = GOGAchievement
 
 export interface GameInfo {
-  runner: 'legendary' | 'gog' | 'sideload' | 'nile' | 'zoom'
+  runner: Runner
   store_url?: string
   app_name: string
   art_cover: string
@@ -562,7 +562,14 @@ export type RecentGame = {
   title: string
 }
 
-export type HiddenGame = RecentGame
+export type HiddenGame = {
+  appName: string
+  title: string
+  runner?: string
+  art_cover?: string
+  art_square?: string
+  hiddenAt?: number
+}
 
 export type FavouriteGame = HiddenGame
 

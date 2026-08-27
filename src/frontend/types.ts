@@ -25,6 +25,7 @@ export type Category =
   | 'sideload'
   | 'nile'
   | 'zoom'
+  | 'steam'
 
 export interface ContextType {
   error: boolean
@@ -47,6 +48,16 @@ export interface ContextType {
     list: HiddenGame[]
     add: (appNameToHide: string, appTitle: string) => void
     remove: (appNameToUnhide: string) => void
+    addMultiple: (
+      games: Array<{
+        appName: string
+        title: string
+        runner?: string
+        art_cover?: string
+        art_square?: string
+      }>
+    ) => void
+    removeMultiple: (appNames: string[]) => void
   }
   favouriteGames: {
     list: HiddenGame[]
@@ -92,6 +103,15 @@ export interface ContextType {
     library: GameInfo[]
     username?: string
     login: (url: string) => Promise<string>
+    logout: () => Promise<void>
+    enabled: boolean
+  }
+  steam: {
+    library: GameInfo[]
+    username?: string
+    steamId?: string
+    steamId32?: string
+    login: () => Promise<boolean>
     logout: () => Promise<void>
     enabled: boolean
   }
@@ -144,9 +164,13 @@ export interface ExternalLinkDialogOptions {
   linkCallback?: () => void
 }
 
-interface HiddenGame {
+export interface HiddenGame {
   appName: string
   title: string
+  runner?: string
+  art_cover?: string
+  art_square?: string
+  hiddenAt?: number
 }
 
 export interface InstallProgress {

@@ -11,7 +11,7 @@ import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
 import { useNavigate } from 'react-router-dom'
 import { WebviewTag } from 'electron'
 
-let sidebarSize = localStorage.getItem('sidebar-width') || 240
+let sidebarSize = localStorage.getItem('sidebar-width') || 68
 const minWidth = 60
 const maxWidth = 400
 const collapsedWidth = 120
