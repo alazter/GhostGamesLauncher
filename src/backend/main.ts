@@ -487,8 +487,10 @@ if (!gotTheLock) {
         )
         const iconToUse = ensurePermanentAppIcon()
 
+        const isDistUnpacked = currentExePath.toLowerCase().includes('dist\\win-unpacked')
+
         // Start Menu shortcut (crucial for Windows Notifications to display "Ghost Games Launcher" instead of "Electron")
-        if (existsSync(startMenuFolder)) {
+        if (existsSync(startMenuFolder) && !isDistUnpacked) {
           const startMenuShortcutPath = path.join(
             startMenuFolder,
             'Ghost Games Launcher.lnk'
@@ -502,7 +504,7 @@ if (!gotTheLock) {
           })
         }
 
-        if (app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) {
+        if ((app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) && !isDistUnpacked) {
           const desktopFolder = app.getPath('desktop')
 
           // Remove old Ghost.lnk shortcut
