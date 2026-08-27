@@ -53,7 +53,7 @@ export default function Releases() {
     const handleLoad = () => {
       webviewEl
         .insertCSS(`
-          /* Left Sidebar Expansion & rgba(3, 4, 5, 1) Background */
+          /* Left Sidebar Expansion & Harmonious Dark Theme */
           aside,
           nav,
           div[class*="sidebar"]:not([class*="AtMenu"]),
@@ -64,11 +64,12 @@ export default function Releases() {
           div[class*="LeftNav"] {
             min-width: 280px !important;
             width: 280px !important;
-            background-color: rgba(3, 4, 5, 1) !important;
-            background: rgba(3, 4, 5, 1) !important;
+            background-color: #0d0f14 !important;
+            background: #0d0f14 !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
           }
 
-          /* Ensure Header Date Dropdown (AtMenu) is not expanded or painted black */
+          /* Ensure Header Date Dropdown (AtMenu) is not expanded or painted */
           .RWP-Calendar-AtMenu,
           [class*="RWP-Calendar-AtMenu"],
           [class*="AtMenu"],
@@ -103,9 +104,7 @@ export default function Releases() {
             overflow: visible !important;
           }
 
-
-
-          /* Left Sidebar Footer & Theme Switcher Background */
+          /* Left Sidebar Footer & Theme Switcher -> Dark Slate */
           .RWPC-Nav-ThemeMode,
           [class*="RWPC-Nav-ThemeMode"],
           [class*="ThemeMode"],
@@ -123,38 +122,36 @@ export default function Releases() {
           nav div[class*="bottom"],
           aside div[class*="switch"],
           nav div[class*="switch"] {
-            background-color: rgba(3, 4, 5, 1) !important;
-            background: rgba(3, 4, 5, 1) !important;
+            background-color: #0d0f14 !important;
+            background: #0d0f14 !important;
             border: none !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
             box-shadow: none !important;
           }
 
-          /* Right Sidebar & Filter Panel Boxes -> rgba(3, 4, 5, 1) */
+          /* Right Sidebar & Filter Panel Boxes -> Dark Slate */
           aside:last-of-type,
           div[class*="right-nav"],
           div[class*="RightNav"],
           div[class*="Calendar-Filter"],
           div[class*="calendar-filter"] {
-            background-color: rgba(3, 4, 5, 1) !important;
-            background: rgba(3, 4, 5, 1) !important;
+            background-color: #0d0f14 !important;
+            background: #0d0f14 !important;
+            border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
           }
 
           div[class*="Calendar-Filter"] div,
           div[class*="calendar-filter"] div,
           aside:last-of-type div {
-            background-color: rgba(3, 4, 5, 1);
+            background-color: #0d0f14;
           }
 
-
-
-
-
-          /* Central Page Main Area */
+          /* Central Page Main Area -> Harmonious Dark */
           main,
           div[class*="main-content"],
           div[class*="MainContent"] {
-            background-color: hsl(242, 37%, 18%) !important;
-            background: hsl(242, 37%, 18%) !important;
+            background-color: #141721 !important;
+            background: #141721 !important;
           }
 
           /* Exclusive Light Mode Overrides (Active ONLY when body has LightMode) */
@@ -553,8 +550,9 @@ export default function Releases() {
           (function applyCleanLayoutTheme() {
             function updateTheme() {
               const isLight = document.body.className.includes('LightMode');
-              const sidebarBg = isLight ? '#e8ecf0' : 'rgba(3, 4, 5, 1)';
-              const mainBg = isLight ? '#f0f2f5' : 'hsl(242, 37%, 18%)';
+              const sidebarBg = isLight ? '#e8ecf0' : '#0d0f14';
+              const mainBg = isLight ? '#f0f2f5' : '#141721';
+              const borderSide = isLight ? '1px solid #d0d7de' : '1px solid rgba(255, 255, 255, 0.08)';
 
               // 1. Left Sidebar Expansion & Theme Background
               const leftElements = document.querySelectorAll('aside, nav, div[class*="sidebar"], div[class*="Sidebar"], div[class*="menu"], div[class*="Menu"], div[class*="left-nav"], div[class*="LeftNav"]');
@@ -565,11 +563,7 @@ export default function Releases() {
                   el.style.setProperty('width', '280px', 'important');
                   el.style.setProperty('background-color', sidebarBg, 'important');
                   el.style.setProperty('background', sidebarBg, 'important');
-                  if (isLight) {
-                    el.style.setProperty('border-right', '1px solid #d0d7de', 'important');
-                  } else {
-                    el.style.removeProperty('border-right');
-                  }
+                  el.style.setProperty('border-right', borderSide, 'important');
                 }
               });
 
@@ -588,12 +582,8 @@ export default function Releases() {
                 if (!el.closest('main')) {
                   el.style.setProperty('background-color', sidebarBg, 'important');
                   el.style.setProperty('background', sidebarBg, 'important');
-                  if (isLight) {
-                    el.style.setProperty('border-top', '1px solid #d0d7de', 'important');
-                  } else {
-                    el.style.removeProperty('border-top');
-                    el.style.setProperty('border', 'none', 'important');
-                  }
+                  el.style.setProperty('border', 'none', 'important');
+                  el.style.setProperty('border-top', borderSide, 'important');
                   el.style.setProperty('box-shadow', 'none', 'important');
                 }
               });
@@ -604,11 +594,7 @@ export default function Releases() {
                 if (rightSidebar && !rightSidebar.closest('.RWP-Calendar-Header') && !rightSidebar.closest('header')) {
                   rightSidebar.style.setProperty('background-color', sidebarBg, 'important');
                   rightSidebar.style.setProperty('background', sidebarBg, 'important');
-                  if (isLight) {
-                    rightSidebar.style.setProperty('border-left', '1px solid #d0d7de', 'important');
-                  } else {
-                    rightSidebar.style.removeProperty('border-left');
-                  }
+                  rightSidebar.style.setProperty('border-left', borderSide, 'important');
                   rightSidebar.querySelectorAll('div, section, ul, li').forEach(el => {
                     const className = (el.className || '').toString();
                     if (!className.includes('btn') && !className.includes('button') && !className.includes('checkbox') && !el.closest('.RWP-Calendar-Header')) {
