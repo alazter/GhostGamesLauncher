@@ -37,8 +37,10 @@ export default class NileLibraryManager implements LibraryManager {
     const globalNileConfig = join(app.getPath('appData'), 'nile')
     if (!existsSync(nileConfigPath) && existsSync(globalNileConfig)) {
       copySync(globalNileConfig, nileConfigPath)
-      await NileUser.getUserData()
     }
+
+    // Always ensure user data is initialized and loaded into configStore
+    await NileUser.getUserData()
 
     this.refresh()
   }

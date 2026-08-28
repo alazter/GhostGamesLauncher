@@ -653,6 +653,7 @@
             "recently_played_installed": "Jogos jogados recentemente (somente instalados)"
         },
         "library_top_section": "Coluna de destaque da biblioteca",
+        "include_hidden_in_game_count": "Incluir jogos ocultos na contagem total da biblioteca",
         "log": {
             "copy-to-clipboard": "Copiar log para a área de transferência",
             "current-log": "Log atual",

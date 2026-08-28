@@ -4,6 +4,7 @@ import { GameInfo } from 'common/types'
 import { CustomStore } from 'frontend/types'
 import LibraryContext from '../../LibraryContext'
 import AlphabetFilter from '../AlphabetFilter'
+import useSetting from 'frontend/hooks/useSetting'
 import {
   isGameAssignedToStore,
   isGameVisibleInAllGames
@@ -13,9 +14,10 @@ import './index.css'
 
 type Props = {
   list: GameInfo[]
+  fullList?: GameInfo[]
 }
 
-export default memo(function LibraryHeader({ list }: Props) {
+export default memo(function LibraryHeader({ list, fullList }: Props) {
   const { t } = useTranslation()
   const {
     showFavourites,
@@ -124,9 +126,15 @@ export default memo(function LibraryHeader({ list }: Props) {
     }
   }, [])
 
+  const [includeHiddenInGameCount] = useSetting(
+    'includeHiddenInGameCount',
+    false
+  )
+
   const numberOfGames = useMemo(() => {
-    if (!list) return 0
-    let effectiveList = list.filter(
+    const targetList = (includeHiddenInGameCount && fullList) ? fullList : list
+    if (!targetList) return 0
+    let effectiveList = targetList.filter(
       (lib) => lib.runner === 'sideload' || !lib.install?.is_dlc
     )
 
@@ -151,7 +159,15 @@ export default memo(function LibraryHeader({ list }: Props) {
     }
 
     return effectiveList.length > 0 ? `${effectiveList.length}` : 0
-  }, [list, activeStoreFilter, customStores, assignments, storesFilters])
+  }, [
+    list,
+    fullList,
+    includeHiddenInGameCount,
+    activeStoreFilter,
+    customStores,
+    assignments,
+    storesFilters
+  ])
 
   const hexToRgb = (hex: string) => {
     const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i

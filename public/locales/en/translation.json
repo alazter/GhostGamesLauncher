@@ -867,6 +867,7 @@
             "recently_played_installed": "Recently Played Games (Only Installed)"
         },
         "library_top_section": "Library Top Section",
+        "include_hidden_in_game_count": "Include hidden games in total library game count",
         "log": {
             "descriptiveNames": {
                 "game-log": "Game log of {{gameTitle}}",

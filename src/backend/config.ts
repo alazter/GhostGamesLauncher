@@ -353,6 +353,7 @@ class GlobalConfigV0 extends GlobalConfig {
       customWinePaths: [],
       defaultInstallPath: heroicInstallPath,
       libraryTopSection: 'disabled',
+      includeHiddenInGameCount: false,
       defaultSteamPath: getSteamCompatFolder(),
       defaultWinePrefix: defaultWinePrefixDir,
       defaultWinePrefixDir: defaultWinePrefixDir,

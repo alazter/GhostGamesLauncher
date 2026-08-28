@@ -108,25 +108,45 @@ export class NileUser {
 
   static async getUserData(): Promise<NileUserData | undefined> {
     if (!existsSync(nileUserData)) {
-      logError('user.json does not exist', LogPrefix.Nile)
+      logError('current_user.json does not exist', LogPrefix.Nile)
       configStore.delete('userData')
       return
     }
 
-    const user: NileUserData = JSON.parse(readFileSync(nileUserData, 'utf-8'))
-    if (!Object.keys(user).length) {
-      logInfo('user.json is empty', LogPrefix.Nile)
-      configStore.delete('userData')
+    try {
+      const user: NileUserData = JSON.parse(readFileSync(nileUserData, 'utf-8'))
+      if (!Object.keys(user).length || !user.user_id) {
+        logInfo('current_user.json is empty or invalid', LogPrefix.Nile)
+        configStore.delete('userData')
+        return
+      }
+
+      configStore.set('userData', user)
+      logInfo('Saved user data to config file', LogPrefix.Nile)
+
+      return user
+    } catch (e) {
+      logError(['Failed to read current_user.json:', e], LogPrefix.Nile)
       return
     }
-
-    configStore.set('userData', user)
-    logInfo('Saved user data to config file', LogPrefix.Nile)
-
-    return user
   }
 
-  public static isLoggedIn() {
-    return configStore.get_nodefault('userData') || false
+  public static isLoggedIn(): boolean {
+    const user = configStore.get_nodefault('userData')
+    if (user && Object.keys(user).length && user.user_id) {
+      return true
+    }
+
+    if (existsSync(nileUserData)) {
+      try {
+        const diskUser: NileUserData = JSON.parse(readFileSync(nileUserData, 'utf-8'))
+        if (diskUser && Object.keys(diskUser).length && diskUser.user_id) {
+          configStore.set('userData', diskUser)
+          return true
+        }
+      } catch {}
+    }
+
+    return false
   }
 }

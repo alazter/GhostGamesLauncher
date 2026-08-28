@@ -71,3 +71,4 @@ export { default as AllowInstallationBrokenAnticheat } from './AllowInstallation
 export { default as NvidiaPrime } from './NvidiaPrime'
 export { default as StartAtLogin } from './StartAtLogin'
 export { default as BackupRestoreSettings } from './BackupRestoreSettings'
+export { default as IncludeHiddenInGameCount } from './IncludeHiddenInGameCount'

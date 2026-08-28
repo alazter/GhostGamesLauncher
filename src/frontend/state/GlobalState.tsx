@@ -682,6 +682,9 @@ class GlobalState extends PureComponent<Props> {
     const response = await window.api.authAmazon(data)
 
     if (response.status === 'done') {
+      if (response.user) {
+        nileConfigStore.set('userData', response.user)
+      }
       this.setState({
         amazon: {
           library: [],
@@ -698,6 +701,7 @@ class GlobalState extends PureComponent<Props> {
 
   amazonLogout = async () => {
     await window.api.logoutAmazon()
+    nileConfigStore.delete('userData')
     this.setState({
       amazon: {
         library: [],
@@ -1185,7 +1189,7 @@ class GlobalState extends PureComponent<Props> {
 
     const legendaryUser = configStore.has('userInfo')
     const gogUser = gogConfigStore.has('userData')
-    const amazonUser = nileConfigStore.has('userData')
+    let amazonUser = nileConfigStore.has('userData')
     const zoomUser = zoomConfigStore.has('isLoggedIn')
     const steamUser = steamConfigStore.get('isLoggedIn', false) && Boolean(steamConfigStore.get_nodefault('username'))
 
@@ -1193,8 +1197,29 @@ class GlobalState extends PureComponent<Props> {
       await window.api.getUserInfo()
     }
 
-    if (amazonUser) {
-      await window.api.getAmazonUserInfo()
+    try {
+      const aUser = await window.api.getAmazonUserInfo()
+      if (aUser && aUser.user_id) {
+        amazonUser = true
+        nileConfigStore.set('userData', aUser)
+        this.setState({
+          amazon: {
+            ...this.state.amazon,
+            user_id: aUser.user_id,
+            username: aUser.name
+          }
+        })
+      } else if (!aUser && !amazonUser) {
+        this.setState({
+          amazon: {
+            ...this.state.amazon,
+            user_id: null,
+            username: null
+          }
+        })
+      }
+    } catch (e) {
+      window.api.logError(`Failed to fetch Amazon user info: ${String(e)}`)
     }
 
     if (zoom.enabled && zoomUser) {

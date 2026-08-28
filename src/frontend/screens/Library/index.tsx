@@ -1563,7 +1563,7 @@ export default memo(function Library(): JSX.Element {
     customCategories
   ])
 
-  const gamesForAlphabetFilter = useMemo(() => {
+  const { gamesForAlphabetFilter, fullGamesForAlphabetFilter } = useMemo(() => {
     let library: Array<GameInfo> = makeLibrary()
 
     if (showFavouritesLibrary) {
@@ -1684,6 +1684,8 @@ export default memo(function Library(): JSX.Element {
       console.log(error)
     }
 
+    const rawLibrary = [...library]
+
     const hiddenGamesAppNames = hiddenGames.list.map(
       (hidden: HiddenGame) => hidden?.appName
     )
@@ -1694,7 +1696,10 @@ export default memo(function Library(): JSX.Element {
       )
     }
 
-    return library
+    return {
+      gamesForAlphabetFilter: library,
+      fullGamesForAlphabetFilter: rawLibrary
+    }
   }, [
     filterText,
     showHidden,
@@ -1889,6 +1894,30 @@ export default memo(function Library(): JSX.Element {
     sideloadedLibrary
   ])
 
+  const fullLibraryToShow = useMemo(() => {
+    let library = [...fullGamesForAlphabetFilter]
+
+    if (alphabetFilterLetter) {
+      library = library.filter((game) => {
+        const title = game.overrides?.title || game.title
+        if (!title) return false
+
+        const processedTitle = title.replace(/^the\s/i, '')
+        const firstCharMatch = processedTitle.match(/[a-zA-Z0-9]/)
+        if (!firstCharMatch) return false
+        const firstChar = firstCharMatch[0].toUpperCase()
+
+        if (alphabetFilterLetter === '#') {
+          return /[0-9]/.test(firstChar)
+        } else {
+          return firstChar === alphabetFilterLetter
+        }
+      })
+    }
+
+    return library
+  }, [fullGamesForAlphabetFilter, alphabetFilterLetter])
+
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null
 
@@ -1983,7 +2012,7 @@ export default memo(function Library(): JSX.Element {
       >
         <Header />
         <LibraryTour />
-        <LibraryHeader list={libraryToShow} />
+        <LibraryHeader list={libraryToShow} fullList={fullLibraryToShow} />
 
         <div
           className="listing"

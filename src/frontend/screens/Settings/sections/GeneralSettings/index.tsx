@@ -26,7 +26,8 @@ import {
   SteamGridDbApiKey,
   SteamGridDbNsfw,
   SteamGridDbDownload,
-  BackupRestoreSettings
+  BackupRestoreSettings,
+  IncludeHiddenInGameCount
 } from '../../components'
 
 export default function GeneralSettings() {
@@ -83,6 +84,8 @@ export default function GeneralSettings() {
       <AnalyticsOptIn />
 
       <LibraryTopSection />
+
+      <IncludeHiddenInGameCount />
 
       <MaxRecentGames />
 

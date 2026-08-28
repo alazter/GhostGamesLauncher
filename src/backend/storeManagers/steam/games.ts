@@ -13,9 +13,16 @@ import { STEAM_PROTOCOL } from './constants'
 import { sendGameStatusUpdate } from '../../utils'
 import { logInfo, LogPrefix } from 'backend/logger'
 import type LogWriter from 'backend/logger/log_writer'
+import {
+  watchSteamGameSession,
+  killSteamGameProcesses,
+  findGameExecutables
+} from './processWatcher'
 
 export default class SteamGame implements Game {
   private readonly id: string
+  private isStopping = false
+  private trackedPids: number[] = []
 
   constructor(id: string) {
     this.id = id
@@ -63,7 +70,16 @@ export default class SteamGame implements Game {
     launchArguments?: LaunchOption,
     args: string[] = []
   ): Promise<boolean> {
-    logInfo(`Launching Steam game ${this.id} via Steam protocol`, LogPrefix.Steam)
+    this.isStopping = false
+    this.trackedPids = []
+
+    const gameInfo = this.getGameInfo()
+    const installDir = gameInfo.install?.install_path || ''
+
+    logInfo(
+      `Launching Steam game ${gameInfo.title} (${this.id}) via Steam protocol`,
+      LogPrefix.Steam
+    )
     sendGameStatusUpdate({
       appName: this.id,
       runner: 'steam',
@@ -73,16 +89,24 @@ export default class SteamGame implements Game {
     const url = STEAM_PROTOCOL.runGame(this.id)
     await shell.openExternal(url)
 
-    // Steam manages its own process tree. Reset status back to ready after 10s.
-    setTimeout(() => {
-      sendGameStatusUpdate({
-        appName: this.id,
-        runner: 'steam',
-        status: 'done'
-      })
-    }, 10000)
+    const success = await watchSteamGameSession({
+      appId: this.id,
+      gameTitle: gameInfo.title,
+      installDir,
+      logWriter,
+      isStoppingRequested: () => this.isStopping,
+      onProcessDetected: (pids) => {
+        this.trackedPids = pids
+      }
+    })
 
-    return true
+    sendGameStatusUpdate({
+      appName: this.id,
+      runner: 'steam',
+      status: 'done'
+    })
+
+    return success
   }
 
   async install(): Promise<InstallResult> {
@@ -93,11 +117,21 @@ export default class SteamGame implements Game {
   }
 
   async stop(): Promise<void> {
+    logInfo(`Stop requested for Steam game ${this.id}`, LogPrefix.Steam)
+    this.isStopping = true
+
+    const gameInfo = this.getGameInfo()
+    const installDir = gameInfo.install?.install_path || ''
+    const exes = findGameExecutables(installDir)
+
+    await killSteamGameProcesses(this.trackedPids, exes)
+
     sendGameStatusUpdate({
       appName: this.id,
       runner: 'steam',
       status: 'done'
     })
+
     return Promise.resolve()
   }
 
