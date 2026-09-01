@@ -5,24 +5,16 @@ import {
   DialogHeader
 } from 'frontend/components/UI/Dialog'
 import { UpdateComponent } from 'frontend/components/UI'
-import { GameInfo } from 'common/types'
+import { GameInfo, InstallInfo } from 'common/types'
 import { LegendaryInstallInfo } from 'common/types/legendary'
 import { GogInstallInfo } from 'common/types/gog'
-import { NileInstallInfo } from 'common/types/nile'
-import { ZoomInstallInfo, ZoomInstalledInfo } from 'common/types/zoom'
 import { useTranslation } from 'react-i18next'
 import LegendaryModifyInstallModal from './Legendary'
 import GOGModifyInstallModal from './GOG'
 
 interface ModifyInstallProps {
   gameInfo: GameInfo
-  gameInstallInfo:
-    | LegendaryInstallInfo
-    | GogInstallInfo
-    | NileInstallInfo
-    | ZoomInstalledInfo
-    | ZoomInstallInfo
-    | null
+  gameInstallInfo: InstallInfo | null
   onClose: () => void
 }
 

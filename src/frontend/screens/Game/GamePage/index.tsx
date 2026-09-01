@@ -591,15 +591,17 @@ export default React.memo(function GamePage(): JSX.Element | null {
     }
 
     setPlayClicked(true)
-    await launch({
+    void launch({
       appName,
       t,
       runner: gameInfo.runner,
       hasUpdate,
       showDialogModal,
       notPlayableOffline
+    }).finally(() => {
+      setPlayClicked(false)
     })
-    setPlayClicked(false)
+    setTimeout(() => setPlayClicked(false), 3000)
   }
 
   async function handleInstall(is_installed: boolean) {

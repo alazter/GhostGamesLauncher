@@ -9,13 +9,16 @@ import {
   faBarsProgress,
   faTv,
   faPaintBrush,
-  faClock
+  faClock,
+  faShoppingBag
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { useContext, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  faGithub
+  faGithub,
+  faSteam,
+  faAmazon
 } from '@fortawesome/free-brands-svg-icons'
 
 import ContextProvider from 'frontend/state/ContextProvider'
@@ -24,11 +27,49 @@ import { SHOW_EXTERNAL_LINK_DIALOG_STORAGE_KEY } from 'frontend/components/UI/Ex
 import SidebarItem from '../SidebarItem'
 import StoreHoverMenu from '../StoreHoverMenu'
 import { checkTodayReleases } from 'frontend/helpers/releasesScanner'
+import { hasProgress } from 'frontend/hooks/hasProgress'
+import type { DMQueueElement } from 'common/types'
 
 type PathSplit = [a: undefined, b: undefined, type: string]
 
 export default function SidebarLinks() {
   const { t } = useTranslation()
+  const [currentDMElement, setCurrentDMElement] = useState<DMQueueElement>()
+
+  useEffect(() => {
+    window.api
+      .getDMQueueInformation()
+      .then(({ elements }) => {
+        setCurrentDMElement(elements[0])
+      })
+      .catch(() => {})
+
+    const removeHandleDMQueueInformation = window.api.handleDMQueueInformation(
+      (e, elements) => {
+        setCurrentDMElement(elements[0])
+      }
+    )
+
+    return () => {
+      removeHandleDMQueueInformation()
+    }
+  }, [])
+
+  const { libraryStatus } = useContext(ContextProvider)
+  const isDownloading = Boolean(
+    libraryStatus?.some(
+      (g) => g.status === 'installing' || g.status === 'updating'
+    )
+  )
+
+  const [currentDownloadProgress] = hasProgress(
+    currentDMElement?.params?.appName || '',
+    currentDMElement?.params?.runner || 'legendary'
+  )
+  const downloadBadgeText =
+    isDownloading && currentDMElement
+      ? `${Math.round(currentDownloadProgress?.percent ?? 0)}%`
+      : undefined
   const [isStoreHovered, setIsStoreHovered] = useState(false)
   const [storeAnchorRect, setStoreAnchorRect] = useState<DOMRect | null>(null)
   const hoverTimeoutRef = useState<{ timer: NodeJS.Timeout | null }>({ timer: null })[0]
@@ -274,14 +315,69 @@ export default function SidebarLinks() {
               icon={faStore}
               label={t('stores', 'Lojas')}
               dataTour="sidebar-stores"
-            >
-              {isStoreHovered && (
-                <StoreHoverMenu
-                  anchorRect={storeAnchorRect}
-                  onClose={() => setIsStoreHovered(false)}
+            />
+            {isStoreHovered && !inWebviewScreen && (
+              <StoreHoverMenu
+                anchorRect={storeAnchorRect}
+                onMouseEnter={() => {
+                  if (hoverTimeoutRef.timer) clearTimeout(hoverTimeoutRef.timer)
+                  setIsStoreHovered(true)
+                }}
+                onMouseLeave={handleStoreMouseLeave}
+                onClose={() => setIsStoreHovered(false)}
+              />
+            )}
+            {inWebviewScreen && (
+              <div className="SidebarSubmenu">
+                <SidebarItem
+                  className="SidebarLinks__subItem"
+                  url="/store/epic"
+                  icon={faShoppingBag}
+                  label="Epic Games"
+                  onClick={() =>
+                    localStorage.setItem('ghost_last_selected_store', 'epic')
+                  }
                 />
-              )}
-            </SidebarItem>
+                <SidebarItem
+                  className="SidebarLinks__subItem"
+                  url="/store/steam"
+                  icon={faSteam}
+                  label="Steam"
+                  onClick={() =>
+                    localStorage.setItem('ghost_last_selected_store', 'steam')
+                  }
+                />
+                <SidebarItem
+                  className="SidebarLinks__subItem"
+                  url="/store/gog"
+                  icon={faShoppingBag}
+                  label="GOG"
+                  onClick={() =>
+                    localStorage.setItem('ghost_last_selected_store', 'gog')
+                  }
+                />
+                <SidebarItem
+                  className="SidebarLinks__subItem"
+                  url="/store/amazon"
+                  icon={faAmazon}
+                  label="Amazon Games"
+                  onClick={() =>
+                    localStorage.setItem('ghost_last_selected_store', 'amazon')
+                  }
+                />
+                {zoom.enabled && (
+                  <SidebarItem
+                    className="SidebarLinks__subItem"
+                    url="/store/zoom"
+                    icon={faStore}
+                    label="Zoom Platform"
+                    onClick={() =>
+                      localStorage.setItem('ghost_last_selected_store', 'zoom')
+                    }
+                  />
+                )}
+              </div>
+            )}
           </div>
         )
       }
@@ -333,6 +429,8 @@ export default function SidebarLinks() {
             icon={faBarsProgress}
             label={t('download-manager.link', 'Downloads')}
             dataTour="sidebar-downloads"
+            badgeText={downloadBadgeText}
+            badgeVariant={downloadBadgeText ? 'percent' : undefined}
             {...dragProps}
           />
         )

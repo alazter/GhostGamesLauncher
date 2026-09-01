@@ -36,11 +36,11 @@
         right: -8px;
         background-color: #ff1744;
         color: #ffffff;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 800;
         min-width: 18px;
         height: 18px;
-        border-radius: 50%;
+        border-radius: 9px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -50,6 +50,13 @@
         line-height: 1;
         pointer-events: none;
         z-index: 99;
+      }
+
+      .Sidebar__badge--percent {
+        background-color: #1976d2;
+        box-shadow: 0 0 6px rgba(25, 118, 210, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+        padding: 0 5px;
+        min-width: 24px;
       }
     }
 

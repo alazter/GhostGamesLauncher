@@ -685,7 +685,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           <ActionButton
             key="uninstall"
             icon={<DeleteIcon />}
-            label={t('button.uninstall', 'Desinstalar')}
+            label={game.runner === 'sideload' || !game.is_installed ? t('button.remove', 'Remover da Biblioteca') : t('button.uninstall', 'Desinstalar')}
             onClick={() => setShowUninstallModal(true)}
             danger
           />
@@ -1189,7 +1189,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             </h2>
             <button
               onClick={() => setShowUninstallModal(true)}
-              title={game.runner === 'sideload' ? t('button.remove', 'Remover Jogo da Biblioteca') : t('button.uninstall', 'Desinstalar Jogo')}
+              title={game.runner === 'sideload' || !game.is_installed ? t('button.remove', 'Remover Jogo da Biblioteca') : t('button.uninstall', 'Desinstalar Jogo')}
               style={{
                 background: 'rgba(255, 75, 75, 0.05)',
                 border: '1px solid rgba(255, 75, 75, 0.2)',

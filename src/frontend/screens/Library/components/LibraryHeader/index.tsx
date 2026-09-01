@@ -7,7 +7,8 @@ import AlphabetFilter from '../AlphabetFilter'
 import useSetting from 'frontend/hooks/useSetting'
 import {
   isGameAssignedToStore,
-  isGameVisibleInAllGames
+  isGameVisibleInAllGames,
+  isPlaytestOrDemo
 } from 'frontend/helpers/customStoreFiltering'
 import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 import './index.css'
@@ -37,6 +38,10 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
     const saved = localStorage.getItem('heroic_custom_stores')
     return saved ? (JSON.parse(saved) as CustomStore[]) : DEFAULT_GHOST_CUSTOM_STORES
+  })
+
+  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_show_playtests_demos') === 'true'
   })
 
   const [alignment, setAlignment] = useState<string>(() => {
@@ -109,11 +114,15 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
       const saved = localStorage.getItem('heroic_custom_stores')
       if (saved) setCustomStores(JSON.parse(saved) as CustomStore[])
     }
+    const handlePlaytestsChange = () => {
+      setShowPlaytestsAndDemos(localStorage.getItem('heroic_show_playtests_demos') === 'true')
+    }
 
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     window.addEventListener('heroicFilterChanged', handleFilterChange)
     window.addEventListener('gameAssignmentsChanged', handleAssignmentsChange)
     window.addEventListener('customStoresChanged', handleStoresChange)
+    window.addEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
 
     return () => {
       window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
@@ -123,6 +132,7 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
         handleAssignmentsChange
       )
       window.removeEventListener('customStoresChanged', handleStoresChange)
+      window.removeEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
     }
   }, [])
 
@@ -137,6 +147,10 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     let effectiveList = targetList.filter(
       (lib) => lib.runner === 'sideload' || !lib.install?.is_dlc
     )
+
+    if (!showPlaytestsAndDemos) {
+      effectiveList = effectiveList.filter((game) => !isPlaytestOrDemo(game))
+    }
 
     if (activeStoreFilter) {
       const activeFilterLower = activeStoreFilter.toLowerCase()
@@ -166,7 +180,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     activeStoreFilter,
     customStores,
     assignments,
-    storesFilters
+    storesFilters,
+    showPlaytestsAndDemos
   ])
 
   const hexToRgb = (hex: string) => {

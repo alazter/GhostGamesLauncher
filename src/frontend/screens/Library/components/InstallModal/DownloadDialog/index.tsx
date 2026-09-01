@@ -52,6 +52,7 @@ import GameLanguageSelector from './GameLanguageSelector'
 import { hasAnticheatInfo } from 'frontend/hooks/hasAnticheatInfo'
 import BranchSelector from './BranchSelector'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
+import DriveSelector from '../DriveSelector'
 
 interface Props {
   backdropClick: () => void
@@ -139,6 +140,8 @@ export default function DownloadDialog({
   const [selectedSdls, setSelectedSdls] = useState<{ [key: string]: boolean }>(
     {}
   )
+  const [desktopShortcut, setDesktopShortcut] = useState(true)
+  const [startMenuShortcut, setStartMenuShortcut] = useState(true)
   const [gettingInstallInfo, setGettingInstallInfo] = useState(false)
 
   const installFolder = gameStatus?.folder || installPath
@@ -579,8 +582,12 @@ export default function DownloadDialog({
     return t('button.no-path-selected', 'No path selected')
   }
 
-  const readyToInstall =
-    installPath && !!diskSize && !gettingInstallInfo && validFlatpakPath
+  const readyToInstall = Boolean(
+    installPath &&
+    (!gettingInstallInfo || runner === 'steam') &&
+    (diskSize > 0 || runner === 'steam') &&
+    validFlatpakPath
+  )
 
   const showDlcSelector =
     ['legendary', 'gog'].includes(runner) && DLCList && DLCList?.length > 0
@@ -599,131 +606,28 @@ export default function DownloadDialog({
       </DialogHeader>
       <Anticheat anticheatInfo={anticheatInfo} />
       <DialogContent>
-        <div className="InstallModal__sizes">
-          <div className="InstallModal__size">
-            <FontAwesomeIcon
-              className={classNames('InstallModal__sizeIcon', {
-                'fa-spin-pulse': !downloadSize
-              })}
-              icon={downloadSize ? faDownload : faSpinner}
-            />
-            {downloadSize ? (
-              <>
-                <div className="InstallModal__sizeLabel">
-                  {t('game.downloadSize', 'Download Size')}:
-                </div>
-                <div className="InstallModal__sizeValue">{downloadSize}</div>
-              </>
-            ) : (
-              `${t('game.getting-download-size', 'Geting download size')}...`
-            )}
-          </div>
-          <div className="InstallModal__size">
-            <FontAwesomeIcon
-              className={classNames('InstallModal__sizeIcon', {
-                'fa-spin-pulse': !downloadSize
-              })}
-              icon={downloadSize ? faHardDrive : faSpinner}
-            />
-            {downloadSize ? (
-              <>
-                <div className="InstallModal__sizeLabel">
-                  {t('game.installSize', 'Install Size')}:
-                </div>
-                <div className="InstallModal__sizeValue">{installSize}</div>
-              </>
-            ) : (
-              `${t('game.getting-install-size', 'Geting install size')}...`
-            )}
-          </div>
-          {previousProgress.folder === installPath && (
-            <div className="InstallModal__size">
-              <FontAwesomeIcon
-                className="InstallModal__sizeIcon"
-                icon={faSpinner}
-              />
-              <div className="InstallModal__sizeLabel">
-                {t('status.totalDownloaded', 'Total Downloaded')}:
-              </div>
-              <div className="InstallModal__sizeValue">
-                {getProgress(previousProgress)}%
-              </div>
-            </div>
-          )}
-        </div>
-        {installLanguages && installLanguages?.length > 1 && (
-          <GameLanguageSelector
-            installPlatform={platformToInstall}
-            installLanguage={installLanguage}
-            setInstallLanguage={setInstallLanguage}
-            installLanguages={installLanguages}
-          />
-        )}
-
-        <PathSelectionBox
-          type="directory"
+        <DriveSelector
+          gameInfo={gameInfo}
+          installSizeStr={installSize}
+          diskSizeNumber={diskSize}
+          selectedPath={installPath}
           onPathChange={setInstallPath}
-          path={installPath}
-          placeholder={getDefaultInstallPath()}
-          pathDialogTitle={t('install.path')}
-          pathDialogDefaultPath={getDefaultInstallPath()}
-          htmlId="setinstallpath"
-          label={t('install.path', 'Select Install Path')}
-          noDeleteButton
-          afterInput={
-            downloadSize ? (
-              <span className="smallInputInfo">
-                {validPath && validFlatpakPath && (
-                  <>
-                    <span>
-                      {`${t('install.disk-space-left', 'Space Available')}: `}
-                    </span>
-                    <span>
-                      <strong>{`${message}`}</strong>
-                    </span>
-                    {!notEnoughDiskSpace && (
-                      <>
-                        <span>
-                          {` - ${t(
-                            'install.space-after-install',
-                            'After Install'
-                          )}: `}
-                        </span>
-                        <span>
-                          <strong>{`${spaceLeftAfter}`}</strong>
-                        </span>
-                      </>
-                    )}
-                  </>
-                )}
-                {!validPath && (
-                  <span className="warning">
-                    {`${t(
-                      'install.path-not-writtable',
-                      'Warning: path might not be writable.'
-                    )}`}
-                  </span>
-                )}
-                {validPath && !validFlatpakPath && (
-                  <span className="error">
-                    {`${t(
-                      'install.flatpak-path-not-writtable',
-                      'Error: Sandbox access not granted to this path, data loss will occur.'
-                    )}`}
-                  </span>
-                )}
-                {validPath && notEnoughDiskSpace && (
-                  <span className="warning">
-                    {` (${t(
-                      'install.not-enough-disk-space',
-                      'Not enough disk space'
-                    )})`}
-                  </span>
-                )}
-              </span>
-            ) : null
-          }
+          desktopShortcut={desktopShortcut}
+          onDesktopShortcutChange={setDesktopShortcut}
+          startMenuShortcut={startMenuShortcut}
+          onStartMenuShortcutChange={setStartMenuShortcut}
         />
+
+        {installLanguages && installLanguages?.length > 1 && (
+          <div style={{ marginTop: '14px' }}>
+            <GameLanguageSelector
+              installPlatform={platformToInstall}
+              installLanguage={installLanguage}
+              setInstallLanguage={setInstallLanguage}
+              installLanguages={installLanguages}
+            />
+          </div>
+        )}
 
         {platformToInstall !== 'linux' && branches.length > 1 && (
           <div>
@@ -783,16 +687,20 @@ export default function DownloadDialog({
         {children}
       </DialogContent>
       <DialogFooter>
+        <button onClick={backdropClick} className="button is-secondary" style={{ minWidth: '100px' }}>
+          {t('button.cancel', 'Cancelar')}
+        </button>
         <button onClick={handleSwitchToImport} className="button is-secondary">
-          {t('button.import', 'Import Game')}
+          {t('button.import', 'Importar Jogo')}
         </button>
         <button
           onClick={async () => handleInstall()}
           className="button is-primary"
           disabled={!readyToInstall}
+          style={{ minWidth: '130px', background: '#2a80eb', borderColor: '#4da3ff', fontWeight: 700 }}
         >
           {!readyToInstall ? (
-            <FontAwesomeIcon className="fa-spin-pulse" icon={faSpinner} />
+            <FontAwesomeIcon className="fa-spin-pulse" icon={faSpinner} style={{ marginRight: '6px' }} />
           ) : null}
           {getInstallLabel()}
         </button>

@@ -346,7 +346,15 @@ function removeSpecialcharacters(text: string): string {
 
 async function openUrlOrFile(url: string): Promise<string | void> {
   if (url.startsWith('http') || url.includes('://')) {
-    return shell.openExternal(url)
+    try {
+      await shell.openExternal(url)
+      return
+    } catch {
+      if (isWindows) {
+        exec(`start "" "${url}"`)
+      }
+      return
+    }
   }
   return shell.openPath(url)
 }

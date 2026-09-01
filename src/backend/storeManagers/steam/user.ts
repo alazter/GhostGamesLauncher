@@ -154,8 +154,14 @@ export class SteamUser {
   }
 
   public static async isLoggedIn(): Promise<boolean> {
+    if (configStore.has('sessionCookie') || configStore.has('apiKey')) {
+      configStore.set('isLoggedIn', true)
+      return true
+    }
+
     if (configStore.has('isLoggedIn')) {
-      return configStore.get('isLoggedIn', false)
+      const val = configStore.get('isLoggedIn', false)
+      if (val) return true
     }
 
     // Auto-detect if Steam is installed on the machine

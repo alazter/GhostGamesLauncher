@@ -17,3 +17,6 @@
 
 ## Concluídos Recentemente
 - [x] **Suporte Completo à Conta Steam no Ghost**: Integração nativa como runner oficial (`'steam'`), com detecção automática da conta local (`Alazter`), catálogo unificado de 341 jogos (87 instalados com botão Jogar e 254 não instalados com botão Instalar), capas oficiais em 600x900 da CDN da Valve, filtros dedicados e paridade total com Epic, GOG e Amazon.
+
+## 🔔 Lembrete Ativo para o Próximo Contato
+- [ ] **Validar Ocultação/Deleção de Jogos da Steam**: Lembrar imediatamente o usuário de testar e validar na prática a deleção/ocultação de jogos da Steam na biblioteca (via Lixeira do HeroPanel/Configurações, menu de contexto do Card e Edição em Massa), conferindo se somem 100% da visualização como esperado.

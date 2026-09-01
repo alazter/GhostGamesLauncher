@@ -8,6 +8,7 @@ import {
 import { libraryStore } from './electronStores'
 import { GameConfig } from '../../game_config'
 import { killPattern, sendGameStatusUpdate, shutdownWine } from '../../utils'
+import { sendFrontendMessage } from '../../ipc'
 import { logInfo, LogPrefix, logWarning } from 'backend/logger'
 import { dirname, basename } from 'path'
 import { existsSync, rmSync } from 'graceful-fs'
@@ -114,19 +115,26 @@ export default class SideloadGame implements Game {
     const old = libraryStore.get('games', [])
     const current = old.filter((a: GameInfo) => a.app_name !== this.id)
 
-    const gameInfo = this.getGameInfo()
-    const {
-      title,
-      install: { executable }
-    } = gameInfo
+    let gameInfo: GameInfo | null = null
+    try {
+      gameInfo = this.getGameInfo()
+    } catch {}
+
+    const title = gameInfo?.title || this.id
+    const executable = gameInfo?.install?.executable
 
     if (shouldRemovePrefix) {
-      removePrefix(this.id, 'sideload')
+      try {
+        removePrefix(this.id, 'sideload')
+      } catch {}
     }
     libraryStore.set('games', current)
+    sendFrontendMessage('refreshLibrary', 'sideload')
 
-    if (deleteFiles && executable !== undefined) {
-      rmSync(dirname(executable), { recursive: true })
+    if (deleteFiles && executable !== undefined && existsSync(executable)) {
+      try {
+        rmSync(dirname(executable), { recursive: true })
+      } catch {}
     }
 
     notify({ title, body: i18next.t('notify.uninstalled') })

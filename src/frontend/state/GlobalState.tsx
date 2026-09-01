@@ -208,11 +208,6 @@ class GlobalState extends PureComponent<Props> {
   loadSteamLibrary = (
     overrides: Record<string, GameOverride> = currentOverrides()
   ): Array<GameInfo> => {
-    const isLoggedIn = steamConfigStore.get('isLoggedIn', false)
-    const username = steamConfigStore.get_nodefault('username')
-    if (!isLoggedIn || !username) {
-      return []
-    }
     const games = steamLibraryStore.get('games', [])
     return applyGameOverrides(games, overrides)
   }
@@ -238,9 +233,15 @@ class GlobalState extends PureComponent<Props> {
     },
     steam: {
       library: this.loadSteamLibrary(),
-      username: steamConfigStore.get_nodefault('username'),
-      steamId: steamConfigStore.get_nodefault('steamId'),
-      steamId32: steamConfigStore.get_nodefault('steamId32'),
+      username: steamConfigStore.get('isLoggedIn', false)
+        ? (steamConfigStore.get_nodefault('username') || 'Alazter')
+        : undefined,
+      steamId: steamConfigStore.get('isLoggedIn', false)
+        ? steamConfigStore.get_nodefault('steamId')
+        : undefined,
+      steamId32: steamConfigStore.get('isLoggedIn', false)
+        ? steamConfigStore.get_nodefault('steamId32')
+        : undefined,
       enabled: true
     },
     wineVersions: wineDownloaderInfoStore.get('wine-releases', []),
@@ -383,9 +384,13 @@ class GlobalState extends PureComponent<Props> {
   }
 
   hideGame = (appNameToHide: string, appTitle: string) => {
+    const id = String(appNameToHide)
+    const filtered = this.state.hiddenGames.filter(
+      (g) => String(g.appName) !== id
+    )
     const newHiddenGames = [
-      ...this.state.hiddenGames,
-      { appName: appNameToHide, title: appTitle }
+      ...filtered,
+      { appName: id, title: appTitle }
     ]
 
     this.setState({
@@ -395,8 +400,9 @@ class GlobalState extends PureComponent<Props> {
   }
 
   unhideGame = (appNameToUnhide: string) => {
+    const id = String(appNameToUnhide)
     const newHiddenGames = this.state.hiddenGames.filter(
-      ({ appName }) => appName !== appNameToUnhide
+      ({ appName }) => String(appName) !== id
     )
 
     this.setState({
@@ -415,10 +421,11 @@ class GlobalState extends PureComponent<Props> {
     }>
   ) => {
     const map = new Map<string, HiddenGame>()
-    this.state.hiddenGames.forEach((g) => map.set(g.appName, g))
+    this.state.hiddenGames.forEach((g) => map.set(String(g.appName), g))
     gamesToHide.forEach((g) => {
-      map.set(g.appName, {
-        appName: g.appName,
+      const id = String(g.appName)
+      map.set(id, {
+        appName: id,
         title: g.title,
         runner: g.runner,
         art_cover: g.art_cover,
@@ -435,9 +442,9 @@ class GlobalState extends PureComponent<Props> {
   }
 
   unhideMultipleGames = (appNamesToUnhide: string[]) => {
-    const set = new Set(appNamesToUnhide)
+    const set = new Set(appNamesToUnhide.map((id) => String(id)))
     const newHiddenGames = this.state.hiddenGames.filter(
-      ({ appName }) => !set.has(appName)
+      ({ appName }) => !set.has(String(appName))
     )
 
     this.setState({
@@ -749,8 +756,8 @@ class GlobalState extends PureComponent<Props> {
   }
 
   steamLogin = async () => {
-    console.log('Connecting Steam account')
-    const success = await window.api.loginSteam()
+    console.log('Connecting Steam account via WebView / Auth')
+    const success = await window.api.steamLoginWebView()
 
     if (success) {
       const userInfo = await window.api.getSteamUserInfo()
@@ -759,7 +766,7 @@ class GlobalState extends PureComponent<Props> {
       this.setState({
         steam: {
           library: steamLibrary,
-          username: userInfo?.username,
+          username: userInfo?.username || 'Steam User',
           steamId: userInfo?.steamId,
           steamId32: userInfo?.steamId32,
           enabled: true
@@ -784,6 +791,7 @@ class GlobalState extends PureComponent<Props> {
   }
 
   steamLogout = async () => {
+    await window.api.steamLogout()
     await window.api.logoutSteam()
     steamConfigStore.set('isLoggedIn', false)
     steamConfigStore.delete('username')
@@ -879,9 +887,9 @@ class GlobalState extends PureComponent<Props> {
     }
 
     let steamLibrary: GameInfo[] = []
-    if (steam.enabled && steam.username) {
+    if (steam.enabled) {
       steamLibrary = this.loadSteamLibrary(overrides)
-      if (steam.username && (!steamLibrary.length || !steam.library.length)) {
+      if (!steamLibrary.length) {
         window.api.logInfo('No cache found, getting data from steam...')
         await window.api.refreshLibrary('steam')
         steamLibrary = this.loadSteamLibrary(overrides)
@@ -1065,6 +1073,26 @@ class GlobalState extends PureComponent<Props> {
       libraryStatus,
       platform
     } = this.state
+
+    const shouldCheckSteam = steamConfigStore.get('isLoggedIn', false)
+    if (shouldCheckSteam) {
+      void window.api.getSteamUserInfo().then((steamUserInfo) => {
+        if (steamUserInfo && steamUserInfo.username) {
+          steamConfigStore.set('username', steamUserInfo.username)
+          steamConfigStore.set('steamId', steamUserInfo.steamId)
+          steamConfigStore.set('steamId32', steamUserInfo.steamId32)
+          this.setState({
+            steam: {
+              ...this.state.steam,
+              username: steamUserInfo.username,
+              steamId: steamUserInfo.steamId,
+              steamId32: steamUserInfo.steamId32,
+              enabled: true
+            }
+          })
+        }
+      })
+    }
 
     window.api.handleInstallGame(async (e, appName, runner) => {
       const currentApp = libraryStatus.filter(
@@ -1256,6 +1284,13 @@ class GlobalState extends PureComponent<Props> {
       const storedGameUpdates = JSON.parse(storage.getItem('updates') || '[]')
       this.setState({ gameUpdates: storedGameUpdates })
     }
+
+    window.api.checkGameUpdates().then((updates) => {
+      if (Array.isArray(updates)) {
+        this.setState({ gameUpdates: updates })
+        storage.setItem('updates', JSON.stringify(updates))
+      }
+    }).catch(() => {})
 
     if (legendaryUser || gogUser || amazonUser || (zoom.enabled && zoomUser) || steamUser) {
       this.refreshLibrary({

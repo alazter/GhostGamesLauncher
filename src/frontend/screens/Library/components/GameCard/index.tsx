@@ -234,10 +234,6 @@ const GameCard = ({
   const isBrowserGame = gameInfo.install.platform === 'Browser'
 
   const onInstall = () => {
-    if (runner === 'steam') {
-      window.api.openExternalUrl(`steam://install/${appName}`)
-      return
-    }
     if (runner !== 'sideload' && handleGameCardClick) {
       handleGameCardClick(appName, runner, gameInfoFromProps)
     }
@@ -466,13 +462,15 @@ const GameCard = ({
 
   const isHiddenGame = useMemo(() => {
     return !!hiddenGames.list.find(
-      (hiddenGame: HiddenGame) => hiddenGame.appName === appName
+      (hiddenGame: HiddenGame) =>
+        String(hiddenGame.appName) === String(appName)
     )
   }, [hiddenGames, appName])
 
   const isFavouriteGame = useMemo(() => {
     return !!favouriteGames.list.find(
-      (favouriteGame: FavouriteGame) => favouriteGame.appName === appName
+      (favouriteGame: FavouriteGame) =>
+        String(favouriteGame.appName) === String(appName)
     )
   }, [favouriteGames, appName])
 
@@ -627,8 +625,7 @@ const GameCard = ({
     hasUpdate && !isUpdating && !isQueued && !notAvailable
 
   const showSettingsButton = isInstalled && !isUninstalling && !isBrowserGame
-  const showUpdateBadge =
-    hasUpdate && !isUpdating && !isQueued && activeController
+  const showUpdateBadge = hasUpdate && !isUpdating && !isQueued
 
   return (
     <div>
@@ -850,8 +847,7 @@ const GameCard = ({
   async function handlePlay(runner: Runner) {
     if (!isInstalled && !isQueued && gameInfo.runner !== 'sideload') {
       if (gameInfo.runner === 'steam') {
-        window.api.openExternalUrl(`steam://install/${appName}`)
-        return
+        return window.api.openExternalUrl(`steam://install/${appName}`)
       }
       return install({
         gameInfo,
@@ -877,15 +873,17 @@ const GameCard = ({
       setIsLaunching(true)
       const isOffline = connectivity.status !== 'online'
       const notPlayableOffline = isOffline && !gameInfo.canRunOffline
-      await launch({
+      void launch({
         appName,
         t,
         runner,
         hasUpdate,
         showDialogModal,
         notPlayableOffline
+      }).finally(() => {
+        setIsLaunching(false)
       })
-      setIsLaunching(false)
+      setTimeout(() => setIsLaunching(false), 3000)
     }
     return
   }

@@ -290,6 +290,8 @@ export interface LibraryContextType {
   setAlphabetFilterLetter: (letter: string | null) => void
   gamesForAlphabetFilter: GameInfo[]
   showUnclassifiedOnly?: boolean
+  showPlaytestsAndDemos?: boolean
+  setShowPlaytestsAndDemos?: (value: boolean) => void
 }
 
 export interface GameContextType {

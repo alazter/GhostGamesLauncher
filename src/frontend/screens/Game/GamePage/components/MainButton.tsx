@@ -32,14 +32,15 @@ const MainButton = ({ gameInfo, handlePlay, handleInstall }: Props) => {
 
   const is_installed = gameInfo.is_installed
   const disabledPlayButtons =
-    is.reparing ||
-    is.moving ||
-    is.updating ||
-    is.uninstalling ||
-    is.syncing ||
-    is.launching ||
-    is.installingWinetricksPackages ||
-    is.installingRedist
+    !is.playing &&
+    (is.reparing ||
+      is.moving ||
+      is.updating ||
+      is.uninstalling ||
+      is.syncing ||
+      is.launching ||
+      is.installingWinetricksPackages ||
+      is.installingRedist)
 
   const disabledInstallButtons =
     is.playing ||
@@ -52,6 +53,14 @@ const MainButton = ({ gameInfo, handlePlay, handleInstall }: Props) => {
     is.importing
 
   function getPlayLabel(): React.ReactNode {
+    if (is.playing) {
+      return (
+        <span className="buttonWithIcon">
+          <Stop data-icon="stop" />
+          {t('label.playing.stop')}
+        </span>
+      )
+    }
     if (is.syncing) {
       return (
         <span className="buttonWithIcon">
@@ -68,15 +77,6 @@ const MainButton = ({ gameInfo, handlePlay, handleInstall }: Props) => {
     }
     if (is.launching) {
       return t('label.launching', 'Launching')
-    }
-
-    if (is.playing) {
-      return (
-        <span className="buttonWithIcon">
-          <Stop data-icon="stop" />
-          {t('label.playing.stop')}
-        </span>
-      )
     }
 
     if (verboseLogs) {
@@ -207,6 +207,10 @@ const MainButton = ({ gameInfo, handlePlay, handleInstall }: Props) => {
           <button
             onClick={async () => {
               if (!is_installed && !is.queued) {
+                if (gameInfo.runner === 'steam') {
+                  void window.api.openExternalUrl(`steam://install/${gameInfo.app_name}`)
+                  return
+                }
                 openInstallGameModal({
                   appName: gameInfo.app_name,
                   runner: gameInfo.runner,

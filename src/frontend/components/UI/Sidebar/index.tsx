@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import CurrentDownload from './components/CurrentDownload'
 import SidebarLinks from './components/SidebarLinks'
 import './index.scss'
 import HeroicVersion from './components/HeroicVersion'
 import SidebarTour from './components/SidebarTour'
-import { DMQueueElement } from 'common/types'
 
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
 import { useNavigate } from 'react-router-dom'
@@ -18,30 +16,8 @@ const collapsedWidth = 120
 
 export default React.memo(function Sidebar() {
   const sidebarEl = useRef<HTMLDivElement | null>(null)
-  const [currentDMElement, setCurrentDMElement] = useState<DMQueueElement>()
 
   const navigate = useNavigate()
-
-  useEffect(() => {
-    window.api
-      .getDMQueueInformation()
-      .then(({ elements }) => {
-        setCurrentDMElement(elements[0])
-      })
-      .catch((error) => {
-        console.error('Failed to get DM queue information:', error)
-      })
-
-    const removeHandleDMQueueInformation = window.api.handleDMQueueInformation(
-      (e, elements) => {
-        setCurrentDMElement(elements[0])
-      }
-    )
-
-    return () => {
-      removeHandleDMQueueInformation()
-    }
-  }, [])
 
   useEffect(() => {
     if (!sidebarEl.current) return
@@ -142,15 +118,6 @@ export default React.memo(function Sidebar() {
     <aside ref={sidebarEl} className="Sidebar">
       <HeroicIcon className="heroicIcon" />
       <SidebarLinks />
-      <div className="currentDownloads" data-tour="sidebar-downloads">
-        {currentDMElement && (
-          <CurrentDownload
-            key={currentDMElement.params.appName}
-            appName={currentDMElement.params.appName}
-            runner={currentDMElement.params.runner}
-          />
-        )}
-      </div>
       <HeroicVersion />
       <div className="resizer" onMouseDown={handleDragStart} />
       <SidebarTour />

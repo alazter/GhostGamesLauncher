@@ -8,6 +8,8 @@ import ProgressHeader from './components/ProgressHeader'
 import DownloadManagerHeader from './DownloadManagerHeader'
 import { downloadManagerStore } from 'frontend/helpers/electronStores'
 import { DMQueue } from 'frontend/types'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTrash } from '@fortawesome/free-solid-svg-icons'
 import DownloadManagerItem from './components/DownloadManagerItem'
 import { hasHelp } from 'frontend/hooks/hasHelp'
 
@@ -157,17 +159,20 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
       {!!doneElements?.length && (
         <div className="downloadManager">
           <div className="downloadList">
-            <span>
-              <h5 className="downloadManagerQueuedSectionTitle">
+            <div className="downloadManagerSectionHeader">
+              <h5 className="downloadManagerQueuedSectionTitle" style={{ margin: 0, paddingInlineStart: 0 }}>
                 {t('queue.label.finished', 'Completed')}
-                <button
-                  className="button is-text"
-                  onClick={() => handleClearList()}
-                >
-                  {t('queue.label.clear', 'Clear List')}
-                </button>
               </h5>
-            </span>
+              <button
+                type="button"
+                className="downloadManagerClearButton"
+                onClick={() => handleClearList()}
+                title={t('queue.label.clear', 'Clear List')}
+              >
+                <FontAwesomeIcon icon={faTrash} style={{ fontSize: '11px' }} />
+                <span>{t('queue.label.clear', 'Clear List')}</span>
+              </button>
+            </div>
             <div className="dmItemList">
               <DownloadManagerHeader time="finished" />
               {doneElements.map((el, key) => (

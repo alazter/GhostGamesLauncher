@@ -1,4 +1,4 @@
-# Review das Alterações - 27/08/2026
+# Review das Alterações - 01/09/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -182,6 +182,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Implementado sistema de notificações no desktop do Windows para jogos em tracking com lançamento no dia atual.
   - Ajustados os estilos e temas na tela de Lançamentos com paletas confortáveis de modo escuro e transições suaves.
   - Atualizada a documentação e regras ativas em `.agents/AGENTS.md`.
+
+### 30. Integração Total da Steam no Ghost, Downloader Nativo, Seletor de Unidades e Deleção/Ocultação
+* **Problema:** Integração da Steam como runner nativo com suporte a downloads diretos, seletor de discos no modal de instalação, e suporte a ocultação/deleção de jogos da biblioteca.
+* **Solução:**
+  - Finalizada a integração da conta Steam (`'steam'`), com escaneamento local da conta `Alazter`, exibindo 341 jogos (87 instalados com botão Jogar e 254 não instalados com botão Instalar).
+  - Criado o módulo `downloader.ts` e `authModal.ts` no backend da Steam para autenticação via Steam Guard e suporte a downloads no Gerenciador de Downloads.
+  - Implementado o componente `DriveSelector` para identificação de unidades/SSDs do Windows com barra de espaço livre no modal de instalação.
+  - Atualizados os modais `UninstallModal` e menus de contexto para suporte completo a remoção e ocultação de jogos da Steam na biblioteca.
+  - Registrado lembrete ativo no `.agents/AGENTS.md` para validação prática de ocultação/deleção de jogos da Steam.
 
 ---
 

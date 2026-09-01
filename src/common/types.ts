@@ -866,12 +866,26 @@ interface GameScopeSettings {
   additionalOptions: string
 }
 
+export interface SteamInstallInfo {
+  manifest: {
+    disk_size: number
+    download_size: number
+  }
+  game: {
+    app_name: string
+    title: string
+    is_dlc: boolean
+    owned_dlc: Array<{ app_name: string; title: string }>
+  }
+}
+
 export type InstallInfo =
   | LegendaryInstallInfo
   | GogInstallInfo
   | NileInstallInfo
   | ZoomInstalledInfo
   | ZoomInstallInfo
+  | SteamInstallInfo
 
 export interface KnowFixesInfo {
   title: string

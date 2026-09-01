@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlay, faCog, faStop, faDownload, faSpinner, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faPlay, faCog, faStop, faDownload, faSpinner, faTimes, faRepeat } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo, Runner } from 'common/types'
 import { useContext, useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +28,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
 
   const { status } = hasStatus(game)
   const [isLaunching, setIsLaunching] = useState(false)
+  const hasUpdate = Boolean(game.is_installed && gameUpdates?.includes(game.app_name))
 
   const { gameOverrides } = useGlobalState.keys('gameOverrides')
   const gameOverride = gameOverrides[game.app_name]
@@ -130,15 +131,19 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     }
   }, [tsInfo, t])
 
+  useEffect(() => {
+    setIsLaunching(false)
+  }, [status, game.app_name])
+
   const handlePlay = async () => {
-    if (isLaunching) return
+    if (status !== 'playing' && isLaunching) return
 
     const appName = game.app_name
     const runner = game.runner
 
     if (!game.is_installed && status !== 'queued' && runner !== 'sideload') {
       if (runner === 'steam') {
-        window.api.openExternalUrl(`steam://install/${appName}`)
+        void window.api.openExternalUrl(`steam://install/${appName}`)
         return
       }
       openInstallGameModal({ appName, runner, gameInfo: game })
@@ -162,15 +167,17 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       const notPlayableOffline = isOffline && !game.canRunOffline
       const hasUpdate = game.is_installed && gameUpdates?.includes(appName)
 
-      await launch({
+      void launch({
         appName,
         t,
         runner,
         hasUpdate,
         showDialogModal,
         notPlayableOffline
+      }).finally(() => {
+        setIsLaunching(false)
       })
-      setIsLaunching(false)
+      setTimeout(() => setIsLaunching(false), 3000)
     }
   }
 
@@ -195,8 +202,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   }
 
   const playButtonTitle = useMemo(() => {
-    if (isLaunching) return t('label.launching', 'Launching...')
     if (status === 'playing') return t('label.playing.stop', 'Stop Game')
+    if (isLaunching) return t('label.launching', 'Launching...')
     if (status === 'installing' || status === 'updating') return t('button.cancel', 'Cancel')
     if (status === 'queued') return t('button.queue.remove', 'Remove from Queue')
     if (!game.is_installed && game.runner !== 'sideload') return t('button.install', 'Install')
@@ -204,11 +211,11 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   }, [status, isLaunching, game.is_installed, game.runner, t])
 
   const renderPlayIcon = () => {
-    if (isLaunching) {
-      return <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '16px' }} />
-    }
     if (status === 'playing') {
       return <FontAwesomeIcon icon={faStop} style={{ fontSize: '16px' }} />
+    }
+    if (isLaunching) {
+      return <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '16px' }} />
     }
     if (status === 'installing' || status === 'updating') {
       return <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
@@ -272,14 +279,39 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         fontSize: '18px',
         fontWeight: '700',
         color: '#fff',
-        margin: '6px 0',
+        margin: '6px 0 2px 0',
         textAlign: 'center'
       }}>
         {panelTitle}
       </h2>
 
+      {/* Selo de Atualização Disponível */}
+      {hasUpdate && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          alignSelf: 'center',
+          background: 'linear-gradient(135deg, rgba(255, 153, 0, 0.25), rgba(255, 85, 0, 0.15))',
+          border: '1px solid rgba(255, 153, 0, 0.6)',
+          borderRadius: '20px',
+          padding: '4px 12px',
+          color: '#ffbb33',
+          fontSize: '11px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          boxShadow: '0 0 10px rgba(255, 153, 0, 0.3)',
+          marginTop: '2px',
+          marginBottom: '4px'
+        }}>
+          <FontAwesomeIcon icon={faRepeat} style={{ fontSize: '11px' }} />
+          <span>{t('status.hasUpdates', 'Atualização Disponível')}</span>
+        </div>
+      )}
+
       {/* Ações primárias (Botoes Redondos do Mockup) */}
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '2px 0' }}>
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '4px 0' }}>
         {/* 1. Botão da Loja */}
         <button
           onClick={handleStore}
@@ -341,12 +373,46 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
           <FontAwesomeIcon icon={faCog} style={{ fontSize: '18px' }} />
         </button>
 
-        {/* 3. Botão de Play */}
+        {/* 3. Botão de Atualizar (quando houver update) */}
+        {hasUpdate && (
+          <button
+            onClick={() => {
+              void window.api.updateGame({ appName: game.app_name, runner: game.runner, gameInfo: game })
+            }}
+            style={{
+              background: 'linear-gradient(135deg, #ff9900, #ff5500)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '44px',
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 0 12px rgba(255, 100, 0, 0.6)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'scale(1.08)'
+              e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 100, 0, 0.8)'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'scale(1)'
+              e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 100, 0, 0.6)'
+            }}
+            title={t('button.update', 'Atualizar jogo')}
+          >
+            <FontAwesomeIcon icon={faRepeat} style={{ fontSize: '16px' }} />
+          </button>
+        )}
+
+        {/* 4. Botão de Play */}
         <button
           onClick={handlePlay}
-          disabled={isLaunching}
+          disabled={status !== 'playing' && isLaunching}
           style={{
-            background: '#00ffff',
+            background: status === 'playing' ? '#ff4d4f' : '#00ffff',
             border: 'none',
             borderRadius: '50%',
             width: '44px',
@@ -355,21 +421,30 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             alignItems: 'center',
             justifyContent: 'center',
             color: '#000',
-            cursor: isLaunching ? 'default' : 'pointer',
-            opacity: isLaunching ? 0.7 : 1,
+            cursor: status !== 'playing' && isLaunching ? 'default' : 'pointer',
+            opacity: status !== 'playing' && isLaunching ? 0.7 : 1,
             transition: 'all 0.2s ease',
-            boxShadow: '0 0 10px rgba(0, 255, 255, 0.4)'
+            boxShadow:
+              status === 'playing'
+                ? '0 0 12px rgba(255, 77, 79, 0.6)'
+                : '0 0 10px rgba(0, 255, 255, 0.4)'
           }}
           onMouseOver={(e) => {
-            if (!isLaunching) {
+            if (status === 'playing' || !isLaunching) {
               e.currentTarget.style.transform = 'scale(1.05)'
-              e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.6)'
+              e.currentTarget.style.boxShadow =
+                status === 'playing'
+                  ? '0 0 18px rgba(255, 77, 79, 0.8)'
+                  : '0 0 15px rgba(0, 255, 255, 0.6)'
             }
           }}
           onMouseOut={(e) => {
-            if (!isLaunching) {
+            if (status === 'playing' || !isLaunching) {
               e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)'
+              e.currentTarget.style.boxShadow =
+                status === 'playing'
+                  ? '0 0 12px rgba(255, 77, 79, 0.6)'
+                  : '0 0 10px rgba(0, 255, 255, 0.4)'
             }
           }}
           title={playButtonTitle}

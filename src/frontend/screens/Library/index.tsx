@@ -36,6 +36,7 @@ import {
 } from 'frontend/helpers/library'
 import RecentlyPlayed from './components/RecentlyPlayed'
 import LibraryContext from './LibraryContext'
+import { isPlaytestOrDemo } from 'frontend/helpers/customStoreFiltering'
 import { Category, PlatformsFilters, StoresFilters } from 'frontend/types'
 import { hasHelp } from 'frontend/hooks/hasHelp'
 import EmptyLibraryMessage from './components/EmptyLibrary'
@@ -1084,12 +1085,22 @@ export default memo(function Library(): JSX.Element {
   }, [])
 
   const [duplicatesVersion, setDuplicatesVersion] = useState(0)
+  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(() => {
+    return storage.getItem('heroic_show_playtests_demos') === 'true'
+  })
 
   useEffect(() => {
     const handleDupChange = () => setDuplicatesVersion((v) => v + 1)
+    const handlePlaytestsChange = () => {
+      setShowPlaytestsAndDemos(storage.getItem('heroic_show_playtests_demos') === 'true')
+    }
+
     window.addEventListener('heroicDuplicatesChanged', handleDupChange)
-    return () =>
+    window.addEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
+    return () => {
       window.removeEventListener('heroicDuplicatesChanged', handleDupChange)
+      window.removeEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
+    }
   }, [])
   // ====================================================================
 
@@ -1098,9 +1109,12 @@ export default memo(function Library(): JSX.Element {
 
   useEffect(() => {
     const handleSelectInlineGame = (e: Event) => {
-      const customEvent = e as CustomEvent<{ game: GameInfo }>
+      const customEvent = e as CustomEvent<{ game: GameInfo | null }>
       if (customEvent.detail?.game) {
         setSelectedInlineGame(customEvent.detail.game)
+      } else {
+        setSelectedInlineGame(null)
+        setShowInlineSettings(false)
       }
     }
     window.addEventListener('heroicSelectInlineGame', handleSelectInlineGame)
@@ -1317,8 +1331,13 @@ export default memo(function Library(): JSX.Element {
   // Listen to select game inline events
   useEffect(() => {
     const handleSelectGame = (e: Event) => {
-      const customEvent = e as CustomEvent<{ gameInfo: GameInfo }>
-      const game = customEvent.detail.gameInfo
+      const customEvent = e as CustomEvent<{ gameInfo: GameInfo | null }>
+      const game = customEvent.detail?.gameInfo
+      if (!game) {
+        setSelectedInlineGame(null)
+        setShowInlineSettings(false)
+        return
+      }
       setSelectedInlineGame((current) => {
         if (current?.app_name === game.app_name && current?.runner === game.runner) {
           return null
@@ -1436,12 +1455,12 @@ export default memo(function Library(): JSX.Element {
       return favouriteGames.list
     }
 
-    const hiddenAppNames = hiddenGames.list.map(
-      (hidden: HiddenGame) => hidden.appName
+    const hiddenAppNames = new Set(
+      hiddenGames.list.map((hidden: HiddenGame) => String(hidden?.appName))
     )
 
     return favouriteGames.list.filter(
-      (game) => !hiddenAppNames.includes(game.appName)
+      (game) => !hiddenAppNames.has(String(game.appName))
     )
   }, [favouriteGames, showHidden, hiddenGames])
 
@@ -1514,7 +1533,13 @@ export default memo(function Library(): JSX.Element {
       (g) => g.app_name === selectedInlineGame.app_name && g.runner === selectedInlineGame.runner
     )
 
-    if (latestGame) {
+    const isHidden =
+      !showHidden &&
+      hiddenGames.list.some(
+        (h: HiddenGame) => String(h?.appName) === String(selectedInlineGame.app_name)
+      )
+
+    if (latestGame && !isHidden) {
       if (
         latestGame.title !== selectedInlineGame.title ||
         latestGame.overrides?.title !== selectedInlineGame.overrides?.title ||
@@ -1527,8 +1552,11 @@ export default memo(function Library(): JSX.Element {
       ) {
         setSelectedInlineGame(latestGame)
       }
+    } else {
+      setSelectedInlineGame(null)
+      setShowInlineSettings(false)
     }
-  }, [epic, gog, sideloadedLibrary, amazon, zoom, steam, selectedInlineGame, makeLibrary])
+  }, [epic, gog, sideloadedLibrary, amazon, zoom, steam, selectedInlineGame, makeLibrary, showHidden, hiddenGames])
 
   useEffect(() => {
     if (
@@ -1686,14 +1714,18 @@ export default memo(function Library(): JSX.Element {
 
     const rawLibrary = [...library]
 
-    const hiddenGamesAppNames = hiddenGames.list.map(
-      (hidden: HiddenGame) => hidden?.appName
+    const hiddenGamesAppNames = new Set(
+      hiddenGames.list.map((hidden: HiddenGame) => String(hidden?.appName))
     )
 
     if (!showHidden) {
       library = library.filter(
-        (game) => !hiddenGamesAppNames.includes(game?.app_name)
+        (game) => !hiddenGamesAppNames.has(String(game?.app_name))
       )
+    }
+
+    if (!showPlaytestsAndDemos) {
+      library = library.filter((game) => !isPlaytestOrDemo(game))
     }
 
     return {
@@ -1715,11 +1747,15 @@ export default memo(function Library(): JSX.Element {
     showUpdatesOnly,
     gameUpdates,
     filterByPlatform,
-    makeLibrary
+    makeLibrary,
+    showPlaytestsAndDemos
   ])
 
   const libraryToShow = useMemo(() => {
     let library = [...gamesForAlphabetFilter]
+    const hiddenAppNamesSet = new Set(
+      hiddenGames.list.map((h: HiddenGame) => String(h?.appName))
+    )
 
     if (alphabetFilterLetter) {
       library = library.filter((game) => {
@@ -1747,6 +1783,7 @@ export default memo(function Library(): JSX.Element {
       const duplicateIds = getDuplicateGameIds(allGames)
       const duplicateGames = allGames.filter((game) => {
         if (!game || game.install?.is_dlc) return false
+        if (!showHidden && hiddenAppNamesSet.has(String(game.app_name))) return false
         const runner = game.runner || 'sideload'
         const gameId = `${game.app_name}_${runner}`
         return duplicateIds.has(gameId) || duplicateIds.has(game.app_name)
@@ -2000,7 +2037,13 @@ export default memo(function Library(): JSX.Element {
         gamesForAlphabetFilter,
         alphabetFilterLetter,
         setAlphabetFilterLetter,
-        showUnclassifiedOnly
+        showUnclassifiedOnly,
+        showPlaytestsAndDemos,
+        setShowPlaytestsAndDemos: (val: boolean) => {
+          setShowPlaytestsAndDemos(val)
+          storage.setItem('heroic_show_playtests_demos', String(val))
+          window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
+        }
       }}
     >
       <div

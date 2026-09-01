@@ -1,15 +1,18 @@
+import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faShoppingBag,
   faStore
 } from '@fortawesome/free-solid-svg-icons'
-import { faSteam } from '@fortawesome/free-brands-svg-icons'
+import { faSteam, faAmazon } from '@fortawesome/free-brands-svg-icons'
 import './index.css'
 
 interface StoreHoverMenuProps {
   onClose?: () => void
   anchorRect?: DOMRect | null
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 export interface StoreOption {
@@ -21,12 +24,17 @@ export interface StoreOption {
 
 export const STORES_LIST: StoreOption[] = [
   { key: 'epic', name: 'Epic Games', url: '/store/epic', icon: faShoppingBag },
-  { key: 'amazon', name: 'Amazon Games', url: '/store/amazon', icon: faStore },
+  { key: 'steam', name: 'Steam', url: '/store/steam', icon: faSteam },
   { key: 'gog', name: 'GOG', url: '/store/gog', icon: faShoppingBag },
-  { key: 'steam', name: 'Steam', url: '/store/steam', icon: faSteam }
+  { key: 'amazon', name: 'Amazon Games', url: '/store/amazon', icon: faAmazon }
 ]
 
-export default function StoreHoverMenu({ onClose, anchorRect }: StoreHoverMenuProps) {
+export default function StoreHoverMenu({
+  onClose,
+  anchorRect,
+  onMouseEnter,
+  onMouseLeave
+}: StoreHoverMenuProps) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -43,29 +51,31 @@ export default function StoreHoverMenu({ onClose, anchorRect }: StoreHoverMenuPr
   const fixedStyle: React.CSSProperties = anchorRect
     ? {
         position: 'fixed',
-        left: `${anchorRect.right + 10}px`,
+        left: `${anchorRect.right + 12}px`,
         top: `${anchorRect.top + anchorRect.height / 2}px`,
         transform: 'translateY(-50%)',
-        zIndex: 99999
+        zIndex: 999999
       }
     : {
         position: 'fixed',
-        left: '288px',
+        left: '80px',
         top: '180px',
-        zIndex: 99999
+        zIndex: 999999
       }
 
-  return (
+  return createPortal(
     <div
       className="StoreHoverMenu"
       style={fixedStyle}
-      onMouseEnter={(e) => e.stopPropagation()}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {STORES_LIST.map((store) => {
         const isActive = currentStore === store.key
         return (
           <button
             key={store.key}
+            type="button"
             className={`StoreHoverMenu__item ${isActive ? 'active' : ''}`}
             onClick={(e) => {
               e.stopPropagation()
@@ -79,6 +89,7 @@ export default function StoreHoverMenu({ onClose, anchorRect }: StoreHoverMenuPr
           </button>
         )
       })}
-    </div>
+    </div>,
+    document.body
   )
 }

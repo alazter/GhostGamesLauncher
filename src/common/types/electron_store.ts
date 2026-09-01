@@ -80,11 +80,15 @@ export interface StoreStructure {
     username?: string
   }
   steamConfigStore: {
-    isLoggedIn: boolean
+    isLoggedIn?: boolean
     username?: string
     steamId?: string
     steamId32?: string
+    steamId64?: string
     avatar?: string
+    syncMode?: string
+    apiKey?: string
+    sessionCookie?: string
   }
   steamInstalledGamesStore: {
     installed: InstalledInfo[]

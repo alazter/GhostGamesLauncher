@@ -67,6 +67,17 @@ export default function LibraryFilters() {
     window.dispatchEvent(new Event('heroicDuplicatesChanged'))
   }
 
+  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_show_playtests_demos') === 'true'
+  })
+
+  const toggleShowPlaytestsAndDemos = () => {
+    const nextVal = !showPlaytestsAndDemos
+    setShowPlaytestsAndDemos(nextVal)
+    localStorage.setItem('heroic_show_playtests_demos', String(nextVal))
+    window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
+  }
+
   const toggleShowHidden = () => {
     setShowHidden(!showHidden)
   }
@@ -224,8 +235,11 @@ export default function LibraryFilters() {
     setShowUpdatesOnly(false)
     setSortByRecent(false)
     setShowHiddenDuplicates(false)
+    setShowPlaytestsAndDemos(false)
     localStorage.removeItem('heroic_show_hidden_duplicates')
+    localStorage.removeItem('heroic_show_playtests_demos')
     window.dispatchEvent(new Event('heroicDuplicatesChanged'))
+    window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
   }
 
   return (
@@ -258,6 +272,13 @@ export default function LibraryFilters() {
         handleChange={toggleShowHiddenDuplicates}
         value={showHiddenDuplicates}
         title="👁️ Jogos duplicados ocultados"
+      />
+      <ToggleSwitch
+        key="show-playtests-demos"
+        htmlId="show-playtests-demos"
+        handleChange={toggleShowPlaytestsAndDemos}
+        value={showPlaytestsAndDemos}
+        title="🧪 Exibir Playtests, Demos e Betas"
       />
       <ToggleSwitch
         key="show-non-available"

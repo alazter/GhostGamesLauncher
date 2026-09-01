@@ -159,10 +159,25 @@ interface TestSyncIPCFunctions {
   resetNileCommandStub: () => void
 }
 
+export interface StorageDrive {
+  letter: string
+  label: string
+  name: string
+  freeSpace: number
+  totalSpace: number
+  path: string
+  isDefault?: boolean
+}
+
 // ts-prune-ignore-next
 interface AsyncIPCFunctions {
   kill: (appName: string, runner: Runner) => Promise<void>
   checkDiskSpace: (folder: string) => Promise<DiskSpaceData>
+  getAvailableStorageDrives: (runner?: Runner) => Promise<StorageDrive[]>
+  steamLoginWebView: () => Promise<boolean>
+  steamLogout: () => Promise<void>
+  steamGetConfig: () => Promise<{ syncMode: string; apiKey?: string; hasSession: boolean }>
+  steamSaveConfig: (config: { syncMode?: string; apiKey?: string }) => Promise<void>
   callTool: (args: Tools) => Promise<void>
   runWineCommand: (
     args: WineCommandArgs

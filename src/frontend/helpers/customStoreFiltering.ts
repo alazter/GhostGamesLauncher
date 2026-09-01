@@ -191,3 +191,66 @@ export function isGameVisibleInAllGames(
 
   return true
 }
+
+export const KNOWN_TEST_APP_IDS = new Set<string>([
+  '4809930', // WARDOGS Playtest
+  '3401450', // Arkheron Playtest
+  '623990', // Rainbow Six Siege - Test Server
+  '774941', // Squad - Public Testing
+  '1472130', // Thunder Tier One Playtest
+  '1611740', // BattleBit Remastered Playtest
+  '1619990', // SUPER PEOPLE Testing Grounds
+  '1887240', // World War 3 Playtest
+  '2076040', // THE FINALS PLAYTEST
+  '2427520', // ARC Raiders Playtest
+  '2452260', // Dungeonborne Playtest
+  '2943730', // FragPunk Playtest
+  '3154560', // Apogea Playtest
+  '3352190', // Prologue: Go Wayback! Playtest
+  '3404800', // Chrono Odyssey Playtest
+  '3723740', // Red Recon: 1944 Playtest
+  '3780860', // Hell Let Loose Vietnam: Playtest
+  '3816060', // Black Vultures: Prey of Greed Playtest
+  '3830120', // Drakantos Playtest
+  '4105130', // Hordeguard: Winds of the North Playtest
+  '4146670', // ReStory Playtest
+  '219540', // Arma 2: Operation Arrowhead Beta (Obsolete)
+  '1015520', // Cardinal Preview
+  '1478540', // Bless Unleashed - Beta Test
+  '2075730', // Call of Duty MW II - Open Beta
+  '2383950', // Anvil Empires Pre-Alpha
+  '2429660', // Throne and Liberty - Open Beta
+  '2709440', // Delta Force Alpha Test
+  '3081410', // Battlefield 6 Open Beta
+  '3145170', // Splitgate 2 - Alpha
+  '3504830', // Wildgate Community Preview
+  '912290' // Miscreated: Experimental Server
+])
+
+export function isPlaytestOrDemo(game: GameInfo): boolean {
+  if (!game) return false
+  const appName = String(game.app_name || '')
+  if (KNOWN_TEST_APP_IDS.has(appName)) return true
+
+  const titleLower = (game.title || '').toLowerCase()
+  if (
+    titleLower.includes('playtest') ||
+    titleLower.includes('test server') ||
+    titleLower.includes('public testing') ||
+    titleLower.includes('testing grounds') ||
+    titleLower.includes('open beta') ||
+    titleLower.includes('closed beta') ||
+    titleLower.includes('beta test') ||
+    titleLower.includes('alpha test') ||
+    titleLower.includes('pre-alpha') ||
+    titleLower.includes('tech demo') ||
+    titleLower.includes('free demo') ||
+    titleLower.endsWith(' demo') ||
+    titleLower.includes(' demo ') ||
+    titleLower.includes('experimental server')
+  ) {
+    return true
+  }
+
+  return false
+}

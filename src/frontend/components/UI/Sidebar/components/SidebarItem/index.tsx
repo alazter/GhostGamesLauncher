@@ -25,6 +25,8 @@ interface SidebarItemProps {
   onDragEnd?: React.DragEventHandler
   style?: React.CSSProperties
   badgeCount?: number
+  badgeText?: string
+  badgeVariant?: 'default' | 'percent'
   children?: React.ReactNode
 }
 
@@ -46,6 +48,8 @@ export default function SidebarItem({
   onDragEnd,
   style,
   badgeCount,
+  badgeText,
+  badgeVariant,
   children
 }: SidebarItemProps) {
   const itemContent = (
@@ -53,9 +57,17 @@ export default function SidebarItem({
       {icon && (
         <div className="Sidebar__itemIcon">
           <FontAwesomeIcon icon={icon} title={label} />
-          {typeof badgeCount === 'number' && badgeCount > 0 && (
+          {badgeText !== undefined ? (
+            <span
+              className={classNames('Sidebar__badge', {
+                'Sidebar__badge--percent': badgeVariant === 'percent'
+              })}
+            >
+              {badgeText}
+            </span>
+          ) : typeof badgeCount === 'number' && badgeCount > 0 ? (
             <span className="Sidebar__badge">{badgeCount}</span>
-          )}
+          ) : null}
         </div>
       )}
       <span>{label}</span>

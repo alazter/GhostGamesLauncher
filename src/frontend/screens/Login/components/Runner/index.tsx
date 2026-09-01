@@ -16,6 +16,7 @@ interface RunnerProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   alternativeLoginAction?: () => any
   customLoginAction?: () => void
+  configAction?: () => void
   buttonText: string
   disabled: boolean
 }
@@ -64,7 +65,14 @@ export default function Runner(props: RunnerProps) {
       >
         <div className={`runnerIcon ${props.class}`}>{props.icon()}</div>
         {props.isLoggedIn && (
-          <div className="userData">
+          <div
+            className="userData"
+            onClick={() => {
+              if (props.configAction) props.configAction()
+            }}
+            style={props.configAction ? { cursor: 'pointer' } : undefined}
+            title={props.configAction ? 'Configurar Sincronização' : undefined}
+          >
             <span>
               {String(props.user).slice(0, maxNameLength) +
                 (String(props.user).length > maxNameLength ? '...' : '')}

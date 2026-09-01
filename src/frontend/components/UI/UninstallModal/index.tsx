@@ -26,15 +26,17 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
   isDlc
 }) {
   const [isNative, setIsNative] = useState(true)
+  const [isInstalled, setIsInstalled] = useState(true)
   const [winePrefix, setWinePrefix] = useState('')
   const [deletePrefixChecked, setDeletePrefixChecked] = useState(false)
   const [deleteSettingsChecked, setDeleteSettingsChecked] = useState(false)
+  const [hideAfterUninstall, setHideAfterUninstall] = useState(false)
   const [disableDeleteWine, setDisableDeleteWine] = useState(false)
   const { t } = useTranslation('gamepage')
   const [showUninstallModal, setShowUninstallModal] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const { installingEpicGame, libraryStatus } = useContext(ContextProvider)
+  const { installingEpicGame, libraryStatus, hiddenGames } = useContext(ContextProvider)
   const [gameTitle, setGameTitle] = useState('')
 
   const isGameRunning = libraryStatus.find(
@@ -43,9 +45,6 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
   )
 
   const checkIfIsNative = async () => {
-    // This assumes native games are installed should be changed in the future
-    // if we add option to install windows games even if native is available
-
     setShowUninstallModal(true)
 
     const gameInfo = await window.api.getGameInfo(appName, runner)
@@ -65,9 +64,10 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
     }
 
     setGameTitle(gameInfo.overrides?.title || gameInfo.title)
+    setIsInstalled(Boolean(gameInfo.is_installed))
 
     const { install } = gameInfo
-    if (install.platform?.toLowerCase() !== 'windows') {
+    if (install?.platform?.toLowerCase() !== 'windows') {
       return
     }
 
@@ -90,19 +90,37 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
   const uninstallGame = async () => {
     onClose()
 
-    await window.api.uninstall(
-      appName,
-      runner,
-      deletePrefixChecked,
-      deleteSettingsChecked
-    )
-    if (runner === 'sideload' && location.pathname.match(/gamepage/)) {
-      navigate('/#library')
+    if (runner !== 'sideload') {
+      // For any store game (Steam, Epic, GOG, Nile, Zoom), removing it hides it from the Ghost library
+      hiddenGames.add(appName, gameTitle || appName)
+      if (isInstalled) {
+        await window.api.uninstall(
+          appName,
+          runner,
+          deletePrefixChecked,
+          deleteSettingsChecked
+        )
+      }
+    } else {
+      // Sideload / Manual game: removes from sideload database and deletes files if checked
+      await window.api.uninstall(
+        appName,
+        runner,
+        deletePrefixChecked,
+        deleteSettingsChecked
+      )
+      if (location.pathname.match(/gamepage/)) {
+        navigate('/#library')
+      }
     }
+
+    window.dispatchEvent(
+      new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+    )
     storage.removeItem(appName)
   }
 
-  const showWineCheckbox = !isNative && !isDlc
+  const showWineCheckbox = !isNative && !isDlc && isInstalled
 
   // disallow uninstalling epic games if an epic game is being installed
   if (installingEpicGame && runner === 'legendary') {
@@ -111,7 +129,7 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
         {showUninstallModal && (
           <Dialog onClose={onClose} showCloseButton className="uninstall-modal">
             <DialogHeader onClose={onClose}>
-              {t('gamepage:box.uninstall.title')}
+              {t('button.remove_from_library', 'Remover da Biblioteca')}
             </DialogHeader>
             <DialogContent>
               {t(
@@ -136,7 +154,7 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
         {showUninstallModal && (
           <Dialog onClose={onClose} showCloseButton className="uninstall-modal">
             <DialogHeader onClose={onClose}>
-              {t('gamepage:box.uninstall.title')}
+              {t('button.remove_from_library', 'Remover da Biblioteca')}
             </DialogHeader>
             <DialogContent>
               {t('gamepage:box.uninstall.gameIsRunning', {
@@ -156,13 +174,12 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
     )
   }
 
-  // normal dialog to uninstall a game
   return (
     <>
       {showUninstallModal && (
         <Dialog onClose={onClose} showCloseButton className="uninstall-modal">
           <DialogHeader onClose={onClose}>
-            {t('gamepage:box.uninstall.title')}
+            {t('button.remove_from_library', 'Remover da Biblioteca')}
           </DialogHeader>
           <DialogContent>
             <div className="uninstallModalMessage">
@@ -171,11 +188,29 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
                     defaultValue: 'Do you want to uninstall "{{title}}" (DLC)?',
                     title: gameTitle
                   })
-                : t('gamepage:box.uninstall.message', {
-                    defaultValue: 'Do you want to uninstall "{{title}}"?',
+                : !isInstalled
+                ? t('gamepage:box.remove.not_installed_message', {
+                    defaultValue: 'Deseja remover "{{title}}" da sua biblioteca?',
+                    title: gameTitle
+                  })
+                : runner === 'sideload'
+                ? t('gamepage:box.remove.sideload_message', {
+                    defaultValue: 'Deseja remover "{{title}}" da sua biblioteca?',
+                    title: gameTitle
+                  })
+                : t('gamepage:box.uninstall.message_with_remove', {
+                    defaultValue: 'Deseja remover "{{title}}" da biblioteca e desinstalar os arquivos locais?',
                     title: gameTitle
                   })}
             </div>
+            {runner !== 'sideload' && (
+              <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.5)', marginTop: '8px' }}>
+                {t(
+                  'gamepage:box.remove.not_installed_hint',
+                  'O jogo será removido da biblioteca. Você poderá restaurá-lo a qualquer momento ativando "Mostrar Jogos Ocultos" nos Filtros.'
+                )}
+              </p>
+            )}
             {showWineCheckbox && (
               <ToggleSwitch
                 htmlId="uninstallCheckbox"
@@ -200,7 +235,7 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
                 )}
               </p>
             )}
-            {!isDlc && (
+            {!isDlc && isInstalled && (
               <ToggleSwitch
                 htmlId="uninstallsettingCheckbox"
                 value={deleteSettingsChecked}
@@ -220,10 +255,10 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
               onClick={uninstallGame}
               className={`button is-secondary outline`}
             >
-              {t('box.yes')}
+              {t('button.remove', 'Remover')}
             </button>
             <button onClick={onClose} className={`button is-secondary outline`}>
-              {t('box.no')}
+              {t('box.cancel', 'Cancelar')}
             </button>
           </DialogFooter>
         </Dialog>

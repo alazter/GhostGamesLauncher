@@ -14,6 +14,7 @@ import SteamLogo from 'frontend/assets/steam-logo.svg?react'
 import { LanguageSelector, UpdateComponent } from '../../components/UI'
 import { FlagPosition } from '../../components/UI/LanguageSelector'
 import SIDLogin from './components/SIDLogin'
+import SteamConfigModal from './components/SteamConfigModal'
 import ContextProvider from '../../state/ContextProvider'
 import { useAwaited } from '../../hooks/useAwaited'
 import { hasHelp } from 'frontend/hooks/hasHelp'
@@ -37,6 +38,7 @@ export default React.memo(function NewLogin() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [showSidLogin, setShowSidLogin] = useState(false)
+  const [showSteamModal, setShowSteamModal] = useState(false)
   const [isEpicLoggedIn, setIsEpicLoggedIn] = useState(Boolean(epic.username))
   const [isGogLoggedIn, setIsGogLoggedIn] = useState(Boolean(gog.username))
   const [isAmazonLoggedIn, setIsAmazonLoggedIn] = useState(
@@ -94,6 +96,19 @@ export default React.memo(function NewLogin() {
           backdropClick={() => {
             setShowSidLogin(false)
           }}
+        />
+      )}
+      {showSteamModal && (
+        <SteamConfigModal
+          isOpen={showSteamModal}
+          onClose={() => setShowSteamModal(false)}
+          onSync={async () => {
+            await refreshLibrary({ fullRefresh: true, runInBackground: false })
+            setShowSteamModal(false)
+            navigate('/')
+          }}
+          username={steam.username}
+          isLoggedIn={isSteamLoggedIn}
         />
       )}
       <div className="loginBackground"></div>
@@ -174,8 +189,11 @@ export default React.memo(function NewLogin() {
               buttonText={t('login.steam', 'Conectar Conta Steam')}
               icon={() => <SteamLogo />}
               loginUrl=""
-              customLoginAction={async () => {
-                await steam.login()
+              customLoginAction={() => {
+                setShowSteamModal(true)
+              }}
+              configAction={() => {
+                setShowSteamModal(true)
               }}
               isLoggedIn={isSteamLoggedIn}
               user={steam.username}

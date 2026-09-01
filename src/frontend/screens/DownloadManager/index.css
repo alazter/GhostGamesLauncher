@@ -40,6 +40,37 @@
   padding-inline-start: 30px;
 }
 
+.downloadManagerSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 30px var(--space-lg) 10px;
+  padding: 0;
+}
+
+.downloadManagerClearButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.downloadManagerClearButton:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(0, 255, 255, 0.5);
+  color: #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
 .dmItemList {
   border: solid 2px var(--input-background);
   background-color: var(--input-background);

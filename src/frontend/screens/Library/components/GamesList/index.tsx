@@ -10,7 +10,8 @@ import { CustomStore } from 'frontend/types'
 import LibraryContext from 'frontend/screens/Library/LibraryContext'
 import {
   isGameAssignedToStore,
-  isGameVisibleInAllGames
+  isGameVisibleInAllGames,
+  isPlaytestOrDemo
 } from 'frontend/helpers/customStoreFiltering'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import fallBackImage from 'frontend/assets/heroic_card.jpg'
@@ -62,7 +63,7 @@ const GamesList = ({
 }: Props): JSX.Element => {
   const { gameUpdates, allTilesInColor, titlesAlwaysVisible, refreshLibrary, hiddenGames } =
     useContext(ContextProvider)
-  const { storesFilters } = useContext(LibraryContext)
+  const { storesFilters, showPlaytestsAndDemos } = useContext(LibraryContext)
   const { t } = useTranslation()
   const listRef = useRef<HTMLDivElement | null>(null)
   const { activeController } = useContext(ContextProvider)
@@ -216,6 +217,11 @@ const GamesList = ({
   }
 
   const filteredLibrary = useMemo(() => {
+    let list = library
+    if (!showPlaytestsAndDemos) {
+      list = list.filter((game) => !isPlaytestOrDemo(game))
+    }
+
     // 1. When a specific Custom Store is active: show all games belonging to that store
     if (activeStoreFilter) {
       const activeFilterLower = activeStoreFilter.toLowerCase()
@@ -228,16 +234,16 @@ const GamesList = ({
         isVisible: true
       }
 
-      return library.filter((game) =>
+      return list.filter((game) =>
         isGameAssignedToStore(game, activeStoreObj, assignments)
       )
     }
 
     // 2. When in "Todos os Jogos": filter games based on storesFilters toggle state
-    return library.filter((game) =>
+    return list.filter((game) =>
       isGameVisibleInAllGames(game, customStores, assignments, storesFilters)
     )
-  }, [library, activeStoreFilter, assignments, customStores, storesFilters])
+  }, [library, activeStoreFilter, assignments, customStores, storesFilters, showPlaytestsAndDemos])
 
   useEffect(() => {
     (window as any).heroicActiveLibrary = filteredLibrary
@@ -299,15 +305,36 @@ const GamesList = ({
     try {
       window.api.logInfo(`handleBulkUninstall: Iniciando desinstalação de ${selectedGames.length} jogo(s)`)
       
-      const appsToUninstall = selectedGames.map(g => ({
+      const appsToUninstall = selectedGames.map((g) => ({
         appName: g.app_name,
         runner: g.runner
       }))
 
-      await window.api.bulkUninstall(appsToUninstall, shouldRemovePrefix, shouldRemoveSetting)
+      await window.api.bulkUninstall(
+        appsToUninstall,
+        shouldRemovePrefix,
+        shouldRemoveSetting
+      )
+
+      const storeGamesToHide = selectedGames
+        .filter((g) => g.runner !== 'sideload')
+        .map((g) => ({
+          appName: g.app_name,
+          title: g.overrides?.title || g.title,
+          runner: g.runner,
+          art_cover: g.art_cover,
+          art_square: g.art_square
+        }))
+
+      if (storeGamesToHide.length > 0) {
+        hiddenGames.addMultiple(storeGamesToHide)
+      }
 
       window.dispatchEvent(
         new CustomEvent('heroicToggleMassEdit', { detail: { active: false } })
+      )
+      window.dispatchEvent(
+        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
       )
     } catch (err) {
       window.api.logError(`Error during bulk uninstall: ${String(err)}`)

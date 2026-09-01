@@ -807,6 +807,9 @@ export default function SideloadDialog({
                 runInBackground: true,
                 checkForUpdates: true
               })
+              window.dispatchEvent(
+                new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+              )
               backdropClick()
             } catch (err) {
               window.api.logError(`Error deleting app ${appName}: ${err}`)

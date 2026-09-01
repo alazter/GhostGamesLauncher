@@ -70,7 +70,7 @@
     },
     "button": {
         "add_to_favourites": "Adicionar aos favoritos",
-        "cancel": "Pausar/Cancelar",
+        "cancel": "Cancelar",
         "continue": "Continuar baixando",
         "finish": "Terminar",
         "force_update": "Forçar atualização se disponível",

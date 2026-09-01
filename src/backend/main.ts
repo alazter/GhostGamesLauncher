@@ -75,6 +75,9 @@ import {
   isAccessibleWithinFlatpakSandbox,
   isWritable
 } from './utils/filesystem'
+import { getAvailableStorageDrives } from './utils/filesystem/drives'
+import { SteamAuthModal } from './storeManagers/steam/authModal'
+import { configStore as steamConfigStore } from './storeManagers/steam/electronStores'
 
 import { Path } from './schemas'
 
@@ -487,10 +490,16 @@ if (!gotTheLock) {
         )
         const iconToUse = ensurePermanentAppIcon()
 
-        const isDistUnpacked = currentExePath.toLowerCase().includes('dist\\win-unpacked')
+        const normalizedExePath = currentExePath.toLowerCase()
+        const isDevOrRepoBuild =
+          !app.isPackaged ||
+          normalizedExePath.includes('node_modules') ||
+          normalizedExePath.includes('heroicgameslauncher') ||
+          normalizedExePath.includes('\\dist\\') ||
+          normalizedExePath.includes('/dist/')
 
         // Start Menu shortcut (crucial for Windows Notifications to display "Ghost Games Launcher" instead of "Electron")
-        if (existsSync(startMenuFolder) && !isDistUnpacked) {
+        if (existsSync(startMenuFolder) && !isDevOrRepoBuild) {
           const startMenuShortcutPath = path.join(
             startMenuFolder,
             'Ghost Games Launcher.lnk'
@@ -504,7 +513,7 @@ if (!gotTheLock) {
           })
         }
 
-        if ((app.isPackaged || process.env.PORTABLE_EXECUTABLE_FILE) && !isDistUnpacked) {
+        if (app.isPackaged && !isDevOrRepoBuild) {
           const desktopFolder = app.getPath('desktop')
 
           // Remove old Ghost.lnk shortcut
@@ -780,6 +789,35 @@ addHandler('checkDiskSpace', async (_e, folder): Promise<DiskSpaceData> => {
     validPath: pathIsWritable,
     validFlatpakPath: pathIsFlatpakAccessible,
     message: `${getFileSize(freeSpace)} / ${getFileSize(totalSpace)}`
+  }
+})
+
+addHandler('getAvailableStorageDrives', async (_e, runner) =>
+  getAvailableStorageDrives(runner)
+)
+
+addHandler('steamLoginWebView', async () => SteamAuthModal.openLoginModal())
+addHandler('steamLogout', async () => SteamAuthModal.logout())
+addHandler('steamGetConfig', async () => ({
+  syncMode: steamConfigStore.get('syncMode', 'all'),
+  apiKey: steamConfigStore.get('apiKey', ''),
+  hasSession: steamConfigStore.has('sessionCookie')
+}))
+addHandler('steamSaveConfig', async (_e, config) => {
+  if (config.syncMode) steamConfigStore.set('syncMode', config.syncMode)
+  if (config.apiKey !== undefined) {
+    if (config.apiKey) {
+      steamConfigStore.set('apiKey', config.apiKey.trim())
+    } else {
+      steamConfigStore.delete('apiKey')
+    }
+  }
+  steamConfigStore.set('isLoggedIn', true)
+  const account = await SteamUser.getDetectedAccount()
+  if (account) {
+    steamConfigStore.set('username', account.personaName)
+    steamConfigStore.set('steamId', account.steamId64)
+    steamConfigStore.set('steamId32', account.steamId32)
   }
 })
 
