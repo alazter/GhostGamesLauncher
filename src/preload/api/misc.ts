@@ -118,7 +118,9 @@ export const steamgriddb = {
   getHeroes: makeHandlerInvoker('steamgriddb.getHeroes'),
   downloadCover: makeHandlerInvoker('steamgriddb.downloadCover'),
   syncMissingCovers: makeHandlerInvoker('steamgriddb.syncMissingCovers'),
-  batchReplaceAllCovers: makeHandlerInvoker('steamgriddb.batchReplaceAllCovers')
+  batchReplaceAllCovers: makeHandlerInvoker('steamgriddb.batchReplaceAllCovers'),
+  getCoversBackupInfo: makeHandlerInvoker('steamgriddb.getCoversBackupInfo'),
+  restoreCoversBackup: makeHandlerInvoker('steamgriddb.restoreCoversBackup')
 }
 export const onCoversSyncFinished = frontendListenerSlot('covers-sync-finished')
 export const onSteamGridBatchProgress = frontendListenerSlot('steamgriddb.batchProgress')

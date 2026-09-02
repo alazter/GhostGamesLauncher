@@ -292,6 +292,10 @@ export interface LibraryContextType {
   showUnclassifiedOnly?: boolean
   showPlaytestsAndDemos?: boolean
   setShowPlaytestsAndDemos?: (value: boolean) => void
+  sortByNewlyAdded?: boolean
+  setSortByNewlyAdded?: (value: boolean) => void
+  sortByMostPlayed?: boolean
+  setSortByMostPlayed?: (value: boolean) => void
 }
 
 export interface GameContextType {

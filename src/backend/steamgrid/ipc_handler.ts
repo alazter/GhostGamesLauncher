@@ -3,7 +3,7 @@ import { addHandler } from 'backend/ipc'
 import { logError, logInfo, LogPrefix } from 'backend/logger'
 import * as SteamGridDB from './utils'
 import { encryptApiKey, decryptApiKey, isEncryptedValue } from './secureKey'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import {
   existsSync,
   mkdirSync,
@@ -12,10 +12,61 @@ import {
   unlinkSync,
   openSync,
   readSync,
-  closeSync
+  closeSync,
+  writeFileSync,
+  readFileSync
 } from 'graceful-fs'
 import axios from 'axios'
-import { appFolder } from '../constants/paths'
+import { appFolder, userDataPath } from '../constants/paths'
+
+interface CoversBackupData {
+  timestamp: number
+  dateString: string
+  totalOverrides: number
+  overrides: Record<string, any>
+}
+
+const getBackupFilePath = () => join(userDataPath, 'store', 'covers-backup.json')
+
+export const createCoversBackupSnapshot = async () => {
+  try {
+    const { gameOverridesStore } = await import(
+      'backend/game_overrides/electronStores'
+    )
+    const currentOverrides =
+      (gameOverridesStore.get('overrides', {}) as Record<string, any>) || {}
+
+    const now = new Date()
+    const backupData: CoversBackupData = {
+      timestamp: now.getTime(),
+      dateString: now.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }),
+      totalOverrides: Object.keys(currentOverrides).length,
+      overrides: { ...currentOverrides }
+    }
+
+    const backupPath = getBackupFilePath()
+    const storeDir = dirname(backupPath)
+    if (!existsSync(storeDir)) {
+      mkdirSync(storeDir, { recursive: true })
+    }
+    writeFileSync(backupPath, JSON.stringify(backupData, null, 2), 'utf8')
+    logInfo(
+      `[CoversBackup] Snapshot created successfully with ${backupData.totalOverrides} overrides at ${backupData.dateString}`,
+      LogPrefix.Backend
+    )
+    return backupData
+  } catch (err) {
+    logError(['[CoversBackup] Failed to create snapshot:', err], LogPrefix.Backend)
+    return null
+  }
+}
 
 function readStoredApiKey(): string {
   const stored: string = GlobalConfig.get().getSettings().steamGridDbApiKey
@@ -177,6 +228,9 @@ addHandler('steamgriddb.syncMissingCovers', async () => {
         '[CoversSync] Starting background cover synchronization for missing/generic covers...',
         LogPrefix.Backend
       )
+
+      // 0. Snapshot de segurança antes de qualquer alteração
+      await createCoversBackupSnapshot()
 
       let recoveredCount = 0
       const apiKey = getDecryptedApiKey()
@@ -379,6 +433,10 @@ addHandler(
     const { gameOverridesStore } = await import(
       'backend/game_overrides/electronStores'
     )
+
+    // Snapshot de segurança antes da substituição em massa
+    await createCoversBackupSnapshot()
+
     const { fetchCoverFromSteamGridDB, clearSteamGridCache } = await import(
       'backend/storeManagers/sideload/steamgridHelper'
     )
@@ -528,4 +586,74 @@ addHandler(
     }
   }
 )
+
+addHandler('steamgriddb.getCoversBackupInfo', () => {
+  try {
+    const backupPath = getBackupFilePath()
+    if (!existsSync(backupPath)) {
+      return { hasBackup: false }
+    }
+    const content = readFileSync(backupPath, 'utf8')
+    const data = JSON.parse(content) as CoversBackupData
+    return {
+      hasBackup: true,
+      timestamp: data.timestamp,
+      date: data.dateString,
+      totalOverrides: data.totalOverrides || 0
+    }
+  } catch {
+    return { hasBackup: false }
+  }
+})
+
+addHandler('steamgriddb.restoreCoversBackup', async () => {
+  try {
+    const backupPath = getBackupFilePath()
+    if (!existsSync(backupPath)) {
+      return { success: false, message: 'Nenhum backup encontrado.' }
+    }
+    const content = readFileSync(backupPath, 'utf8')
+    const data = JSON.parse(content) as CoversBackupData
+
+    const { gameOverridesStore } = await import(
+      'backend/game_overrides/electronStores'
+    )
+    const { clearSteamGridCache } = await import(
+      'backend/storeManagers/sideload/steamgridHelper'
+    )
+
+    const overridesToRestore = data.overrides || {}
+    gameOverridesStore.set('overrides', overridesToRestore)
+    clearSteamGridCache()
+
+    const { sendFrontendMessage } = await import('backend/ipc')
+    sendFrontendMessage('metadataChanged', overridesToRestore)
+
+    logInfo(
+      `[CoversBackup] Restored ${Object.keys(overridesToRestore).length} covers from snapshot ${data.dateString}`,
+      LogPrefix.Backend
+    )
+
+    const { BrowserWindow } = await import('electron')
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('covers-sync-finished', {
+          recoveredCount: 0,
+          success: true,
+          isRestore: true,
+          date: data.dateString
+        })
+      }
+    }
+
+    return {
+      success: true,
+      date: data.dateString,
+      totalOverrides: data.totalOverrides || 0
+    }
+  } catch (err) {
+    logError(['[CoversBackup] Failed to restore backup:', err], LogPrefix.Backend)
+    return { success: false, message: String(err) }
+  }
+})
 

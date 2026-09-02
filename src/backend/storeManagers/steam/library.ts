@@ -16,6 +16,7 @@ import {
 import { logInfo, logError, LogPrefix } from 'backend/logger'
 import { SteamDownloader } from './downloader'
 import { SteamWebApi, SteamApiGame } from './webApi'
+import { tsStore } from 'backend/constants/key_value_stores'
 
 function parseAppInfoVdf(appinfoPath: string): Map<string, { title: string; type: string }> {
   const map = new Map<string, { title: string; type: string }>()
@@ -240,12 +241,28 @@ export default class SteamLibraryManager implements LibraryManager {
       } catch {}
     }
 
+    const playtimeMap = new Map<string, { playTime: number; lastPlayed: number }>()
     const localconfigPath = join(userDir, 'config', 'localconfig.vdf')
     if (existsSync(localconfigPath)) {
       try {
         const content = readFileSync(localconfigPath, 'utf8')
-        for (const m of content.matchAll(/"(\d{3,9})"\s*\{/g)) localAppIds.add(m[1])
-      } catch {}
+        const appRegex = /"(\d{1,9})"\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g
+        let match: RegExpExecArray | null
+        while ((match = appRegex.exec(content)) !== null) {
+          const appId = match[1]
+          localAppIds.add(appId)
+          const block = match[2]
+          const ptMatch = block.match(/"(?:playTime|PlayTime|Playtime)"\s*"(\d+)"/i)
+          const lpMatch = block.match(/"(?:lastPlayed|LastPlayed)"\s*"(\d+)"/i)
+          const playTime = ptMatch ? parseInt(ptMatch[1], 10) : 0
+          const lastPlayed = lpMatch ? parseInt(lpMatch[1], 10) : 0
+          if (playTime > 0 || lastPlayed > 0) {
+            playtimeMap.set(appId, { playTime, lastPlayed })
+          }
+        }
+      } catch (err) {
+        logError(['Error reading localconfig.vdf', err], LogPrefix.Steam)
+      }
     }
 
     const librarycacheDir = join(userDir, 'config', 'librarycache')
@@ -372,6 +389,21 @@ export default class SteamLibraryManager implements LibraryManager {
       const art_cover = localCover || STEAM_CDN.horizontalBanner(appid)
       const art_background = localHero || STEAM_CDN.heroBackground(appid)
       const art_logo = localLogo || ''
+
+      const playtimeData = playtimeMap.get(appid)
+      const lastPlayedDate = playtimeData?.lastPlayed
+        ? new Date(playtimeData.lastPlayed * 1000).toISOString()
+        : undefined
+
+      if (playtimeData && playtimeData.playTime > 0) {
+        const currentTs = tsStore.get_nodefault(appid) as { totalPlayed?: number } | undefined
+        if (!currentTs || (currentTs.totalPlayed || 0) < playtimeData.playTime) {
+          tsStore.set(`${appid}.totalPlayed`, playtimeData.playTime)
+          if (lastPlayedDate) {
+            tsStore.set(`${appid}.lastPlayed`, lastPlayedDate)
+          }
+        }
+      }
 
       const game: GameInfo = {
         runner: 'steam',

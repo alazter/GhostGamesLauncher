@@ -24,6 +24,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     showFavourites,
     showAlphabetFilter,
     showUnclassifiedOnly,
+    sortByNewlyAdded,
+    sortByMostPlayed,
     storesFilters
   } = useContext(LibraryContext)
 
@@ -258,6 +260,10 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
           >
             {showFavourites
               ? t('favourites', 'Favourites')
+              : sortByNewlyAdded
+              ? '✨ Adicionados Recentemente'
+              : sortByMostPlayed
+              ? '⏱️ Mais Jogados'
               : t('title.allGames', 'All Games')}
             <span
               className="numberOfgames"

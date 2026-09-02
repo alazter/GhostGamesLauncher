@@ -17,8 +17,9 @@
 
 ## Concluídos Recentemente
 - [x] **Suporte Completo à Conta Steam no Ghost**: Integração nativa como runner oficial (`'steam'`), com detecção automática da conta local (`Alazter`), catálogo unificado de 341 jogos (87 instalados com botão Jogar e 254 não instalados com botão Instalar), capas oficiais em 600x900 da CDN da Valve, filtros dedicados e paridade total com Epic, GOG e Amazon.
-- [x] **Otimização Extrema de Carregamento de Capas da Steam (0ms RAM Cache + Negative 404 Cache)**: Identificado e eliminado o bloqueio de camadas da GPU (`contain: content`), o delay de 10s de 404s não cacheados na Steam CDN e implementado cache em RAM de 0.05ms com tag `<img>` resiliente no DOM.
-- [x] **Validação de Ocultação/Deleção de Jogos e Filtros de Loja**: Mapeamento completo e validação do fluxo de ocultação para lojas oficiais (`games.hidden`) e remoção definitiva para jogos manuais (`sideload_library.json`).
+- [x] **Importação Automática de Horas Jogadas da Steam (335 Jogos Sincronizados)**: Parser nativo do `localconfig.vdf` da Steam extraindo o total de minutos jogados e datas da última execução, sincronizando diretamente no `timestampStore` do Ghost. Jogos da Steam agora exibem as centenas de horas jogadas no HeroPanel, nos detalhes e no filtro de ordenação.
+- [x] **Faixa Diagonal "NOVO" e Ordenação por Adicionados Recentemente e Mais Jogados**: Fita diagonal no canto superior direito dos cards em 45 graus, filtro de ordenação `✨ Classificar por Adicionados Recentemente` (posiciona novidades no topo sem esconder a biblioteca) e filtro de ordenação por horas jogadas `⏱️ Classificar por Mais Jogados` com execução instantânea (0ms RAM Cache).
+- [x] **Sistema de Backup Automático e Reversão (Undo) de Capas do SteamGridDB**: Snapshot de segurança criado automaticamente antes de sincronizações, com card de status `🟢 Ponto de Restauração de Capas Disponível` e botão `⏪ Reverter para Capas Anteriores` em Configurações > SteamGridDB para desfazer alterações com 1 clique.
 
 ## 🔔 Lembretes Ativos para o Próximo Contato
 - [ ] **Testar Nova Versão no Windows Sandbox (VM)**: Ao lançar uma nova versão, lembrar o usuário de testar em uma VM nova no Windows Sandbox, apresentando a lista detalhada de todas as alterações feitas.

@@ -60,17 +60,17 @@ export default class SideloadGame implements Game {
   }
 
   async isGameAvailable(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const { install } = this.getGameInfo()
+    const { install } = this.getGameInfo()
 
-      if (install && install.platform === 'Browser') {
-        resolve(true)
-      }
+    if (install && install.platform === 'Browser') {
+      return true
+    }
 
-      if (install && install.executable) {
-        resolve(existsSync(install.executable))
-      }
-    })
+    if (install && install.executable) {
+      return existsSync(install.executable)
+    }
+
+    return false
   }
 
   async launch(

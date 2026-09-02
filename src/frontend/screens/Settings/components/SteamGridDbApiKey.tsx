@@ -44,15 +44,36 @@ export default function SteamGridDbApiKey() {
   }
 
   const [isSyncing, setIsSyncing] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(false)
   const [syncStatusMsg, setSyncStatusMsg] = useState('')
+  const [backupInfo, setBackupInfo] = useState<{
+    hasBackup: boolean
+    date?: string
+    totalOverrides?: number
+    timestamp?: number
+  } | null>(null)
+
+  const loadBackupInfo = async () => {
+    try {
+      const info = await (window.api.steamgriddb as any).getCoversBackupInfo()
+      setBackupInfo(info)
+    } catch {}
+  }
 
   useEffect(() => {
+    loadBackupInfo()
     const unsub = (window.api as any).onCoversSyncFinished?.(
-      (data: { recoveredCount: number; success: boolean }) => {
+      (data: { recoveredCount: number; success: boolean; isRestore?: boolean; date?: string }) => {
         setIsSyncing(false)
-        if (data?.success) {
+        setIsRestoring(false)
+        loadBackupInfo()
+        if (data?.isRestore) {
           setSyncStatusMsg(
-            `✅ Varredura concluída com sucesso! ${data.recoveredCount} novas capas recuperadas. Jogos com capas válidas permaneceram 100% intactos.`
+            `✅ Capas restauradas com sucesso para o ponto de restauração anterior (${data.date || 'estado prévio'})!`
+          )
+        } else if (data?.success) {
+          setSyncStatusMsg(
+            `✅ Varredura concluída! ${data.recoveredCount} novas capas recuperadas. Um ponto de restauração foi salvo automaticamente. Se não gostar, você pode reverter a qualquer momento abaixo.`
           )
         } else {
           setSyncStatusMsg('A varredura de capas em segundo plano foi finalizada.')
@@ -67,12 +88,38 @@ export default function SteamGridDbApiKey() {
   const handleSyncMissingCovers = async () => {
     setIsSyncing(true)
     setSyncStatusMsg(
-      '⏳ Varredura em segundo plano iniciada! O Ghost está verificando capas no seu disco e na rede. Você pode navegar, jogar e usar o sistema livremente sem precisar esperar.'
+      '⏳ Criando ponto de restauração de segurança e iniciando varredura em segundo plano... Você pode navegar e jogar livremente.'
     )
     try {
       await (window.api.steamgriddb as any).syncMissingCovers()
     } catch {
       setIsSyncing(false)
+    }
+  }
+
+  const handleRestoreBackup = async () => {
+    if (!backupInfo?.hasBackup) return
+    const confirmed = window.confirm(
+      `Deseja reverter suas capas exatamente para o ponto de restauração de ${backupInfo.date || 'data anterior'}?`
+    )
+    if (!confirmed) return
+
+    setIsRestoring(true)
+    setSyncStatusMsg('⏳ Restaurando capas anteriores do backup...')
+    try {
+      const res = await (window.api.steamgriddb as any).restoreCoversBackup()
+      if (res?.success) {
+        setSyncStatusMsg(
+          `✅ Sucesso! Todas as capas foram restauradas para o estado de ${res.date}.`
+        )
+      } else {
+        setSyncStatusMsg(`❌ Falha ao restaurar backup: ${res?.message || 'Erro desconhecido'}`)
+      }
+    } catch (err) {
+      setSyncStatusMsg(`❌ Erro ao restaurar: ${String(err)}`)
+    } finally {
+      setIsRestoring(false)
+      loadBackupInfo()
     }
   }
 
@@ -116,7 +163,7 @@ export default function SteamGridDbApiKey() {
             <button
               type="button"
               className="button primary"
-              disabled={isSyncing}
+              disabled={isSyncing || isRestoring}
               style={{
                 alignSelf: 'flex-start',
                 background: isSyncing
@@ -128,7 +175,7 @@ export default function SteamGridDbApiKey() {
                 fontSize: '13px',
                 fontWeight: '600',
                 borderRadius: '8px',
-                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                cursor: isSyncing || isRestoring ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
@@ -138,10 +185,10 @@ export default function SteamGridDbApiKey() {
                 transition: 'all 0.2s ease'
               }}
               onMouseOver={(e) => {
-                if (!isSyncing) e.currentTarget.style.background = '#5844e3'
+                if (!isSyncing && !isRestoring) e.currentTarget.style.background = '#5844e3'
               }}
               onMouseOut={(e) => {
-                if (!isSyncing) e.currentTarget.style.background = '#6c5ce7'
+                if (!isSyncing && !isRestoring) e.currentTarget.style.background = '#6c5ce7'
               }}
               onClick={handleSyncMissingCovers}
             >
@@ -185,6 +232,78 @@ export default function SteamGridDbApiKey() {
               </button>
             )}
           </div>
+
+          {/* Card de Ponto de Restauração (Backup de Capas) */}
+          {backupInfo?.hasBackup && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                background: 'rgba(30, 34, 42, 0.7)',
+                border: '1px solid rgba(46, 204, 113, 0.3)',
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.25)'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '10px' }}>🟢</span>
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#2ecc71',
+                      letterSpacing: '0.3px'
+                    }}
+                  >
+                    Ponto de Restauração de Capas Disponível
+                  </span>
+                </div>
+                <span style={{ fontSize: '12px', color: '#a0aec0' }}>
+                  📅 Salvo em: <strong style={{ color: '#fff' }}>{backupInfo.date}</strong>{' '}
+                  • {backupInfo.totalOverrides} capas salvas
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRestoreBackup}
+                disabled={isRestoring || isSyncing}
+                style={{
+                  background: isRestoring ? 'rgba(230, 126, 34, 0.4)' : '#e67e22',
+                  color: '#fff',
+                  border: '1px solid #f39c12',
+                  padding: '7px 16px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  borderRadius: '6px',
+                  cursor: isRestoring || isSyncing ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(230, 126, 34, 0.3)'
+                }}
+                onMouseOver={(e) => {
+                  if (!isRestoring && !isSyncing) e.currentTarget.style.background = '#d35400'
+                }}
+                onMouseOut={(e) => {
+                  if (!isRestoring && !isSyncing) e.currentTarget.style.background = '#e67e22'
+                }}
+              >
+                <span>{isRestoring ? '⏳' : '⏪'}</span>
+                <span>
+                  {isRestoring
+                    ? 'Restaurando...'
+                    : 'Reverter para Capas Anteriores'}
+                </span>
+              </button>
+            </div>
+          )}
 
           {syncStatusMsg && (
             <div

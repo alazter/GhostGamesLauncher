@@ -430,6 +430,18 @@ interface AsyncIPCFunctions {
     scope?: 'all' | 'steam_only' | 'missing_only'
     dimensions?: string[]
   }) => Promise<{ total: number; updated: number; failed: number }>
+  'steamgriddb.getCoversBackupInfo': () => Promise<{
+    hasBackup: boolean
+    timestamp?: number
+    date?: string
+    totalOverrides?: number
+  }>
+  'steamgriddb.restoreCoversBackup': () => Promise<{
+    success: boolean
+    date?: string
+    totalOverrides?: number
+    message?: string
+  }>
   discoverInstalledGames: () => Promise<GameCandidate[]>
   discoverAllGames: (searchTitles?: string[], selectedDrives?: string[]) => Promise<GameCandidate[]>
   abortScan: () => Promise<void>

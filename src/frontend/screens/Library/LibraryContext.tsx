@@ -47,7 +47,11 @@ const initialContext: LibraryContextType = {
   gamesForAlphabetFilter: [] as GameInfo[],
   showUnclassifiedOnly: false,
   showPlaytestsAndDemos: false,
-  setShowPlaytestsAndDemos: () => null
+  setShowPlaytestsAndDemos: () => null,
+  sortByNewlyAdded: false,
+  setSortByNewlyAdded: () => null,
+  sortByMostPlayed: false,
+  setSortByMostPlayed: () => null
 }
 
 export default createContext(initialContext)

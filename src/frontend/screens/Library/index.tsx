@@ -19,6 +19,13 @@ import Fuse from 'fuse.js'
 
 import ContextProvider from 'frontend/state/ContextProvider'
 import { syncAutoStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
+import {
+  syncNewGamesTracker,
+  isGameNew,
+  sortGamesByNewest,
+  sortGamesByPlaytime,
+  getNewestGamesPrioritized
+} from 'frontend/helpers/newGamesTracker'
 
 import GamesList from './components/GamesList'
 import { FavouriteGame, GameInfo, HiddenGame, Runner } from 'common/types'
@@ -1158,6 +1165,22 @@ export default memo(function Library(): JSX.Element {
     setSortByRecent(value)
   }
 
+  const [sortByMostPlayed, setSortByMostPlayed] = useState<boolean>(() => {
+    return JSON.parse(storage?.getItem('sortByMostPlayed') || 'false') as boolean
+  })
+  function handleSortByMostPlayed(value: boolean) {
+    storage.setItem('sortByMostPlayed', JSON.stringify(value))
+    setSortByMostPlayed(value)
+  }
+
+  const [sortByNewlyAdded, setSortByNewlyAdded] = useState<boolean>(() => {
+    return JSON.parse(storage?.getItem('sortByNewlyAdded') || 'false') as boolean
+  })
+  function handleSortByNewlyAdded(value: boolean) {
+    storage.setItem('sortByNewlyAdded', JSON.stringify(value))
+    setSortByNewlyAdded(value)
+  }
+
   const backToTopElement = useRef<HTMLButtonElement | null>(null)
   const goToBottomElement = useRef<HTMLButtonElement | null>(null)
 
@@ -1559,6 +1582,11 @@ export default memo(function Library(): JSX.Element {
   }, [epic, gog, sideloadedLibrary, amazon, zoom, steam, selectedInlineGame, makeLibrary, showHidden, hiddenGames])
 
   useEffect(() => {
+    const all = makeLibrary()
+    if (all.length > 0) {
+      syncNewGamesTracker(all)
+    }
+
     if (
       epic.library.length ||
       gog.library.length ||
@@ -1879,11 +1907,25 @@ export default memo(function Library(): JSX.Element {
         : gameA.localeCompare(gameB)
     })
 
-    if (sortByRecent) {
+    let workingLibrary = [...library]
+
+    // Se classificar por adicionados recentemente estiver ativo, separar os novos jogos no topo
+    let newGamesPart: GameInfo[] = []
+    if (sortByNewlyAdded) {
+      const { newGames, otherGames } = getNewestGamesPrioritized(workingLibrary)
+      newGamesPart = newGames
+      workingLibrary = otherGames
+    }
+
+    let processedPart = [...workingLibrary]
+
+    if (sortByMostPlayed) {
+      processedPart = sortGamesByPlaytime(processedPart)
+    } else if (sortByRecent) {
       const recentGames = configStore.get('games.recent', [])
       const recentAppNames = recentGames.map((rg: any) => rg.appName)
       const recentPart: GameInfo[] = []
-      const remainingPart = [...library]
+      const remainingPart = [...processedPart]
 
       for (const appName of recentAppNames) {
         if (recentPart.length >= 12) break
@@ -1893,28 +1935,30 @@ export default memo(function Library(): JSX.Element {
           remainingPart.splice(idx, 1)
         }
       }
-      library = [...recentPart, ...remainingPart]
+      processedPart = [...recentPart, ...remainingPart]
     } else {
-      const installed = library.filter((game) => game?.is_installed)
-      const notInstalled = library.filter(
+      const installed = processedPart.filter((game) => game?.is_installed)
+      const notInstalled = processedPart.filter(
         (game) => !game?.is_installed && !installing.includes(game?.app_name)
       )
-      const installingGames = library.filter(
+      const installingGames = processedPart.filter(
         (g) => !g.is_installed && installing.includes(g.app_name)
       )
 
-      library = sortInstalled
+      processedPart = sortInstalled
         ? [...installed, ...installingGames, ...notInstalled]
-        : library
+        : processedPart
     }
 
-    return [...library]
+    return [...newGamesPart, ...processedPart]
   }, [
     gamesForAlphabetFilter,
     alphabetFilterLetter,
     sortDescending,
     sortInstalled,
     sortByRecent,
+    sortByMostPlayed,
+    sortByNewlyAdded,
     installing,
     activeStoreFilter,
     assignments,
@@ -2029,6 +2073,10 @@ export default memo(function Library(): JSX.Element {
         sortInstalled,
         sortByRecent,
         setSortByRecent: handleSortByRecent,
+        sortByMostPlayed,
+        setSortByMostPlayed: handleSortByMostPlayed,
+        sortByNewlyAdded,
+        setSortByNewlyAdded: handleSortByNewlyAdded,
         handleAddGameButtonClick: () =>
           openInstallGameModal({ appName: '', runner: 'sideload', gameInfo: null }),
         setShowCategories,

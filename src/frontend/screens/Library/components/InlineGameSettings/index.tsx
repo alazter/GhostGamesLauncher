@@ -294,7 +294,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           is_dlc: false
         },
         art_cover: game.art_cover || '',
-        is_installed: true,
+        is_installed: Boolean(newPath),
         art_square: game.art_square || '',
         canRunOffline: true,
         browserUrl: game.browserUrl || '',
@@ -306,11 +306,18 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
       await window.api.addNewApp(updatedGame)
 
+      clearAvailabilityCache(game.app_name, 'sideload')
+      window.dispatchEvent(
+        new CustomEvent('heroicAvailabilityChanged', {
+          detail: { appName: game.app_name, runner: 'sideload' }
+        })
+      )
+
       if (refreshLibrary) {
         await refreshLibrary({
           library: 'sideload',
           runInBackground: true,
-          checkForUpdates: true
+          checkForUpdates: false
         })
       }
     } catch (err) {

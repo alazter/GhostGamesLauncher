@@ -29,6 +29,7 @@ export interface StoreStructure {
       hidden: HiddenGame[]
       favourites: FavouriteGame[]
       customCategories: Record<string, string[]>
+      newTracker?: Record<string, { addedAt: number; played: boolean }>
     }
     theme: string
     zoomPercent: number

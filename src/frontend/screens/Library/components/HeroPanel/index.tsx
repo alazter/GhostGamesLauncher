@@ -269,7 +269,9 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
           borderBottomLeftRadius: '0px',
           borderBottomRightRadius: '0px',
           boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
-          cursor: 'pointer'
+          cursor: 'pointer',
+          filter: !game.is_installed ? 'grayscale(100%)' : 'none',
+          transition: 'filter 0.25s ease'
         }}
         onClick={onClose}
       />

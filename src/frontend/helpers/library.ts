@@ -11,6 +11,7 @@ import {
 import { TFunction } from 'i18next'
 import { getGameInfo } from './index'
 import { DialogModalOptions } from 'frontend/types'
+import { markGameAsPlayed } from './newGamesTracker'
 
 const storage: Storage = window.localStorage
 
@@ -157,6 +158,7 @@ const launch = async ({
   args,
   notPlayableOffline
 }: LaunchOptions): Promise<{ status: 'done' | 'error' | 'abort' }> => {
+  markGameAsPlayed(appName, runner)
   const proceedToLaunch = async () => {
     // First handle update dialog if needed
     if (hasUpdate) {

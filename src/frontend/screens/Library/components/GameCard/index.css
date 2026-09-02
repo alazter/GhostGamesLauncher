@@ -77,6 +77,32 @@
   display: none;
 }
 
+.gameCard .cornerRibbonNew {
+  position: absolute;
+  top: 14px;
+  right: -28px;
+  transform: rotate(45deg);
+  width: 100px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 0;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+  pointer-events: none;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.gameListItem .cornerRibbonNew {
+  display: none;
+}
+
 .gameCard.notAvailable > .gameCardStatus {
   color: var(--text-log);
   text-align: end;
@@ -332,19 +358,32 @@
 }
 
 .gameImg,
-.gameLogo {
+.gameLogo,
+.justPlayedImg {
   transition:
-    all 0.2s,
+    filter 0.25s ease,
+    transform 0.25s ease,
     opacity 0.5s;
 }
 
+/* Jogos desinstalados são exibidos em Preto e Branco (Grayscale 100%) */
 .gameImg:not(.installed),
 .gameLogo:not(.installed) {
-  filter: grayscale(var(--installing-effect));
+  filter: grayscale(var(--installing-effect, 100%));
 }
 
+/* Jogos instalados são sempre 100% coloridos */
+.gameImg.installed,
+.gameLogo.installed {
+  filter: grayscale(0);
+}
+
+/* Ao passar o mouse sobre o card de um jogo desinstalado, ele ganha cor */
 .gameCard:hover .gameImg:not(.installed),
-.gameCard:hover .gameLogo:not(.installed),
+.gameCard:hover .gameLogo:not(.installed) {
+  filter: grayscale(0);
+}
+
 .allTilesInColor .gameImg,
 .allTilesInColor .gameLogo {
   filter: grayscale(0);

@@ -93,7 +93,26 @@ export async function handleNonAvailableGames(appName: string, runner: Runner) {
 export function clearAvailabilityCache(appName?: string, runner?: Runner) {
   if (appName && runner) {
     availabilityCache.delete(`${appName}_${runner}`)
+  } else if (appName) {
+    for (const key of availabilityCache.keys()) {
+      if (key.startsWith(`${appName}_`)) {
+        availabilityCache.delete(key)
+      }
+    }
   } else {
     availabilityCache.clear()
+  }
+
+  if (appName) {
+    const nonAvailbleGames = storage.getItem('nonAvailableGames') || '[]'
+    try {
+      const nonAvailbleGamesArray = JSON.parse(nonAvailbleGames) as string[]
+      if (nonAvailbleGamesArray.includes(appName)) {
+        const filtered = nonAvailbleGamesArray.filter((id) => id !== appName)
+        storage.setItem('nonAvailableGames', JSON.stringify(filtered))
+      }
+    } catch {
+      // ignore
+    }
   }
 }

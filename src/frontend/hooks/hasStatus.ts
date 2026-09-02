@@ -7,11 +7,12 @@ import { getStatusLabel, handleNonAvailableGames } from './constants'
 
 export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
   const appName = gameInfo.app_name
-  const { libraryStatus, epic, gog } = React.useContext(ContextProvider)
+  const { libraryStatus } = React.useContext(ContextProvider)
   const [progress] = hasProgress(gameInfo.app_name, gameInfo.runner)
   const [newGameInfo, setNewGameInfo] = React.useState<GameInfo | undefined>(
     gameInfo
   )
+  const [availabilityTrigger, setAvailabilityTrigger] = React.useState(0)
   const { t } = useTranslation('gamepage')
 
   const [gameStatus, setGameStatus] = React.useState<{
@@ -30,20 +31,21 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
   } = { ...newGameInfo }
 
   React.useEffect(() => {
-    if (newGameInfo) {
-      return
-    }
-    const getGameInfo = async () => {
-      const updatedInfo = await window.api.getGameInfo(
-        appName,
-        runner || 'sideload'
-      )
-      if (updatedInfo) {
-        setNewGameInfo(updatedInfo)
+    setNewGameInfo(gameInfo)
+  }, [gameInfo])
+
+  React.useEffect(() => {
+    const onAvailabilityChanged = (e: Event) => {
+      const detail = (e as CustomEvent<{ appName?: string; runner?: string }>)?.detail
+      if (!detail?.appName || detail.appName === appName) {
+        setAvailabilityTrigger((prev) => prev + 1)
       }
     }
-    getGameInfo()
-  }, [appName, gameInfo])
+    window.addEventListener('heroicAvailabilityChanged', onAvailabilityChanged)
+    return () => {
+      window.removeEventListener('heroicAvailabilityChanged', onAvailabilityChanged)
+    }
+  }, [appName])
 
   React.useEffect(() => {
     const checkGameStatus = async () => {
@@ -116,7 +118,8 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
     is_installed,
     thirdPartyManagedApp,
     isEAManaged,
-    isUbisoftManaged
+    isUbisoftManaged,
+    availabilityTrigger
   ])
 
   return gameStatus

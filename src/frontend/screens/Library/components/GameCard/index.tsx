@@ -27,6 +27,7 @@ import { CachedImage } from 'frontend/components/UI'
 import ContextMenu, { Item } from '../ContextMenu'
 import { hasProgress } from 'frontend/hooks/hasProgress'
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle'
+import { isGameNew, markGameAsPlayed, getNewGamesMap } from 'frontend/helpers/newGamesTracker'
 
 import classNames from 'classnames'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
@@ -232,6 +233,18 @@ const GameCard = ({
 
   const { status, folder, label } = hasStatus(gameInfo, size)
   const isBrowserGame = gameInfo.install.platform === 'Browser'
+
+  const [isNew, setIsNew] = useState(() => isGameNew(appName, runner))
+
+  useEffect(() => {
+    const handleNewGamesUpdate = () => {
+      setIsNew(isGameNew(appName, runner))
+    }
+    window.addEventListener('heroicNewGamesChanged', handleNewGamesUpdate)
+    return () => {
+      window.removeEventListener('heroicNewGamesChanged', handleNewGamesUpdate)
+    }
+  }, [appName, runner])
 
   const onInstall = () => {
     if (runner !== 'sideload' && handleGameCardClick) {
@@ -675,6 +688,11 @@ const GameCard = ({
               {t('status.hasUpdates')}
             </span>
           )}
+          {isNew && grid && (
+            <div className="cornerRibbonNew">
+              {t('badge.new', 'NOVO')}
+            </div>
+          )}
 
           <Link
             to={`/gamepage/${runner}/${appName}`}
@@ -870,6 +888,7 @@ const GameCard = ({
     }
 
     if (isInstalled) {
+      markGameAsPlayed(appName, runner)
       setIsLaunching(true)
       const isOffline = connectivity.status !== 'online'
       const notPlayableOffline = isOffline && !gameInfo.canRunOffline

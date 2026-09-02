@@ -30,7 +30,11 @@ export default function LibraryFilters() {
     showUpdatesOnly,
     setShowUpdatesOnly,
     sortByRecent,
-    setSortByRecent
+    setSortByRecent,
+    sortByNewlyAdded,
+    setSortByNewlyAdded,
+    sortByMostPlayed,
+    setSortByMostPlayed
   } = useContext(LibraryContext)
 
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
@@ -234,6 +238,8 @@ export default function LibraryFilters() {
     setShowThirdPartyManagedOnly(false)
     setShowUpdatesOnly(false)
     setSortByRecent(false)
+    if (setSortByMostPlayed) setSortByMostPlayed(false)
+    if (setSortByNewlyAdded) setSortByNewlyAdded(false)
     setShowHiddenDuplicates(false)
     setShowPlaytestsAndDemos(false)
     localStorage.removeItem('heroic_show_hidden_duplicates')
@@ -255,8 +261,8 @@ export default function LibraryFilters() {
         .map((store) => storeToggle(store))}
       <hr />
       {platformToggle('win')}
-      {platform === 'linux' && platformToggle('linux')}
-      {platform === 'darwin' && platformToggle('mac')}
+      {platformToggle('linux')}
+      {platformToggle('mac')}
       {platformToggle('browser')}
       <hr />
       <ToggleSwitch
@@ -329,11 +335,41 @@ export default function LibraryFilters() {
         title={t('header.show_updates_only', 'Show games with updates only')}
       />
       <ToggleSwitch
+        key="sort-by-newly-added"
+        htmlId="sort-by-newly-added"
+        handleChange={() => {
+          if (setSortByNewlyAdded) {
+            setSortByNewlyAdded(!sortByNewlyAdded)
+          }
+        }}
+        value={!!sortByNewlyAdded}
+        title="✨ Classificar por Adicionados Recentemente"
+      />
+      <ToggleSwitch
         key="sort-by-recent"
         htmlId="sort-by-recent"
-        handleChange={() => setSortByRecent(!sortByRecent)}
+        handleChange={() => {
+          if (!sortByRecent && sortByMostPlayed && setSortByMostPlayed) {
+            setSortByMostPlayed(false)
+          }
+          setSortByRecent(!sortByRecent)
+        }}
         value={sortByRecent}
         title={t('header.sort_by_recent', 'Sort by Last Played')}
+      />
+      <ToggleSwitch
+        key="sort-by-most-played"
+        htmlId="sort-by-most-played"
+        handleChange={() => {
+          if (setSortByMostPlayed) {
+            if (!sortByMostPlayed && sortByRecent) {
+              setSortByRecent(false)
+            }
+            setSortByMostPlayed(!sortByMostPlayed)
+          }
+        }}
+        value={!!sortByMostPlayed}
+        title="⏱️ Classificar por Mais Jogados"
       />
       <hr />
       <button

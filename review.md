@@ -200,6 +200,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Criado o componente `SteamGridBatchModal` para busca, pré-visualização e aplicação em lote de capas e banners do SteamGridDB diretamente na biblioteca.
   - Atualizada a lista de conquistas e lembretes ativos no `.agents/AGENTS.md`.
 
+### 32. Faixa "NOVO", Ordenação por Adicionados Recentemente / Mais Jogados, Undo de Capas e Horas Steam
+* **Problema:** Destacar novos títulos no catálogo sem ocultar outros jogos, ordenar por horas jogadas, sistema de restauração de capas do SteamGridDB e sincronização de horas jogadas da Steam.
+* **Solução:**
+  - Criada fita diagonal "NOVO" no canto superior direito dos cards de jogos e auxiliar `newGamesTracker.ts`.
+  - Adicionadas opções de ordenação `✨ Classificar por Adicionados Recentemente` e `⏱️ Classificar por Mais Jogados` no painel de filtros e cabeçalho da biblioteca.
+  - Implementado sistema de backup automático e reversão (Undo) de capas do SteamGridDB em Configurações > SteamGridDB com o botão `⏪ Reverter para Capas Anteriores`.
+  - Desenvolvido parser de `localconfig.vdf` para sincronizar automaticamente as horas jogadas dos 335+ jogos da Steam no `timestampStore`.
+  - Atualizado `.agents/AGENTS.md` registrando as novas conquistas e conquistas do sistema.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
