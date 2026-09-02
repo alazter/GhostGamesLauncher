@@ -577,7 +577,7 @@ const GameCard = ({
     },
     {
       label: t('button.hide_game', 'Hide Game'),
-      onclick: () => hiddenGames.add(appName, title),
+      onclick: () => hiddenGames.add(appName, title, runner, art_cover, cover),
       show: !isHiddenGame,
       icon: <VisibilityOff />
     },

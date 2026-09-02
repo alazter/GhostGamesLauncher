@@ -11,8 +11,10 @@ export const DialogHeader: React.FC<DialogHeaderProps> = ({ children }) => {
     <DialogTitle
       sx={{
         fontSize: 'var(--text-xl)',
-        fontWeight: 'var(--bold)',
-        paddingLeft: 0
+        fontWeight: 800,
+        color: '#ffffff !important',
+        paddingLeft: 0,
+        letterSpacing: '0.3px'
       }}
     >
       {children}

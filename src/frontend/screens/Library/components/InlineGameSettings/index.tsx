@@ -1292,26 +1292,26 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               </div>
             )}
             <button
+              type="button"
+              aria-label="close"
+              className="dialog-close-button"
               onClick={onClose}
               style={{
                 background: 'transparent',
+                backgroundColor: 'transparent',
                 border: 'none',
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '18px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                outline: 'none',
+                boxShadow: 'none',
+                padding: 0,
+                width: '28px',
+                height: '28px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.color = '#fff'
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'
+                justifyContent: 'center',
+                cursor: 'pointer'
               }}
             >
-              <FontAwesomeIcon icon={faTimes} />
+              <FontAwesomeIcon icon={faTimes} style={{ fontSize: '18px' }} />
             </button>
           </div>
         </div>

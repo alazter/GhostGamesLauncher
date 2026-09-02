@@ -154,17 +154,16 @@ export class SteamUser {
   }
 
   public static async isLoggedIn(): Promise<boolean> {
+    if (configStore.has('isLoggedIn')) {
+      return Boolean(configStore.get('isLoggedIn', false))
+    }
+
     if (configStore.has('sessionCookie') || configStore.has('apiKey')) {
       configStore.set('isLoggedIn', true)
       return true
     }
 
-    if (configStore.has('isLoggedIn')) {
-      const val = configStore.get('isLoggedIn', false)
-      if (val) return true
-    }
-
-    // Auto-detect if Steam is installed on the machine
+    // Auto-detect on initial launch ONLY if never configured/logged out
     const account = await this.getDetectedAccount()
     if (account) {
       configStore.set('isLoggedIn', true)
@@ -234,9 +233,11 @@ export class SteamUser {
     configStore.delete('username')
     configStore.delete('steamId')
     configStore.delete('steamId32')
+    configStore.delete('apiKey')
+    configStore.delete('sessionCookie')
+    configStore.set('syncMode', 'all')
     libraryStore.clear()
     libraryStore.set('games', [])
-    logInfo('Steam account disconnected', LogPrefix.Steam)
-    sendFrontendMessage('refreshLibrary', 'steam')
+    logInfo('Steam account disconnected and library cleared', LogPrefix.Steam)
   }
 }

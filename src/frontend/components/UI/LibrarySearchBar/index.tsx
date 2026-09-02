@@ -109,6 +109,10 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
     return saved !== null ? (JSON.parse(saved) as boolean) : true
   })
 
+  const [storeFilterGlowMode, setStoreFilterGlowMode] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_filter_glow_mode') || 'disabled'
+  })
+
   useEffect(() => {
     const handleStoresChange = () => {
       const saved = localStorage.getItem('heroic_custom_stores')
@@ -145,6 +149,8 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
 
       const activeOpacitySaved = localStorage.getItem('heroic_store_btn_active_opacity')
       setStoreBtnActiveOpacity(activeOpacitySaved !== null ? Number(activeOpacitySaved) : 0.25)
+
+      setStoreFilterGlowMode(localStorage.getItem('heroic_store_filter_glow_mode') || 'disabled')
     }
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     return () =>
@@ -287,7 +293,7 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
 
       {/* BARRA DE PLATAFORMAS INTERATIVA */}
       <div
-        className="platforms-bar"
+        className={`platforms-bar glow-mode-${storeFilterGlowMode}`}
         style={{
           display: 'flex',
           flexWrap: 'wrap',

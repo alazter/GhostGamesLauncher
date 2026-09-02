@@ -131,53 +131,299 @@ export default function PersonalizationScreen() {
     return saved !== null ? Number(saved) : 18
   })
 
-  const [activeAlphabetColorTab, setActiveAlphabetColorTab] = useState<'color1' | 'color2'>('color1')
-
   // ==============================================================
-  // ESTADOS DE CUSTOMIZAÇÃO DAS LOJAS
+  // ESTADOS DE CUSTOMIZAÇÃO GLOBAL (6 ÁREAS UNIFICADAS)
   // ==============================================================
-  const [rightPanelMode, setRightPanelMode] = useState<'default' | 'storeButtons' | 'alphabet' | 'sidebar'>('default')
+  const [rightPanelMode, setRightPanelMode] = useState<'default' | 'storeButtons' | 'alphabet' | 'sidebar' | 'headerControls' | 'headerButtons' | 'headerSearch'>('default')
 
+  const [storeFilterGlowMode, setStoreFilterGlowMode] = useState<'disabled' | 'neon'>(() => {
+    const saved = localStorage.getItem('heroic_store_filter_glow_mode')
+    return saved === 'neon' || saved === 'logo_only' || saved === 'logo_and_text' ? 'neon' : 'disabled'
+  })
+
+  const [actionIconsGlowMode, setActionIconsGlowMode] = useState<'disabled' | 'neon'>(() => {
+    return (localStorage.getItem('heroic_action_icons_glow_mode') as 'disabled' | 'neon') || 'disabled'
+  })
+
+  const [alphabetGlowMode, setAlphabetGlowMode] = useState<'disabled' | 'neon'>(() => {
+    return (localStorage.getItem('heroic_alphabet_glow_mode') as 'disabled' | 'neon') || 'disabled'
+  })
+
+  const [headerButtonsGlowMode, setHeaderButtonsGlowMode] = useState<'disabled' | 'neon'>(() => {
+    return (localStorage.getItem('heroic_header_buttons_glow_mode') as 'disabled' | 'neon') || 'disabled'
+  })
+
+  const [headerSearchGlowMode, setHeaderSearchGlowMode] = useState<'disabled' | 'neon'>(() => {
+    return (localStorage.getItem('heroic_header_search_glow_mode') as 'disabled' | 'neon') || 'disabled'
+  })
+
+  const [sidebarGlowMode, setSidebarGlowMode] = useState<'disabled' | 'neon'>(() => {
+    return (localStorage.getItem('heroic_sidebar_glow_mode') as 'disabled' | 'neon') || 'disabled'
+  })
+
+  const handleStoreFilterGlowModeChange = (mode: 'disabled' | 'neon') => {
+    setStoreFilterGlowMode(mode)
+    localStorage.setItem('heroic_store_filter_glow_mode', mode)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleActionIconsGlowModeChange = (mode: 'disabled' | 'neon') => {
+    setActionIconsGlowMode(mode)
+    localStorage.setItem('heroic_action_icons_glow_mode', mode)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetGlowModeChange = (mode: 'disabled' | 'neon') => {
+    setAlphabetGlowMode(mode)
+    localStorage.setItem('heroic_alphabet_glow_mode', mode)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderButtonsGlowModeChange = (mode: 'disabled' | 'neon') => {
+    setHeaderButtonsGlowMode(mode)
+    localStorage.setItem('heroic_header_buttons_glow_mode', mode)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderSearchGlowModeChange = (mode: 'disabled' | 'neon') => {
+    setHeaderSearchGlowMode(mode)
+    localStorage.setItem('heroic_header_search_glow_mode', mode)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleSidebarGlowModeChange = (mode: 'disabled' | 'neon') => {
+    setSidebarGlowMode(mode)
+    localStorage.setItem('heroic_sidebar_glow_mode', mode)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  // 1. Barra de Lojas
   const [storeBtnBgColor, setStoreBtnBgColor] = useState<string>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_bg_color')
-    return saved !== null ? saved : '#ffffff'
+    return localStorage.getItem('heroic_store_btn_color1') || localStorage.getItem('heroic_store_btn_bg_color') || '#00ffff'
   })
-
-  const [storeBtnBgOpacity, setStoreBtnBgOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_bg_opacity')
-    return saved !== null ? Number(saved) : 0
+  const [storeBtnBgColor2, setStoreBtnBgColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_color2') || localStorage.getItem('heroic_store_btn_bg_color_2') || '#38d9e6'
   })
-
-  const [storeBtnHoverOpacity, setStoreBtnHoverOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_hover_opacity')
-    return saved !== null ? Number(saved) : 0
+  const [storeBtnGradientEnabled, setStoreBtnGradientEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_gradient') || localStorage.getItem('heroic_store_btn_gradient_enabled')
+    return saved !== null ? saved === 'true' : false
   })
-
-  const [storeBtnActiveOpacity, setStoreBtnActiveOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_active_opacity')
-    return saved !== null ? Number(saved) : 0.12
+  const [storeBtnGlowColor, setStoreBtnGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_glow_color') || '#00ffff'
   })
-
+  const [storeBtnSyncGlowWithGradient, setStoreBtnSyncGlowWithGradient] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+  const [activeStoreColorTab, setActiveStoreColorTab] = useState<'color1' | 'color2' | 'glow'>('color1')
+  const [storeBtnOpacity, setStoreBtnOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_opacity')
+    return saved !== null ? Number(saved) : 1
+  })
+  const [storeBtnGlowStrength, setStoreBtnGlowStrength] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_glow_strength')
+    return saved !== null ? Number(saved) : 8
+  })
+  const [storeBtnDefaultBgColor, setStoreBtnDefaultBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_default_bg_color') || '#ffffff'
+  })
+  const [storeBtnDefaultBgOpacity, setStoreBtnDefaultBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_default_bg_opacity')
+    return saved !== null ? Number(saved) : 0.05
+  })
   const [storeBtnBorderRadius, setStoreBtnBorderRadius] = useState<number>(() => {
     const saved = localStorage.getItem('heroic_store_btn_border_radius')
     return saved !== null ? Number(saved) : 12
   })
-
-  const [storeBtnGradientEnabled, setStoreBtnGradientEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_gradient_enabled')
-    return saved !== null ? (JSON.parse(saved) as boolean) : false
-  })
-
-  const [storeBtnBgColor2, setStoreBtnBgColor2] = useState<string>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_bg_color_2')
-    return saved !== null ? saved : '#e08a1e'
-  })
-
-  const [activeStoreColorTab, setActiveStoreColorTab] = useState<'color1' | 'color2'>('color1')
-
   const [storeBtnBorderEnabled, setStoreBtnBorderEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('heroic_store_btn_border_enabled')
     return saved !== null ? (JSON.parse(saved) as boolean) : true
+  })
+
+  // 2. Filtro Alfabético & Contador
+  const [alphabetGlowColor, setAlphabetGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_btn_glow_color') || '#00ffff'
+  })
+  const [alphabetSyncGlowWithGradient, setAlphabetSyncGlowWithGradient] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_btn_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+  const [activeAlphabetColorTab, setActiveAlphabetColorTab] = useState<'color1' | 'color2' | 'glow'>('color1')
+  const [alphabetOpacity, setAlphabetOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_btn_opacity_neon') || localStorage.getItem('heroic_alphabet_btn_opacity')
+    return saved !== null ? Number(saved) : 1
+  })
+  const [alphabetGlowStrength, setAlphabetGlowStrength] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_btn_glow_strength')
+    return saved !== null ? Number(saved) : 8
+  })
+  const [alphabetDefaultBgColor, setAlphabetDefaultBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_btn_default_bg_color') || '#ffffff'
+  })
+  const [alphabetDefaultBgOpacity, setAlphabetDefaultBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity')
+    return saved !== null ? Number(saved) : 0.05
+  })
+
+  // 3. Header Search & Add Game
+  const [headerSearchColor1, setHeaderSearchColor1] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_search_color1') || '#00ffff'
+  })
+  const [headerSearchColor2, setHeaderSearchColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_search_color2') || '#38d9e6'
+  })
+  const [headerSearchGradientEnabled, setHeaderSearchGradientEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_header_search_gradient') === 'true'
+  })
+  const [headerSearchGlowColor, setHeaderSearchGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_search_glow_color') || '#00ffff'
+  })
+  const [headerSearchSyncGlowWithGradient, setHeaderSearchSyncGlowWithGradient] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_header_search_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+  const [activeHeaderSearchColorTab, setActiveHeaderSearchColorTab] = useState<'color1' | 'color2' | 'glow'>('color1')
+  const [headerSearchOpacity, setHeaderSearchOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_header_search_opacity')
+    return saved !== null ? Number(saved) : 1
+  })
+  const [headerSearchGlowStrength, setHeaderSearchGlowStrength] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_header_search_glow_strength')
+    return saved !== null ? Number(saved) : 8
+  })
+  const [headerSearchDefaultBgColor, setHeaderSearchDefaultBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_search_default_bg_color') || '#ffffff'
+  })
+  const [headerSearchDefaultBgOpacity, setHeaderSearchDefaultBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_header_search_default_bg_opacity')
+    return saved !== null ? Number(saved) : 0.05
+  })
+
+  // 4. Barra Lateral Esquerda (Sidebar)
+  const [sidebarColor1, setSidebarColor1] = useState<string>(() => {
+    return localStorage.getItem('heroic_sidebar_color1') || '#00ffff'
+  })
+  const [sidebarColor2, setSidebarColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_sidebar_color2') || '#38d9e6'
+  })
+  const [sidebarGradientEnabled, setSidebarGradientEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_sidebar_gradient') === 'true'
+  })
+  const [sidebarGlowColor, setSidebarGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_sidebar_glow_color') || '#00ffff'
+  })
+  const [sidebarSyncGlowWithGradient, setSidebarSyncGlowWithGradient] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_sidebar_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+  const [activeSidebarColorTab, setActiveSidebarColorTab] = useState<'color1' | 'color2' | 'glow'>('color1')
+  const [sidebarOpacity, setSidebarOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_sidebar_opacity')
+    return saved !== null ? Number(saved) : 1
+  })
+  const [sidebarGlowStrength, setSidebarGlowStrength] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_sidebar_glow_strength')
+    return saved !== null ? Number(saved) : 8
+  })
+  const [sidebarDefaultBgColor, setSidebarDefaultBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_sidebar_default_bg_color') || '#ffffff'
+  })
+  const [sidebarDefaultBgOpacity, setSidebarDefaultBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_sidebar_default_bg_opacity')
+    return saved !== null ? Number(saved) : 0.05
+  })
+
+  // 5. Ícones de Ação (Action Icons)
+
+  const [actionIconsColor1, setActionIconsColor1] = useState<string>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_color1')
+    return saved !== null ? saved : '#00ffff'
+  })
+
+  const [actionIconsColor2, setActionIconsColor2] = useState<string>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_color2')
+    return saved !== null ? saved : '#38d9e6'
+  })
+
+  const [actionIconsGradientEnabled, setActionIconsGradientEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_gradient')
+    return saved !== null ? saved === 'true' : false
+  })
+
+  const [actionIconsGlowColor, setActionIconsGlowColor] = useState<string>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_glow_color')
+    return saved !== null ? saved : '#00ffff'
+  })
+
+  const [actionIconsSyncGlowWithGradient, setActionIconsSyncGlowWithGradient] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+
+  const [activeActionIconsColorTab, setActiveActionIconsColorTab] = useState<'color1' | 'color2' | 'glow'>('color1')
+
+  const [actionIconsOpacity, setActionIconsOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_opacity')
+    return saved !== null ? Number(saved) : 1
+  })
+
+  const [actionIconsGlowStrength, setActionIconsGlowStrength] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_glow_strength')
+    return saved !== null ? Number(saved) : 8
+  })
+
+  const [actionIconsDefaultBgColor, setActionIconsDefaultBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_action_icons_default_bg_color') || '#ffffff'
+  })
+
+  const [actionIconsDefaultBgOpacity, setActionIconsDefaultBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_action_icons_default_bg_opacity')
+    return saved !== null ? Number(saved) : 0.05
+  })
+
+  // ==============================================================
+  // ESTADOS DE CUSTOMIZAÇÃO DOS BOTÕES DO CABEÇALHO (EDIÇÃO EM MASSA, CATEGORIAS, FILTROS)
+  // ==============================================================
+  const [headerButtonsColor1, setHeaderButtonsColor1] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_buttons_color1') || '#00ffff'
+  })
+
+  const [headerButtonsColor2, setHeaderButtonsColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_buttons_color2') || '#38d9e6'
+  })
+
+  const [headerButtonsGradientEnabled, setHeaderButtonsGradientEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_header_buttons_gradient') === 'true'
+  })
+
+  const [headerButtonsGlowColor, setHeaderButtonsGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_buttons_glow_color') || '#00ffff'
+  })
+
+  const [headerButtonsSyncGlowWithGradient, setHeaderButtonsSyncGlowWithGradient] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_header_buttons_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+
+  const [activeHeaderButtonsColorTab, setActiveHeaderButtonsColorTab] = useState<'color1' | 'color2' | 'glow'>('color1')
+
+  const [headerButtonsOpacity, setHeaderButtonsOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_header_buttons_opacity')
+    return saved !== null ? Number(saved) : 1
+  })
+
+  const [headerButtonsGlowStrength, setHeaderButtonsGlowStrength] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_header_buttons_glow_strength')
+    return saved !== null ? Number(saved) : 8
+  })
+
+  const [headerButtonsDefaultBgColor, setHeaderButtonsDefaultBgColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_header_buttons_default_bg_color') || '#ffffff'
+  })
+
+  const [headerButtonsDefaultBgOpacity, setHeaderButtonsDefaultBgOpacity] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_header_buttons_default_bg_opacity')
+    return saved !== null ? Number(saved) : 0.05
   })
 
   // ==============================================================
@@ -466,18 +712,6 @@ export default function PersonalizationScreen() {
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleAlphabetGradientToggle = (val: boolean) => {
-    setAlphabetBtnGradientEnabled(val)
-    localStorage.setItem('heroic_alphabet_btn_gradient_enabled', JSON.stringify(val))
-    window.dispatchEvent(new Event('heroicSettingsChanged'))
-  }
-
-  const handleAlphabetBorderToggle = (val: boolean) => {
-    setAlphabetBtnBorderEnabled(val)
-    localStorage.setItem('heroic_alphabet_btn_border_enabled', JSON.stringify(val))
-    window.dispatchEvent(new Event('heroicSettingsChanged'))
-  }
-
   const hexToRgb = (hex: string) => {
     const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i
     const fullHex = hex.replace(shorthandRegex, (_, r: string, g: string, b: string) => r + r + g + g + b + b)
@@ -664,17 +898,20 @@ export default function PersonalizationScreen() {
     )
   }
 
-  const handleStoreHexChange = (val: string) => {
+  // 1. Handlers da Barra de Lojas (Store Filter Bar)
+  const handleStoreColor1Change = (val: string) => {
     setStoreBtnBgColor(val)
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_color1', val)
       localStorage.setItem('heroic_store_btn_bg_color', val)
       window.dispatchEvent(new Event('heroicSettingsChanged'))
     }
   }
 
-  const handleStoreHexChange2 = (val: string) => {
+  const handleStoreColor2Change = (val: string) => {
     setStoreBtnBgColor2(val)
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_color2', val)
       localStorage.setItem('heroic_store_btn_bg_color_2', val)
       window.dispatchEvent(new Event('heroicSettingsChanged'))
     }
@@ -682,33 +919,48 @@ export default function PersonalizationScreen() {
 
   const handleStoreGradientToggle = (val: boolean) => {
     setStoreBtnGradientEnabled(val)
+    localStorage.setItem('heroic_store_btn_gradient', val ? 'true' : 'false')
     localStorage.setItem('heroic_store_btn_gradient_enabled', JSON.stringify(val))
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleStoreBorderToggle = (val: boolean) => {
-    setStoreBtnBorderEnabled(val)
-    localStorage.setItem('heroic_store_btn_border_enabled', JSON.stringify(val))
+  const handleStoreGlowColorChange = (val: string) => {
+    setStoreBtnGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleStoreSyncGlowToggle = (val: boolean) => {
+    setStoreBtnSyncGlowWithGradient(val)
+    localStorage.setItem('heroic_store_btn_sync_glow_with_gradient', val ? 'true' : 'false')
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-
-
-  const handleStoreBgOpacityChange = (val: number) => {
-    setStoreBtnBgOpacity(val)
-    localStorage.setItem('heroic_store_btn_bg_opacity', val.toString())
+  const handleStoreOpacityChange = (val: number) => {
+    setStoreBtnOpacity(val)
+    localStorage.setItem('heroic_store_btn_opacity', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleStoreHoverOpacityChange = (val: number) => {
-    setStoreBtnHoverOpacity(val)
-    localStorage.setItem('heroic_store_btn_hover_opacity', val.toString())
+  const handleStoreGlowStrengthChange = (val: number) => {
+    setStoreBtnGlowStrength(val)
+    localStorage.setItem('heroic_store_btn_glow_strength', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
-  const handleStoreActiveOpacityChange = (val: number) => {
-    setStoreBtnActiveOpacity(val)
-    localStorage.setItem('heroic_store_btn_active_opacity', val.toString())
+  const handleStoreDefaultBgColorChange = (val: string) => {
+    setStoreBtnDefaultBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_default_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleStoreDefaultBgOpacityChange = (val: number) => {
+    setStoreBtnDefaultBgOpacity(val)
+    localStorage.setItem('heroic_store_btn_default_bg_opacity', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
@@ -717,29 +969,466 @@ export default function PersonalizationScreen() {
     localStorage.setItem('heroic_store_btn_border_radius', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
+
+  // 2. Handlers do Filtro Alfabético & Contador (Alphabetical Filter & Counter)
+  const handleAlphabetColor1Change = (val: string) => {
+    setAlphabetBtnBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_alphabet_btn_color1', val)
+      localStorage.setItem('heroic_alphabet_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleAlphabetColor2Change = (val: string) => {
+    setAlphabetBtnBgColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_alphabet_btn_color2', val)
+      localStorage.setItem('heroic_alphabet_btn_bg_color_2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleAlphabetGradientToggle = (val: boolean) => {
+    setAlphabetBtnGradientEnabled(val)
+    localStorage.setItem('heroic_alphabet_btn_gradient', val ? 'true' : 'false')
+    localStorage.setItem('heroic_alphabet_btn_gradient_enabled', JSON.stringify(val))
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetGlowColorChange = (val: string) => {
+    setAlphabetGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_alphabet_btn_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleAlphabetSyncGlowToggle = (val: boolean) => {
+    setAlphabetSyncGlowWithGradient(val)
+    localStorage.setItem('heroic_alphabet_btn_sync_glow_with_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetOpacityChange = (val: number) => {
+    setAlphabetOpacity(val)
+    localStorage.setItem('heroic_alphabet_btn_opacity', val.toString())
+    localStorage.setItem('heroic_alphabet_btn_opacity_neon', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetGlowStrengthChange = (val: number) => {
+    setAlphabetGlowStrength(val)
+    localStorage.setItem('heroic_alphabet_btn_glow_strength', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetDefaultBgColorChange = (val: string) => {
+    setAlphabetDefaultBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_alphabet_btn_default_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleAlphabetDefaultBgOpacityChange = (val: number) => {
+    setAlphabetDefaultBgOpacity(val)
+    localStorage.setItem('heroic_alphabet_btn_default_bg_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  // 3. Handlers de Busca e Botão Adicionar Jogo (Header Search & Add Game)
+  const handleHeaderSearchColor1Change = (val: string) => {
+    setHeaderSearchColor1(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_search_color1', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderSearchColor2Change = (val: string) => {
+    setHeaderSearchColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_search_color2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderSearchGradientToggle = (val: boolean) => {
+    setHeaderSearchGradientEnabled(val)
+    localStorage.setItem('heroic_header_search_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderSearchGlowColorChange = (val: string) => {
+    setHeaderSearchGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_search_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderSearchSyncGlowToggle = (val: boolean) => {
+    setHeaderSearchSyncGlowWithGradient(val)
+    localStorage.setItem('heroic_header_search_sync_glow_with_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderSearchOpacityChange = (val: number) => {
+    setHeaderSearchOpacity(val)
+    localStorage.setItem('heroic_header_search_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderSearchGlowStrengthChange = (val: number) => {
+    setHeaderSearchGlowStrength(val)
+    localStorage.setItem('heroic_header_search_glow_strength', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderSearchDefaultBgColorChange = (val: string) => {
+    setHeaderSearchDefaultBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_search_default_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderSearchDefaultBgOpacityChange = (val: number) => {
+    setHeaderSearchDefaultBgOpacity(val)
+    localStorage.setItem('heroic_header_search_default_bg_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  // 4. Handlers da Barra Lateral Esquerda (Left Sidebar)
+  const handleSidebarColor1Change = (val: string) => {
+    setSidebarColor1(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_sidebar_color1', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleSidebarColor2Change = (val: string) => {
+    setSidebarColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_sidebar_color2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleSidebarGradientToggle = (val: boolean) => {
+    setSidebarGradientEnabled(val)
+    localStorage.setItem('heroic_sidebar_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleSidebarGlowColorChange = (val: string) => {
+    setSidebarGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_sidebar_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleSidebarSyncGlowToggle = (val: boolean) => {
+    setSidebarSyncGlowWithGradient(val)
+    localStorage.setItem('heroic_sidebar_sync_glow_with_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleSidebarOpacityChange = (val: number) => {
+    setSidebarOpacity(val)
+    localStorage.setItem('heroic_sidebar_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleSidebarGlowStrengthChange = (val: number) => {
+    setSidebarGlowStrength(val)
+    localStorage.setItem('heroic_sidebar_glow_strength', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleSidebarDefaultBgColorChange = (val: string) => {
+    setSidebarDefaultBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_sidebar_default_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleSidebarDefaultBgOpacityChange = (val: number) => {
+    setSidebarDefaultBgOpacity(val)
+    localStorage.setItem('heroic_sidebar_default_bg_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  // 5. Handlers dos Ícones de Ação (Action Icons)
+  const handleActionIconsColor1Change = (val: string) => {
+    setActionIconsColor1(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_action_icons_color1', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleActionIconsColor2Change = (val: string) => {
+    setActionIconsColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_action_icons_color2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleActionIconsGradientToggle = (val: boolean) => {
+    setActionIconsGradientEnabled(val)
+    localStorage.setItem('heroic_action_icons_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleActionIconsGlowColorChange = (val: string) => {
+    setActionIconsGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_action_icons_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleActionIconsSyncGlowToggle = (val: boolean) => {
+    setActionIconsSyncGlowWithGradient(val)
+    localStorage.setItem('heroic_action_icons_sync_glow_with_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleActionIconsOpacityChange = (val: number) => {
+    setActionIconsOpacity(val)
+    localStorage.setItem('heroic_action_icons_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleActionIconsGlowStrengthChange = (val: number) => {
+    setActionIconsGlowStrength(val)
+    localStorage.setItem('heroic_action_icons_glow_strength', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleActionIconsDefaultBgColorChange = (val: string) => {
+    setActionIconsDefaultBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_action_icons_default_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleActionIconsDefaultBgOpacityChange = (val: number) => {
+    setActionIconsDefaultBgOpacity(val)
+    localStorage.setItem('heroic_action_icons_default_bg_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  // 6. Handlers dos Botões do Cabeçalho (Header Buttons)
+  const handleHeaderButtonsColor1Change = (val: string) => {
+    setHeaderButtonsColor1(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_buttons_color1', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderButtonsColor2Change = (val: string) => {
+    setHeaderButtonsColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_buttons_color2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderButtonsGradientToggle = (val: boolean) => {
+    setHeaderButtonsGradientEnabled(val)
+    localStorage.setItem('heroic_header_buttons_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderButtonsGlowColorChange = (val: string) => {
+    setHeaderButtonsGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_buttons_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderButtonsSyncGlowToggle = (val: boolean) => {
+    setHeaderButtonsSyncGlowWithGradient(val)
+    localStorage.setItem('heroic_header_buttons_sync_glow_with_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderButtonsOpacityChange = (val: number) => {
+    setHeaderButtonsOpacity(val)
+    localStorage.setItem('heroic_header_buttons_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderButtonsGlowStrengthChange = (val: number) => {
+    setHeaderButtonsGlowStrength(val)
+    localStorage.setItem('heroic_header_buttons_glow_strength', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleHeaderButtonsDefaultBgColorChange = (val: string) => {
+    setHeaderButtonsDefaultBgColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_header_buttons_default_bg_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleHeaderButtonsDefaultBgOpacityChange = (val: number) => {
+    setHeaderButtonsDefaultBgOpacity(val)
+    localStorage.setItem('heroic_header_buttons_default_bg_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
   // ==============================================================
 
-  const alphabetRgb = hexToRgb(alphabetBtnBgColor)
-  const alphabetHsl = rgbToHsl(alphabetRgb.r, alphabetRgb.g, alphabetRgb.b)
-  const alphabetRgb2 = hexToRgb(alphabetBtnBgColor2)
-  const alphabetHsl2 = rgbToHsl(alphabetRgb2.r, alphabetRgb2.g, alphabetRgb2.b)
+  // Computações de Cores - 1. Barra de Lojas
+  let currentEditingStoreColor = storeBtnBgColor
+  let currentEditingStoreHandler = handleStoreColor1Change
+  if (activeStoreColorTab === 'glow') {
+    currentEditingStoreColor = storeBtnGlowColor
+    currentEditingStoreHandler = handleStoreGlowColorChange
+  } else if (storeBtnGradientEnabled && activeStoreColorTab === 'color2') {
+    currentEditingStoreColor = storeBtnBgColor2
+    currentEditingStoreHandler = handleStoreColor2Change
+  }
+  const rgbStore = hexToRgb(currentEditingStoreColor)
+  const currentEditingStoreHsl = rgbToHsl(rgbStore.r, rgbStore.g, rgbStore.b)
+  const rgbStore1 = hexToRgb(storeBtnBgColor)
+  const rgbStore2 = hexToRgb(storeBtnBgColor2)
+  const rgbStoreGlow = hexToRgb(storeBtnGlowColor)
+  const rgbStoreDefaultBg = hexToRgb(storeBtnDefaultBgColor)
+  const storeDefaultBgHsl = rgbToHsl(rgbStoreDefaultBg.r, rgbStoreDefaultBg.g, rgbStoreDefaultBg.b)
+  const effectivePreviewStoreGlow1 = storeBtnSyncGlowWithGradient ? storeBtnBgColor : storeBtnGlowColor
+  const effectivePreviewStoreGlow2 = storeBtnSyncGlowWithGradient ? storeBtnBgColor2 : storeBtnGlowColor
+  const effectiveRgbPreviewStoreGlow1 = storeBtnSyncGlowWithGradient ? rgbStore1 : rgbStoreGlow
+  const effectiveRgbPreviewStoreGlow2 = storeBtnSyncGlowWithGradient ? rgbStore2 : rgbStoreGlow
 
-  const isEditingAlphabetColor2 = alphabetBtnGradientEnabled && activeAlphabetColorTab === 'color2'
-  const currentEditingAlphabetColor = isEditingAlphabetColor2 ? alphabetBtnBgColor2 : alphabetBtnBgColor
-  const currentEditingAlphabetHsl = isEditingAlphabetColor2 ? alphabetHsl2 : alphabetHsl
-  const currentEditingAlphabetHandler = isEditingAlphabetColor2 ? handleAlphabetHexChange2 : handleAlphabetHexChange
+  // Computações de Cores - 2. Filtro Alfabético & Contador
+  let currentEditingAlphabetColor = alphabetBtnBgColor
+  let currentEditingAlphabetHandler = handleAlphabetColor1Change
+  if (activeAlphabetColorTab === 'glow') {
+    currentEditingAlphabetColor = alphabetGlowColor
+    currentEditingAlphabetHandler = handleAlphabetGlowColorChange
+  } else if (alphabetBtnGradientEnabled && activeAlphabetColorTab === 'color2') {
+    currentEditingAlphabetColor = alphabetBtnBgColor2
+    currentEditingAlphabetHandler = handleAlphabetColor2Change
+  }
+  const rgbAlphabet = hexToRgb(currentEditingAlphabetColor)
+  const currentEditingAlphabetHsl = rgbToHsl(rgbAlphabet.r, rgbAlphabet.g, rgbAlphabet.b)
+  const rgbAlphabet1 = hexToRgb(alphabetBtnBgColor)
+  const rgbAlphabet2 = hexToRgb(alphabetBtnBgColor2)
+  const rgbAlphabetGlow = hexToRgb(alphabetGlowColor)
+  const rgbAlphabetDefaultBg = hexToRgb(alphabetDefaultBgColor)
+  const alphabetDefaultBgHsl = rgbToHsl(rgbAlphabetDefaultBg.r, rgbAlphabetDefaultBg.g, rgbAlphabetDefaultBg.b)
+  const effectivePreviewAlphabetGlow1 = alphabetSyncGlowWithGradient ? alphabetBtnBgColor : alphabetGlowColor
+  const effectivePreviewAlphabetGlow2 = alphabetSyncGlowWithGradient ? alphabetBtnBgColor2 : alphabetGlowColor
+  const effectiveRgbPreviewAlphabetGlow1 = alphabetSyncGlowWithGradient ? rgbAlphabet1 : rgbAlphabetGlow
+  const effectiveRgbPreviewAlphabetGlow2 = alphabetSyncGlowWithGradient ? rgbAlphabet2 : rgbAlphabetGlow
 
-  const storeRgb = hexToRgb(storeBtnBgColor)
-  const storeHsl = rgbToHsl(storeRgb.r, storeRgb.g, storeRgb.b)
-  const storeRgb2 = hexToRgb(storeBtnBgColor2)
-  const storeHsl2 = rgbToHsl(storeRgb2.r, storeRgb2.g, storeRgb2.b)
+  // Computações de Cores - 3. Header Search & Add Game
+  let currentEditingHeaderSearchColor = headerSearchColor1
+  let currentEditingHeaderSearchHandler = handleHeaderSearchColor1Change
+  if (activeHeaderSearchColorTab === 'glow') {
+    currentEditingHeaderSearchColor = headerSearchGlowColor
+    currentEditingHeaderSearchHandler = handleHeaderSearchGlowColorChange
+  } else if (headerSearchGradientEnabled && activeHeaderSearchColorTab === 'color2') {
+    currentEditingHeaderSearchColor = headerSearchColor2
+    currentEditingHeaderSearchHandler = handleHeaderSearchColor2Change
+  }
+  const rgbHeaderSearch = hexToRgb(currentEditingHeaderSearchColor)
+  const currentEditingHeaderSearchHsl = rgbToHsl(rgbHeaderSearch.r, rgbHeaderSearch.g, rgbHeaderSearch.b)
+  const rgbHeaderSearch1 = hexToRgb(headerSearchColor1)
+  const rgbHeaderSearch2 = hexToRgb(headerSearchColor2)
+  const rgbHeaderSearchGlow = hexToRgb(headerSearchGlowColor)
+  const rgbHeaderSearchDefaultBg = hexToRgb(headerSearchDefaultBgColor)
+  const headerSearchDefaultBgHsl = rgbToHsl(rgbHeaderSearchDefaultBg.r, rgbHeaderSearchDefaultBg.g, rgbHeaderSearchDefaultBg.b)
+  const effectivePreviewHeaderSearchGlow1 = headerSearchSyncGlowWithGradient ? headerSearchColor1 : headerSearchGlowColor
+  const effectivePreviewHeaderSearchGlow2 = headerSearchSyncGlowWithGradient ? headerSearchColor2 : headerSearchGlowColor
+  const effectiveRgbPreviewHeaderSearchGlow1 = headerSearchSyncGlowWithGradient ? rgbHeaderSearch1 : rgbHeaderSearchGlow
+  const effectiveRgbPreviewHeaderSearchGlow2 = headerSearchSyncGlowWithGradient ? rgbHeaderSearch2 : rgbHeaderSearchGlow
 
-  const isEditingColor2 = storeBtnGradientEnabled && activeStoreColorTab === 'color2'
-  const currentEditingColor = isEditingColor2 ? storeBtnBgColor2 : storeBtnBgColor
-  const currentEditingHsl = isEditingColor2 ? storeHsl2 : storeHsl
-  const currentEditingHandler = isEditingColor2 ? handleStoreHexChange2 : handleStoreHexChange
+  // Computações de Cores - 4. Barra Lateral Esquerda (Sidebar)
+  let currentEditingSidebarColor = sidebarColor1
+  let currentEditingSidebarHandler = handleSidebarColor1Change
+  if (activeSidebarColorTab === 'glow') {
+    currentEditingSidebarColor = sidebarGlowColor
+    currentEditingSidebarHandler = handleSidebarGlowColorChange
+  } else if (sidebarGradientEnabled && activeSidebarColorTab === 'color2') {
+    currentEditingSidebarColor = sidebarColor2
+    currentEditingSidebarHandler = handleSidebarColor2Change
+  }
+  const rgbSidebar = hexToRgb(currentEditingSidebarColor)
+  const currentEditingSidebarHsl = rgbToHsl(rgbSidebar.r, rgbSidebar.g, rgbSidebar.b)
+  const rgbSidebar1 = hexToRgb(sidebarColor1)
+  const rgbSidebar2 = hexToRgb(sidebarColor2)
+  const rgbSidebarGlow = hexToRgb(sidebarGlowColor)
+  const rgbSidebarDefaultBg = hexToRgb(sidebarDefaultBgColor)
+  const sidebarDefaultBgHsl = rgbToHsl(rgbSidebarDefaultBg.r, rgbSidebarDefaultBg.g, rgbSidebarDefaultBg.b)
+  const effectivePreviewSidebarGlow1 = sidebarSyncGlowWithGradient ? sidebarColor1 : sidebarGlowColor
+  const effectivePreviewSidebarGlow2 = sidebarSyncGlowWithGradient ? sidebarColor2 : sidebarGlowColor
+  const effectiveRgbPreviewSidebarGlow1 = sidebarSyncGlowWithGradient ? rgbSidebar1 : rgbSidebarGlow
+  const effectiveRgbPreviewSidebarGlow2 = sidebarSyncGlowWithGradient ? rgbSidebar2 : rgbSidebarGlow
+
+  // Computações de Cores - 5. Ícones de Ação (Action Icons)
+  let currentEditingActionIconsColor = actionIconsColor1
+  let currentEditingActionIconsHandler = handleActionIconsColor1Change
+
+  if (activeActionIconsColorTab === 'glow') {
+    currentEditingActionIconsColor = actionIconsGlowColor
+    currentEditingActionIconsHandler = handleActionIconsGlowColorChange
+  } else if (actionIconsGradientEnabled && activeActionIconsColorTab === 'color2') {
+    currentEditingActionIconsColor = actionIconsColor2
+    currentEditingActionIconsHandler = handleActionIconsColor2Change
+  }
+
+  const rgbActionIcons = hexToRgb(currentEditingActionIconsColor)
+  const currentEditingActionIconsHsl = rgbToHsl(rgbActionIcons.r, rgbActionIcons.g, rgbActionIcons.b)
+  const rgbAction1 = hexToRgb(actionIconsColor1)
+  const rgbAction2 = hexToRgb(actionIconsColor2)
+  const rgbActionGlow = hexToRgb(actionIconsGlowColor)
+  const rgbActionDefaultBg = hexToRgb(actionIconsDefaultBgColor)
+  const actionDefaultBgHsl = rgbToHsl(rgbActionDefaultBg.r, rgbActionDefaultBg.g, rgbActionDefaultBg.b)
+
+  const effectivePreviewGlow1 = actionIconsSyncGlowWithGradient ? actionIconsColor1 : actionIconsGlowColor
+  const effectivePreviewGlow2 = actionIconsSyncGlowWithGradient ? actionIconsColor2 : actionIconsGlowColor
+  const effectiveRgbPreviewGlow1 = actionIconsSyncGlowWithGradient ? rgbAction1 : rgbActionGlow
+  const effectiveRgbPreviewGlow2 = actionIconsSyncGlowWithGradient ? rgbAction2 : rgbActionGlow
+
+  // Computações de Cores - 6. Botões do Cabeçalho (Header Buttons)
+  let currentEditingHeaderButtonsColor = headerButtonsColor1
+  let currentEditingHeaderButtonsHandler = handleHeaderButtonsColor1Change
+
+  if (activeHeaderButtonsColorTab === 'glow') {
+    currentEditingHeaderButtonsColor = headerButtonsGlowColor
+    currentEditingHeaderButtonsHandler = handleHeaderButtonsGlowColorChange
+  } else if (headerButtonsGradientEnabled && activeHeaderButtonsColorTab === 'color2') {
+    currentEditingHeaderButtonsColor = headerButtonsColor2
+    currentEditingHeaderButtonsHandler = handleHeaderButtonsColor2Change
+  }
+
+  const rgbHeaderButtons = hexToRgb(currentEditingHeaderButtonsColor)
+  const currentEditingHeaderButtonsHsl = rgbToHsl(rgbHeaderButtons.r, rgbHeaderButtons.g, rgbHeaderButtons.b)
+  const rgbHeader1 = hexToRgb(headerButtonsColor1)
+  const rgbHeader2 = hexToRgb(headerButtonsColor2)
+  const rgbHeaderGlow = hexToRgb(headerButtonsGlowColor)
+  const rgbHeaderDefaultBg = hexToRgb(headerButtonsDefaultBgColor)
+  const headerDefaultBgHsl = rgbToHsl(rgbHeaderDefaultBg.r, rgbHeaderDefaultBg.g, rgbHeaderDefaultBg.b)
+
+  const effectivePreviewHeaderGlow1 = headerButtonsSyncGlowWithGradient ? headerButtonsColor1 : headerButtonsGlowColor
+  const effectivePreviewHeaderGlow2 = headerButtonsSyncGlowWithGradient ? headerButtonsColor2 : headerButtonsGlowColor
+  const effectiveRgbPreviewHeaderGlow1 = headerButtonsSyncGlowWithGradient ? rgbHeader1 : rgbHeaderGlow
+  const effectiveRgbPreviewHeaderGlow2 = headerButtonsSyncGlowWithGradient ? rgbHeader2 : rgbHeaderGlow
   
-  const { r, g, b } = alphabetRgb
+  const { r, g, b } = rgbAlphabet1
   const luminance = 0.299 * r + 0.587 * g + 0.114 * b
   const isLightColor = luminance > 140
   const useDarkText = isLightColor && alphabetBtnBgOpacity > 0.4
@@ -2147,7 +2836,24 @@ export default function PersonalizationScreen() {
           >
             {/* SIMULATED SIDEBAR */}
             <div
-              className={`preview-sidebar ${sidebarPosition === 'right' ? 'sidebar-on-right' : ''}`}
+              className={`preview-sidebar ${sidebarPosition === 'right' ? 'sidebar-on-right' : ''} ${sidebarGlowMode === 'neon' ? 'preview-sidebar--neon' : ''} ${sidebarGradientEnabled ? 'preview-sidebar--gradient' : ''} ${rightPanelMode === 'sidebar' ? 'preview-sidebar--selected' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setRightPanelMode('sidebar')
+              }}
+              style={{
+                cursor: 'pointer',
+                '--preview-sidebar-color-1': sidebarColor1,
+                '--preview-sidebar-color-2': sidebarColor2,
+                '--preview-sidebar-glow-color-1': effectivePreviewSidebarGlow1,
+                '--preview-sidebar-glow-color-2': effectivePreviewSidebarGlow2,
+                '--preview-sidebar-opacity': sidebarOpacity,
+                '--preview-sidebar-glow-strength': `${sidebarGlowStrength}px`,
+                '--preview-sidebar-glow-rgba-1': `rgba(${effectiveRgbPreviewSidebarGlow1.r}, ${effectiveRgbPreviewSidebarGlow1.g}, ${effectiveRgbPreviewSidebarGlow1.b}, ${Math.min(1, 0.9 * sidebarOpacity)})`,
+                '--preview-sidebar-glow-rgba-2': `rgba(${effectiveRgbPreviewSidebarGlow2.r}, ${effectiveRgbPreviewSidebarGlow2.g}, ${effectiveRgbPreviewSidebarGlow2.b}, ${Math.min(1, 0.9 * sidebarOpacity)})`,
+                '--preview-sidebar-default-bg-color': `rgba(${rgbSidebarDefaultBg.r}, ${rgbSidebarDefaultBg.g}, ${rgbSidebarDefaultBg.b}, ${sidebarDefaultBgOpacity})`,
+                '--preview-sidebar-default-border-color': `rgba(${rgbSidebarDefaultBg.r}, ${rgbSidebarDefaultBg.g}, ${rgbSidebarDefaultBg.b}, ${Math.min(1, sidebarDefaultBgOpacity * 2.5)})`
+              } as React.CSSProperties}
             >
               <div className="preview-sidebar-logo-container">
                 <div 
@@ -2222,7 +2928,26 @@ export default function PersonalizationScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '15px' }}>
                   {/* Lado Esquerdo: Navegação, Busca, Botão Adicionar e Ícones */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className="preview-search-wrapper">
+                    <div 
+                      className={`preview-search-wrapper ${headerSearchGlowMode === 'neon' ? 'preview-search--neon' : ''} ${headerSearchGradientEnabled ? 'preview-search--gradient' : ''} ${rightPanelMode === 'headerSearch' ? 'preview-search--selected' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setRightPanelMode('headerSearch')
+                      }}
+                      style={{
+                        cursor: 'pointer',
+                        '--preview-search-color-1': headerSearchColor1,
+                        '--preview-search-color-2': headerSearchColor2,
+                        '--preview-search-glow-color-1': effectivePreviewHeaderSearchGlow1,
+                        '--preview-search-glow-color-2': effectivePreviewHeaderSearchGlow2,
+                        '--preview-search-opacity': headerSearchOpacity,
+                        '--preview-search-glow-strength': `${headerSearchGlowStrength}px`,
+                        '--preview-search-glow-rgba-1': `rgba(${effectiveRgbPreviewHeaderSearchGlow1.r}, ${effectiveRgbPreviewHeaderSearchGlow1.g}, ${effectiveRgbPreviewHeaderSearchGlow1.b}, ${Math.min(1, 0.9 * headerSearchOpacity)})`,
+                        '--preview-search-glow-rgba-2': `rgba(${effectiveRgbPreviewHeaderSearchGlow2.r}, ${effectiveRgbPreviewHeaderSearchGlow2.g}, ${effectiveRgbPreviewHeaderSearchGlow2.b}, ${Math.min(1, 0.9 * headerSearchOpacity)})`,
+                        '--preview-search-default-bg-color': `rgba(${rgbHeaderSearchDefaultBg.r}, ${rgbHeaderSearchDefaultBg.g}, ${rgbHeaderSearchDefaultBg.b}, ${headerSearchDefaultBgOpacity})`,
+                        '--preview-search-default-border-color': `rgba(${rgbHeaderSearchDefaultBg.r}, ${rgbHeaderSearchDefaultBg.g}, ${rgbHeaderSearchDefaultBg.b}, ${Math.min(1, headerSearchDefaultBgOpacity * 2.5)})`
+                      } as React.CSSProperties}
+                    >
                       <div className="preview-search-bar">
                         <svg aria-hidden="true" focusable="false" className="preview-search-icon-svg" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
                           <path fill="currentColor" d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"></path>
@@ -2246,33 +2971,64 @@ export default function PersonalizationScreen() {
                     </div>
 
                     {/* Botão + ADICIONAR JOGO */}
-                    <button style={{
-                      fontFamily: 'var(--secondary-font-family)',
-                      borderRadius: '24px',
-                      color: 'var(--text-tertiary, #151921)',
-                      background: 'var(--primary-button, var(--accent, #3cf2e6))',
-                      height: '48px',
-                      padding: '0 20px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: 'none',
-                      cursor: 'default',
-                      textTransform: 'uppercase',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap'
-                    }}>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setRightPanelMode('headerSearch')
+                      }}
+                      style={{
+                        fontFamily: 'var(--secondary-font-family)',
+                        borderRadius: '24px',
+                        color: 'var(--text-tertiary, #151921)',
+                        background: 'var(--primary-button, var(--accent, #3cf2e6))',
+                        height: '48px',
+                        padding: '0 20px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textTransform: 'uppercase',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
                       + ADICIONAR JOGO
                     </button>
 
                     {/* Ícones de Ação mockados */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'rgba(255,255,255,0.6)', fontSize: '18px', marginLeft: '8px' }}>
-                      <span title="Exibição em Lista" style={{ cursor: 'default' }}>☰</span>
-                      <span title="Ordenar" style={{ cursor: 'default' }}>⇅</span>
-                      <span title="Exibição em Grade" style={{ cursor: 'default', color: '#fff' }}>☷</span>
-                      <span title="Ocultar Instalados" style={{ cursor: 'default' }}>👁</span>
-                      <span title="Recarregar" style={{ cursor: 'default' }}>↻</span>
+                    <div 
+                      className={`preview-action-icons ${actionIconsGlowMode === 'neon' ? 'preview-action-icons--neon' : ''} ${actionIconsGradientEnabled ? 'preview-action-icons--gradient' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setRightPanelMode('headerControls')
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '18px',
+                        marginLeft: '8px',
+                        cursor: 'pointer',
+                        '--preview-action-color-1': actionIconsColor1,
+                        '--preview-action-color-2': actionIconsColor2,
+                        '--preview-action-glow-color-1': effectivePreviewGlow1,
+                        '--preview-action-glow-color-2': effectivePreviewGlow2,
+                        '--preview-action-opacity': actionIconsOpacity,
+                        '--preview-action-glow-strength': `${actionIconsGlowStrength}px`,
+                        '--preview-action-glow-rgba-1': `rgba(${effectiveRgbPreviewGlow1.r}, ${effectiveRgbPreviewGlow1.g}, ${effectiveRgbPreviewGlow1.b}, ${Math.min(1, 0.9 * actionIconsOpacity)})`,
+                        '--preview-action-glow-rgba-2': `rgba(${effectiveRgbPreviewGlow2.r}, ${effectiveRgbPreviewGlow2.g}, ${effectiveRgbPreviewGlow2.b}, ${Math.min(1, 0.9 * actionIconsOpacity)})`,
+                        '--preview-action-default-bg-color': `rgba(${rgbActionDefaultBg.r}, ${rgbActionDefaultBg.g}, ${rgbActionDefaultBg.b}, ${actionIconsDefaultBgOpacity})`,
+                        '--preview-action-default-border-color': `rgba(${rgbActionDefaultBg.r}, ${rgbActionDefaultBg.g}, ${rgbActionDefaultBg.b}, ${Math.min(1, actionIconsDefaultBgOpacity * 2)})`
+                      } as React.CSSProperties}
+                    >
+                      <span title="Exibição em Lista">☰</span>
+                      <span title="Ordenar">⇅</span>
+                      <span title="Exibição em Grade" style={{ color: '#fff' }}>☷</span>
+                      <span title="Ocultar Instalados">👁</span>
+                      <span title="Recarregar">↻</span>
                     </div>
 
                     {/* Switch de Layout Novo Modo / Modo Antigo Real */}
@@ -2292,7 +3048,29 @@ export default function PersonalizationScreen() {
                   </div>
 
                   {/* Lado Direito: Filtros mockados */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div 
+                    className={`preview-header-buttons ${headerButtonsGlowMode === 'neon' ? 'preview-header-buttons--neon' : ''} ${headerButtonsGradientEnabled ? 'preview-header-buttons--gradient' : ''} ${rightPanelMode === 'headerButtons' ? 'preview-header-buttons--selected' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setRightPanelMode('headerButtons')
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      cursor: 'pointer',
+                      '--preview-header-color-1': headerButtonsColor1,
+                      '--preview-header-color-2': headerButtonsColor2,
+                      '--preview-header-glow-color-1': effectivePreviewHeaderGlow1,
+                      '--preview-header-glow-color-2': effectivePreviewHeaderGlow2,
+                      '--preview-header-opacity': headerButtonsOpacity,
+                      '--preview-header-glow-strength': `${headerButtonsGlowStrength}px`,
+                      '--preview-header-glow-rgba-1': `rgba(${effectiveRgbPreviewHeaderGlow1.r}, ${effectiveRgbPreviewHeaderGlow1.g}, ${effectiveRgbPreviewHeaderGlow1.b}, ${Math.min(1, 0.9 * headerButtonsOpacity)})`,
+                      '--preview-header-glow-rgba-2': `rgba(${effectiveRgbPreviewHeaderGlow2.r}, ${effectiveRgbPreviewHeaderGlow2.g}, ${effectiveRgbPreviewHeaderGlow2.b}, ${Math.min(1, 0.9 * headerButtonsOpacity)})`,
+                      '--preview-header-default-bg-color': `rgba(${rgbHeaderDefaultBg.r}, ${rgbHeaderDefaultBg.g}, ${rgbHeaderDefaultBg.b}, ${headerButtonsDefaultBgOpacity})`,
+                      '--preview-header-default-border-color': `rgba(${rgbHeaderDefaultBg.r}, ${rgbHeaderDefaultBg.g}, ${rgbHeaderDefaultBg.b}, ${Math.min(1, headerButtonsDefaultBgOpacity * 3)})`
+                    } as React.CSSProperties}
+                  >
                     <button style={{
                       background: 'transparent',
                       border: '1px solid rgba(255,255,255,0.2)',
@@ -2300,7 +3078,7 @@ export default function PersonalizationScreen() {
                       padding: '8px 16px',
                       fontSize: '13px',
                       color: 'rgba(255,255,255,0.8)',
-                      cursor: 'default',
+                      cursor: 'pointer',
                       whiteSpace: 'nowrap'
                     }}>
                       Edição em Massa
@@ -2315,7 +3093,7 @@ export default function PersonalizationScreen() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      cursor: 'default'
+                      cursor: 'pointer'
                     }}>
                       <span>Categorias</span>
                       <span style={{ fontSize: '8px' }}>▼</span>
@@ -2330,7 +3108,7 @@ export default function PersonalizationScreen() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      cursor: 'default'
+                      cursor: 'pointer'
                     }}>
                       <span>Filtros</span>
                       <span style={{ fontSize: '8px' }}>▼</span>
@@ -2340,37 +3118,25 @@ export default function PersonalizationScreen() {
 
                 {/* LINHA 2: Barra de Lojas / Plataformas */}
                 <div 
-                  className={`preview-platforms-bar ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''}`}
+                  className={`preview-platforms-bar ${storeFilterGlowMode === 'neon' ? 'preview-platforms-bar--neon' : ''} ${storeBtnGradientEnabled ? 'preview-platforms-bar--gradient' : ''} ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setRightPanelMode('storeButtons');
                   }}
                   style={{
+                    cursor: 'pointer',
                     '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
                     '--store-btn-border-width': storeBtnBorderEnabled ? '1px' : '0px',
-                    '--store-btn-bg': storeBtnGradientEnabled
-                      ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnBgOpacity}) 100%)`
-                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity})`,
-                    '--store-btn-border-color': storeBtnBorderEnabled
-                      ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnBgOpacity * 2.5)})`
-                      : 'transparent',
-                    '--store-btn-hover-bg': storeBtnGradientEnabled
-                      ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnHoverOpacity}) 100%)`
-                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity})`,
-                    '--store-btn-hover-border-color': storeBtnBorderEnabled
-                      ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnHoverOpacity * 2.5)})`
-                      : 'transparent',
-                    '--store-btn-active-bg-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
-                    '--store-btn-active-bg-end': storeBtnGradientEnabled
-                      ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnActiveOpacity})`
-                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
-                    '--store-btn-active-border-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
-                    '--store-btn-active-border-end': storeBtnGradientEnabled
-                      ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`
-                      : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
-                    '--store-btn-shadow-color': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, 0.2)`,
-                    '--store-btn-backdrop-filter': storeBtnBgOpacity === 0 ? 'none' : 'blur(12px)',
-                    '--store-btn-hover-backdrop-filter': storeBtnHoverOpacity === 0 ? 'none' : 'blur(12px)'
+                    '--preview-store-color-1': storeBtnBgColor,
+                    '--preview-store-color-2': storeBtnBgColor2,
+                    '--preview-store-glow-color-1': effectivePreviewStoreGlow1,
+                    '--preview-store-glow-color-2': effectivePreviewStoreGlow2,
+                    '--preview-store-opacity': storeBtnOpacity,
+                    '--preview-store-glow-strength': `${storeBtnGlowStrength}px`,
+                    '--preview-store-glow-rgba-1': `rgba(${effectiveRgbPreviewStoreGlow1.r}, ${effectiveRgbPreviewStoreGlow1.g}, ${effectiveRgbPreviewStoreGlow1.b}, ${Math.min(1, 0.9 * storeBtnOpacity)})`,
+                    '--preview-store-glow-rgba-2': `rgba(${effectiveRgbPreviewStoreGlow2.r}, ${effectiveRgbPreviewStoreGlow2.g}, ${effectiveRgbPreviewStoreGlow2.b}, ${Math.min(1, 0.9 * storeBtnOpacity)})`,
+                    '--preview-store-default-bg-color': `rgba(${rgbStoreDefaultBg.r}, ${rgbStoreDefaultBg.g}, ${rgbStoreDefaultBg.b}, ${storeBtnDefaultBgOpacity})`,
+                    '--preview-store-default-border-color': `rgba(${rgbStoreDefaultBg.r}, ${rgbStoreDefaultBg.g}, ${rgbStoreDefaultBg.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5)})`
                   } as React.CSSProperties}
                 >
                   {stores
@@ -2426,7 +3192,16 @@ export default function PersonalizationScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                   <h5 className="preview-title" style={{ margin: 0, padding: 0 }}>
                     Todos os Jogos
-                    <span className="preview-title-count">6</span>
+                    <span 
+                      className={`preview-title-count ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''}`}
+                      style={alphabetGlowMode === 'neon' ? {
+                        color: '#38d9e6',
+                        textShadow: '0 0 4px rgba(0,229,255,0.6)',
+                        boxShadow: '0 0 8px rgba(0,229,255,0.25)'
+                      } : {}}
+                    >
+                      6
+                    </span>
                   </h5>
                 </div>
 
@@ -2443,45 +3218,23 @@ export default function PersonalizationScreen() {
                   }}
                 >
                   <div
-                    className={`preview-alphabet-container ${rightPanelMode === 'alphabet' ? 'preview-alphabet-container--selected' : ''}`}
+                    className={`preview-alphabet-container ${alphabetGlowMode === 'neon' ? 'preview-alphabet--neon' : ''} ${alphabetBtnGradientEnabled ? 'preview-alphabet--gradient' : ''} ${rightPanelMode === 'alphabet' ? 'preview-alphabet-container--selected' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setRightPanelMode('alphabet');
                     }}
                     style={{
-                      '--base-r': r,
-                      '--base-g': g,
-                      '--base-b': b,
-                      '--bg-op': alphabetBgOpacity,
-                      '--alphabet-backdrop-filter': alphabetBgOpacity === 0 ? 'none' : 'blur(12px)',
-                      '--txt-color': btnTextColor,
-                      '--disabled-txt-color': btnDisabledTextColor,
-                      '--active-bg': activeBtnBg,
-                      '--alphabet-btn-border-radius': `${alphabetBtnBorderRadius}px`,
-                      '--alphabet-btn-border-width': alphabetBtnBorderEnabled ? '1px' : '0px',
-                      '--alphabet-btn-bg': alphabetBtnGradientEnabled
-                        ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${alphabetBtnBgOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${alphabetBtnBgOpacity}) 100%)`
-                        : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${alphabetBtnBgOpacity})`,
-                      '--alphabet-btn-border-color': alphabetBtnBorderEnabled
-                        ? `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, alphabetBtnBgOpacity * 2.5)})`
-                        : 'transparent',
-                      '--alphabet-btn-hover-bg': alphabetBtnGradientEnabled
-                        ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${alphabetBtnHoverOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${alphabetBtnHoverOpacity}) 100%)`
-                        : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${alphabetBtnHoverOpacity})`,
-                      '--alphabet-btn-hover-border-color': alphabetBtnBorderEnabled
-                        ? `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, alphabetBtnHoverOpacity * 2.5)})`
-                        : 'transparent',
-                      '--alphabet-btn-active-bg-start': `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${alphabetBtnActiveOpacity})`,
-                      '--alphabet-btn-active-bg-end': alphabetBtnGradientEnabled
-                        ? `rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${alphabetBtnActiveOpacity})`
-                        : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${alphabetBtnActiveOpacity})`,
-                      '--alphabet-btn-active-border-start': `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(0.85, alphabetBtnActiveOpacity * 2)})`,
-                      '--alphabet-btn-active-border-end': alphabetBtnGradientEnabled
-                        ? `rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${Math.min(0.85, alphabetBtnActiveOpacity * 2)})`
-                        : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(0.85, alphabetBtnActiveOpacity * 2)})`,
-                      '--alphabet-btn-shadow-color': `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, 0.2)`,
-                      '--alphabet-btn-backdrop-filter': alphabetBtnBgOpacity === 0 ? 'none' : 'blur(12px)',
-                      '--alphabet-btn-hover-backdrop-filter': alphabetBtnHoverOpacity === 0 ? 'none' : 'blur(12px)',
+                      cursor: 'pointer',
+                      '--preview-alphabet-color-1': alphabetBtnBgColor,
+                      '--preview-alphabet-color-2': alphabetBtnBgColor2,
+                      '--preview-alphabet-glow-color-1': effectivePreviewAlphabetGlow1,
+                      '--preview-alphabet-glow-color-2': effectivePreviewAlphabetGlow2,
+                      '--preview-alphabet-opacity': alphabetOpacity,
+                      '--preview-alphabet-glow-strength': `${alphabetGlowStrength}px`,
+                      '--preview-alphabet-glow-rgba-1': `rgba(${effectiveRgbPreviewAlphabetGlow1.r}, ${effectiveRgbPreviewAlphabetGlow1.g}, ${effectiveRgbPreviewAlphabetGlow1.b}, ${Math.min(1, 0.9 * alphabetOpacity)})`,
+                      '--preview-alphabet-glow-rgba-2': `rgba(${effectiveRgbPreviewAlphabetGlow2.r}, ${effectiveRgbPreviewAlphabetGlow2.g}, ${effectiveRgbPreviewAlphabetGlow2.b}, ${Math.min(1, 0.9 * alphabetOpacity)})`,
+                      '--preview-alphabet-default-bg-color': `rgba(${rgbAlphabetDefaultBg.r}, ${rgbAlphabetDefaultBg.g}, ${rgbAlphabetDefaultBg.b}, ${alphabetDefaultBgOpacity})`,
+                      '--preview-alphabet-default-border-color': `rgba(${rgbAlphabetDefaultBg.r}, ${rgbAlphabetDefaultBg.g}, ${rgbAlphabetDefaultBg.b}, ${Math.min(1, alphabetDefaultBgOpacity * 2.5)})`,
                       width: alphabetAlignment === 'fill' ? '100%' : 'auto',
                       justifyContent: alphabetAlignment === 'fill' ? 'space-between' : 'center'
                     } as React.CSSProperties}
@@ -2936,12 +3689,320 @@ export default function PersonalizationScreen() {
                   ⚙️ Personalizar Botões do Alfabeto
                 </button>
               </div>
+
+              {/* SEÇÃO 3: ATALHOS PARA CUSTOMIZAÇÃO VISUAL UNIFICADA */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  marginTop: '20px'
+                }}
+              >
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Personalização de Elementos da Interface
+                </span>
+
+                {/* 1. Atalho Barra de Lojas */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      🏪 Barra de Filtro de Lojas
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize estilo padrão vs neon suave, cores, degradê e bordas dos botões de lojas
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRightPanelMode('storeButtons')}
+                    style={{
+                      background: '#00e5ff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#00b3cc'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#00e5ff'
+                    }}
+                  >
+                    🏪 Personalizar Filtro de Lojas
+                  </button>
+                </div>
+
+                {/* 2. Atalho Filtro Alfabético & Contador */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      🔤 Filtro Alfabético & Contador
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize estilo padrão vs neon suave, cores, degradê e transparência das letras A-Z
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRightPanelMode('alphabet')}
+                    style={{
+                      background: '#00e5ff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#00b3cc'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#00e5ff'
+                    }}
+                  >
+                    🔤 Personalizar Filtro Alfabético
+                  </button>
+                </div>
+
+                {/* 3. Atalho Busca & Botão Adicionar Jogo */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      🔍 Barra de Busca & Adicionar Jogos
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize estilo padrão vs neon suave, cores e degradê da barra de busca e botão de adicionar
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRightPanelMode('headerSearch')}
+                    style={{
+                      background: '#00e5ff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#00b3cc'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#00e5ff'
+                    }}
+                  >
+                    🔍 Personalizar Busca & Adicionar
+                  </button>
+                </div>
+
+                {/* 4. Atalho Barra Lateral Esquerda */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      📑 Barra Lateral (Navegação & Ferramentas)
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize estilo padrão vs neon suave, cores, degradê e brilho dos ícones da barra lateral
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRightPanelMode('sidebar')}
+                    style={{
+                      background: '#00e5ff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#00b3cc'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#00e5ff'
+                    }}
+                  >
+                    📑 Personalizar Barra Lateral
+                  </button>
+                </div>
+
+                {/* 5. Atalho Ícones de Ação */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      🎛️ Ícones de Ação (Grade, Ordenação, etc.)
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize as cores, degradê, transparência e força do brilho dos ícones do topo
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRightPanelMode('headerControls')}
+                    style={{
+                      background: '#00e5ff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#00b3cc'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#00e5ff'
+                    }}
+                  >
+                    🎛️ Personalizar Ícones de Ação
+                  </button>
+                </div>
+
+                {/* 6. Atalho Botões de Ação */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    padding: '12px 15px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}
+                >
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      🏷️ Botões de Ação (Edição, Categorias, Filtros)
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Personalize o estilo neon, degradê vetorial e fundo dos botões do cabeçalho
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setRightPanelMode('headerButtons')}
+                    style={{
+                      background: '#00e5ff',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 10px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#00b3cc'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#00e5ff'
+                    }}
+                  >
+                    🏷️ Personalizar Botões de Ação
+                  </button>
+                </div>
+              </div>
             </>
           ) : rightPanelMode === 'storeButtons' ? (
             <>
-              {/* SEÇÃO 1: PERSONALIZAÇÃO DAS LOJAS */}
+              {/* PAINEL 1: BARRA DE FILTRO DE LOJAS */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <span style={styles.sectionTitle}>PERSONALIZAÇÃO DAS LOJAS</span>
+                <span style={styles.sectionTitle}>BARRA DE FILTRO DE LOJAS</span>
                 <button
                   onClick={() => setRightPanelMode('default')}
                   style={{
@@ -2970,7 +4031,6 @@ export default function PersonalizationScreen() {
                 </button>
               </div>
 
-              {/* Controles das Lojas */}
               <div
                 style={{
                   display: 'flex',
@@ -2987,277 +4047,425 @@ export default function PersonalizationScreen() {
                     Estilo dos Botões de Lojas
                   </span>
                   <span style={styles.toggleSub}>
-                    Personalize a cor, opacidade e o arredondamento das bordas
+                    Personalize o estilo padrão vs neon suave, cores, degradê e brilho dos botões de lojas
                   </span>
                 </div>
 
-                {/* Sub-seção 1: Arredondamento */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span style={{ color: '#fff' }}>Arredondamento das Bordas</span>
-                    <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{storeBtnBorderRadius}px</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                    <input
-                      type="range"
-                      min="0"
-                      max="30"
-                      step="1"
-                      value={storeBtnBorderRadius}
-                      onChange={(e) => handleStoreBorderRadiusChange(Number(e.target.value))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleStoreFilterGlowModeChange('disabled')}
                       style={{
-                        width: '100%',
-                        accentColor: '#4CAF50',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        height: '6px',
-                        borderRadius: '3px',
-                        cursor: 'pointer'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Divisor Sutil */}
-                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-
-                {/* Sub-seção 3: Cores */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        {storeBtnGradientEnabled ? 'Configuração de Cores' : 'Alterar cor de fundo'}
-                      </span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
-                        <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
-                          <input
-                            type="checkbox"
-                            checked={storeBtnGradientEnabled}
-                            onChange={(e) => handleStoreGradientToggle(e.target.checked)}
-                          />
-                          <span className="premium-slider"></span>
-                        </label>
-                      </label>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Borda do Botão</span>
-                      <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={storeBtnBorderEnabled}
-                          onChange={(e) => handleStoreBorderToggle(e.target.checked)}
-                        />
-                        <span className="premium-slider"></span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Tabs de seleção de cores em caso de degrade ativo */}
-                  {storeBtnGradientEnabled && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        background: 'rgba(0, 0, 0, 0.3)',
+                        background: storeFilterGlowMode === 'disabled' ? '#00e5ff' : 'transparent',
+                        color: storeFilterGlowMode === 'disabled' ? '#000' : '#fff',
+                        border: 'none',
                         borderRadius: '6px',
-                        padding: '3px',
-                        gap: '4px',
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: storeFilterGlowMode === 'disabled' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
                       }}
                     >
-                      <button
-                        onClick={() => setActiveStoreColorTab('color1')}
-                        style={{
-                          flex: 1,
-                          height: '28px',
-                          background: activeStoreColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                          color: '#fff',
-                          border: activeStoreColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          outline: 'none'
-                        }}
-                      >
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
-                        Cor Inicial
-                      </button>
-                      <button
-                        onClick={() => setActiveStoreColorTab('color2')}
-                        style={{
-                          flex: 1,
-                          height: '28px',
-                          background: activeStoreColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                          color: '#fff',
-                          border: activeStoreColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          outline: 'none'
-                        }}
-                      >
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
-                        Cor Final
-                      </button>
+                      ⚪ Padrão (Manter como está)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStoreFilterGlowModeChange('neon')}
+                      style={{
+                        background: storeFilterGlowMode === 'neon' ? '#00e5ff' : 'transparent',
+                        color: storeFilterGlowMode === 'neon' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: storeFilterGlowMode === 'neon' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚡ Novo Estilo Neon Suave
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {storeFilterGlowMode === 'disabled'
+                      ? 'Mantém o estilo padrão dos botões de lojas com cápsula translúcida customizável.'
+                      : 'Aplica iluminação neon suave e contorno brilhante nos botões de lojas.'}
+                  </span>
+
+                  {/* Configurações Modo Neon */}
+                  {storeFilterGlowMode === 'neon' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {storeBtnGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                          <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={storeBtnGradientEnabled}
+                              onChange={(e) => handleStoreGradientToggle(e.target.checked)}
+                            />
+                            <span className="premium-slider"></span>
+                          </label>
+                        </label>
+                      </div>
+
+                      {storeBtnGradientEnabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px',
+                              gap: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveStoreColorTab('color1')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeStoreColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeStoreColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Inicial
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveStoreColorTab('color2')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeStoreColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeStoreColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Final
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveStoreColorTab('glow')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeStoreColorTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeStoreColorTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Glow
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                            <button
+                              type="button"
+                              onClick={() => handleStoreSyncGlowToggle(!storeBtnSyncGlowWithGradient)}
+                              style={{
+                                background: storeBtnSyncGlowWithGradient ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                color: storeBtnSyncGlowWithGradient ? '#00e5ff' : '#fff',
+                                border: storeBtnSyncGlowWithGradient ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '11px',
+                                fontWeight: storeBtnSyncGlowWithGradient ? 'bold' : 'normal',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              {storeBtnSyncGlowWithGradient ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <SVBox hexColor={currentEditingStoreColor} onChange={currentEditingStoreHandler} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={currentEditingStoreHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(currentEditingStoreColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              currentEditingStoreHandler(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': currentEditingStoreColor,
+                              '--thumb-border-color': currentEditingStoreColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={currentEditingStoreColor.replace('#', '')}
+                            onChange={(e) => currentEditingStoreHandler('#' + e.target.value)}
+                            placeholder="00ffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: currentEditingStoreColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.01"
+                            value={storeBtnOpacity}
+                            onChange={(e) => handleStoreOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Força do Efeito Neon (Glow)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{storeBtnGlowStrength}px</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="1"
+                            value={storeBtnGlowStrength}
+                            onChange={(e) => handleStoreGlowStrengthChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* 2D SV Box */}
-                  <SVBox hexColor={currentEditingColor} onChange={currentEditingHandler} />
+                  {/* Configurações Modo Padrão */}
+                  {storeFilterGlowMode === 'disabled' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Cor do Fundo Padrão
+                        </span>
+                      </div>
 
-                  {/* Hue Slider */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="360"
-                        value={currentEditingHsl.h}
-                        onChange={(e) => {
-                          const hVal = Number(e.target.value)
-                          const rgbVal = hexToRgb(currentEditingColor)
-                          const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
-                          const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
-                          const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-                          currentEditingHandler(hex)
-                        }}
-                        className="color-picker-range hue-picker-range"
-                        style={{
-                          '--thumb-color': currentEditingColor,
-                          '--thumb-border-color': currentEditingColor
-                        } as React.CSSProperties}
-                      />
+                      <SVBox hexColor={storeBtnDefaultBgColor} onChange={handleStoreDefaultBgColorChange} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={storeDefaultBgHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(storeBtnDefaultBgColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              handleStoreDefaultBgColorChange(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': storeBtnDefaultBgColor,
+                              '--thumb-border-color': storeBtnDefaultBgColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={storeBtnDefaultBgColor.replace('#', '')}
+                            onChange={(e) => handleStoreDefaultBgColorChange('#' + e.target.value)}
+                            placeholder="ffffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: storeBtnDefaultBgColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnDefaultBgOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={storeBtnDefaultBgOpacity}
+                            onChange={(e) => handleStoreDefaultBgOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Hex Input and Color Preview */}
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        gap: '10px',
-                        width: '100%',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
-                      <input
-                        type="text"
-                        value={currentEditingColor.replace('#', '')}
-                        onChange={(e) => currentEditingHandler('#' + e.target.value)}
-                        placeholder="ffffff"
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#fff',
-                          fontSize: '14px',
-                          outline: 'none',
-                          width: '100%',
-                          fontFamily: 'monospace'
-                        }}
-                      />
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '4px',
-                          backgroundColor: currentEditingColor,
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          flexShrink: 0
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Divisor Sutil */}
-                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-
-                {/* Sub-seção 2: Transparência */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Slider 1: Opacidade do Fundo */}
+                  {/* Arredondamento das Bordas comum a ambos os modos */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: '#fff' }}>Opacidade do Fundo (Alpha)</span>
-                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnBgOpacity * 100)}%</span>
+                      <span style={{ color: '#fff' }}>Arredondamento das Bordas</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{storeBtnBorderRadius}px</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
                       <input
                         type="range"
                         min="0"
-                        max="1"
-                        step="0.01"
-                        value={storeBtnBgOpacity}
-                        onChange={(e) => handleStoreBgOpacityChange(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          accentColor: '#4CAF50',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          height: '6px',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Slider 2: Opacidade no Hover */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: '#fff' }}>Opacidade no Hover</span>
-                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnHoverOpacity * 100)}%</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={storeBtnHoverOpacity}
-                        onChange={(e) => handleStoreHoverOpacityChange(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          accentColor: '#4CAF50',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          height: '6px',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Slider 3: Opacidade Selecionada */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: '#fff' }}>Opacidade Selecionada (Alpha)</span>
-                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnActiveOpacity * 100)}%</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={storeBtnActiveOpacity}
-                        onChange={(e) => handleStoreActiveOpacityChange(Number(e.target.value))}
+                        max="30"
+                        step="1"
+                        value={storeBtnBorderRadius}
+                        onChange={(e) => handleStoreBorderRadiusChange(Number(e.target.value))}
                         style={{
                           width: '100%',
                           accentColor: '#4CAF50',
@@ -3272,11 +4480,11 @@ export default function PersonalizationScreen() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : rightPanelMode === 'alphabet' ? (
             <>
-              {/* SEÇÃO 2: PERSONALIZAÇÃO DO ALFABETO */}
+              {/* PAINEL 2: FILTRO ALFABÉTICO & CONTADOR */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <span style={styles.sectionTitle}>PERSONALIZAÇÃO DO ALFABETO</span>
+                <span style={styles.sectionTitle}>FILTRO ALFABÉTICO & CONTADOR</span>
                 <button
                   onClick={() => setRightPanelMode('default')}
                   style={{
@@ -3305,7 +4513,6 @@ export default function PersonalizationScreen() {
                 </button>
               </div>
 
-              {/* Controles do Alfabeto */}
               <div
                 style={{
                   display: 'flex',
@@ -3319,295 +4526,2278 @@ export default function PersonalizationScreen() {
               >
                 <div style={styles.toggleTextGroup}>
                   <span style={styles.toggleTitle}>
-                    Estilo dos Botões do Alfabeto
+                    Estilo das Letras A-Z e Contador
                   </span>
                   <span style={styles.toggleSub}>
-                    Personalize a cor, opacidade e o arredondamento das bordas
+                    Personalize o estilo padrão vs neon suave, cores, degradê e brilho do filtro alfabético
                   </span>
                 </div>
 
-                {/* Sub-seção 1: Arredondamento */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                    <span style={{ color: '#fff' }}>Arredondamento das Bordas</span>
-                    <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{alphabetBtnBorderRadius}px</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                    <input
-                      type="range"
-                      min="0"
-                      max="18"
-                      step="1"
-                      value={alphabetBtnBorderRadius}
-                      onChange={(e) => handleAlphabetBorderRadiusChange(Number(e.target.value))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleAlphabetGlowModeChange('disabled')}
                       style={{
-                        width: '100%',
-                        accentColor: '#4CAF50',
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        height: '6px',
-                        borderRadius: '3px',
-                        cursor: 'pointer'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Divisor Sutil */}
-                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-
-                {/* Sub-seção 3: Cores */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        {alphabetBtnGradientEnabled ? 'Configuração de Cores' : 'Alterar cor de fundo'}
-                      </span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
-                        <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
-                          <input
-                            type="checkbox"
-                            checked={alphabetBtnGradientEnabled}
-                            onChange={(e) => handleAlphabetGradientToggle(e.target.checked)}
-                          />
-                          <span className="premium-slider"></span>
-                        </label>
-                      </label>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Borda do Botão</span>
-                      <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={alphabetBtnBorderEnabled}
-                          onChange={(e) => handleAlphabetBorderToggle(e.target.checked)}
-                        />
-                        <span className="premium-slider"></span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Tabs de seleção de cores em caso de degrade ativo */}
-                  {alphabetBtnGradientEnabled && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        background: 'rgba(0, 0, 0, 0.3)',
+                        background: alphabetGlowMode === 'disabled' ? '#00e5ff' : 'transparent',
+                        color: alphabetGlowMode === 'disabled' ? '#000' : '#fff',
+                        border: 'none',
                         borderRadius: '6px',
-                        padding: '3px',
-                        gap: '4px',
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: alphabetGlowMode === 'disabled' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
                       }}
                     >
-                      <button
-                        onClick={() => setActiveAlphabetColorTab('color1')}
-                        style={{
-                          flex: 1,
-                          height: '28px',
-                          background: activeAlphabetColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                          color: '#fff',
-                          border: activeAlphabetColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          outline: 'none'
-                        }}
-                      >
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetBtnBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
-                        Cor Inicial
-                      </button>
-                      <button
-                        onClick={() => setActiveAlphabetColorTab('color2')}
-                        style={{
-                          flex: 1,
-                          height: '28px',
-                          background: activeAlphabetColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                          color: '#fff',
-                          border: activeAlphabetColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          outline: 'none'
-                        }}
-                      >
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetBtnBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
-                        Cor Final
-                      </button>
+                      ⚪ Padrão (Manter como está)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAlphabetGlowModeChange('neon')}
+                      style={{
+                        background: alphabetGlowMode === 'neon' ? '#00e5ff' : 'transparent',
+                        color: alphabetGlowMode === 'neon' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: alphabetGlowMode === 'neon' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚡ Novo Estilo Neon Suave
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {alphabetGlowMode === 'disabled'
+                      ? 'Mantém a aparência padrão das letras A-Z com fundo customizável.'
+                      : 'Aplica iluminação neon suave e contorno brilhante nas letras e contador.'}
+                  </span>
+
+                  {/* Configurações Modo Neon */}
+                  {alphabetGlowMode === 'neon' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {alphabetBtnGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                          <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={alphabetBtnGradientEnabled}
+                              onChange={(e) => handleAlphabetGradientToggle(e.target.checked)}
+                            />
+                            <span className="premium-slider"></span>
+                          </label>
+                        </label>
+                      </div>
+
+                      {alphabetBtnGradientEnabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px',
+                              gap: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveAlphabetColorTab('color1')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeAlphabetColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeAlphabetColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetBtnBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Inicial
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveAlphabetColorTab('color2')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeAlphabetColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeAlphabetColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetBtnBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Final
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveAlphabetColorTab('glow')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeAlphabetColorTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeAlphabetColorTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Glow
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                            <button
+                              type="button"
+                              onClick={() => handleAlphabetSyncGlowToggle(!alphabetSyncGlowWithGradient)}
+                              style={{
+                                background: alphabetSyncGlowWithGradient ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                color: alphabetSyncGlowWithGradient ? '#00e5ff' : '#fff',
+                                border: alphabetSyncGlowWithGradient ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '11px',
+                                fontWeight: alphabetSyncGlowWithGradient ? 'bold' : 'normal',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              {alphabetSyncGlowWithGradient ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <SVBox hexColor={currentEditingAlphabetColor} onChange={currentEditingAlphabetHandler} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={currentEditingAlphabetHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(currentEditingAlphabetColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              currentEditingAlphabetHandler(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': currentEditingAlphabetColor,
+                              '--thumb-border-color': currentEditingAlphabetColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={currentEditingAlphabetColor.replace('#', '')}
+                            onChange={(e) => currentEditingAlphabetHandler('#' + e.target.value)}
+                            placeholder="00ffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: currentEditingAlphabetColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.01"
+                            value={alphabetOpacity}
+                            onChange={(e) => handleAlphabetOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Força do Efeito Neon (Glow)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{alphabetGlowStrength}px</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="1"
+                            value={alphabetGlowStrength}
+                            onChange={(e) => handleAlphabetGlowStrengthChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {/* 2D SV Box */}
-                  <SVBox hexColor={currentEditingAlphabetColor} onChange={currentEditingAlphabetHandler} />
+                  {/* Configurações Modo Padrão */}
+                  {alphabetGlowMode === 'disabled' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Cor do Fundo Padrão
+                        </span>
+                      </div>
 
-                  {/* Hue Slider */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="360"
-                        value={currentEditingAlphabetHsl.h}
-                        onChange={(e) => {
-                          const hVal = Number(e.target.value)
-                          const rgbVal = hexToRgb(currentEditingAlphabetColor)
-                          const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
-                          const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
-                          const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-                          currentEditingAlphabetHandler(hex)
-                        }}
-                        className="color-picker-range hue-picker-range"
-                        style={{
-                          '--thumb-color': currentEditingAlphabetColor,
-                          '--thumb-border-color': currentEditingAlphabetColor
-                        } as React.CSSProperties}
-                      />
-                    </div>
-                  </div>
+                      <SVBox hexColor={alphabetDefaultBgColor} onChange={handleAlphabetDefaultBgColorChange} />
 
-                  {/* Hex Input and Color Preview */}
-                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        gap: '10px',
-                        width: '100%',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
-                      <input
-                        type="text"
-                        value={currentEditingAlphabetColor.replace('#', '')}
-                        onChange={(e) => currentEditingAlphabetHandler('#' + e.target.value)}
-                        placeholder="ffffff"
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#fff',
-                          fontSize: '14px',
-                          outline: 'none',
-                          width: '100%',
-                          fontFamily: 'monospace'
-                        }}
-                      />
-                      <div
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '4px',
-                          backgroundColor: currentEditingAlphabetColor,
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          flexShrink: 0
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={alphabetDefaultBgHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(alphabetDefaultBgColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              handleAlphabetDefaultBgColorChange(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': alphabetDefaultBgColor,
+                              '--thumb-border-color': alphabetDefaultBgColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
 
-                {/* Divisor Sutil */}
-                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={alphabetDefaultBgColor.replace('#', '')}
+                            onChange={(e) => handleAlphabetDefaultBgColorChange('#' + e.target.value)}
+                            placeholder="ffffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: alphabetDefaultBgColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
 
-                {/* Sub-seção 2: Transparência */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Slider 1: Opacidade do Fundo */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: '#fff' }}>Opacidade do Fundo (Alpha)</span>
-                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBtnBgOpacity * 100)}%</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetDefaultBgOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={alphabetDefaultBgOpacity}
+                            onChange={(e) => handleAlphabetDefaultBgOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={alphabetBtnBgOpacity}
-                        onChange={(e) => handleAlphabetBtnOpacityChange(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          accentColor: '#4CAF50',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          height: '6px',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Slider 2: Opacidade no Hover */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: '#fff' }}>Opacidade no Hover</span>
-                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBtnHoverOpacity * 100)}%</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={alphabetBtnHoverOpacity}
-                        onChange={(e) => handleAlphabetHoverOpacityChange(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          accentColor: '#4CAF50',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          height: '6px',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Slider 3: Opacidade Selecionada */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                      <span style={{ color: '#fff' }}>Opacidade Selecionada (Alpha)</span>
-                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetBtnActiveOpacity * 100)}%</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={alphabetBtnActiveOpacity}
-                        onChange={(e) => handleAlphabetActiveOpacityChange(Number(e.target.value))}
-                        style={{
-                          width: '100%',
-                          accentColor: '#4CAF50',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          height: '6px',
-                          borderRadius: '3px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </>
-          )}
+          ) : rightPanelMode === 'headerSearch' ? (
+            <>
+              {/* PAINEL 3: BARRA DE BUSCA & ADICIONAR JOGO */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <span style={styles.sectionTitle}>BUSCA E ADICIONAR JOGOS</span>
+                <button
+                  onClick={() => setRightPanelMode('default')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  ← Voltar
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Estilo da Busca e Botão Adicionar Jogo
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Personalize o estilo padrão vs neon suave, cores, degradê e glow da busca e botão adicionar
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleHeaderSearchGlowModeChange('disabled')}
+                      style={{
+                        background: headerSearchGlowMode === 'disabled' ? '#00e5ff' : 'transparent',
+                        color: headerSearchGlowMode === 'disabled' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: headerSearchGlowMode === 'disabled' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚪ Padrão (Manter como está)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleHeaderSearchGlowModeChange('neon')}
+                      style={{
+                        background: headerSearchGlowMode === 'neon' ? '#00e5ff' : 'transparent',
+                        color: headerSearchGlowMode === 'neon' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: headerSearchGlowMode === 'neon' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚡ Novo Estilo Neon Suave
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {headerSearchGlowMode === 'disabled'
+                      ? 'Mantém a barra de busca e botão adicionar com o fundo padrão customizável.'
+                      : 'Aplica iluminação neon suave e contornos brilhantes nos campos de busca e botões de adicionar.'}
+                  </span>
+
+                  {/* Configurações Modo Neon */}
+                  {headerSearchGlowMode === 'neon' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {headerSearchGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                          <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={headerSearchGradientEnabled}
+                              onChange={(e) => handleHeaderSearchGradientToggle(e.target.checked)}
+                            />
+                            <span className="premium-slider"></span>
+                          </label>
+                        </label>
+                      </div>
+
+                      {headerSearchGradientEnabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px',
+                              gap: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveHeaderSearchColorTab('color1')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeHeaderSearchColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeHeaderSearchColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: headerSearchColor1, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Inicial
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHeaderSearchColorTab('color2')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeHeaderSearchColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeHeaderSearchColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: headerSearchColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Final
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHeaderSearchColorTab('glow')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeHeaderSearchColorTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeHeaderSearchColorTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: headerSearchGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Glow
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                            <button
+                              type="button"
+                              onClick={() => handleHeaderSearchSyncGlowToggle(!headerSearchSyncGlowWithGradient)}
+                              style={{
+                                background: headerSearchSyncGlowWithGradient ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                color: headerSearchSyncGlowWithGradient ? '#00e5ff' : '#fff',
+                                border: headerSearchSyncGlowWithGradient ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '11px',
+                                fontWeight: headerSearchSyncGlowWithGradient ? 'bold' : 'normal',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              {headerSearchSyncGlowWithGradient ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <SVBox hexColor={currentEditingHeaderSearchColor} onChange={currentEditingHeaderSearchHandler} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={currentEditingHeaderSearchHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(currentEditingHeaderSearchColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              currentEditingHeaderSearchHandler(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': currentEditingHeaderSearchColor,
+                              '--thumb-border-color': currentEditingHeaderSearchColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={currentEditingHeaderSearchColor.replace('#', '')}
+                            onChange={(e) => currentEditingHeaderSearchHandler('#' + e.target.value)}
+                            placeholder="00ffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: currentEditingHeaderSearchColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(headerSearchOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.01"
+                            value={headerSearchOpacity}
+                            onChange={(e) => handleHeaderSearchOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Força do Efeito Neon (Glow)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{headerSearchGlowStrength}px</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="1"
+                            value={headerSearchGlowStrength}
+                            onChange={(e) => handleHeaderSearchGlowStrengthChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configurações Modo Padrão */}
+                  {headerSearchGlowMode === 'disabled' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Cor do Fundo Padrão
+                        </span>
+                      </div>
+
+                      <SVBox hexColor={headerSearchDefaultBgColor} onChange={handleHeaderSearchDefaultBgColorChange} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={headerSearchDefaultBgHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(headerSearchDefaultBgColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              handleHeaderSearchDefaultBgColorChange(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': headerSearchDefaultBgColor,
+                              '--thumb-border-color': headerSearchDefaultBgColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={headerSearchDefaultBgColor.replace('#', '')}
+                            onChange={(e) => handleHeaderSearchDefaultBgColorChange('#' + e.target.value)}
+                            placeholder="ffffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: headerSearchDefaultBgColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(headerSearchDefaultBgOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={headerSearchDefaultBgOpacity}
+                            onChange={(e) => handleHeaderSearchDefaultBgOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : rightPanelMode === 'sidebar' ? (
+            <>
+              {/* PAINEL 4: BARRA LATERAL ESQUERDA */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <span style={styles.sectionTitle}>BARRA LATERAL (NAVEGAÇÃO)</span>
+                <button
+                  onClick={() => setRightPanelMode('default')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  ← Voltar
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Estilo dos Ícones da Barra Lateral
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Personalize o estilo padrão vs neon suave, cores, degradê e glow dos ícones da barra lateral
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleSidebarGlowModeChange('disabled')}
+                      style={{
+                        background: sidebarGlowMode === 'disabled' ? '#00e5ff' : 'transparent',
+                        color: sidebarGlowMode === 'disabled' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: sidebarGlowMode === 'disabled' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚪ Padrão (Manter como está)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSidebarGlowModeChange('neon')}
+                      style={{
+                        background: sidebarGlowMode === 'neon' ? '#00e5ff' : 'transparent',
+                        color: sidebarGlowMode === 'neon' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: sidebarGlowMode === 'neon' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚡ Novo Estilo Neon Suave
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {sidebarGlowMode === 'disabled'
+                      ? 'Mantém os ícones da barra lateral com estilo padrão e fundo customizável.'
+                      : 'No hover e no estado ativo, os ícones acendem com iluminação neon suave e contorno brilhante.'}
+                  </span>
+
+                  {/* Configurações Modo Neon */}
+                  {sidebarGlowMode === 'neon' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {sidebarGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                          <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={sidebarGradientEnabled}
+                              onChange={(e) => handleSidebarGradientToggle(e.target.checked)}
+                            />
+                            <span className="premium-slider"></span>
+                          </label>
+                        </label>
+                      </div>
+
+                      {sidebarGradientEnabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px',
+                              gap: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveSidebarColorTab('color1')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeSidebarColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeSidebarColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sidebarColor1, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Inicial
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveSidebarColorTab('color2')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeSidebarColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeSidebarColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sidebarColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Final
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveSidebarColorTab('glow')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeSidebarColorTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeSidebarColorTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: sidebarGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Glow
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                            <button
+                              type="button"
+                              onClick={() => handleSidebarSyncGlowToggle(!sidebarSyncGlowWithGradient)}
+                              style={{
+                                background: sidebarSyncGlowWithGradient ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                color: sidebarSyncGlowWithGradient ? '#00e5ff' : '#fff',
+                                border: sidebarSyncGlowWithGradient ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '11px',
+                                fontWeight: sidebarSyncGlowWithGradient ? 'bold' : 'normal',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              {sidebarSyncGlowWithGradient ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <SVBox hexColor={currentEditingSidebarColor} onChange={currentEditingSidebarHandler} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={currentEditingSidebarHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(currentEditingSidebarColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              currentEditingSidebarHandler(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': currentEditingSidebarColor,
+                              '--thumb-border-color': currentEditingSidebarColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={currentEditingSidebarColor.replace('#', '')}
+                            onChange={(e) => currentEditingSidebarHandler('#' + e.target.value)}
+                            placeholder="00ffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: currentEditingSidebarColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(sidebarOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.01"
+                            value={sidebarOpacity}
+                            onChange={(e) => handleSidebarOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Força do Efeito Neon (Glow)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{sidebarGlowStrength}px</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="1"
+                            value={sidebarGlowStrength}
+                            onChange={(e) => handleSidebarGlowStrengthChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configurações Modo Padrão */}
+                  {sidebarGlowMode === 'disabled' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Cor do Fundo Padrão
+                        </span>
+                      </div>
+
+                      <SVBox hexColor={sidebarDefaultBgColor} onChange={handleSidebarDefaultBgColorChange} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={sidebarDefaultBgHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(sidebarDefaultBgColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              handleSidebarDefaultBgColorChange(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': sidebarDefaultBgColor,
+                              '--thumb-border-color': sidebarDefaultBgColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={sidebarDefaultBgColor.replace('#', '')}
+                            onChange={(e) => handleSidebarDefaultBgColorChange('#' + e.target.value)}
+                            placeholder="ffffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: sidebarDefaultBgColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(sidebarDefaultBgOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={sidebarDefaultBgOpacity}
+                            onChange={(e) => handleSidebarDefaultBgOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : rightPanelMode === 'headerControls' ? (
+            <>
+              {/* SEÇÃO 3: ÍCONES DE AÇÃO DO CABEÇALHO */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <span style={styles.sectionTitle}>ÍCONES DE AÇÃO DO CABEÇALHO</span>
+                <button
+                  onClick={() => setRightPanelMode('default')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  ← Voltar
+                </button>
+              </div>
+
+              {/* Controles dos Ícones de Ação */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Ícones de Ação (Grade, Ordenação, Filtros, Atualizar)
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Personalize o estilo neon, cores, degradê e glow dos 6 ícones de ação da biblioteca
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleActionIconsGlowModeChange('disabled')}
+                      style={{
+                        background: actionIconsGlowMode === 'disabled' ? '#00e5ff' : 'transparent',
+                        color: actionIconsGlowMode === 'disabled' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: actionIconsGlowMode === 'disabled' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚪ Padrão (Manter como está)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleActionIconsGlowModeChange('neon')}
+                      style={{
+                        background: actionIconsGlowMode === 'neon' ? '#00e5ff' : 'transparent',
+                        color: actionIconsGlowMode === 'neon' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: actionIconsGlowMode === 'neon' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚡ Novo Estilo Neon Suave
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {actionIconsGlowMode === 'disabled'
+                      ? 'Mantém o estilo padrão atual dos 6 ícones de ação da biblioteca.'
+                      : 'No hover e no estado ativo, os ícones acendem com o efeito neon totalmente customizado abaixo.'}
+                  </span>
+
+                  {/* Personalização Avançada de Cores, Transparência, Força e Degradê dos Ícones de Ação */}
+                  {actionIconsGlowMode === 'neon' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      {/* Top Bar: Título + Switch de Degradê */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {actionIconsGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                          <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={actionIconsGradientEnabled}
+                              onChange={(e) => handleActionIconsGradientToggle(e.target.checked)}
+                            />
+                            <span className="premium-slider"></span>
+                          </label>
+                        </label>
+                      </div>
+
+                      {/* Tabs de Seleção de Cores em caso de Degradê Ativo */}
+                      {actionIconsGradientEnabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px',
+                              gap: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveActionIconsColorTab('color1')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeActionIconsColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeActionIconsColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: actionIconsColor1, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Inicial
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveActionIconsColorTab('color2')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeActionIconsColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeActionIconsColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: actionIconsColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Final
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveActionIconsColorTab('glow')
+                                if (actionIconsSyncGlowWithGradient) {
+                                  handleActionIconsSyncGlowToggle(false)
+                                }
+                              }}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeActionIconsColorTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeActionIconsColorTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: actionIconsSyncGlowWithGradient ? `linear-gradient(135deg, ${actionIconsColor1}, ${actionIconsColor2})` : actionIconsGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor do Glow
+                            </button>
+                          </div>
+
+                          {/* Botão de Sincronizar Cor do Glow com o Degradê das duas primeiras cores */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                            <button
+                              type="button"
+                              onClick={() => handleActionIconsSyncGlowToggle(!actionIconsSyncGlowWithGradient)}
+                              style={{
+                                background: actionIconsSyncGlowWithGradient ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                color: actionIconsSyncGlowWithGradient ? '#00e5ff' : '#fff',
+                                border: actionIconsSyncGlowWithGradient ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '11px',
+                                fontWeight: actionIconsSyncGlowWithGradient ? 'bold' : 'normal',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              {actionIconsSyncGlowWithGradient ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2D SV Box */}
+                      <SVBox hexColor={currentEditingActionIconsColor} onChange={currentEditingActionIconsHandler} />
+
+                      {/* Hue Slider */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={currentEditingActionIconsHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(currentEditingActionIconsColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              currentEditingActionIconsHandler(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': currentEditingActionIconsColor,
+                              '--thumb-border-color': currentEditingActionIconsColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hex Input and Color Preview */}
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={currentEditingActionIconsColor.replace('#', '')}
+                            onChange={(e) => currentEditingActionIconsHandler('#' + e.target.value)}
+                            placeholder="00ffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: currentEditingActionIconsColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider 1: Transparência (Opacidade do Efeito) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(actionIconsOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.01"
+                            value={actionIconsOpacity}
+                            onChange={(e) => handleActionIconsOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider 2: Força do Efeito Neon (Intensidade do Glow) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Força do Efeito Neon (Glow)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{actionIconsGlowStrength}px</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="1"
+                            value={actionIconsGlowStrength}
+                            onChange={(e) => handleActionIconsGlowStrengthChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Personalização do Fundo Padrão (Background e Transparência) */}
+                  {actionIconsGlowMode === 'disabled' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Cor do Fundo Padrão
+                        </span>
+                      </div>
+
+                      {/* 2D SV Box */}
+                      <SVBox hexColor={actionIconsDefaultBgColor} onChange={handleActionIconsDefaultBgColorChange} />
+
+                      {/* Hue Slider */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={actionDefaultBgHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(actionIconsDefaultBgColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              handleActionIconsDefaultBgColorChange(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': actionIconsDefaultBgColor,
+                              '--thumb-border-color': actionIconsDefaultBgColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hex Input and Color Preview */}
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={actionIconsDefaultBgColor.replace('#', '')}
+                            onChange={(e) => handleActionIconsDefaultBgColorChange('#' + e.target.value)}
+                            placeholder="ffffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: actionIconsDefaultBgColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider: Transparência do Fundo (Alpha) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(actionIconsDefaultBgOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={actionIconsDefaultBgOpacity}
+                            onChange={(e) => handleActionIconsDefaultBgOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : rightPanelMode === 'headerButtons' ? (
+            <>
+              {/* SEÇÃO 4: BOTÕES DE AÇÃO DO CABEÇALHO */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <span style={styles.sectionTitle}>BOTÕES DE AÇÃO DO CABEÇALHO</span>
+                <button
+                  onClick={() => setRightPanelMode('default')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                  }}
+                >
+                  ← Voltar
+                </button>
+              </div>
+
+              {/* Controles dos Botões de Ação */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Botões de Ação (Edição em Massa, Categorias, Filtros)
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Personalize o estilo e contorno neon dos botões de ação e menus superiores
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(255, 255, 255, 0.05)', padding: '4px', borderRadius: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleHeaderButtonsGlowModeChange('disabled')}
+                      style={{
+                        background: headerButtonsGlowMode === 'disabled' ? '#00e5ff' : 'transparent',
+                        color: headerButtonsGlowMode === 'disabled' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: headerButtonsGlowMode === 'disabled' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚪ Padrão (Manter como está)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleHeaderButtonsGlowModeChange('neon')}
+                      style={{
+                        background: headerButtonsGlowMode === 'neon' ? '#00e5ff' : 'transparent',
+                        color: headerButtonsGlowMode === 'neon' ? '#000' : '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '8px 4px',
+                        fontSize: '11px',
+                        fontWeight: headerButtonsGlowMode === 'neon' ? 'bold' : 'normal',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      ⚡ Novo Estilo Neon Suave
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                    {headerButtonsGlowMode === 'disabled'
+                      ? 'Mantém o estilo padrão dos botões de ação e menus de filtros.'
+                      : 'No hover e quando abertos, os botões e ícones acendem com o efeito neon totalmente customizado abaixo.'}
+                  </span>
+
+                  {/* Personalização Avançada de Cores, Transparência, Força e Degradê dos Botões de Ação */}
+                  {headerButtonsGlowMode === 'neon' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      {/* Top Bar: Título + Switch de Degradê */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          {headerButtonsGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                          <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                          <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={headerButtonsGradientEnabled}
+                              onChange={(e) => handleHeaderButtonsGradientToggle(e.target.checked)}
+                            />
+                            <span className="premium-slider"></span>
+                          </label>
+                        </label>
+                      </div>
+
+                      {/* Tabs de Seleção de Cores em caso de Degradê Ativo */}
+                      {headerButtonsGradientEnabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              borderRadius: '6px',
+                              padding: '3px',
+                              gap: '4px',
+                              border: '1px solid rgba(255, 255, 255, 0.05)'
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveHeaderButtonsColorTab('color1')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeHeaderButtonsColorTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeHeaderButtonsColorTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: headerButtonsColor1, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Inicial
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHeaderButtonsColorTab('color2')}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeHeaderButtonsColorTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeHeaderButtonsColorTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: headerButtonsColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor Final
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveHeaderButtonsColorTab('glow')
+                                if (headerButtonsSyncGlowWithGradient) {
+                                  handleHeaderButtonsSyncGlowToggle(false)
+                                }
+                              }}
+                              style={{
+                                flex: 1,
+                                height: '28px',
+                                background: activeHeaderButtonsColorTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                color: '#fff',
+                                border: activeHeaderButtonsColorTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '5px',
+                                outline: 'none'
+                              }}
+                            >
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: headerButtonsSyncGlowWithGradient ? `linear-gradient(135deg, ${headerButtonsColor1}, ${headerButtonsColor2})` : headerButtonsGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              Cor do Glow
+                            </button>
+                          </div>
+
+                          {/* Botão de Sincronizar Cor do Glow com o Degradê */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                            <button
+                              type="button"
+                              onClick={() => handleHeaderButtonsSyncGlowToggle(!headerButtonsSyncGlowWithGradient)}
+                              style={{
+                                background: headerButtonsSyncGlowWithGradient ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                color: headerButtonsSyncGlowWithGradient ? '#00e5ff' : '#fff',
+                                border: headerButtonsSyncGlowWithGradient ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '4px',
+                                padding: '4px 10px',
+                                fontSize: '11px',
+                                fontWeight: headerButtonsSyncGlowWithGradient ? 'bold' : 'normal',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              {headerButtonsSyncGlowWithGradient ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 2D SV Box */}
+                      <SVBox hexColor={currentEditingHeaderButtonsColor} onChange={currentEditingHeaderButtonsHandler} />
+
+                      {/* Hue Slider */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={currentEditingHeaderButtonsHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(currentEditingHeaderButtonsColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              currentEditingHeaderButtonsHandler(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': currentEditingHeaderButtonsColor,
+                              '--thumb-border-color': currentEditingHeaderButtonsColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hex Input and Color Preview */}
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={currentEditingHeaderButtonsColor.replace('#', '')}
+                            onChange={(e) => currentEditingHeaderButtonsHandler('#' + e.target.value)}
+                            placeholder="00ffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: currentEditingHeaderButtonsColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider 1: Transparência do Efeito (Alpha) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(headerButtonsOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="1"
+                            step="0.01"
+                            value={headerButtonsOpacity}
+                            onChange={(e) => handleHeaderButtonsOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider 2: Força do Efeito Neon (Intensidade do Glow) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Força do Efeito Neon (Glow)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{headerButtonsGlowStrength}px</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="40"
+                            step="1"
+                            value={headerButtonsGlowStrength}
+                            onChange={(e) => handleHeaderButtonsGlowStrengthChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Personalização do Fundo Padrão dos Botões de Ação */}
+                  {headerButtonsGlowMode === 'disabled' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Cor do Fundo Padrão
+                        </span>
+                      </div>
+
+                      {/* 2D SV Box */}
+                      <SVBox hexColor={headerButtonsDefaultBgColor} onChange={handleHeaderButtonsDefaultBgColorChange} />
+
+                      {/* Hue Slider */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="360"
+                            value={headerDefaultBgHsl.h}
+                            onChange={(e) => {
+                              const hVal = Number(e.target.value)
+                              const rgbVal = hexToRgb(headerButtonsDefaultBgColor)
+                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                              handleHeaderButtonsDefaultBgColorChange(hex)
+                            }}
+                            className="color-picker-range hue-picker-range"
+                            style={{
+                              '--thumb-color': headerButtonsDefaultBgColor,
+                              '--thumb-border-color': headerButtonsDefaultBgColor
+                            } as React.CSSProperties}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Hex Input and Color Preview */}
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            background: 'rgba(0, 0, 0, 0.3)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            padding: '8px 12px',
+                            gap: '10px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                          <input
+                            type="text"
+                            value={headerButtonsDefaultBgColor.replace('#', '')}
+                            onChange={(e) => handleHeaderButtonsDefaultBgColorChange('#' + e.target.value)}
+                            placeholder="ffffff"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#fff',
+                              fontSize: '14px',
+                              outline: 'none',
+                              width: '100%',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <div
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '4px',
+                              backgroundColor: headerButtonsDefaultBgColor,
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              flexShrink: 0
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider: Transparência do Fundo (Alpha) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
+                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(headerButtonsDefaultBgOpacity * 100)}%</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={headerButtonsDefaultBgOpacity}
+                            onChange={(e) => handleHeaderButtonsDefaultBgOpacityChange(Number(e.target.value))}
+                            style={{
+                              width: '100%',
+                              accentColor: '#4CAF50',
+                              background: 'rgba(255, 255, 255, 0.1)',
+                              height: '6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </div>

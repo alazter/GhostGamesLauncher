@@ -63,7 +63,8 @@ const GamesList = ({
 }: Props): JSX.Element => {
   const { gameUpdates, allTilesInColor, titlesAlwaysVisible, refreshLibrary, hiddenGames } =
     useContext(ContextProvider)
-  const { storesFilters, showPlaytestsAndDemos } = useContext(LibraryContext)
+  const { gameOverrides } = useGlobalState.keys('gameOverrides')
+  const { storesFilters, showPlaytestsAndDemos, filterText } = useContext(LibraryContext)
   const { t } = useTranslation()
   const listRef = useRef<HTMLDivElement | null>(null)
   const { activeController } = useContext(ContextProvider)
@@ -144,13 +145,25 @@ const GamesList = ({
       selectedStore === '__hide_from_duplicates__'
     ) {
       hiddenGames.addMultiple(
-        selectedGames.map((game) => ({
-          appName: game.app_name,
-          title: game.title,
-          runner: game.runner,
-          art_cover: game.art_cover,
-          art_square: game.art_square
-        }))
+        selectedGames.map((game) => {
+          const override = gameOverrides?.[game.app_name]
+          const activeArtCover =
+            override?.art_cover !== undefined
+              ? override.art_cover
+              : game.overrides?.art_cover ?? game.art_cover
+          const activeArtSquare =
+            override?.art_square !== undefined
+              ? override.art_square
+              : game.overrides?.art_square ?? game.art_square
+
+          return {
+            appName: game.app_name,
+            title: override?.title || game.overrides?.title || game.title,
+            runner: game.runner,
+            art_cover: activeArtCover,
+            art_square: activeArtSquare
+          }
+        })
       )
 
       if (selectedStore === '__hide_from_duplicates__') {
@@ -216,7 +229,13 @@ const GamesList = ({
     setSelectedStore('')
   }
 
+  const isSearching = Boolean(filterText && filterText.trim().length > 0)
+
   const filteredLibrary = useMemo(() => {
+    if (isSearching) {
+      return library
+    }
+
     let list = library
     if (!showPlaytestsAndDemos) {
       list = list.filter((game) => !isPlaytestOrDemo(game))
@@ -243,7 +262,7 @@ const GamesList = ({
     return list.filter((game) =>
       isGameVisibleInAllGames(game, customStores, assignments, storesFilters)
     )
-  }, [library, activeStoreFilter, assignments, customStores, storesFilters, showPlaytestsAndDemos])
+  }, [library, isSearching, activeStoreFilter, assignments, customStores, storesFilters, showPlaytestsAndDemos])
 
   useEffect(() => {
     (window as any).heroicActiveLibrary = filteredLibrary
@@ -318,13 +337,25 @@ const GamesList = ({
 
       const storeGamesToHide = selectedGames
         .filter((g) => g.runner !== 'sideload')
-        .map((g) => ({
-          appName: g.app_name,
-          title: g.overrides?.title || g.title,
-          runner: g.runner,
-          art_cover: g.art_cover,
-          art_square: g.art_square
-        }))
+        .map((g) => {
+          const override = gameOverrides?.[g.app_name]
+          const activeArtCover =
+            override?.art_cover !== undefined
+              ? override.art_cover
+              : g.overrides?.art_cover ?? g.art_cover
+          const activeArtSquare =
+            override?.art_square !== undefined
+              ? override.art_square
+              : g.overrides?.art_square ?? g.art_square
+
+          return {
+            appName: g.app_name,
+            title: override?.title || g.overrides?.title || g.title,
+            runner: g.runner,
+            art_cover: activeArtCover,
+            art_square: activeArtSquare
+          }
+        })
 
       if (storeGamesToHide.length > 0) {
         hiddenGames.addMultiple(storeGamesToHide)
@@ -801,8 +832,13 @@ const GamesList = ({
           >
             {hiddenGames.list.map((item) => {
               const isSelected = selectedHiddenGames.includes(item.appName)
+              const override = gameOverrides?.[item.appName]
               const coverSrc =
-                item.art_square || item.art_cover || fallBackImage
+                item.art_square ||
+                item.art_cover ||
+                override?.art_square ||
+                override?.art_cover ||
+                fallBackImage
               const runner = (item.runner || 'other') as Runner
               const storeLabel = getStoreName(runner, 'Outro')
 

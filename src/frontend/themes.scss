@@ -715,9 +715,9 @@ body,
 }
 
 /* 1.2 e 1.3: Arredondamento e Efeito Glow (mantemos, ficou ótimo) */
-button,
+button:not([aria-label*='close' i]):not([aria-label*='fechar' i]):not([class*='close' i]):not([class*='Close' i]):not(.dialog-close-button):not(.Dialog__CloseButton):not(.Sidebar__quitButton),
 .btn,
-[role='button'],
+[role='button']:not([aria-label*='close' i]):not([class*='close' i]):not(.Sidebar__quitButton),
 article,
 .GameCard,
 div[data-testid='game-card'] {
@@ -745,12 +745,66 @@ select:focus-visible,
   box-shadow: none !important;
 }
 
-button:hover,
-.btn:hover,
+.button.is-primary:hover,
+.button.is-success:hover,
+.btn.btn-primary:hover,
 .GameCard:hover,
 div[data-testid='game-card']:hover {
   box-shadow: 0 0 12px rgba(0, 255, 255, 0.6) !important;
   border-color: #00ffff !important;
+}
+
+button[aria-label*='close' i],
+button[aria-label*='fechar' i],
+button[class*='close' i],
+button[class*='Close' i],
+.Dialog__CloseButton,
+.dialog-close-button,
+.steamConfigModal__closeBtn,
+.UpdatePopupModal__close-btn,
+.SteamGridDBPicker__close-btn,
+.Sidebar__quitButton,
+button.close,
+button.is-close,
+.MuiIconButton-root[aria-label*='close' i] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  &:hover,
+  &:focus,
+  &:focus-visible,
+  &:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 0 !important;
+  }
+
+  svg,
+  path,
+  .svg-inline--fa {
+    color: rgba(255, 255, 255, 0.65) !important;
+    fill: rgba(255, 255, 255, 0.65) !important;
+    filter: none !important;
+    transition: all 0.2s ease !important;
+  }
+
+  &:hover svg,
+  &:hover path,
+  &:hover .svg-inline--fa {
+    color: #00ffff !important;
+    fill: #00ffff !important;
+    filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95)) !important;
+    transform: scale(1.05) !important;
+  }
 }
 
 /* =========================================

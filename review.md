@@ -209,6 +209,17 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Desenvolvido parser de `localconfig.vdf` para sincronizar automaticamente as horas jogadas dos 335+ jogos da Steam no `timestampStore`.
   - Atualizado `.agents/AGENTS.md` registrando as novas conquistas e conquistas do sistema.
 
+### 33. Busca Universal na Biblioteca, Padrão Neon Ciano nos Ícones/X, Sistema de Degradê 3 Canais e Snapshot de Ocultados
+* **Problema:** Busca restringida por filtros ativos, inconsistência visual nos botões de fechar "X" e ícones da sidebar, falta de personalização seletiva neon e perda de capa ao ocultar jogos.
+* **Solução:**
+  - Implementada busca universal irrestrita na biblioteca (`index.tsx`), consultando a biblioteca mestre completa ao pesquisar e contornando filtros de loja, plataforma, categoria e alfabeto.
+  - Padronizado o estilo Glassmorphism com neon ciano (`#00ffff`) e glow direcional em janelas, modais (`Dialog`, `InstallModal`, `MessageBoxModal`) e formulários (`FormControl`).
+  - Aplicado o padrão oficial do botão fechar ("X") usando `<FontAwesomeIcon icon={faTimes} />` com glow direto sobre o glifo no hover e eliminado qualquer fundo/anel.
+  - Aplicado glow neon ciano direto sobre os glifos dos ícones da barra lateral esquerda e nos controles da biblioteca (Barra de Lojas, Header Action Icons, Filtro Alfabético & Contador e Botões de Cabeçalho) com Live Preview interativo na tela de Personalização.
+  - Desenvolvido o sistema de degradê vetorial com 3 canais de cor (Inicial, Final, Glow) e projeção direcional de 135°.
+  - Garantida transparência absoluta atrás de logos/ilustrações no Changelog e criado o snapshot permanente de capas no momento da ocultação do jogo.
+  - Atualizadas as regras mandatórias em `.agents/AGENTS.md`.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados

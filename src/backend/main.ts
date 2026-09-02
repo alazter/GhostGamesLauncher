@@ -797,7 +797,10 @@ addHandler('getAvailableStorageDrives', async (_e, runner) =>
 )
 
 addHandler('steamLoginWebView', async () => SteamAuthModal.openLoginModal())
-addHandler('steamLogout', async () => SteamAuthModal.logout())
+addHandler('steamLogout', async () => {
+  await SteamAuthModal.logout()
+  await SteamUser.logout()
+})
 addHandler('steamGetConfig', async () => ({
   syncMode: steamConfigStore.get('syncMode', 'all'),
   apiKey: steamConfigStore.get('apiKey', ''),

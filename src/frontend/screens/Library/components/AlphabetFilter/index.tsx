@@ -55,6 +55,10 @@ const AlphabetFilter: React.FC = () => {
     return saved !== null ? Number(saved) : 18
   })
 
+  const [alphabetGlowMode, setAlphabetGlowMode] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_glow_mode') || 'disabled'
+  })
+
   useEffect(() => {
     const handleSettingsChange = () => {
       const savedBg = localStorage.getItem('heroic_alphabet_bg_opacity')
@@ -83,6 +87,8 @@ const AlphabetFilter: React.FC = () => {
 
       const savedRadius = localStorage.getItem('heroic_alphabet_btn_border_radius')
       setBtnBorderRadius(savedRadius !== null ? Number(savedRadius) : 18)
+
+      setAlphabetGlowMode(localStorage.getItem('heroic_alphabet_glow_mode') || 'disabled')
     }
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     return () => window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
@@ -135,7 +141,7 @@ const AlphabetFilter: React.FC = () => {
 
   return (
     <div
-      className="alphabet-filter-container"
+      className={`alphabet-filter-container ${alphabetGlowMode === 'neon' ? 'alphabet-filter--neon' : ''}`}
       style={{
         '--alphabet-filter-container-bg-opacity': bgOpacity,
         '--alphabet-filter-base-r': r,

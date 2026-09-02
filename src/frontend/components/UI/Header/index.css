@@ -10,6 +10,75 @@
   color: var(--text-secondary);
 }
 
+.iconsWrapper svg {
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+
+/* Customização do Modo Padrão nos Botões do Cabeçalho (Fundo e Borda Customizáveis) */
+.Header__filters:not(.header-buttons--neon) button,
+.Header__filters:not(.header-buttons--neon) .dropdown button,
+.Header__filters:not(.header-buttons--neon) .CategoryFilter button,
+.Header__filters:not(.header-buttons--neon) .LibraryFilters button {
+  background: var(--header-btn-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border-color: var(--header-btn-default-border-color, rgba(255, 255, 255, 0.15)) !important;
+  transition: all 0.25s ease !important;
+}
+
+/* Efeito Neon Suave nos Botões do Cabeçalho (Sem Degradê) */
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) button:hover,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .dropdown:hover button,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .CategoryFilter:hover button,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .LibraryFilters:hover button {
+  border-color: var(--header-btn-color-1, #38d9e6) !important;
+  box-shadow: 0 0 calc(var(--header-btn-glow-strength, 8px) * 0.5) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.4)),
+              0 0 var(--header-btn-glow-strength, 8px) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.3)) !important;
+  color: var(--header-btn-color-1, #38d9e6) !important;
+  opacity: var(--header-btn-opacity, 1) !important;
+  transform: scale(1.03);
+  transition: all 0.2s ease !important;
+}
+
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) button:hover svg,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .dropdown:hover button svg,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .CategoryFilter:hover button svg,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .LibraryFilters:hover button svg {
+  color: var(--header-btn-color-1, #38d9e6) !important;
+  fill: var(--header-btn-color-1, #38d9e6) !important;
+  filter: drop-shadow(0 0 2px var(--header-btn-glow-color-1, var(--header-btn-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--header-btn-glow-strength, 8px) * 0.5) var(--header-btn-glow-color-1, var(--header-btn-color-1, #00ffff))) 
+          drop-shadow(0 0 var(--header-btn-glow-strength, 8px) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.85))) !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease !important;
+}
+
+/* Efeito Neon Suave nos Botões do Cabeçalho (Com Modo Degradê Direcional 135°) */
+.Header__filters.header-buttons--neon.header-buttons--gradient button:hover,
+.Header__filters.header-buttons--neon.header-buttons--gradient .dropdown:hover button,
+.Header__filters.header-buttons--neon.header-buttons--gradient .CategoryFilter:hover button,
+.Header__filters.header-buttons--neon.header-buttons--gradient .LibraryFilters:hover button {
+  border-color: var(--header-btn-color-1, #00ffff) !important;
+  box-shadow: -2px -2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.5)),
+              2px 2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-2, rgba(56, 217, 230, 0.5)) !important;
+  color: var(--header-btn-color-1, #00ffff) !important;
+  opacity: var(--header-btn-opacity, 1) !important;
+  transform: scale(1.03);
+  transition: all 0.2s ease !important;
+}
+
+.Header__filters.header-buttons--neon.header-buttons--gradient button:hover svg,
+.Header__filters.header-buttons--neon.header-buttons--gradient .dropdown:hover button svg,
+.Header__filters.header-buttons--neon.header-buttons--gradient .CategoryFilter:hover button svg,
+.Header__filters.header-buttons--neon.header-buttons--gradient .LibraryFilters:hover button svg {
+  color: var(--header-btn-color-1, #00ffff) !important;
+  fill: var(--header-btn-color-1, #00ffff) !important;
+  filter: drop-shadow(-2px -2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(2px 2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
+          drop-shadow(0 0 2px var(--header-btn-glow-color-1, var(--header-btn-color-1, #00ffff))) !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease !important;
+}
+
 .frameless:not(.fullscreen) .Header {
   padding-right: calc(
     var(--overlay-controls-width) - env(titlebar-area-x, 0px) + 10px

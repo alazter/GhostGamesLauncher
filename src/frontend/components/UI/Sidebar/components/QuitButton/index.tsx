@@ -44,14 +44,21 @@ const QuitButton: React.FC<QuitButtonProps> = ({
 
   return (
     <button
-      className="Sidebar__item"
+      className="Sidebar__item Sidebar__quitButton"
       onClick={() => handleQuitButton()}
       data-tour={dataTour}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      style={style}
+      style={{
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        border: 'none',
+        outline: 'none',
+        boxShadow: 'none',
+        ...style
+      }}
     >
       <div className="Sidebar__itemIcon">
         <FontAwesomeIcon

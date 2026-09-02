@@ -29,6 +29,14 @@
       display: inline-flex;
       justify-content: center;
       position: relative;
+      transition: all 0.2s ease;
+
+      svg,
+      path,
+      .svg-inline--fa {
+        transition: all 0.2s ease;
+        filter: none;
+      }
 
       .Sidebar__badge {
         position: absolute;
@@ -70,6 +78,14 @@
 
       .Sidebar__itemIcon {
         color: currentColor;
+
+        svg,
+        path,
+        .svg-inline--fa {
+          color: #38d9e6 !important;
+          fill: #38d9e6 !important;
+          filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.3)) !important;
+        }
       }
 
       &.SidebarLinks__subItem {
@@ -97,10 +113,30 @@
       }
     }
 
+    &.Sidebar__quitButton,
+    &.Sidebar__quitButton:hover,
+    &.Sidebar__quitButton:focus,
+    &.Sidebar__quitButton:active {
+      background: transparent !important;
+      background-color: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+    }
+
     &:hover {
       background-color: var(--navbar-active-background);
-      transition: 0.1s;
+      transition: all 0.2s ease;
       padding-inline-start: 12px;
+
+      .Sidebar__itemIcon svg,
+      .Sidebar__itemIcon path,
+      .Sidebar__itemIcon .svg-inline--fa {
+        color: #38d9e6 !important;
+        fill: #38d9e6 !important;
+        filter: drop-shadow(0 0 4px rgba(0, 229, 255, 0.4)) !important;
+        transform: scale(1.04);
+      }
     }
 
     @media screen and (max-width: 730px) {
@@ -114,7 +150,13 @@
 
   &.collapsed {
     .Sidebar__item {
-      padding: var(--space-xs) 0;
+      padding: var(--space-xs) 0 !important;
+      justify-content: center !important;
+
+      &:hover {
+        padding: var(--space-xs) 0 !important;
+        padding-inline-start: 0 !important;
+      }
 
       & > span {
         display: none;
@@ -134,7 +176,8 @@
       }
 
       .Sidebar__itemIcon {
-        margin: 0 auto;
+        margin: 0 auto !important;
+        justify-content: center !important;
       }
     }
   }

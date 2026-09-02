@@ -46,7 +46,13 @@ export interface ContextType {
   refreshingInTheBackground: boolean
   hiddenGames: {
     list: HiddenGame[]
-    add: (appNameToHide: string, appTitle: string) => void
+    add: (
+      appNameToHide: string,
+      appTitle: string,
+      runner?: string,
+      art_cover?: string,
+      art_square?: string
+    ) => void
     remove: (appNameToUnhide: string) => void
     addMultiple: (
       games: Array<{

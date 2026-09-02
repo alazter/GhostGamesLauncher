@@ -56,3 +56,260 @@
   max-width: 100%;
   overflow-x: hidden !important;
 }
+
+/* Live Preview Selected Borders */
+.preview-sidebar--selected,
+.preview-search--selected,
+.preview-platforms-bar--selected,
+.preview-alphabet-container--selected,
+.preview-header-buttons--selected {
+  outline: 2px dashed #00e5ff !important;
+  outline-offset: 3px !important;
+}
+
+/* ========================================= */
+/* 1. Live Preview Sidebar */
+/* ========================================= */
+.preview-sidebar:not(.preview-sidebar--neon) .preview-sidebar-item:hover,
+.preview-sidebar:not(.preview-sidebar--neon) .preview-sidebar-item.active {
+  background: var(--preview-sidebar-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--preview-sidebar-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: 8px !important;
+}
+
+.preview-sidebar--neon .preview-sidebar-item:hover,
+.preview-sidebar--neon .preview-sidebar-item.active {
+  background: transparent !important;
+  border: none !important;
+}
+
+.preview-sidebar--neon:not(.preview-sidebar--gradient) .preview-sidebar-item:hover svg,
+.preview-sidebar--neon:not(.preview-sidebar--gradient) .preview-sidebar-item.active svg {
+  color: var(--preview-sidebar-color-1, #00ffff) !important;
+  opacity: var(--preview-sidebar-opacity, 1) !important;
+  filter: drop-shadow(0 0 2px var(--preview-sidebar-glow-color-1, var(--preview-sidebar-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--preview-sidebar-glow-strength, 8px) * 0.5) var(--preview-sidebar-glow-color-1, var(--preview-sidebar-color-1, #00ffff))) 
+          drop-shadow(0 0 var(--preview-sidebar-glow-strength, 8px) var(--preview-sidebar-glow-rgba-1, rgba(0, 229, 255, 0.85))) !important;
+  transform: scale(1.15);
+  transition: all 0.2s ease;
+}
+
+.preview-sidebar--neon.preview-sidebar--gradient .preview-sidebar-item:hover svg,
+.preview-sidebar--neon.preview-sidebar--gradient .preview-sidebar-item.active svg {
+  color: var(--preview-sidebar-color-1, #00ffff) !important;
+  opacity: var(--preview-sidebar-opacity, 1) !important;
+  filter: drop-shadow(-2px -2px calc(var(--preview-sidebar-glow-strength, 8px) * 0.8) var(--preview-sidebar-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(2px 2px calc(var(--preview-sidebar-glow-strength, 8px) * 0.8) var(--preview-sidebar-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
+          drop-shadow(0 0 2px var(--preview-sidebar-glow-color-1, var(--preview-sidebar-color-1, #00ffff))) !important;
+  transform: scale(1.15);
+  transition: all 0.2s ease;
+}
+
+/* ========================================= */
+/* 2. Live Preview Search & Add Game */
+/* ========================================= */
+.preview-search-wrapper:not(.preview-search--neon) .preview-search-bar {
+  background: var(--preview-search-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--preview-search-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+}
+
+.preview-search--neon:not(.preview-search--gradient) .preview-search-bar {
+  border-color: var(--preview-search-color-1, #00ffff) !important;
+  box-shadow: 0 0 calc(var(--preview-search-glow-strength, 8px) * 0.5) var(--preview-search-glow-rgba-1, rgba(0, 229, 255, 0.4)),
+              0 0 var(--preview-search-glow-strength, 8px) var(--preview-search-glow-rgba-1, rgba(0, 229, 255, 0.3)) !important;
+}
+
+.preview-search--neon:not(.preview-search--gradient) .preview-search-icon-svg {
+  color: var(--preview-search-color-1, #00ffff) !important;
+  filter: drop-shadow(0 0 3px var(--preview-search-glow-color-1, #00ffff)) !important;
+}
+
+.preview-search--neon.preview-search--gradient .preview-search-bar {
+  border-color: var(--preview-search-color-1, #00ffff) !important;
+  box-shadow: -2px -2px calc(var(--preview-search-glow-strength, 8px) * 0.8) var(--preview-search-glow-rgba-1, rgba(0, 229, 255, 0.5)),
+              2px 2px calc(var(--preview-search-glow-strength, 8px) * 0.8) var(--preview-search-glow-rgba-2, rgba(56, 217, 230, 0.5)) !important;
+}
+
+.preview-search--neon.preview-search--gradient .preview-search-icon-svg {
+  color: var(--preview-search-color-1, #00ffff) !important;
+  filter: drop-shadow(-2px -2px 3px var(--preview-search-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(2px 2px 3px var(--preview-search-glow-rgba-2, rgba(56, 217, 230, 0.85))) !important;
+}
+
+/* ========================================= */
+/* 3. Live Preview Store Filter Bar */
+/* ========================================= */
+.preview-platforms-bar:not(.preview-platforms-bar--neon) .preview-platform-btn {
+  background: var(--preview-store-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--preview-store-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: var(--store-btn-border-radius, 12px) !important;
+  transition: all 0.2s ease;
+}
+
+.preview-platforms-bar--neon .preview-platform-btn {
+  background: transparent !important;
+  border: none !important;
+}
+
+.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn--active .preview-platform-icon-img {
+  filter: drop-shadow(0 0 2px var(--preview-store-glow-color-1, var(--preview-store-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--preview-store-glow-strength, 8px) * 0.8) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.85))) !important;
+  transform: scale(1.08);
+  transition: all 0.2s ease;
+}
+
+.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover span,
+.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn--active span {
+  color: var(--preview-store-color-1, #00ffff) !important;
+  text-shadow: 0 0 2px var(--preview-store-glow-color-1, #00ffff),
+               0 0 var(--preview-store-glow-strength, 8px) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.6)) !important;
+}
+
+.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn--active .preview-platform-icon-img {
+  filter: drop-shadow(-2px -2px calc(var(--preview-store-glow-strength, 8px) * 0.8) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(2px 2px calc(var(--preview-store-glow-strength, 8px) * 0.8) var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
+          drop-shadow(0 0 2px var(--preview-store-glow-color-1, #00ffff)) !important;
+  transform: scale(1.08);
+  transition: all 0.2s ease;
+}
+
+.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn:hover span,
+.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn--active span {
+  background: linear-gradient(135deg, var(--preview-store-color-1, #00ffff) 0%, var(--preview-store-color-2, #38d9e6) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(-2px -2px 3px var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.6))) 
+          drop-shadow(2px 2px 3px var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.6))) !important;
+}
+
+/* ========================================= */
+/* 4. Live Preview Alphabet Filter */
+/* ========================================= */
+.preview-alphabet-container:not(.preview-alphabet--neon) .preview-alphabet-btn {
+  background: var(--preview-alphabet-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--preview-alphabet-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+}
+
+.preview-alphabet--neon .preview-alphabet-btn {
+  background: transparent !important;
+  border: none !important;
+}
+
+.preview-alphabet--neon:not(.preview-alphabet--gradient) .preview-alphabet-btn:hover span,
+.preview-alphabet--neon:not(.preview-alphabet--gradient) .preview-alphabet-btn--active span {
+  color: var(--preview-alphabet-color-1, #00ffff) !important;
+  text-shadow: 0 0 2px var(--preview-alphabet-glow-color-1, #00ffff),
+               0 0 var(--preview-alphabet-glow-strength, 8px) var(--preview-alphabet-glow-rgba-1, rgba(0, 229, 255, 0.85)) !important;
+  transform: scale(1.15);
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.preview-alphabet--neon.preview-alphabet--gradient .preview-alphabet-btn:hover span,
+.preview-alphabet--neon.preview-alphabet--gradient .preview-alphabet-btn--active span {
+  background: linear-gradient(135deg, var(--preview-alphabet-color-1, #00ffff) 0%, var(--preview-alphabet-color-2, #38d9e6) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(-2px -2px 3px var(--preview-alphabet-glow-rgba-1, rgba(0, 229, 255, 0.7))) 
+          drop-shadow(2px 2px 3px var(--preview-alphabet-glow-rgba-2, rgba(56, 217, 230, 0.7))) !important;
+  transform: scale(1.15);
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+/* ========================================= */
+/* 5. Live Preview Action Icons */
+/* ========================================= */
+.preview-action-icons:not(.preview-action-icons--neon) {
+  background: var(--preview-action-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--preview-action-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: 8px !important;
+  padding: 4px 10px !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.25s ease !important;
+}
+
+.preview-action-icons:not(.preview-action-icons--neon) span {
+  padding: 4px 6px !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease;
+}
+
+.preview-action-icons:not(.preview-action-icons--neon) span:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.preview-action-icons--neon span,
+.preview-action-icons--neon span:hover {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  transition: all 0.2s ease;
+}
+
+.preview-action-icons--neon:not(.preview-action-icons--gradient) span:hover,
+.preview-action-icons--neon:not(.preview-action-icons--gradient) span.active {
+  color: var(--preview-action-color-1, #38d9e6) !important;
+  opacity: var(--preview-action-opacity, 1) !important;
+  filter: drop-shadow(0 0 2px var(--preview-action-glow-color-1, var(--preview-action-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--preview-action-glow-strength, 8px) * 0.5) var(--preview-action-glow-color-1, var(--preview-action-color-1, #00ffff))) 
+          drop-shadow(0 0 var(--preview-action-glow-strength, 8px) var(--preview-action-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(0 0 calc(var(--preview-action-glow-strength, 8px) * 1.5) var(--preview-action-glow-rgba-1, rgba(0, 229, 255, 0.5))) !important;
+  transform: scale(1.15);
+}
+
+.preview-action-icons--neon.preview-action-icons--gradient span:hover,
+.preview-action-icons--neon.preview-action-icons--gradient span.active {
+  background: linear-gradient(135deg, var(--preview-action-color-1, #00ffff) 0%, var(--preview-action-color-2, #38d9e6) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  display: inline-block;
+  opacity: var(--preview-action-opacity, 1) !important;
+  filter: drop-shadow(-2px -2px calc(var(--preview-action-glow-strength, 8px) * 0.8) var(--preview-action-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(2px 2px calc(var(--preview-action-glow-strength, 8px) * 0.8) var(--preview-action-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
+          drop-shadow(0 0 2px var(--preview-action-glow-color-1, var(--preview-action-color-1, #00ffff))) !important;
+  transform: scale(1.15);
+}
+
+/* ========================================= */
+/* 6. Live Preview Header Buttons */
+/* ========================================= */
+.preview-header-buttons:not(.preview-header-buttons--neon) button,
+.preview-header-buttons:not(.preview-header-buttons--neon) div {
+  background: var(--preview-header-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border-color: var(--preview-header-default-border-color, rgba(255, 255, 255, 0.15)) !important;
+  transition: all 0.25s ease !important;
+}
+
+.preview-header-buttons--neon:not(.preview-header-buttons--gradient) button:hover,
+.preview-header-buttons--neon:not(.preview-header-buttons--gradient) div:hover {
+  border-color: var(--preview-header-color-1, #38d9e6) !important;
+  color: var(--preview-header-color-1, #38d9e6) !important;
+  opacity: var(--preview-header-opacity, 1) !important;
+  box-shadow: 0 0 calc(var(--preview-header-glow-strength, 8px) * 0.5) var(--preview-header-glow-rgba-1, rgba(0, 229, 255, 0.4)),
+              0 0 var(--preview-header-glow-strength, 8px) var(--preview-header-glow-rgba-1, rgba(0, 229, 255, 0.3)) !important;
+  transform: scale(1.04);
+  transition: all 0.2s ease !important;
+}
+
+.preview-header-buttons--neon.preview-header-buttons--gradient button:hover,
+.preview-header-buttons--neon.preview-header-buttons--gradient div:hover {
+  border-color: var(--preview-header-color-1, #00ffff) !important;
+  color: var(--preview-header-color-1, #00ffff) !important;
+  opacity: var(--preview-header-opacity, 1) !important;
+  box-shadow: -2px -2px calc(var(--preview-header-glow-strength, 8px) * 0.8) var(--preview-header-glow-rgba-1, rgba(0, 229, 255, 0.5)),
+              2px 2px calc(var(--preview-header-glow-strength, 8px) * 0.8) var(--preview-header-glow-rgba-2, rgba(56, 217, 230, 0.5)) !important;
+  transform: scale(1.04);
+  transition: all 0.2s ease !important;
+}
+
+

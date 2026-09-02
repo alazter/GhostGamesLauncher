@@ -1620,7 +1620,52 @@ export default memo(function Library(): JSX.Element {
   ])
 
   const { gamesForAlphabetFilter, fullGamesForAlphabetFilter } = useMemo(() => {
+    const isSearching = Boolean(filterText && filterText.trim().length > 0)
     let library: Array<GameInfo> = makeLibrary()
+
+    if (isSearching) {
+      // Quando há busca ativa, pesquisa em TODA a biblioteca mestre (todas as lojas e plataformas),
+      // independente de qualquer filtro de loja, categoria, instalados, plataforma ou letra ativa.
+      const allMasterGames = makeLibrary()
+      const hiddenGamesAppNames = new Set(
+        hiddenGames.list.map((hidden: HiddenGame) => String(hidden?.appName))
+      )
+      const candidateGames = allMasterGames.filter((game) => {
+        if (!game) return false
+        if (game.install?.is_dlc) return false
+        if (!showHidden && hiddenGamesAppNames.has(String(game.app_name))) return false
+        return true
+      })
+
+      const searchableLibrary: SearchableGame[] = candidateGames.map(
+        (game) => {
+          const title = game.overrides?.title || game.title
+          return {
+            original: game,
+            title,
+            normalizedTitle: normalizeTitle(title)
+          }
+        }
+      )
+
+      const options = {
+        minMatchCharLength: 1,
+        threshold: 0.4,
+        useExtendedSearch: true,
+        keys: ['title', 'normalizedTitle']
+      }
+      const fuse = new Fuse(searchableLibrary, options)
+      const fuzzySearch: GameInfo[] = fuse
+        .search(filterText)
+        .map(
+          (result: { item: { original: GameInfo } }) => result.item.original
+        )
+
+      return {
+        gamesForAlphabetFilter: fuzzySearch,
+        fullGamesForAlphabetFilter: fuzzySearch
+      }
+    }
 
     if (showFavouritesLibrary) {
       library = library.filter((game) =>
@@ -1707,35 +1752,7 @@ export default memo(function Library(): JSX.Element {
 
     try {
       const filteredLibrary = filterByPlatform(library)
-      const searchableLibrary: SearchableGame[] = filteredLibrary.map(
-        (game) => {
-          const title = game.overrides?.title || game.title
-          return {
-            original: game,
-            title,
-            normalizedTitle: normalizeTitle(title)
-          }
-        }
-      )
-
-      const options = {
-        minMatchCharLength: 1,
-        threshold: 0.4,
-        useExtendedSearch: true,
-        keys: ['title', 'normalizedTitle']
-      }
-      const fuse = new Fuse(searchableLibrary, options)
-
-      if (filterText) {
-        const fuzzySearch: GameInfo[] = fuse
-          .search(filterText)
-          .map(
-            (result: { item: { original: GameInfo } }) => result.item.original
-          )
-        library = fuzzySearch
-      } else {
-        library = filteredLibrary
-      }
+      library = filteredLibrary
     } catch (error) {
       console.log(error)
     }
@@ -1780,6 +1797,11 @@ export default memo(function Library(): JSX.Element {
   ])
 
   const libraryToShow = useMemo(() => {
+    const isSearching = Boolean(filterText && filterText.trim().length > 0)
+    if (isSearching) {
+      return gamesForAlphabetFilter
+    }
+
     let library = [...gamesForAlphabetFilter]
     const hiddenAppNamesSet = new Set(
       hiddenGames.list.map((h: HiddenGame) => String(h?.appName))
@@ -1976,6 +1998,11 @@ export default memo(function Library(): JSX.Element {
   ])
 
   const fullLibraryToShow = useMemo(() => {
+    const isSearching = Boolean(filterText && filterText.trim().length > 0)
+    if (isSearching) {
+      return fullGamesForAlphabetFilter
+    }
+
     let library = [...fullGamesForAlphabetFilter]
 
     if (alphabetFilterLetter) {
@@ -1997,7 +2024,7 @@ export default memo(function Library(): JSX.Element {
     }
 
     return library
-  }, [fullGamesForAlphabetFilter, alphabetFilterLetter])
+  }, [fullGamesForAlphabetFilter, alphabetFilterLetter, filterText])
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null
@@ -2141,7 +2168,7 @@ export default memo(function Library(): JSX.Element {
               }}
             >
               <div style={{ flexShrink: 0 }}>
-                {showRecentGames && (
+                {!filterText && showRecentGames && (
                   <RecentlyPlayed
                     handleModal={handleModal}
                     onlyInstalled={libraryTopSection.endsWith('installed')}
@@ -2149,7 +2176,7 @@ export default memo(function Library(): JSX.Element {
                   />
                 )}
 
-                {showFavourites && !showFavouritesLibrary && (
+                {!filterText && showFavourites && !showFavouritesLibrary && (
                   <>
                     <div
                       className="library-section-header"

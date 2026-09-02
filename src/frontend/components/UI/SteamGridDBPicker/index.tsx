@@ -235,11 +235,22 @@ export default function SteamGridDBPicker({
         </div>
         {!hideCloseButton && (
           <button
-            className="SteamGridDBPicker__close-btn"
+            type="button"
+            aria-label="close"
+            className="SteamGridDBPicker__close-btn dialog-close-button"
             onClick={onClose}
             title={t('button.back', 'Go Back')}
+            style={{
+              background: 'transparent',
+              backgroundColor: 'transparent',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              padding: 0,
+              cursor: 'pointer'
+            }}
           >
-            <FontAwesomeIcon icon={faTimes} />
+            <FontAwesomeIcon icon={faTimes} style={{ fontSize: '18px' }} />
           </button>
         )}
       </div>

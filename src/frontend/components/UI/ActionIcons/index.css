@@ -60,3 +60,90 @@
   box-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
 }
 
+/* Customização do Modo Padrão (Fundo e Borda Customizáveis) */
+.ActionIcons:not(.action-icons--neon) .FormControl {
+  background: var(--action-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--action-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+  transition: all 0.25s ease !important;
+}
+
+.ActionIcons:not(.action-icons--neon) .FormControl:hover:not(:has(:disabled)) {
+  background: var(--action-default-bg-hover, rgba(255, 255, 255, 0.08)) !important;
+  border-color: var(--action-default-border-hover, rgba(255, 255, 255, 0.2)) !important;
+}
+
+/* Efeito Neon Suave nos Ícones de Ação (100% Transparente sem Molduras ou Quadrados) */
+.ActionIcons.action-icons--neon .FormControl,
+.ActionIcons.action-icons--neon .FormControl:hover,
+.ActionIcons.action-icons--neon .FormControl:focus-within {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  gap: 12px !important;
+  padding: 0 !important;
+}
+
+.ActionIcons.action-icons--neon .FormControl__button,
+.ActionIcons.action-icons--neon .FormControl__button:hover,
+.ActionIcons.action-icons--neon .FormControl__button:focus,
+.ActionIcons.action-icons--neon .FormControl__button:active {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 4px !important;
+  width: auto !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ActionIcons.action-icons--neon .FormControl__segmentedFaIcon {
+  font-size: 16px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
+}
+
+/* Hover sem degradê - Apenas o glifo do ícone acende com a cor escolhida */
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button:hover svg,
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button:hover .FormControl__segmentedFaIcon {
+  color: var(--action-color-1, #38d9e6) !important;
+  fill: var(--action-color-1, #38d9e6) !important;
+  opacity: var(--action-opacity, 1) !important;
+  filter: drop-shadow(0 0 2px var(--action-glow-color-1, var(--action-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--action-glow-strength, 8px) * 0.5) var(--action-glow-color-1, var(--action-color-1, #00ffff))) 
+          drop-shadow(0 0 var(--action-glow-strength, 8px) var(--action-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
+          drop-shadow(0 0 calc(var(--action-glow-strength, 8px) * 1.5) var(--action-glow-rgba-1, rgba(0, 229, 255, 0.5))) !important;
+  transform: scale(1.15) !important;
+}
+
+/* Hover com degradê - O glifo do ícone recebe o degradê e o glow direcional correspondente às cores do degradê */
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover svg,
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover .FormControl__segmentedFaIcon {
+  color: transparent !important;
+  opacity: var(--action-opacity, 1) !important;
+  filter: drop-shadow(-2px -2px calc(var(--action-glow-strength, 8px) * 0.8) var(--action-glow-rgba-1, rgba(230, 55, 81, 0.85))) 
+          drop-shadow(2px 2px calc(var(--action-glow-strength, 8px) * 0.8) var(--action-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
+          drop-shadow(0 0 2px var(--action-glow-color-1, var(--action-color-1, #e63751))) !important;
+  transform: scale(1.15) !important;
+}
+
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover svg path,
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover .FormControl__segmentedFaIcon path {
+  fill: url(#actionIconGradient) !important;
+}
+
+.ActionIcons.action-icons--neon .FormControl__button.active svg,
+.ActionIcons.action-icons--neon .FormControl__button.is-active svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+
+
+

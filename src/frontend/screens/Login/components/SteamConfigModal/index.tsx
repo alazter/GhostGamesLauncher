@@ -34,6 +34,7 @@ export default function SteamConfigModal({
   const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
+  const [isCloseHovered, setIsCloseHovered] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -89,8 +90,40 @@ export default function SteamConfigModal({
               <p>Configure a sincronização automática e permanente da sua biblioteca Steam</p>
             </div>
           </div>
-          <button className="steamConfigModal__closeBtn" onClick={onClose}>
-            <FontAwesomeIcon icon={faTimes} />
+          <button
+            type="button"
+            className="steamConfigModal__closeBtn"
+            onClick={onClose}
+            onMouseEnter={() => setIsCloseHovered(true)}
+            onMouseLeave={() => setIsCloseHovered(false)}
+            style={{
+              background: 'transparent',
+              backgroundColor: 'transparent',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              padding: 0,
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faTimes}
+              style={{
+                fontSize: '20px',
+                color: isCloseHovered ? '#00ffff' : 'rgba(255, 255, 255, 0.65)',
+                filter: isCloseHovered
+                  ? 'drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95))'
+                  : 'none',
+                transform: isCloseHovered ? 'scale(1.05)' : 'scale(1)',
+                transition: 'all 0.2s ease',
+                pointerEvents: 'none'
+              }}
+            />
           </button>
         </div>
 

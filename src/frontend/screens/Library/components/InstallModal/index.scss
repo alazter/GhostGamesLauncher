@@ -4,6 +4,48 @@
   min-width: 600px;
   max-width: 90vw;
 
+  input[type='text'],
+  input[type='password'],
+  select,
+  .MuiOutlinedInput-root,
+  .selectStyle {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.25s ease !important;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+
+    &:focus:not(:disabled),
+    &:focus-within:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-color: #00ffff !important;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.25) !important;
+    }
+  }
+
+  .button.primary,
+  .button.is-success {
+    background: rgba(0, 229, 255, 0.15) !important;
+    border: 1px solid rgba(0, 229, 255, 0.3) !important;
+    color: #00e5ff !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    transition: all 0.25s ease !important;
+
+    &:hover:not(:disabled) {
+      background: rgba(0, 229, 255, 0.25) !important;
+      border-color: #00ffff !important;
+      color: #fff !important;
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.35) !important;
+    }
+  }
+
   .infoBox {
     max-width: 740px;
     svg {
@@ -26,7 +68,9 @@
   gap: 0.4rem;
   margin: var(--space-md) var(--dialog-margin-horizontal) 0;
   border-radius: 20px;
-  background-color: var(--current-background);
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
   min-width: min-content;
   max-width: 560px;
 }

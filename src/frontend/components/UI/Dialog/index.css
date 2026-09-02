@@ -15,9 +15,12 @@
   padding: 0;
   overflow: auto;
   padding-top: var(--dialog-margin-vertical);
-  border: solid 1px var(--modal-border);
-  border-radius: 10px;
-  background: var(--modal-background);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(20, 24, 30, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   color: var(--text-default);
   opacity: 0;
   transform: translateY(50px);
@@ -37,14 +40,16 @@
   }
 }
 .Dialog__element::backdrop {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .Dialog__element:popover-open,
 .Dialog__element[open] {
   opacity: 1;
   transform: translateY(0);
-  box-shadow: 0px 0px 0px 100vmax var(--modal-backdrop);
+  box-shadow: 0px 0px 0px 100vmax rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 
 .Dialog__header {
@@ -70,38 +75,72 @@
 .Dialog__header {
   position: sticky;
   top: 0px;
-  background: var(--modal-background);
+  background: transparent;
 }
 
-.Dialog__CloseButton {
-  border: none;
-  margin: calc(-1 * var(--space-xs));
-  padding: var(--space-xs);
-  border-radius: var(--space-xs);
-  background: none;
-  color: var(--text-default);
+.Dialog__CloseButton,
+button.dialog-close-button,
+button[aria-label="close"],
+button[aria-label="fechar"] {
+  border: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: rgba(255, 255, 255, 0.65) !important;
   cursor: pointer;
-  transition: 250ms color;
+  transition: all 0.2s ease;
   position: absolute;
   right: var(--space-lg);
   top: var(--space-md);
 }
 
-.Dialog__CloseButton:focus-visible {
-  outline: none;
-  box-shadow: var(--accent) 0 0 0 2px inset;
+.Dialog__CloseButton:focus,
+.Dialog__CloseButton:focus-visible,
+.Dialog__CloseButton:active,
+button.dialog-close-button:focus,
+button.dialog-close-button:focus-visible,
+button.dialog-close-button:active,
+button[aria-label="close"]:focus,
+button[aria-label="close"]:focus-visible,
+button[aria-label="close"]:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border-radius: 0 !important;
 }
 
-.Dialog__CloseButton:hover {
-  color: var(--text-hover);
+.Dialog__CloseButton:hover,
+button.dialog-close-button:hover,
+button[aria-label="close"]:hover,
+button[aria-label="fechar"]:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  color: #00ffff !important;
 }
 
-.Dialog__CloseButton:active {
-  color: var(--accent);
+.Dialog__CloseButton:hover .Dialog__CloseIcon,
+.Dialog__CloseButton:hover svg,
+button.dialog-close-button:hover svg,
+button[aria-label="close"]:hover svg,
+button[aria-label="fechar"]:hover svg {
+  color: #00ffff !important;
+  fill: #00ffff !important;
+  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95)) !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
 }
 
 .Dialog__CloseIcon {
   font-size: var(--text-lg);
+  transition: all 0.2s ease;
 }
 
 .Dialog__content {

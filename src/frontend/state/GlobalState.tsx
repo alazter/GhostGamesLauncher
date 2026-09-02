@@ -42,7 +42,8 @@ import {
   zoomLibraryStore,
   steamConfigStore,
   steamInstalledGamesStore,
-  steamLibraryStore
+  steamLibraryStore,
+  gameOverridesStore
 } from '../helpers/electronStores'
 import { IpcRendererEvent } from 'electron'
 import { NileRegisterData } from 'common/types/nile'
@@ -208,6 +209,10 @@ class GlobalState extends PureComponent<Props> {
   loadSteamLibrary = (
     overrides: Record<string, GameOverride> = currentOverrides()
   ): Array<GameInfo> => {
+    const isLoggedIn = steamConfigStore.get('isLoggedIn', false)
+    if (!isLoggedIn) {
+      return []
+    }
     const games = steamLibraryStore.get('games', [])
     return applyGameOverrides(games, overrides)
   }
@@ -232,7 +237,9 @@ class GlobalState extends PureComponent<Props> {
       enabled: !!globalSettings?.experimentalFeatures?.zoomPlatform
     },
     steam: {
-      library: this.loadSteamLibrary(),
+      library: steamConfigStore.get('isLoggedIn', false)
+        ? this.loadSteamLibrary()
+        : [],
       username: steamConfigStore.get('isLoggedIn', false)
         ? (steamConfigStore.get_nodefault('username') || 'Alazter')
         : undefined,
@@ -383,14 +390,83 @@ class GlobalState extends PureComponent<Props> {
     this.setState({ lastChangelogShown: value })
   }
 
-  hideGame = (appNameToHide: string, appTitle: string) => {
+  getGameActiveCoverAndRunner = (
+    id: string,
+    providedRunner?: string,
+    providedArtCover?: string,
+    providedArtSquare?: string
+  ): { runner?: string; art_cover?: string; art_square?: string } => {
+    let runner = providedRunner
+    let art_cover = providedArtCover
+    let art_square = providedArtSquare
+
+    const gameOverrides =
+      (gameOverridesStore.get('overrides', {}) as Record<string, any>) || {}
+    const override = gameOverrides[id]
+
+    if (!runner || !art_cover || !art_square) {
+      const allGames: GameInfo[] = [
+        ...(this.state?.epic?.library ?? []),
+        ...(this.state?.gog?.library ?? []),
+        ...(this.state?.sideloadedLibrary ?? []),
+        ...(this.state?.amazon?.library ?? []),
+        ...(this.state?.zoom?.library ?? []),
+        ...(this.state?.steam?.library ?? [])
+      ]
+      const found = allGames.find((g) => g && String(g.app_name) === id)
+      if (found) {
+        runner = runner || found.runner
+        const foundOverride = gameOverrides[found.app_name] || override
+        art_cover =
+          art_cover ||
+          foundOverride?.art_cover ||
+          found.overrides?.art_cover ||
+          found.art_cover
+        art_square =
+          art_square ||
+          foundOverride?.art_square ||
+          found.overrides?.art_square ||
+          found.art_square
+      }
+    }
+
+    if (override) {
+      if (!art_cover && override.art_cover) art_cover = override.art_cover
+      if (!art_square && override.art_square) art_square = override.art_square
+    }
+
+    return { runner, art_cover, art_square }
+  }
+
+  hideGame = (
+    appNameToHide: string,
+    appTitle: string,
+    runner?: string,
+    art_cover?: string,
+    art_square?: string
+  ) => {
     const id = String(appNameToHide)
     const filtered = this.state.hiddenGames.filter(
       (g) => String(g.appName) !== id
     )
-    const newHiddenGames = [
+
+    const resolved = this.getGameActiveCoverAndRunner(
+      id,
+      runner,
+      art_cover,
+      art_square
+    )
+
+    const newHiddenGames: HiddenGame[] = [
       ...filtered,
-      { appName: id, title: appTitle }
+      {
+        appName: id,
+        title: appTitle,
+        runner: resolved.runner,
+        art_cover: resolved.art_cover,
+        art_square: resolved.art_square,
+        hiddenAt: Date.now()
+      }
     ]
 
     this.setState({
@@ -430,12 +506,18 @@ class GlobalState extends PureComponent<Props> {
     this.state.hiddenGames.forEach((g) => map.set(String(g.appName), g))
     gamesToHide.forEach((g) => {
       const id = String(g.appName)
+      const resolved = this.getGameActiveCoverAndRunner(
+        id,
+        g.runner,
+        g.art_cover,
+        g.art_square
+      )
       map.set(id, {
         appName: id,
         title: g.title,
-        runner: g.runner,
-        art_cover: g.art_cover,
-        art_square: g.art_square,
+        runner: resolved.runner,
+        art_cover: resolved.art_cover,
+        art_square: resolved.art_square,
         hiddenAt: Date.now()
       })
     })
@@ -803,13 +885,17 @@ class GlobalState extends PureComponent<Props> {
   }
 
   steamLogout = async () => {
-    await window.api.steamLogout()
-    await window.api.logoutSteam()
     steamConfigStore.set('isLoggedIn', false)
     steamConfigStore.delete('username')
     steamConfigStore.delete('steamId')
     steamConfigStore.delete('steamId32')
+    steamConfigStore.delete('apiKey')
+    steamConfigStore.delete('sessionCookie')
     steamLibraryStore.set('games', [])
+    try {
+      await window.api.steamLogout()
+      await window.api.logoutSteam()
+    } catch {}
     this.setState({
       steam: {
         library: [],
@@ -819,7 +905,7 @@ class GlobalState extends PureComponent<Props> {
         enabled: true
       }
     })
-    console.log('Logged out from steam')
+    console.log('Logged out from steam and cleared library')
   }
 
   updateGameOverrides = (overrides: Record<string, GameOverride>) => {
@@ -899,7 +985,8 @@ class GlobalState extends PureComponent<Props> {
     }
 
     let steamLibrary: GameInfo[] = []
-    if (steam.enabled) {
+    const isSteamLoggedIn = steamConfigStore.get('isLoggedIn', false)
+    if (steam.enabled && isSteamLoggedIn) {
       steamLibrary = this.loadSteamLibrary(overrides)
       if (!steamLibrary.length) {
         window.api.logInfo('No cache found, getting data from steam...')

@@ -21,9 +21,10 @@
     display: flex;
     border-radius: 16px !important;
     flex-direction: column;
-    background: rgba(16, 22, 34, 0.85) !important;
+    background: rgba(16, 22, 34, 0.88) !important;
     backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     opacity: 0;
     transition: all 200ms;
     pointer-events: none;

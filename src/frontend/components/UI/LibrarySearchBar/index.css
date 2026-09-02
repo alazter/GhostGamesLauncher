@@ -87,4 +87,31 @@
   width: 40px !important;
   height: 40px !important;
   object-fit: contain !important;
+  transition: transform 0.25s ease, filter 0.25s ease !important;
 }
+
+/* Efeito Neon Modo 2: Somente no Logo da Loja */
+.platforms-bar.glow-mode-logo .platform-filter-btn:hover .platform-filter-icon-img,
+.platforms-bar.glow-mode-logo .platform-filter-btn--active .platform-filter-icon-img {
+  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 6px rgba(0, 229, 255, 0.65)) !important;
+  transform: scale(1.06);
+}
+
+/* Efeito Neon Modo 3: Logo e Nome da Loja */
+.platforms-bar.glow-mode-logo_and_text .platform-filter-btn:hover .platform-filter-icon-img,
+.platforms-bar.glow-mode-logo_and_text .platform-filter-btn--active .platform-filter-icon-img,
+.platforms-bar.glow-mode-logo-text .platform-filter-btn:hover .platform-filter-icon-img,
+.platforms-bar.glow-mode-logo-text .platform-filter-btn--active .platform-filter-icon-img {
+  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 6px rgba(0, 229, 255, 0.65)) !important;
+  transform: scale(1.06);
+}
+
+.platforms-bar.glow-mode-logo_and_text .platform-filter-btn:hover span,
+.platforms-bar.glow-mode-logo_and_text .platform-filter-btn--active span,
+.platforms-bar.glow-mode-logo-text .platform-filter-btn:hover span,
+.platforms-bar.glow-mode-logo-text .platform-filter-btn--active span {
+  color: #38d9e6 !important;
+  text-shadow: 0 0 4px rgba(0, 229, 255, 0.6), 0 0 8px rgba(0, 229, 255, 0.3) !important;
+  transition: all 0.25s ease !important;
+}
+

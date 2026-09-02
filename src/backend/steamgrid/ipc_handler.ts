@@ -477,12 +477,15 @@ addHandler(
         uniqueMap.set(g.app_name, g)
       }
     }
-    allGames = Array.from(uniqueMap.values())
-
-    // Filter by specific appNames if provided
+    // Filter by specific appNames if provided, or exclude hidden games from batch replace
     if (args.appNames && args.appNames.length > 0) {
       const targetSet = new Set(args.appNames)
       allGames = allGames.filter((g) => targetSet.has(g.app_name))
+    } else {
+      const { configStore } = await import('backend/constants/key_value_stores')
+      const hiddenList = (configStore.get('games.hidden', []) as any[]) || []
+      const hiddenSet = new Set(hiddenList.map((h) => String(h.appName)))
+      allGames = allGames.filter((g) => !hiddenSet.has(String(g.app_name)))
     }
 
     const currentOverrides =

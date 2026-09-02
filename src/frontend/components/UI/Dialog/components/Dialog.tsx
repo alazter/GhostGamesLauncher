@@ -12,9 +12,11 @@ import {
   Paper,
   styled
 } from '@mui/material'
-import CloseIcon from '@mui/icons-material/Close'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTimes } from '@fortawesome/free-solid-svg-icons'
 
 import ContextProvider from 'frontend/state/ContextProvider'
+import '../index.css'
 
 interface DialogProps {
   className?: string
@@ -25,12 +27,19 @@ interface DialogProps {
 }
 
 const StyledPaper = styled(Paper)(() => ({
-  backgroundColor: 'var(--modal-background)',
+  backgroundColor: 'rgba(20, 24, 30, 0.85) !important',
+  backdropFilter: 'blur(16px) !important',
+  WebkitBackdropFilter: 'blur(16px) !important',
+  border: '1px solid rgba(255, 255, 255, 0.1) !important',
+  borderRadius: '16px !important',
+  boxShadow: '0 16px 40px rgba(0, 0, 0, 0.5) !important',
+  backgroundImage: 'none !important',
+  color: '#ffffff !important',
   maxWidth: '100%',
   '&:has(.settingsDialogContent):not(:has(.logs-wrapper))': {
     height: '80%'
   },
-  '&:has(.logs-wrapper))': {
+  '&:has(.logs-wrapper)': {
     maxHeight: '80%'
   }
 }))
@@ -43,6 +52,7 @@ export const Dialog: React.FC<DialogProps> = ({
   maxWidth = 'md'
 }) => {
   const [open, setOpen] = useState(true)
+  const [isCloseHovered, setIsCloseHovered] = useState(false)
   const { disableDialogBackdropClose } = useContext(ContextProvider)
 
   useEffect(() => {
@@ -73,6 +83,11 @@ export const Dialog: React.FC<DialogProps> = ({
         className
       }}
       sx={{
+        '& .MuiBackdrop-root': {
+          backgroundColor: 'rgba(0, 0, 0, 0.6) !important',
+          backdropFilter: 'blur(4px) !important',
+          WebkitBackdropFilter: 'blur(4px) !important'
+        },
         '& .Dialog__element': {
           maxWidth: 'min(700px, 85vw)',
           paddingTop: 'var(--dialog-margin-vertical)'
@@ -80,25 +95,49 @@ export const Dialog: React.FC<DialogProps> = ({
       }}
     >
       <>
-        <IconButton
+        <button
+          type="button"
           aria-label="close"
+          className="Dialog__CloseButton dialog-close-button"
           onClick={close}
-          sx={{
+          tabIndex={-1}
+          onMouseEnter={() => setIsCloseHovered(true)}
+          onMouseLeave={() => setIsCloseHovered(false)}
+          style={{
             position: 'absolute',
-            right: 8,
-            // showCloseButton used for gamepad back actions, should always be in DOM
-            display: showCloseButton ? 'auto' : 'none',
-            top: 8,
-            color: 'var(--text-default)',
-            outline: 'none !important',
-            '&:focus, &:focus-visible, &:active': {
-              outline: 'none !important',
-              boxShadow: 'none !important'
-            }
+            right: 14,
+            top: 14,
+            display: showCloseButton ? 'flex' : 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            margin: 0,
+            width: '28px',
+            height: '28px',
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            border: 'none',
+            outline: 'none',
+            boxShadow: 'none',
+            borderRadius: 0,
+            cursor: 'pointer',
+            zIndex: 10
           }}
         >
-          <CloseIcon />
-        </IconButton>
+          <FontAwesomeIcon
+            icon={faTimes}
+            style={{
+              fontSize: '20px',
+              color: isCloseHovered ? '#00ffff' : 'rgba(255, 255, 255, 0.65)',
+              filter: isCloseHovered
+                ? 'drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95))'
+                : 'none',
+              transform: isCloseHovered ? 'scale(1.05)' : 'scale(1)',
+              transition: 'all 0.2s ease',
+              pointerEvents: 'none'
+            }}
+          />
+        </button>
         <DialogContent>{children}</DialogContent>
       </>
     </MuiDialog>

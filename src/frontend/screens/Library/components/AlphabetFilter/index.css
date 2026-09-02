@@ -91,6 +91,26 @@
   color: var(--alphabet-filter-button-hover-text-color, #ffffff) !important;
 }
 
+.alphabet-filter-button:not(.alphabet-filter-button--active):not(.alphabet-filter-button--disabled) {
+  opacity: 0.3;
+  cursor: default;
+  color: var(--alphabet-filter-button-disabled-text-color) !important;
+  pointer-events: none;
+}
+
+/* Efeito Neon Suave no Filtro Alfabético */
+.alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button:not(.alphabet-filter-button--disabled):hover span,
+.alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button--active span {
+  color: #38d9e6 !important;
+  text-shadow: 0 0 4px rgba(0, 229, 255, 0.6), 0 0 8px rgba(0, 229, 255, 0.3) !important;
+  transition: all 0.25s ease !important;
+}
+
+.alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button:not(.alphabet-filter-button--disabled):hover,
+.alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button--active {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25) !important;
+}
+
 .alphabet-filter-button:focus-visible {
   box-shadow: 0 0 0 2px var(--alphabet-filter-accent-color);
 }

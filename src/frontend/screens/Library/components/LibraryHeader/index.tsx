@@ -26,7 +26,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     showUnclassifiedOnly,
     sortByNewlyAdded,
     sortByMostPlayed,
-    storesFilters
+    storesFilters,
+    filterText
   } = useContext(LibraryContext)
 
   const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
@@ -81,6 +82,10 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     return saved !== null ? Number(saved) : 18
   })
 
+  const [alphabetGlowMode, setAlphabetGlowMode] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_glow_mode') || 'disabled'
+  })
+
   useEffect(() => {
     const handleSettingsChange = () => {
       setAlignment(localStorage.getItem('heroic_alphabet_alignment') || 'center')
@@ -102,6 +107,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
 
       const savedRadius = localStorage.getItem('heroic_alphabet_btn_border_radius')
       setBtnBorderRadius(savedRadius !== null ? Number(savedRadius) : 18)
+
+      setAlphabetGlowMode(localStorage.getItem('heroic_alphabet_glow_mode') || 'disabled')
     }
 
     const handleFilterChange = () =>
@@ -150,6 +157,10 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
       (lib) => lib.runner === 'sideload' || !lib.install?.is_dlc
     )
 
+    if (filterText && filterText.trim().length > 0) {
+      return effectiveList.length > 0 ? `${effectiveList.length}` : 0
+    }
+
     if (!showPlaytestsAndDemos) {
       effectiveList = effectiveList.filter((game) => !isPlaytestOrDemo(game))
     }
@@ -183,7 +194,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     customStores,
     assignments,
     storesFilters,
-    showPlaytestsAndDemos
+    showPlaytestsAndDemos,
+    filterText
   ])
 
   const hexToRgb = (hex: string) => {
@@ -266,7 +278,7 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
               ? '⏱️ Mais Jogados'
               : t('title.allGames', 'All Games')}
             <span
-              className="numberOfgames"
+              className={`numberOfgames ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''}`}
               style={{
                 margin: 0,
                 lineHeight: 1,
@@ -280,7 +292,9 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
                 borderRadius: `${btnBorderRadius}px`,
                 background: badgeBg,
                 border: badgeBorder,
-                color: btnTextColor,
+                color: alphabetGlowMode === 'neon' ? '#38d9e6' : btnTextColor,
+                textShadow: alphabetGlowMode === 'neon' ? '0 0 4px rgba(0, 229, 255, 0.6)' : 'none',
+                boxShadow: alphabetGlowMode === 'neon' ? '0 0 8px rgba(0, 229, 255, 0.25)' : 'none',
                 backdropFilter: btnBgOpacity === 0 ? 'none' : 'blur(12px)',
                 WebkitBackdropFilter: btnBgOpacity === 0 ? 'none' : 'blur(12px)',
                 fontFamily: 'inherit',
