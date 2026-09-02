@@ -1,4 +1,4 @@
-# Review das Alterações - 01/09/2026
+# Review das Alterações - 02/09/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -191,6 +191,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Implementado o componente `DriveSelector` para identificação de unidades/SSDs do Windows com barra de espaço livre no modal de instalação.
   - Atualizados os modais `UninstallModal` e menus de contexto para suporte completo a remoção e ocultação de jogos da Steam na biblioteca.
   - Registrado lembrete ativo no `.agents/AGENTS.md` para validação prática de ocultação/deleção de jogos da Steam.
+
+### 31. Otimização Instantânea de Capas da Steam, Cache em Memória Síncrono e Modal Batch SteamGridDB
+* **Problema:** Diferença de performance no carregamento inicial de capas dos 341 jogos da Steam importados vs outras lojas, e necessidade de edição visual em lote via SteamGridDB.
+* **Solução:**
+  - Reformulada a arquitetura do `images_cache.ts` com indexação em memória síncrona (`syncMemoryIndexFromDisk`), eliminação de chamadas de disco bloqueantes e pré-população concorrente de thumbnails em `steam/library.ts` e `steamgridHelper.ts`. Renderização de capas agora é 100% instantânea.
+  - Otimizado o componente `CachedImage` com resolução direta de caminhos `file://` e redução de re-renders desnecessários.
+  - Criado o componente `SteamGridBatchModal` para busca, pré-visualização e aplicação em lote de capas e banners do SteamGridDB diretamente na biblioteca.
+  - Atualizada a lista de conquistas e lembretes ativos no `.agents/AGENTS.md`.
 
 ---
 

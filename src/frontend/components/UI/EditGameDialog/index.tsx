@@ -56,13 +56,10 @@ export default function EditGameDialog({
   }, [])
 
   const handleSave = () => {
-    const finalTitle = title === gameInfo.title ? '' : title
-    const finalCover = artCover === gameInfo.art_cover ? '' : artCover
-    const finalSquare = artSquare === gameInfo.art_square ? '' : artSquare
+    const finalTitle = title.trim() || gameInfo.title
+    const finalCover = artCover.trim() || gameInfo.art_cover || ''
+    const finalSquare = artSquare.trim() || gameInfo.art_square || ''
 
-    // Drop fields that match the original game info — the backend deletes
-    // the override entry when all three are empty, which is what we want
-    // after the user resets.
     window.api.setGameMetadataOverride({
       appName: gameInfo.app_name,
       title: finalTitle,
@@ -72,15 +69,12 @@ export default function EditGameDialog({
 
     try {
       const overrides = gameOverridesStore.get('overrides', {})
-      if (!finalTitle && !finalCover && !finalSquare) {
-        delete overrides[gameInfo.app_name]
-      } else {
-        overrides[gameInfo.app_name] = {
-          ...overrides[gameInfo.app_name],
-          title: finalTitle,
-          art_cover: finalCover,
-          art_square: finalSquare
-        }
+      overrides[gameInfo.app_name] = {
+        ...overrides[gameInfo.app_name],
+        title: finalTitle,
+        art_cover: finalCover,
+        art_square: finalSquare,
+        is_manual: true
       }
       gameOverridesStore.set('overrides', overrides)
       useGlobalState.getState().setGameOverrides(overrides)

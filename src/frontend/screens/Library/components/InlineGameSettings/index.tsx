@@ -114,6 +114,7 @@ const syncFrontendStoreForOverride = (
     const targetCover = artCover !== undefined ? artCover : (currentOverride.art_cover || '')
     const targetSquare = artSquare !== undefined ? artSquare : (currentOverride.art_square || '')
     const targetTitle = title !== undefined ? title : (currentOverride.title || '')
+    const isManual = (artCover !== undefined || artSquare !== undefined) ? true : Boolean(currentOverride.is_manual)
 
     if (!targetTitle && !targetCover && !targetSquare) {
       delete overrides[appName]
@@ -122,7 +123,8 @@ const syncFrontendStoreForOverride = (
         ...currentOverride,
         title: targetTitle,
         art_cover: targetCover,
-        art_square: targetSquare
+        art_square: targetSquare,
+        is_manual: isManual
       }
     }
     gameOverridesStore.set('overrides', overrides)
@@ -996,19 +998,19 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                     art_square: editSquare
                   })
                 } else {
-                  const finalCover = editCover === game.art_cover ? '' : editCover
-                  const finalSquare = editSquare === game.art_square ? '' : editSquare
+                  const finalCover = editCover || game.overrides?.art_cover || game.art_cover || ''
+                  const finalSquare = editSquare || game.overrides?.art_square || game.art_square || ''
 
                   syncFrontendStoreForOverride(
                     game.app_name,
-                    game.overrides?.title || '',
+                    game.overrides?.title || game.title || '',
                     finalCover,
                     finalSquare
                   )
 
                   await window.api.setGameMetadataOverride({
                     appName: game.app_name,
-                    title: game.overrides?.title || '',
+                    title: game.overrides?.title || game.title || '',
                     art_cover: finalCover,
                     art_square: finalSquare
                   })
@@ -1516,26 +1518,36 @@ function GameTitleInput({
 
             syncFrontendStoreForSideload(updatedGame)
 
+            const curOverrides = gameOverridesStore.get('overrides', {})
+            const existing = curOverrides[game.app_name] || {}
+            const curCover = existing.art_cover || game.overrides?.art_cover || ''
+            const curSquare = existing.art_square || game.overrides?.art_square || ''
+
             window.api.addNewApp(updatedGame)
             window.api.setGameMetadataOverride({
               appName: game.app_name,
               title: finalTitle,
-              art_cover: game.overrides?.art_cover || '',
-              art_square: game.overrides?.art_square || ''
+              art_cover: curCover,
+              art_square: curSquare
             })
           } else {
+            const curOverrides = gameOverridesStore.get('overrides', {})
+            const existing = curOverrides[game.app_name] || {}
+            const curCover = existing.art_cover || game.overrides?.art_cover || ''
+            const curSquare = existing.art_square || game.overrides?.art_square || ''
+
             syncFrontendStoreForOverride(
               game.app_name,
               finalTitle === game.title ? '' : finalTitle,
-              game.overrides?.art_cover || '',
-              game.overrides?.art_square || ''
+              curCover,
+              curSquare
             )
 
             window.api.setGameMetadataOverride({
               appName: game.app_name,
               title: finalTitle === game.title ? '' : finalTitle,
-              art_cover: game.overrides?.art_cover || '',
-              art_square: game.overrides?.art_square || ''
+              art_cover: curCover,
+              art_square: curSquare
             })
           }
           if (refreshLibrary) {
@@ -1562,6 +1574,11 @@ function GameTitleInput({
 
     const delayDebounceFn = setTimeout(async () => {
       try {
+        const curOverrides = gameOverridesStore.get('overrides', {})
+        const existing = curOverrides[game.app_name] || {}
+        const curCover = existing.art_cover || game.overrides?.art_cover || ''
+        const curSquare = existing.art_square || game.overrides?.art_square || ''
+
         if (game.runner === 'sideload') {
           // Para sideload, atualizamos o título no banco de dados do sideload
           const updatedGame: GameInfo = {
@@ -1573,9 +1590,9 @@ function GameTitleInput({
               platform: game.install?.platform || 'windows',
               is_dlc: false
             },
-            art_cover: game.art_cover || '',
+            art_cover: curCover || game.art_cover || '',
             is_installed: true,
-            art_square: game.art_square || '',
+            art_square: curSquare || game.art_square || '',
             canRunOffline: true,
             browserUrl: game.browserUrl || '',
             customUserAgent: game.customUserAgent || '',
@@ -1589,23 +1606,23 @@ function GameTitleInput({
           await window.api.setGameMetadataOverride({
             appName: game.app_name,
             title: trimmedTitle,
-            art_cover: game.overrides?.art_cover || '',
-            art_square: game.overrides?.art_square || ''
+            art_cover: curCover,
+            art_square: curSquare
           })
         } else {
           // Para outros runners, usamos o sistema de overrides padrão do Heroic
           syncFrontendStoreForOverride(
             game.app_name,
             trimmedTitle === game.title ? '' : trimmedTitle,
-            game.overrides?.art_cover || '',
-            game.overrides?.art_square || ''
+            curCover,
+            curSquare
           )
 
           await window.api.setGameMetadataOverride({
             appName: game.app_name,
             title: trimmedTitle === game.title ? '' : trimmedTitle,
-            art_cover: game.overrides?.art_cover || '',
-            art_square: game.overrides?.art_square || ''
+            art_cover: curCover,
+            art_square: curSquare
           })
         }
 

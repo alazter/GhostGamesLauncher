@@ -162,9 +162,9 @@ export default function LibraryFilters() {
     setStoresFilters(newFilters)
   }
 
-  const toggleWithOnly = (toggle: JSX.Element, onOnlyClicked: () => void) => {
+  const toggleWithOnly = (key: string, toggle: JSX.Element, onOnlyClicked: () => void) => {
     return (
-      <div className="toggleWithOnly">
+      <div key={key} className="toggleWithOnly">
         {toggle}
         <button className="only" onClick={() => onOnlyClicked()}>
           {t('header.only', 'only')}
@@ -188,7 +188,7 @@ export default function LibraryFilters() {
       setPlatformOnly(plat)
     }
 
-    return toggleWithOnly(toggle, onOnlyClick)
+    return toggleWithOnly(`platform-${plat}`, toggle, onOnlyClick)
   }
 
   const storeToggle = (store: CustomStore) => {
@@ -205,7 +205,7 @@ export default function LibraryFilters() {
     const onOnlyClick = () => {
       setStoreOnly(store.id)
     }
-    return toggleWithOnly(toggle, onOnlyClick)
+    return toggleWithOnly(`store-${store.id}`, toggle, onOnlyClick)
   }
 
   const resetFilters = () => {

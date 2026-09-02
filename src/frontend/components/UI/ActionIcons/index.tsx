@@ -6,19 +6,20 @@ import {
   faArrowDownZA,
   faHardDrive as hardDriveSolid,
   faFilter,
-  faFilterCircleXmark
+  faFilterCircleXmark,
+  faImage
 } from '@fortawesome/free-solid-svg-icons'
 import { faHardDrive as hardDriveLight } from '@fortawesome/free-regular-svg-icons'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextProvider from 'frontend/state/ContextProvider'
 import FormControl from '../FormControl'
+import SteamGridBatchModal from '../SteamGridBatchModal'
 import './index.css'
 import classNames from 'classnames'
 import LibraryContext from 'frontend/screens/Library/LibraryContext'
-
 
 interface ActionIconsProps {
   'data-tour'?: string
@@ -29,6 +30,7 @@ export default React.memo(function ActionIcons({
 }: ActionIconsProps = {}) {
   const { t } = useTranslation()
   const { refreshLibrary, refreshing } = useContext(ContextProvider)
+  const [showSteamGridModal, setShowSteamGridModal] = useState(false)
 
   const {
     handleLayout,
@@ -40,8 +42,6 @@ export default React.memo(function ActionIcons({
     showAlphabetFilter,
     onToggleAlphabetFilter
   } = useContext(LibraryContext)
-
-
 
   return (
     <div className="ActionIcons" data-tour={dataTour}>
@@ -112,6 +112,17 @@ export default React.memo(function ActionIcons({
           />
         </button>
         <button
+          className="FormControl__button"
+          title="Sincronizar Capas no SteamGridDB"
+          onClick={() => setShowSteamGridModal(true)}
+        >
+          <FontAwesomeIcon
+            className="FormControl__segmentedFaIcon"
+            icon={faImage}
+            data-tour="library-steamgriddb-sync"
+          />
+        </button>
+        <button
           className={classNames('FormControl__button', {
             active: refreshing
           })}
@@ -131,6 +142,10 @@ export default React.memo(function ActionIcons({
         </button>
       </FormControl>
 
+      <SteamGridBatchModal
+        isOpen={showSteamGridModal}
+        onClose={() => setShowSteamGridModal(false)}
+      />
     </div>
   )
 })

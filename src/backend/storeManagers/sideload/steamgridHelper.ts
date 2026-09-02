@@ -17,6 +17,11 @@ export function getApiKey(): string {
 const failedSearchCache = new Set<string>()
 const successfulSearchCache = new Map<string, { art_cover: string; art_square: string }>()
 
+export function clearSteamGridCache() {
+  failedSearchCache.clear()
+  successfulSearchCache.clear()
+}
+
 export async function fetchCoverFromSteamGridDB(
   apiKey: string,
   title: string,
@@ -30,14 +35,24 @@ export async function fetchCoverFromSteamGridDB(
     return successfulSearchCache.get(normalizedKey)!
   }
 
+  const selectBestGrid = (grids: any[]): string | null => {
+    if (!grids || grids.length === 0) return null
+    const nonBlurred = grids.filter((g) => g.style !== 'blurred')
+    if (nonBlurred.length > 0) {
+      return nonBlurred[0].url
+    }
+    return grids[0].url
+  }
+
   // 1. If it's a Steam game, query directly by official Steam AppID (100% precision)
   if (steamAppId) {
     try {
       const grids = await SteamGridDB.getGridsBySteamAppId(apiKey, steamAppId)
-      if (grids && grids.length > 0) {
+      const bestUrl = selectBestGrid(grids)
+      if (bestUrl) {
         const res = {
-          art_cover: grids[0].url,
-          art_square: grids[0].url
+          art_cover: bestUrl,
+          art_square: bestUrl
         }
         successfulSearchCache.set(normalizedKey, res)
         return res
@@ -53,23 +68,32 @@ export async function fetchCoverFromSteamGridDB(
       .replace(/\s*(?:-|:)\s*(?:game of the year|goty|complete|definitive|special|deluxe|standard|gold|ultimate|collector'?s)\s*edition/gi, '') // Remove sufixos de edições
       .replace(/\s+\(\d{4}\)/g, '') // Remove anos como (2020)
       .replace(/\s+-\s+repack/gi, '') // Remove sufixo repack
+      .replace(/\s*(?:playtest|public testing|test server|closed beta|open beta|beta|alpha|pre-alpha|preview|samples|map editor|dedicated server|soundtrack|artbook)\b/gi, '') // Remove sufixos de playtests, previews e utilitários
+      .replace(/\s*\([^)]*\)/g, '') // Remove parenteses (ex: (Public Testing))
       .trim()
   }
 
   const trySearch = async (searchQuery: string) => {
+    if (!searchQuery || searchQuery.trim().length < 2) return null
     try {
       const searchResults = await SteamGridDB.searchGame(apiKey, searchQuery)
       if (searchResults && searchResults.length > 0) {
-        const gameId = searchResults[0].id
-        // Busca com as dimensões verticais padrão sem restringir estilos
+        const lowerSearch = searchQuery.toLowerCase()
+        const matched =
+          searchResults.find((g) => g.name?.toLowerCase() === lowerSearch) ||
+          searchResults[0]
+        const gameId = matched.id
+
         const grids = await SteamGridDB.getGrids(apiKey, {
           gameId,
-          dimensions: ['600x900', '342x482', '660x930']
+          dimensions: ['600x900', '342x482', '660x930'],
+          styles: ['alternate', 'white_logo', 'material', 'no_logo']
         })
-        if (grids && grids.length > 0) {
+        const bestUrl = selectBestGrid(grids)
+        if (bestUrl) {
           return {
-            art_cover: grids[0].url,
-            art_square: grids[0].url
+            art_cover: bestUrl,
+            art_square: bestUrl
           }
         }
       }
@@ -87,13 +111,36 @@ export async function fetchCoverFromSteamGridDB(
     return result
   }
 
-  // 2. Se falhar, tenta com o título limpo
+  // 2. Tenta com o título limpo (sem playtest, demo, pre-alpha, etc.)
   const cleaned = cleanTitle(title)
-  if (cleaned !== title) {
+  if (cleaned && cleaned !== title) {
     result = await trySearch(cleaned)
     if (result) {
       successfulSearchCache.set(normalizedKey, result)
       return result
+    }
+  }
+
+  // 3. Tenta prefixo antes de ':' ou ' - ' (ex: Agatha Christie: ABC Murders -> Agatha Christie)
+  if (title.includes(':')) {
+    const prefix = cleanTitle(title.split(':')[0])
+    if (prefix && prefix !== cleaned && prefix !== title) {
+      result = await trySearch(prefix)
+      if (result) {
+        successfulSearchCache.set(normalizedKey, result)
+        return result
+      }
+    }
+  }
+
+  if (title.includes(' - ')) {
+    const prefix = cleanTitle(title.split(' - ')[0])
+    if (prefix && prefix !== cleaned && prefix !== title) {
+      result = await trySearch(prefix)
+      if (result) {
+        successfulSearchCache.set(normalizedKey, result)
+        return result
+      }
     }
   }
 

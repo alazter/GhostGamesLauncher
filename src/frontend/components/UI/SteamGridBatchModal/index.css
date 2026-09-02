@@ -1,0 +1,264 @@
+.steamgrid-batch-modal {
+  max-width: 600px;
+  width: 90vw;
+  background: rgba(18, 20, 24, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.steamgrid-batch-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.steamgrid-batch-icon {
+  color: #00d2ff;
+}
+
+.steamgrid-batch-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.steamgrid-batch-api-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.steamgrid-batch-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 210, 255, 0.08);
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  border-radius: 12px;
+  padding: 16px;
+  color: #00d2ff;
+}
+
+.steamgrid-batch-banner h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.steamgrid-batch-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+.steamgrid-batch-steps {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.steamgrid-batch-link {
+  color: #00d2ff;
+  text-decoration: underline;
+  margin-left: 4px;
+}
+
+.steamgrid-batch-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.steamgrid-batch-input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.steamgrid-batch-input:focus {
+  border-color: #00d2ff;
+}
+
+.steamgrid-batch-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.steamgrid-batch-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.steamgrid-batch-radio-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.steamgrid-batch-radio-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 210, 255, 0.3);
+}
+
+.steamgrid-batch-radio-card.selected {
+  background: rgba(0, 210, 255, 0.08);
+  border-color: #00d2ff;
+}
+
+.steamgrid-batch-radio-card input {
+  margin-top: 3px;
+  accent-color: #00d2ff;
+}
+
+.steamgrid-batch-radio-card strong {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.steamgrid-batch-radio-card span {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.35;
+}
+
+.steamgrid-batch-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.steamgrid-batch-spin {
+  color: #00d2ff;
+  margin-bottom: 16px;
+}
+
+.steamgrid-batch-progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 16px 0 8px 0;
+}
+
+.steamgrid-batch-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d2ff, #0078d7);
+  transition: width 0.3s ease;
+}
+
+.steamgrid-batch-progress-stats {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 16px;
+}
+
+.steamgrid-batch-preview-box {
+  width: 100px;
+  height: 150px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 210, 255, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  margin-bottom: 12px;
+}
+
+.steamgrid-batch-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.steamgrid-batch-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 8px;
+}
+
+.steamgrid-batch-finished {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.steamgrid-batch-success-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(76, 175, 80, 0.2);
+  border: 2px solid #4caf50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4caf50;
+  margin-bottom: 16px;
+}
+
+.steamgrid-batch-result-boxes {
+  display: flex;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.steamgrid-batch-result-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.steamgrid-batch-result-box.highlight {
+  background: rgba(0, 210, 255, 0.1);
+  border-color: #00d2ff;
+}
+
+.steamgrid-batch-result-box strong {
+  font-size: 24px;
+  color: #fff;
+}
+
+.steamgrid-batch-result-box span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}

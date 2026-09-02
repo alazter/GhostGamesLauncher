@@ -12,13 +12,7 @@ interface CachedImageProps {
 
 type Props = React.ImgHTMLAttributes<HTMLImageElement> & CachedImageProps
 
-// Set of URLs that have already loaded once during this session.
-// This prevents repeating the fade-in transition when re-rendering cards.
 const loadedUrls = new Set<string>()
-
-// Set of URLs that are known to have failed to load during this session.
-// Prevents retrying broken URLs and eliminates any flickering.
-const failedUrls = new Set<string>()
 
 const shouldCache = (src?: string) => {
   if (!src) return false
@@ -45,44 +39,14 @@ const CachedImage = (props: Props) => {
 
   const targetSrc = getTargetSrc(props.src)
 
-  // Find the first candidate that hasn't previously failed
-  const initialCandidateIndex = useMemo(() => {
-    if (targetSrc && !failedUrls.has(targetSrc)) return -1
-    for (let i = 0; i < fallbackList.length; i++) {
-      const candidate = getTargetSrc(fallbackList[i])
-      if (!failedUrls.has(candidate)) return i
-    }
-    return fallbackList.length
-  }, [targetSrc, fallbackList])
+  const [fallbackIndex, setFallbackIndex] = useState<number>(-1)
+  const [errorHidden, setErrorHidden] = useState<boolean>(false)
 
-  const [fallbackIndex, setFallbackIndex] = useState<number>(initialCandidateIndex)
-  const [failed, setFailed] = useState<boolean>(
-    initialCandidateIndex >= fallbackList.length && targetSrc !== ''
-  )
-
-  // Reset candidate index ONLY when props.src or fallbackList changes
+  // Reset candidate index when props.src changes
   useEffect(() => {
-    const isPrimaryFailed = targetSrc ? failedUrls.has(targetSrc) : false
-    if (!isPrimaryFailed && targetSrc) {
-      setFallbackIndex(-1)
-      setFailed(false)
-    } else {
-      let found = false
-      for (let i = 0; i < fallbackList.length; i++) {
-        const candidate = getTargetSrc(fallbackList[i])
-        if (!failedUrls.has(candidate)) {
-          setFallbackIndex(i)
-          setFailed(false)
-          found = true
-          break
-        }
-      }
-      if (!found) {
-        setFallbackIndex(fallbackList.length)
-        setFailed(true)
-      }
-    }
-  }, [targetSrc, fallbackList])
+    setFallbackIndex(-1)
+    setErrorHidden(false)
+  }, [props.src, targetSrc])
 
   const displayCandidate =
     fallbackIndex === -1 ? targetSrc : fallbackList[fallbackIndex] || ''
@@ -97,11 +61,7 @@ const CachedImage = (props: Props) => {
     setLoaded(nextLoaded)
   }, [displaySrc])
 
-  if (
-    failed ||
-    (!displaySrc && props.hideOnError) ||
-    (fallbackIndex >= 0 && props.hideOnError)
-  ) {
+  if (errorHidden || (!displaySrc && props.hideOnError)) {
     return null
   }
 
@@ -111,13 +71,15 @@ const CachedImage = (props: Props) => {
     hideOnError: _hideOnError,
     onLoad: _onLoad,
     onError: _onError,
-    loading = 'lazy',
+    loading = 'eager',
+    decoding = 'async',
     ...rest
   } = props
 
   return (
     <img
       loading={loading}
+      decoding={decoding}
       {...rest}
       src={displaySrc}
       onLoad={(e) => {
@@ -128,28 +90,22 @@ const CachedImage = (props: Props) => {
         props.onLoad?.(e)
       }}
       onError={(e) => {
-        if (displaySrc) {
-          failedUrls.add(displaySrc)
-        }
-
         if (props.hideOnError) {
-          setFailed(true)
+          setErrorHidden(true)
           props.onError?.(e)
           return
         }
 
-        // Advance to next fallback
         const nextIndex = fallbackIndex + 1
         if (nextIndex < fallbackList.length) {
           setFallbackIndex(nextIndex)
         } else {
-          setFailed(true)
           props.onError?.(e)
         }
       }}
       className={classNames(props.className, {
         loaded: loaded || isAlreadyLoaded,
-        loading: !loaded && !isAlreadyLoaded && !failed
+        loading: !loaded && !isAlreadyLoaded
       })}
     />
   )

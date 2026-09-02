@@ -359,3 +359,173 @@ addHandler('steamgriddb.syncMissingCovers', async () => {
   return { started: true }
 })
 
+addHandler(
+  'steamgriddb.batchReplaceAllCovers',
+  async (
+    event,
+    args: {
+      appNames?: string[]
+      runner?: string
+      scope?: 'all' | 'steam_only' | 'missing_only'
+      dimensions?: string[]
+    } = {}
+  ) => {
+    const apiKey = getDecryptedApiKey()
+    if (!apiKey) {
+      throw new Error('API_KEY_REQUIRED')
+    }
+
+    const { BrowserWindow } = await import('electron')
+    const { gameOverridesStore } = await import(
+      'backend/game_overrides/electronStores'
+    )
+    const { fetchCoverFromSteamGridDB, clearSteamGridCache } = await import(
+      'backend/storeManagers/sideload/steamgridHelper'
+    )
+    clearSteamGridCache()
+    const { libraryStore: steamStore } = await import(
+      'backend/storeManagers/steam/electronStores'
+    )
+    const { libraryStore: sideloadStore } = await import(
+      'backend/storeManagers/sideload/electronStores'
+    )
+    const { libraryStore: legendaryStore } = await import(
+      'backend/storeManagers/legendary/electronStores'
+    )
+    const { libraryStore: gogStore } = await import(
+      'backend/storeManagers/gog/electronStores'
+    )
+    const { libraryStore: nileStore } = await import(
+      'backend/storeManagers/nile/electronStores'
+    )
+
+    let allGames: any[] = []
+    if (args.runner === 'steam') {
+      allGames = steamStore.get('games', [])
+    } else {
+      allGames = [
+        ...steamStore.get('games', []),
+        ...sideloadStore.get('games', []),
+        ...legendaryStore.get('library', []),
+        ...gogStore.get('games', []),
+        ...nileStore.get('library', [])
+      ]
+    }
+
+    // Filter duplicates by app_name
+    const uniqueMap = new Map<string, any>()
+    for (const g of allGames) {
+      if (g.app_name && !uniqueMap.has(g.app_name)) {
+        uniqueMap.set(g.app_name, g)
+      }
+    }
+    allGames = Array.from(uniqueMap.values())
+
+    // Filter by specific appNames if provided
+    if (args.appNames && args.appNames.length > 0) {
+      const targetSet = new Set(args.appNames)
+      allGames = allGames.filter((g) => targetSet.has(g.app_name))
+    }
+
+    const currentOverrides =
+      (gameOverridesStore.get('overrides', {}) as Record<string, any>) || {}
+
+    const total = allGames.length
+    let processed = 0
+    let updated = 0
+    let failed = 0
+
+    const sendProgress = (
+      gameTitle: string,
+      success: boolean,
+      coverUrl?: string
+    ) => {
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('steamgriddb.batchProgress', {
+          current: processed,
+          total,
+          title: gameTitle,
+          success,
+          coverUrl,
+          updated
+        })
+      }
+    }
+
+    // Process with concurrency throttling (3 concurrent requests to be polite to SGDB API)
+    const CONCURRENCY = 3
+    const chunks: any[][] = []
+    for (let i = 0; i < allGames.length; i += CONCURRENCY) {
+      chunks.push(allGames.slice(i, i + CONCURRENCY))
+    }
+
+    for (const chunk of chunks) {
+      await Promise.all(
+        chunk.map(async (game) => {
+          if (!game.title) {
+            processed++
+            return
+          }
+
+          // Preserve manual custom covers chosen explicitly by user
+          if (currentOverrides[game.app_name]?.is_manual) {
+            processed++
+            updated++
+            sendProgress(
+              game.title,
+              true,
+              currentOverrides[game.app_name].art_square
+            )
+            return
+          }
+
+          try {
+            const steamAppId =
+              game.runner === 'steam' ? game.app_name : undefined
+            const coverData = await fetchCoverFromSteamGridDB(
+              apiKey,
+              game.title,
+              steamAppId
+            )
+
+            if (coverData?.art_square) {
+              currentOverrides[game.app_name] = {
+                ...currentOverrides[game.app_name],
+                title: game.title,
+                art_square: coverData.art_square,
+                art_cover: coverData.art_cover || coverData.art_square
+              }
+              updated++
+              processed++
+              sendProgress(game.title, true, coverData.art_square)
+            } else {
+              failed++
+              processed++
+              sendProgress(game.title, false)
+            }
+          } catch (err) {
+            failed++
+            processed++
+            sendProgress(game.title, false)
+          }
+        })
+      )
+
+      // Save incremental progress after each chunk
+      gameOverridesStore.set('overrides', currentOverrides)
+    }
+
+    gameOverridesStore.set('overrides', currentOverrides)
+
+    const { sendFrontendMessage } = await import('backend/ipc')
+    sendFrontendMessage('metadataChanged', currentOverrides)
+
+    return {
+      total,
+      updated,
+      failed
+    }
+  }
+)
+

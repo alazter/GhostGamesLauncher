@@ -62,6 +62,8 @@ export async function getGrids(
   }
   if (args.styles && args.styles.length > 0) {
     params.styles = args.styles.join(',')
+  } else {
+    params.styles = 'alternate,white_logo,material,no_logo'
   }
   const types = args.types && args.types.length > 0 ? args.types : ['static', 'animated']
   params.types = types.join(',')
@@ -87,7 +89,15 @@ export async function getGrids(
     throw new Error(response.data.errors?.join(', ') || 'Failed to get grids')
   }
 
-  return response.data.data
+  const grids = response.data.data || []
+  return grids.slice().sort((a: any, b: any) => {
+    const scoreA = a.score ?? 0
+    const scoreB = b.score ?? 0
+    if (scoreB !== scoreA) return scoreB - scoreA
+    const dimA = (a.width || 0) * (a.height || 0)
+    const dimB = (b.width || 0) * (b.height || 0)
+    return dimB - dimA
+  })
 }
 
 /**
@@ -102,7 +112,8 @@ export async function getGridsBySteamAppId(
       `${SGDB_API_URL}/grids/steam/${appId}`,
       {
         params: {
-          dimensions: '600x900,342x482,660x930'
+          dimensions: '600x900,342x482,660x930',
+          styles: 'alternate,white_logo,material,no_logo'
         },
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -111,8 +122,16 @@ export async function getGridsBySteamAppId(
       }
     )
 
-    if (response.data?.success && response.data.data) {
-      return response.data.data
+    if (response.data?.success && response.data.data && response.data.data.length > 0) {
+      const grids = response.data.data
+      return grids.slice().sort((a: any, b: any) => {
+        const scoreA = a.score ?? 0
+        const scoreB = b.score ?? 0
+        if (scoreB !== scoreA) return scoreB - scoreA
+        const dimA = (a.width || 0) * (a.height || 0)
+        const dimB = (b.width || 0) * (b.height || 0)
+        return dimB - dimA
+      })
     }
   } catch {}
   return []

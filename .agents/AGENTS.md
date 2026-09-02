@@ -17,6 +17,8 @@
 
 ## Concluídos Recentemente
 - [x] **Suporte Completo à Conta Steam no Ghost**: Integração nativa como runner oficial (`'steam'`), com detecção automática da conta local (`Alazter`), catálogo unificado de 341 jogos (87 instalados com botão Jogar e 254 não instalados com botão Instalar), capas oficiais em 600x900 da CDN da Valve, filtros dedicados e paridade total com Epic, GOG e Amazon.
+- [x] **Otimização Extrema de Carregamento de Capas da Steam (0ms RAM Cache + Negative 404 Cache)**: Identificado e eliminado o bloqueio de camadas da GPU (`contain: content`), o delay de 10s de 404s não cacheados na Steam CDN e implementado cache em RAM de 0.05ms com tag `<img>` resiliente no DOM.
+- [x] **Validação de Ocultação/Deleção de Jogos e Filtros de Loja**: Mapeamento completo e validação do fluxo de ocultação para lojas oficiais (`games.hidden`) e remoção definitiva para jogos manuais (`sideload_library.json`).
 
-## 🔔 Lembrete Ativo para o Próximo Contato
-- [ ] **Validar Ocultação/Deleção de Jogos da Steam**: Lembrar imediatamente o usuário de testar e validar na prática a deleção/ocultação de jogos da Steam na biblioteca (via Lixeira do HeroPanel/Configurações, menu de contexto do Card e Edição em Massa), conferindo se somem 100% da visualização como esperado.
+## 🔔 Lembretes Ativos para o Próximo Contato
+- [ ] **Testar Nova Versão no Windows Sandbox (VM)**: Ao lançar uma nova versão, lembrar o usuário de testar em uma VM nova no Windows Sandbox, apresentando a lista detalhada de todas as alterações feitas.

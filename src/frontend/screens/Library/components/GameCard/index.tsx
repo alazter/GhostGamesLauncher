@@ -713,10 +713,10 @@ const GameCard = ({
                 alt=""
               />
             )}
-            {(justPlayed || runner !== 'nile') && logo && (
+            {(justPlayed || (runner !== 'nile' && runner !== 'steam')) && logo && (
               <CachedImage
                 alt=""
-                src={`${logo}?h=400&resize=1&w=300`}
+                src={logo.startsWith('http') ? `${logo}?h=400&resize=1&w=300` : logo}
                 className={logoClasses}
                 hideOnError
               />

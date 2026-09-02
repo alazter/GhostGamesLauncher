@@ -338,31 +338,30 @@ export default class SteamLibraryManager implements LibraryManager {
       const localGridPath = existsSync(localGridVertical) ? localGridVertical : localGridPng
 
       const localAppCache = join(steamPath, 'appcache', 'librarycache', appid)
-      const findSteamAsset = (filenames: string[]): string | null => {
-        if (existsSync(localAppCache)) {
-          for (const fn of filenames) {
-            const direct = join(localAppCache, fn)
-            if (existsSync(direct)) return direct
-          }
-          try {
-            const entries = readdirSync(localAppCache, { withFileTypes: true })
-            for (const entry of entries) {
-              if (entry.isDirectory()) {
-                for (const fn of filenames) {
-                  const sub = join(localAppCache, entry.name, fn)
-                  if (existsSync(sub)) return sub
-                }
-              }
-            }
-          } catch {}
-        }
-        return null
-      }
+      let localSquare: string | null = null
+      let localCover: string | null = null
+      let localHero: string | null = null
+      let localLogo: string | null = null
 
-      const localSquare = findSteamAsset(['library_600x900.jpg', 'library_capsule.jpg'])
-      const localCover = findSteamAsset(['library_header.jpg', 'header.jpg', 'capsule_616x353.jpg'])
-      const localHero = findSteamAsset(['library_hero.jpg'])
-      const localLogo = findSteamAsset(['logo.png'])
+      if (existsSync(localAppCache)) {
+        try {
+          const files = readdirSync(localAppCache)
+          for (const f of files) {
+            const full = join(localAppCache, f)
+            if (f === 'library_600x900.jpg' || f === 'library_capsule.jpg') {
+              localSquare = full
+            } else if (f === 'header.jpg' || f === 'library_header.jpg' || f === 'capsule_616x353.jpg') {
+              localCover = full
+            } else if (f === 'library_hero.jpg') {
+              localHero = full
+            } else if (f === 'logo.png') {
+              localLogo = full
+            } else if (f.endsWith('.jpg') && !localSquare && !localCover && !f.includes('hero')) {
+              localSquare = full
+            }
+          }
+        } catch {}
+      }
 
       const art_square = hasLocalGrid
         ? localGridPath

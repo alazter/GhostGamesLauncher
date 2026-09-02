@@ -82,7 +82,10 @@ export function setGameOverrides(
     if (!override.title && !override.art_cover && !override.art_square) {
       delete currentOverrides[appName]
     } else {
-      currentOverrides[appName] = override
+      currentOverrides[appName] = {
+        ...override,
+        is_manual: override.is_manual ?? true
+      }
     }
 
     gameOverridesStore.set('overrides', currentOverrides)

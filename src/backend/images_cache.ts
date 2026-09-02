@@ -1,17 +1,32 @@
-import { existsSync, createWriteStream, mkdirSync, readdirSync } from 'graceful-fs'
+import { promises as fsPromises, existsSync, writeFile, mkdirSync, readdirSync } from 'graceful-fs'
 import { createHash } from 'crypto'
 import { join } from 'path'
-import axios from 'axios'
 import { protocol, net } from 'electron'
-import { pathToFileURL } from 'url'
 import { appFolder } from './constants/paths'
 
 const imagesCachePath = join(appFolder, 'images-cache')
 const cachedHashes = new Set<string>()
+const failedUrls = new Set<string>()
+
+interface MemoryCacheEntry {
+  buffer: Buffer
+  mime: string
+}
+
+const memoryCache = new Map<string, MemoryCacheEntry>()
+const MAX_MEMORY_CACHE = 500
+
+const setMemoryCache = (key: string, entry: MemoryCacheEntry) => {
+  if (memoryCache.size >= MAX_MEMORY_CACHE) {
+    const oldest = memoryCache.keys().next().value
+    if (oldest) memoryCache.delete(oldest)
+  }
+  memoryCache.set(key, entry)
+}
 
 export const initImagesCache = () => {
   if (!existsSync(imagesCachePath)) {
-    mkdirSync(imagesCachePath)
+    mkdirSync(imagesCachePath, { recursive: true })
   } else {
     try {
       const files = readdirSync(imagesCachePath)
@@ -23,21 +38,36 @@ export const initImagesCache = () => {
     }
   }
 
-  protocol.handle('imagecache', (request) => {
+  protocol.handle('imagecache', async (request) => {
     return getImageFromCache(request)
   })
 }
 
-const pending = new Map<string, Promise<void>>()
-const activeDownloads = new Set<Promise<void>>()
-const MAX_CONCURRENT_DOWNLOADS = 20
-const downloadQueue: (() => void)[] = []
-
-const processDownloadQueue = () => {
-  while (activeDownloads.size < MAX_CONCURRENT_DOWNLOADS && downloadQueue.length > 0) {
-    const next = downloadQueue.shift()
-    if (next) next()
+const detectMimeType = (url: string, buffer?: Buffer): string => {
+  if (buffer && buffer.length >= 8) {
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+      return 'image/png'
+    }
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+      return 'image/jpeg'
+    }
+    if (buffer.subarray(0, 4).toString('latin1') === 'RIFF' && buffer.subarray(8, 12).toString('latin1') === 'WEBP') {
+      return 'image/webp'
+    }
+    if (buffer.subarray(0, 4).toString('utf8') === '<svg' || buffer.subarray(0, 5).toString('utf8') === '<?xml') {
+      return 'image/svg+xml'
+    }
   }
+
+  const lower = url.toLowerCase().split('?')[0]
+  if (lower.endsWith('.png')) return 'image/png'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+  if (lower.endsWith('.webp')) return 'image/webp'
+  if (lower.endsWith('.svg')) return 'image/svg+xml'
+  if (lower.endsWith('.gif')) return 'image/gif'
+  if (lower.endsWith('.ico')) return 'image/x-icon'
+
+  return 'image/png'
 }
 
 const getForwardHeaders = (request: Request): Record<string, string> => {
@@ -65,7 +95,7 @@ const getForwardHeaders = (request: Request): Record<string, string> => {
   return headers
 }
 
-const getImageFromCache = (request: Request) => {
+const getImageFromCache = async (request: Request): Promise<Response> => {
   const url = request.url
   let cleanUrl = url
   if (cleanUrl.startsWith('imagecache://localhost/')) {
@@ -75,79 +105,131 @@ const getImageFromCache = (request: Request) => {
   }
   const realUrl = decodeURIComponent(cleanUrl)
 
-  // Local file path
+  // 1. Instant negative cache check (0ms for known 404s)
+  if (failedUrls.has(realUrl)) {
+    return new Response('File not found', {
+      status: 404,
+      headers: { 'Cache-Control': 'public, max-age=86400' }
+    })
+  }
+
+  // 2. Check ultra-fast in-memory RAM cache (0ms latency)
+  const memHit = memoryCache.get(realUrl)
+  if (memHit) {
+    const headers = new Headers()
+    headers.set('Content-Type', memHit.mime)
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+    return new Response(memHit.buffer, {
+      status: 200,
+      headers
+    })
+  }
+
+  // 3. Local file path on disk
   if (!realUrl.startsWith('http://') && !realUrl.startsWith('https://')) {
     if (existsSync(realUrl)) {
-      return net.fetch(pathToFileURL(realUrl).toString())
+      try {
+        const buffer = await fsPromises.readFile(realUrl)
+        const mime = detectMimeType(realUrl, buffer)
+        setMemoryCache(realUrl, { buffer, mime })
+
+        const headers = new Headers()
+        headers.set('Content-Type', mime)
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+        return new Response(buffer, {
+          status: 200,
+          headers
+        })
+      } catch (err) {
+        return new Response('File read error', { status: 500 })
+      }
     }
+    failedUrls.add(realUrl)
     return new Response('File not found', { status: 404 })
   }
 
-  // Remote HTTP/HTTPS URL
+  // 4. Remote HTTP/HTTPS URL
   const digest = createHash('sha256').update(realUrl).digest('hex')
   const cachePath = join(imagesCachePath, digest)
 
-  // Serves from local cache asynchronously via Chromium C++ thread
+  // 4.1 Check memory cache by digest
+  const digestMemHit = memoryCache.get(digest)
+  if (digestMemHit) {
+    const headers = new Headers()
+    headers.set('Content-Type', digestMemHit.mime)
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+    return new Response(digestMemHit.buffer, {
+      status: 200,
+      headers
+    })
+  }
+
+  // 4.2 Hit from disk cache (asynchronous non-blocking read + populate memory cache)
   if (cachedHashes.has(digest) || existsSync(cachePath)) {
     cachedHashes.add(digest)
-    return net.fetch(pathToFileURL(cachePath).toString())
-  }
+    try {
+      const buffer = await fsPromises.readFile(cachePath)
+      const mime = detectMimeType(realUrl, buffer)
+      setMemoryCache(digest, { buffer, mime })
 
-  // Download in background with concurrency throttling if not already downloading
-  if (!pending.has(digest)) {
-    const startDownload = () => {
-      const downloadTask = axios({
-        method: 'get',
-        url: realUrl,
-        responseType: 'stream',
-        headers: getForwardHeaders(request),
-        timeout: 15000
+      const headers = new Headers()
+      headers.set('Content-Type', mime)
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+      return new Response(buffer, {
+        status: 200,
+        headers
       })
-        .then((response) => {
-          const writer = createWriteStream(cachePath)
-          response.data.pipe(writer)
-          return new Promise<void>((resolve) => {
-            writer.on('finish', () => {
-              cachedHashes.add(digest)
-              resolve()
-            })
-            writer.on('error', () => resolve())
-          })
-        })
-        .catch(() => {})
-        .finally(() => {
-          pending.delete(digest)
-          activeDownloads.delete(startPromise)
-          processDownloadQueue()
-        })
-
-      return downloadTask
+    } catch {
+      // If reading cache failed, proceed to fetch
     }
-
-    let startPromise: Promise<void>
-    const runTask = () => {
-      startPromise = startDownload()
-      activeDownloads.add(startPromise)
-    }
-
-    if (activeDownloads.size < MAX_CONCURRENT_DOWNLOADS) {
-      runTask()
-    } else {
-      downloadQueue.push(runTask)
-    }
-
-    pending.set(digest, Promise.resolve())
   }
 
-  // Stream directly from remote URL using Electron net.fetch
+  // 4.3 Remote download with 2.5s network timeout and 0ms negative caching
   try {
-    return net.fetch(realUrl, {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 2500)
+
+    const response = await net.fetch(realUrl, {
       headers: getForwardHeaders(request),
       method: request.method,
-      referrer: request.referrer
+      referrer: request.referrer,
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeout))
+
+    if (response.ok) {
+      const arrayBuf = await response.arrayBuffer()
+      const buffer = Buffer.from(arrayBuf)
+      const mime = detectMimeType(realUrl, buffer)
+      setMemoryCache(digest, { buffer, mime })
+
+      // Save to disk cache asynchronously without blocking
+      writeFile(cachePath, buffer, (err) => {
+        if (!err) {
+          cachedHashes.add(digest)
+        }
+      })
+
+      const headers = new Headers()
+      headers.set('Content-Type', mime)
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+
+      return new Response(buffer, {
+        status: 200,
+        headers
+      })
+    }
+
+    // Cache 404 so subsequent requests respond in 0ms!
+    failedUrls.add(realUrl)
+    return new Response('Not found', {
+      status: 404,
+      headers: { 'Cache-Control': 'public, max-age=86400' }
     })
   } catch (err) {
-    console.error('[ImagesCache] Failed to fetch remote image:', realUrl, err)
-    return new Response('Remote fetch failed', { status: 500 })
+    failedUrls.add(realUrl)
+    return new Response('Not found', {
+      status: 404,
+      headers: { 'Cache-Control': 'public, max-age=86400' }
+    })
   }
 }

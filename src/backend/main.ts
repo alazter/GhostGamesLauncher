@@ -1970,8 +1970,8 @@ addHandler('exportScanLog', async (e, text: string) => {
 })
 
 addListener('setGameMetadataOverride', (e, args) => {
-  const { appName, title, art_cover, art_square } = args
-  setGameOverrides(appName, { title, art_cover, art_square })
+  const { appName, title, art_cover, art_square, is_manual } = args
+  setGameOverrides(appName, { title, art_cover, art_square, is_manual: is_manual ?? true })
   sendFrontendMessage('metadataChanged', getAllGameOverrides())
 })
 

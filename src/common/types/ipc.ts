@@ -136,11 +136,13 @@ interface SyncIPCFunctions {
     title?: string
     art_cover?: string
     art_square?: string
+    is_manual?: boolean
   }) => void
   setAllGameOverrides: (overrides: Record<string, {
     title?: string
     art_cover?: string
     art_square?: string
+    is_manual?: boolean
   }>) => void
 }
 
@@ -422,6 +424,12 @@ interface AsyncIPCFunctions {
     targetType: 'cover' | 'square'
   }) => Promise<string>
   'steamgriddb.syncMissingCovers': () => Promise<{ started: boolean }>
+  'steamgriddb.batchReplaceAllCovers': (args?: {
+    appNames?: string[]
+    runner?: string
+    scope?: 'all' | 'steam_only' | 'missing_only'
+    dimensions?: string[]
+  }) => Promise<{ total: number; updated: number; failed: number }>
   discoverInstalledGames: () => Promise<GameCandidate[]>
   discoverAllGames: (searchTitles?: string[], selectedDrives?: string[]) => Promise<GameCandidate[]>
   abortScan: () => Promise<void>
@@ -501,6 +509,15 @@ interface FrontendMessages {
     recoveredCount: number
     success: boolean
     error?: string
+  }) => void
+
+  'steamgriddb.batchProgress': (data: {
+    current: number
+    total: number
+    title: string
+    success: boolean
+    coverUrl?: string
+    updated: number
   }) => void
 
   // Used inside tests, so we can be a bit lenient with the type checking here

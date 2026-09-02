@@ -397,6 +397,9 @@ class GlobalState extends PureComponent<Props> {
       hiddenGames: newHiddenGames
     })
     configStore.set('games.hidden', newHiddenGames)
+    ;(configStore as any).set('backup.lastModified', Date.now())
+    window.dispatchEvent(new Event('backupStateChanged'))
+    window.dispatchEvent(new Event('heroicHiddenGamesChanged'))
   }
 
   unhideGame = (appNameToUnhide: string) => {
@@ -409,6 +412,9 @@ class GlobalState extends PureComponent<Props> {
       hiddenGames: newHiddenGames
     })
     configStore.set('games.hidden', newHiddenGames)
+    ;(configStore as any).set('backup.lastModified', Date.now())
+    window.dispatchEvent(new Event('backupStateChanged'))
+    window.dispatchEvent(new Event('heroicHiddenGamesChanged'))
   }
 
   hideMultipleGames = (
@@ -439,6 +445,9 @@ class GlobalState extends PureComponent<Props> {
       hiddenGames: newHiddenGames
     })
     configStore.set('games.hidden', newHiddenGames)
+    ;(configStore as any).set('backup.lastModified', Date.now())
+    window.dispatchEvent(new Event('backupStateChanged'))
+    window.dispatchEvent(new Event('heroicHiddenGamesChanged'))
   }
 
   unhideMultipleGames = (appNamesToUnhide: string[]) => {
@@ -451,6 +460,9 @@ class GlobalState extends PureComponent<Props> {
       hiddenGames: newHiddenGames
     })
     configStore.set('games.hidden', newHiddenGames)
+    ;(configStore as any).set('backup.lastModified', Date.now())
+    window.dispatchEvent(new Event('backupStateChanged'))
+    window.dispatchEvent(new Event('heroicHiddenGamesChanged'))
   }
 
   addGameToFavourites = (appNameToAdd: string, appTitle: string) => {
