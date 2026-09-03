@@ -89,7 +89,13 @@
 - **Proibição de Contenção de Pintura e Padrão de Hover**: É terminantemente proibido utilizar `content-visibility: auto` ou `contain: paint` em `.gameList > div` ou nos cards de jogos, pois isso decepa a escala de hover. No hover, o card deve executar `transform: scale(1.06)`, `z-index: 10` e sombra profunda `box-shadow: 0px 10px 28px 6px rgba(0, 0, 0, 0.75)`, com o container da célula recebendo `.gameList > div:hover { z-index: 10; }` e a capa aplicando zoom interno suave `transform: scale(1.03)` sem cortes.
 
 ## 🏬 Regra de Logotipos Oficiais para Lojas na Barra Lateral
-- **Eliminação de Ícones Genéricos**: É terminantemente proibido utilizar ícones genéricos (`faShoppingBag` ou `faStore`) para representar plataformas na barra lateral ou menus flutuantes. Devem ser utilizados estritamente os vetores oficiais: `<EpicLogo />` (`epic-logo.svg`), `<GOGLogo />` (`gog-logo.svg`), `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />` e `<ZoomLogo />` (`zoom-logo.svg`), com `fill="currentColor"` e proporções de `16px`.
+- **Eliminação de Ícones Genéricos e Proporção Equilibrada**: É terminantemente proibido utilizar ícones genéricos (`faShoppingBag` ou `faStore`) para representar plataformas na barra lateral ou menus flutuantes. Devem ser utilizados estritamente os vetores oficiais: `<EpicLogo />` (`epic-logo.svg`), `<GOGLogo />` (`gog-logo.svg`), `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />` e `<ZoomLogo />` (`zoom-logo.svg`), com `fill="currentColor"` e proporções harmoniosas de `18px` na barra expandida, `20px` na barra colapsada e `16px` no menu hover.
+
+## 🚪 Regra de Isolamento de Fluxo e Espaçamento de Botões de Fechar ("X") e Navegação
+- **Zero Invasão e Isolamento de Fluxo**: Em qualquer cabeçalho com botões de navegação circular ("Jogo Anterior" e "Próximo Jogo") e botão de fechar ("X"):
+  1. Em containers flex (`InlineGameSettings`), o botão "X" deve ter `position: relative !important; top: auto !important; right: auto !important; flexShrink: 0 !important;` e classe isenta `:not(.inline-settings-close-button)` no CSS global, mantendo `gap: 18px` limpo e inalterado.
+  2. Em diálogos modais com "X" absoluto a 14px (`SettingsModal`), os botões de navegação à direita devem possuir margem direita de pelo menos `58px` (`flexShrink: 0`), blindando os controles contra sobreposições com a área de 42px do "X".
+  3. O título do jogo à esquerda DEVE ter sempre `minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'` para impedir que títulos longos empurrem os botões contra a borda da janela.
 
 ## 🔔 Lembretes Ativos para o Próximo Contato
 - [ ] **Testar Nova Versão no Windows Sandbox (VM)**: Ao lançar uma nova versão, lembrar o usuário de testar em uma VM nova no Windows Sandbox, apresentando a lista detalhada de todas as alterações feitas.

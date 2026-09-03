@@ -129,10 +129,10 @@ function SettingsModal({ gameInfo, type }: Props) {
       className={'InstallModal__dialog'}
     >
       <DialogHeader onClose={() => closeSettingsModal()}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <span>{`${title} (${titleType})`}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minWidth: 0 }}>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '16px' }}>{`${title} (${titleType})`}</span>
           {showNavArrows && (
-            <div className="settings-nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '40px' }}>
+            <div className="settings-nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '58px', flexShrink: 0 }}>
               <button
                 onClick={handlePrevGame}
                 title="Jogo Anterior"

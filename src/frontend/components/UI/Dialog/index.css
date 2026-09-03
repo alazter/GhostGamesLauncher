@@ -79,8 +79,8 @@
 }
 
 .Dialog__CloseButton,
-button.dialog-close-button,
-button[aria-label="close"],
+button.dialog-close-button:not(.inline-settings-close-button),
+button[aria-label="close"]:not(.inline-settings-close-button),
 button[aria-label="fechar"] {
   border: none !important;
   background: transparent !important;

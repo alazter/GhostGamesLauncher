@@ -25,8 +25,8 @@
     font-family: var(--primary-font-family);
 
     .Sidebar__itemIcon {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       display: inline-flex;
       justify-content: center;
       align-items: center;
@@ -43,16 +43,16 @@
       }
 
       svg:not(.svg-inline--fa) {
-        width: 20px;
-        height: 20px;
-        max-width: 22px;
-        max-height: 22px;
+        width: 18px;
+        height: 18px;
+        max-width: 20px;
+        max-height: 20px;
         box-sizing: border-box;
       }
 
       .svg-inline--fa {
-        font-size: 19px;
-        height: 19px;
+        font-size: 17px;
+        height: 17px;
         width: auto;
       }
 
@@ -134,20 +134,20 @@
       }
 
       .Sidebar__itemIcon {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
         display: inline-flex;
         justify-content: center;
         align-items: center;
 
         svg:not(.svg-inline--fa) {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
         }
 
         .svg-inline--fa {
-          font-size: 19px;
-          height: 19px;
+          font-size: 17px;
+          height: 17px;
         }
       }
     }
@@ -211,46 +211,46 @@
         }
 
         .Sidebar__itemIcon {
-          width: 28px !important;
-          height: 28px !important;
+          width: 26px !important;
+          height: 26px !important;
           margin: 0 auto !important;
           display: inline-flex !important;
           justify-content: center !important;
           align-items: center !important;
 
           svg:not(.svg-inline--fa) {
-            width: 22px !important;
-            height: 22px !important;
-            max-width: 24px !important;
-            max-height: 24px !important;
+            width: 20px !important;
+            height: 20px !important;
+            max-width: 22px !important;
+            max-height: 22px !important;
           }
 
           .svg-inline--fa {
-            font-size: 20px !important;
-            height: 20px !important;
+            font-size: 18px !important;
+            height: 18px !important;
             width: auto !important;
           }
         }
       }
 
       .Sidebar__itemIcon {
-        width: 28px !important;
-        height: 28px !important;
+        width: 26px !important;
+        height: 26px !important;
         margin: 0 auto !important;
         display: inline-flex !important;
         justify-content: center !important;
         align-items: center !important;
 
         svg:not(.svg-inline--fa) {
-          width: 22px !important;
-          height: 22px !important;
-          max-width: 24px !important;
-          max-height: 24px !important;
+          width: 20px !important;
+          height: 20px !important;
+          max-width: 22px !important;
+          max-height: 22px !important;
         }
 
         .svg-inline--fa {
-          font-size: 20px !important;
-          height: 20px !important;
+          font-size: 18px !important;
+          height: 18px !important;
           width: auto !important;
         }
       }

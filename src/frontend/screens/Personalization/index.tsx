@@ -3457,11 +3457,15 @@ export default function PersonalizationScreen() {
                         padding: '0 8px',
                         boxSizing: 'border-box',
                         borderRadius: `${alphabetBtnBorderRadius}px`,
-                        background: alphabetDefaultBgOpacity === 0 ? 'transparent' : (
-                          alphabetDefaultBgGradientEnabled
-                            ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
-                            : alphabetDefaultBgColor
-                        ),
+                        background: alphabetGlowMode === 'neon' && alphabetBtnGradientEnabled
+                          ? `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`
+                          : (
+                            alphabetDefaultBgOpacity === 0 ? 'transparent' : (
+                              alphabetDefaultBgGradientEnabled
+                                ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
+                                : alphabetDefaultBgColor
+                            )
+                          ),
                         border: alphabetDefaultBgOpacity === 0 ? 'none' : (
                           alphabetBtnBorderEnabled
                             ? `1px solid ${alphabetDefaultBgColor}`
@@ -3469,12 +3473,10 @@ export default function PersonalizationScreen() {
                         ),
                         ...(alphabetGlowMode === 'neon' ? (
                           alphabetBtnGradientEnabled ? {
-                            background: `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`,
                             WebkitBackgroundClip: 'text',
                             backgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
-                            filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`,
-                            display: 'inline-block'
+                            filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`
                           } : {
                             color: alphabetBtnBgColor,
                             textShadow: `0 0 2px ${effectivePreviewAlphabetGlow1}, 0 0 ${alphabetGlowStrength}px ${effectiveAlphabetGlowRgba1}`
@@ -5337,22 +5339,24 @@ export default function PersonalizationScreen() {
                       padding: '0 8px',
                       boxSizing: 'border-box',
                       borderRadius: `${alphabetBtnBorderRadius}px`,
-                      background: alphabetDefaultBgOpacity === 0 ? 'transparent' : (
-                        alphabetDefaultBgGradientEnabled
-                          ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
-                          : alphabetDefaultBgColor
-                      ),
+                      background: alphabetGlowMode === 'neon' && alphabetBtnGradientEnabled
+                        ? `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`
+                        : (
+                          alphabetDefaultBgOpacity === 0 ? 'transparent' : (
+                            alphabetDefaultBgGradientEnabled
+                              ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
+                              : alphabetDefaultBgColor
+                          )
+                        ),
                       border: alphabetDefaultBgOpacity === 0 ? 'none' : (
                         alphabetBtnBorderEnabled ? `1px solid ${alphabetDefaultBgColor}` : 'none'
                       ),
                       ...(alphabetGlowMode === 'neon' ? (
                         alphabetBtnGradientEnabled ? {
-                          background: `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`,
                           WebkitBackgroundClip: 'text',
                           backgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
-                          filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`,
-                          display: 'inline-block'
+                          filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`
                         } : {
                           color: alphabetBtnBgColor,
                           textShadow: `0 0 2px ${effectivePreviewAlphabetGlow1}, 0 0 ${alphabetGlowStrength}px ${effectiveAlphabetGlowRgba1}`

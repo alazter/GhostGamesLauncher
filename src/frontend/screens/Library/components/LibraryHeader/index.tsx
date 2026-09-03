@@ -69,7 +69,7 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
 
   const [btnGradientEnabled, setBtnGradientEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient') ?? localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
-    return saved !== null ? saved === 'true' || saved === true : false
+    return saved !== null ? saved === 'true' || saved === '1' : false
   })
 
   const [btnBorderEnabled, setBtnBorderEnabled] = useState<boolean>(() => {
@@ -120,7 +120,7 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
       setBtnBgColor2(savedColor2 !== null ? savedColor2 : '#00e5ff')
 
       const savedGrad = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient') ?? localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
-      setBtnGradientEnabled(savedGrad !== null ? savedGrad === 'true' || savedGrad === true : false)
+      setBtnGradientEnabled(savedGrad !== null ? savedGrad === 'true' || savedGrad === '1' : false)
 
       const savedBrd = localStorage.getItem('heroic_alphabet_btn_border_enabled')
       setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : false)
@@ -321,20 +321,19 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
                 padding: '0 8px',
                 boxSizing: 'border-box',
                 borderRadius: `${btnBorderRadius}px`,
-                background: badgeBg,
+                background: alphabetGlowMode === 'neon' && alphabetGradEnabled
+                  ? `linear-gradient(135deg, ${alphabetColor1} 0%, ${alphabetColor2} 100%)`
+                  : badgeBg,
                 border: badgeBorder,
                 ...(alphabetGlowMode === 'neon' ? (
                   alphabetGradEnabled ? {
-                    background: `linear-gradient(135deg, ${alphabetColor1} 0%, ${alphabetColor2} 100%)`,
                     WebkitBackgroundClip: 'text',
                     backgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${alphabetGlowColor1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${alphabetColor2})`,
-                    display: 'inline-flex'
+                    filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${alphabetGlowColor1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${alphabetColor2})`
                   } : {
                     color: alphabetColor1,
-                    textShadow: `0 0 2px ${alphabetGlowColor1}, 0 0 ${alphabetGlowStrength}px ${alphabetGlowColor1}`,
-                    display: 'inline-flex'
+                    textShadow: `0 0 2px ${alphabetGlowColor1}, 0 0 ${alphabetGlowStrength}px ${alphabetGlowColor1}`
                   }
                 ) : {
                   color: btnTextColor

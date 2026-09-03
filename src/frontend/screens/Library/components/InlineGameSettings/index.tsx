@@ -1186,13 +1186,20 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            gap: '12px',
+            minWidth: 0,
+            flex: 1,
+            marginRight: '16px'
           }}>
             <h2 style={{
               fontSize: '22px',
               fontWeight: '700',
               color: '#fff',
-              margin: 0
+              margin: 0,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
             }}>
               {currentTitle} (Configurações)
             </h2>
@@ -1210,7 +1217,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                 justifyContent: 'center',
                 color: '#ff5252',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                flexShrink: 0
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.background = 'rgba(255, 75, 75, 0.15)'
@@ -1226,9 +1234,9 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               <DeleteIcon style={{ fontSize: '18px' }} />
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexShrink: 0 }}>
             {showNavArrows && (
-              <div className="settings-nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '15px', marginRight: '10px' }}>
+              <div className="settings-nav-arrows" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                 <button
                   onClick={handlePrevGame}
                   title="Jogo Anterior"
@@ -1246,7 +1254,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                     fontSize: '16px',
                     lineHeight: 1,
                     transition: 'all 0.2s',
-                    outline: 'none'
+                    outline: 'none',
+                    flexShrink: 0
                   }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
@@ -1276,7 +1285,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                     fontSize: '16px',
                     lineHeight: 1,
                     transition: 'all 0.2s',
-                    outline: 'none'
+                    outline: 'none',
+                    flexShrink: 0
                   }}
                   onMouseOver={(e) => {
                     e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
@@ -1294,9 +1304,12 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             <button
               type="button"
               aria-label="close"
-              className="dialog-close-button"
+              className="dialog-close-button inline-settings-close-button"
               onClick={onClose}
               style={{
+                position: 'relative',
+                top: 'auto',
+                right: 'auto',
                 background: 'transparent',
                 backgroundColor: 'transparent',
                 border: 'none',
@@ -1308,7 +1321,8 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                flexShrink: 0
               }}
             >
               <FontAwesomeIcon icon={faTimes} style={{ fontSize: '18px' }} />
