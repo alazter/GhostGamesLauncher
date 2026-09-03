@@ -1,11 +1,9 @@
 import { createPortal } from 'react-dom'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faShoppingBag,
-  faStore
-} from '@fortawesome/free-solid-svg-icons'
 import { faSteam, faAmazon } from '@fortawesome/free-brands-svg-icons'
+import EpicLogo from 'frontend/assets/epic-logo.svg?react'
+import GOGLogo from 'frontend/assets/gog-logo.svg?react'
 import './index.css'
 
 interface StoreHoverMenuProps {
@@ -19,13 +17,14 @@ export interface StoreOption {
   key: string
   name: string
   url: string
-  icon: any
+  icon?: any
+  customIcon?: React.ReactNode
 }
 
 export const STORES_LIST: StoreOption[] = [
-  { key: 'epic', name: 'Epic Games', url: '/store/epic', icon: faShoppingBag },
+  { key: 'epic', name: 'Epic Games', url: '/store/epic', customIcon: <EpicLogo /> },
   { key: 'steam', name: 'Steam', url: '/store/steam', icon: faSteam },
-  { key: 'gog', name: 'GOG', url: '/store/gog', icon: faShoppingBag },
+  { key: 'gog', name: 'GOG', url: '/store/gog', customIcon: <GOGLogo /> },
   { key: 'amazon', name: 'Amazon Games', url: '/store/amazon', icon: faAmazon }
 ]
 
@@ -83,7 +82,11 @@ export default function StoreHoverMenu({
             }}
           >
             <span className="StoreHoverMenu__icon">
-              <FontAwesomeIcon icon={store.icon} />
+              {store.customIcon ? (
+                store.customIcon
+              ) : (
+                <FontAwesomeIcon icon={store.icon} />
+              )}
             </span>
             <span>{store.name}</span>
           </button>

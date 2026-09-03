@@ -80,7 +80,7 @@ if (!storage.getItem('heroic_alphabet_bg_opacity')) {
 if (!storage.getItem('heroic_alphabet_btn_border_enabled')) {
   storage.setItem('heroic_alphabet_btn_border_enabled', 'false')
 }
-if (!storage.getItem('heroic_store_btn_bg_opacity')) {
+if (storage.getItem('heroic_store_btn_bg_opacity') === null) {
   storage.setItem('heroic_store_btn_bg_opacity', '0')
 }
 if (!storage.getItem('heroic_store_btn_bg_color')) {
@@ -196,11 +196,12 @@ if (!storage.getItem('heroic_store_btn_glow_color')) {
 if (!storage.getItem('heroic_store_btn_sync_glow_with_gradient')) {
   storage.setItem('heroic_store_btn_sync_glow_with_gradient', 'true')
 }
-if (!storage.getItem('heroic_store_btn_default_bg_color')) {
-  storage.setItem('heroic_store_btn_default_bg_color', '#ffffff')
+if (storage.getItem('heroic_store_btn_default_bg_color') === null) {
+  storage.setItem('heroic_store_btn_default_bg_color', storage.getItem('heroic_store_btn_bg_color') || '#ffffff')
 }
-if (!storage.getItem('heroic_store_btn_default_bg_opacity')) {
-  storage.setItem('heroic_store_btn_default_bg_opacity', '0.05')
+if (storage.getItem('heroic_store_btn_default_bg_opacity') === null) {
+  const legacyOpacity = storage.getItem('heroic_store_btn_bg_opacity')
+  storage.setItem('heroic_store_btn_default_bg_opacity', legacyOpacity !== null ? legacyOpacity : '0')
 }
 
 // Configurações Globais: Filtro Alfabético & Contador
@@ -227,6 +228,18 @@ if (!storage.getItem('heroic_alphabet_btn_sync_glow_with_gradient')) {
 }
 if (!storage.getItem('heroic_alphabet_btn_default_bg_color')) {
   storage.setItem('heroic_alphabet_btn_default_bg_color', '#ffffff')
+}
+if (!storage.getItem('heroic_alphabet_btn_default_bg_color_2')) {
+  storage.setItem('heroic_alphabet_btn_default_bg_color_2', '#38d9e6')
+}
+if (!storage.getItem('heroic_alphabet_btn_default_bg_glow_color')) {
+  storage.setItem('heroic_alphabet_btn_default_bg_glow_color', '#00ffff')
+}
+if (!storage.getItem('heroic_alphabet_btn_default_bg_sync_glow')) {
+  storage.setItem('heroic_alphabet_btn_default_bg_sync_glow', 'true')
+}
+if (!storage.getItem('heroic_alphabet_btn_default_bg_gradient')) {
+  storage.setItem('heroic_alphabet_btn_default_bg_gradient', 'false')
 }
 if (!storage.getItem('heroic_alphabet_btn_default_bg_opacity')) {
   storage.setItem('heroic_alphabet_btn_default_bg_opacity', '0.05')
@@ -350,37 +363,58 @@ function applyGlobalPersonalizationStyles() {
   const storeGlowMode = storage.getItem('heroic_store_filter_glow_mode') || 'disabled'
   const storeColor1 = storage.getItem('heroic_store_btn_color1') || '#00ffff'
   const storeColor2 = storage.getItem('heroic_store_btn_color2') || '#38d9e6'
-  const storeGrad = storage.getItem('heroic_store_btn_gradient') === 'true'
+  const storeGrad = (storage.getItem('heroic_store_btn_gradient') ?? storage.getItem('heroic_store_btn_gradient_enabled')) === 'true'
   const storeGlowStrength = `${storage.getItem('heroic_store_btn_glow_strength') || '8'}px`
   const storeGlowColor = storage.getItem('heroic_store_btn_glow_color') || '#00ffff'
   const storeSyncGlow = storage.getItem('heroic_store_btn_sync_glow_with_gradient') !== 'false'
-  const storeDefaultBgColor = storage.getItem('heroic_store_btn_default_bg_color') || '#ffffff'
-  const storeDefaultBgOpacity = Number(storage.getItem('heroic_store_btn_default_bg_opacity') || '0.05')
-  const rgbStoreDefault = hexToRgb(storeDefaultBgColor)
+  const storeDefaultBgGradient = storage.getItem('heroic_store_btn_default_bg_gradient') === 'true'
+  const storeDefaultBgColor = storage.getItem('heroic_store_btn_default_bg_color') || storage.getItem('heroic_store_btn_bg_color') || '#ffffff'
+  const storeDefaultBgColor2 = storage.getItem('heroic_store_btn_default_bg_color_2') || storage.getItem('heroic_store_btn_bg_color_2') || '#38d9e6'
+  const storeDefaultBgGlowColor = storage.getItem('heroic_store_btn_default_bg_glow_color') || storage.getItem('heroic_store_btn_glow_color') || '#00ffff'
+  const storeDefaultBgSyncGlow = (storage.getItem('heroic_store_btn_default_bg_sync_glow') ?? storage.getItem('heroic_store_btn_sync_glow_with_gradient')) !== 'false'
+  const rawStoreBgOpacity = storage.getItem('heroic_store_btn_default_bg_opacity') ?? storage.getItem('heroic_store_btn_bg_opacity')
+  const storeDefaultBgOpacity = rawStoreBgOpacity !== null ? Number(rawStoreBgOpacity) : 0
+  const storeBorderRadius = storage.getItem('heroic_store_btn_border_radius') || '12'
+  const rgbStoreDefault1 = hexToRgb(storeDefaultBgColor)
+  const rgbStoreDefault2 = hexToRgb(storeDefaultBgColor2)
+  const effectiveStoreDefaultBgGlow = storeDefaultBgSyncGlow ? storeDefaultBgColor : storeDefaultBgGlowColor
+  const rgbStoreDefaultGlow = hexToRgb(effectiveStoreDefaultBgGlow)
   const rgbStore1 = hexToRgb(storeColor1)
   const rgbStore2 = hexToRgb(storeColor2)
   const rgbStoreGlow = hexToRgb(storeGlowColor)
   const storeGlowCol1 = storeSyncGlow ? storeColor1 : storeGlowColor
-  const storeGlowRgba1 = storeSyncGlow ? `rgba(${rgbStore1.r}, ${rgbStore1.g}, ${rgbStore1.b}, 0.85)` : `rgba(${rgbStoreGlow.r}, ${rgbStoreGlow.g}, ${rgbStoreGlow.b}, 0.85)`
-  const storeGlowRgba2 = storeSyncGlow ? `rgba(${rgbStore2.r}, ${rgbStore2.g}, ${rgbStore2.b}, 0.85)` : `rgba(${rgbStoreGlow.r}, ${rgbStoreGlow.g}, ${rgbStoreGlow.b}, 0.85)`
+  const storeGlowCol2 = storeSyncGlow ? storeColor2 : storeGlowColor
+  const storeGlowRgba1 = storeSyncGlow ? `rgba(${rgbStore1.r}, ${rgbStore1.g}, ${rgbStore1.b}, 0.5)` : `rgba(${rgbStoreGlow.r}, ${rgbStoreGlow.g}, ${rgbStoreGlow.b}, 0.5)`
+  const storeGlowRgba2 = storeSyncGlow ? `rgba(${rgbStore2.r}, ${rgbStore2.g}, ${rgbStore2.b}, 0.5)` : `rgba(${rgbStoreGlow.r}, ${rgbStoreGlow.g}, ${rgbStoreGlow.b}, 0.5)`
 
   // 4. Alphabet Filter
   const alphabetGlowMode = storage.getItem('heroic_alphabet_glow_mode') || 'disabled'
   const alphabetColor1 = storage.getItem('heroic_alphabet_btn_color1') || '#00ffff'
   const alphabetColor2 = storage.getItem('heroic_alphabet_btn_color2') || '#38d9e6'
-  const alphabetGrad = storage.getItem('heroic_alphabet_btn_gradient') === 'true'
+  const alphabetGrad = (storage.getItem('heroic_alphabet_btn_gradient') ?? storage.getItem('heroic_alphabet_btn_gradient_enabled')) === 'true'
   const alphabetGlowStrength = `${storage.getItem('heroic_alphabet_btn_glow_strength') || '8'}px`
   const alphabetGlowColor = storage.getItem('heroic_alphabet_btn_glow_color') || '#00ffff'
   const alphabetSyncGlow = storage.getItem('heroic_alphabet_btn_sync_glow_with_gradient') !== 'false'
-  const alphabetDefaultBgColor = storage.getItem('heroic_alphabet_btn_default_bg_color') || '#ffffff'
-  const alphabetDefaultBgOpacity = Number(storage.getItem('heroic_alphabet_btn_default_bg_opacity') || '0.05')
-  const rgbAlphabetDefault = hexToRgb(alphabetDefaultBgColor)
+  const alphabetDefaultBgGradient = storage.getItem('heroic_alphabet_btn_default_bg_gradient') === 'true'
+  const alphabetDefaultBgColor = storage.getItem('heroic_alphabet_btn_default_bg_color') || storage.getItem('heroic_alphabet_color') || '#ffffff'
+  const alphabetDefaultBgColor2 = storage.getItem('heroic_alphabet_btn_default_bg_color_2') || storage.getItem('heroic_alphabet_btn_bg_color_2') || '#38d9e6'
+  const alphabetDefaultBgGlowColor = storage.getItem('heroic_alphabet_btn_default_bg_glow_color') || storage.getItem('heroic_alphabet_btn_glow_color') || '#00ffff'
+  const alphabetDefaultBgSyncGlow = (storage.getItem('heroic_alphabet_btn_default_bg_sync_glow') ?? storage.getItem('heroic_alphabet_btn_sync_glow_with_gradient')) !== 'false'
+  const rawAlphabetBgOpacity = storage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? storage.getItem('heroic_alphabet_btn_opacity')
+  const alphabetDefaultBgOpacity = rawAlphabetBgOpacity !== null ? Number(rawAlphabetBgOpacity) : 0.05
+  const alphabetBorderRadius = storage.getItem('heroic_alphabet_btn_border_radius') || '18'
+  const isAlphabetZeroBg = alphabetDefaultBgOpacity <= 0.001
+  const rgbAlphabetDefault1 = hexToRgb(alphabetDefaultBgColor)
+  const rgbAlphabetDefault2 = hexToRgb(alphabetDefaultBgColor2)
+  const effectiveAlphabetDefaultBgGlow = alphabetDefaultBgSyncGlow ? alphabetDefaultBgColor : alphabetDefaultBgGlowColor
+  const rgbAlphabetDefaultGlow = hexToRgb(effectiveAlphabetDefaultBgGlow)
   const rgbAlphabet1 = hexToRgb(alphabetColor1)
   const rgbAlphabet2 = hexToRgb(alphabetColor2)
   const rgbAlphabetGlow = hexToRgb(alphabetGlowColor)
   const alphabetGlowCol1 = alphabetSyncGlow ? alphabetColor1 : alphabetGlowColor
-  const alphabetGlowRgba1 = alphabetSyncGlow ? `rgba(${rgbAlphabet1.r}, ${rgbAlphabet1.g}, ${rgbAlphabet1.b}, 0.85)` : `rgba(${rgbAlphabetGlow.r}, ${rgbAlphabetGlow.g}, ${rgbAlphabetGlow.b}, 0.85)`
-  const alphabetGlowRgba2 = alphabetSyncGlow ? `rgba(${rgbAlphabet2.r}, ${rgbAlphabet2.g}, ${rgbAlphabet2.b}, 0.85)` : `rgba(${rgbAlphabetGlow.r}, ${rgbAlphabetGlow.g}, ${rgbAlphabetGlow.b}, 0.85)`
+  const alphabetGlowCol2 = alphabetSyncGlow ? alphabetColor2 : alphabetGlowColor
+  const alphabetGlowRgba1 = alphabetSyncGlow ? `rgba(${rgbAlphabet1.r}, ${rgbAlphabet1.g}, ${rgbAlphabet1.b}, 0.5)` : `rgba(${rgbAlphabetGlow.r}, ${rgbAlphabetGlow.g}, ${rgbAlphabetGlow.b}, 0.5)`
+  const alphabetGlowRgba2 = alphabetSyncGlow ? `rgba(${rgbAlphabet2.r}, ${rgbAlphabet2.g}, ${rgbAlphabet2.b}, 0.5)` : `rgba(${rgbAlphabetGlow.r}, ${rgbAlphabetGlow.g}, ${rgbAlphabetGlow.b}, 0.5)`
 
   // 5. Header Search & Add Game
   const searchGlowMode = storage.getItem('heroic_header_search_glow_mode') || 'disabled'
@@ -515,98 +549,412 @@ function applyGlobalPersonalizationStyles() {
   }
 
   // 3. Store Filter Bar
+  const storeGlowTarget = (storage.getItem('heroic_store_filter_glow_target') as 'logo' | 'text' | 'both') || 'both'
+  const isStoreZeroBg = storeDefaultBgOpacity <= 0.001
+
+  const storeBgStyle = isStoreZeroBg
+    ? 'transparent'
+    : storeDefaultBgGradient
+      ? `linear-gradient(135deg, rgba(${rgbStoreDefault1.r}, ${rgbStoreDefault1.g}, ${rgbStoreDefault1.b}, ${storeDefaultBgOpacity}) 0%, rgba(${rgbStoreDefault2.r}, ${rgbStoreDefault2.g}, ${rgbStoreDefault2.b}, ${storeDefaultBgOpacity}) 100%)`
+      : `rgba(${rgbStoreDefault1.r}, ${rgbStoreDefault1.g}, ${rgbStoreDefault1.b}, ${storeDefaultBgOpacity})`
+
+  const storeBgBorder = isStoreZeroBg
+    ? 'transparent'
+    : `rgba(${rgbStoreDefaultGlow.r}, ${rgbStoreDefaultGlow.g}, ${rgbStoreDefaultGlow.b}, ${Math.min(1, storeDefaultBgOpacity * 2.5)})`
+
+  const storeBgHover = isStoreZeroBg
+    ? 'transparent'
+    : storeDefaultBgGradient
+      ? `linear-gradient(135deg, rgba(${rgbStoreDefault1.r}, ${rgbStoreDefault1.g}, ${rgbStoreDefault1.b}, ${Math.min(1, storeDefaultBgOpacity * 1.5)}) 0%, rgba(${rgbStoreDefault2.r}, ${rgbStoreDefault2.g}, ${rgbStoreDefault2.b}, ${Math.min(1, storeDefaultBgOpacity * 1.5)}) 100%)`
+      : `rgba(${rgbStoreDefault1.r}, ${rgbStoreDefault1.g}, ${rgbStoreDefault1.b}, ${Math.min(1, storeDefaultBgOpacity * 1.5)})`
+
+  const storeBgHoverBorder = isStoreZeroBg
+    ? 'transparent'
+    : `rgba(${rgbStoreDefaultGlow.r}, ${rgbStoreDefaultGlow.g}, ${rgbStoreDefaultGlow.b}, ${Math.min(1, storeDefaultBgOpacity * 2.8)})`
+
+  const storeBgActive = isStoreZeroBg
+    ? 'transparent'
+    : storeDefaultBgGradient
+      ? `linear-gradient(135deg, rgba(${rgbStoreDefault1.r}, ${rgbStoreDefault1.g}, ${rgbStoreDefault1.b}, ${Math.min(1, storeDefaultBgOpacity * 1.8)}) 0%, rgba(${rgbStoreDefault2.r}, ${rgbStoreDefault2.g}, ${rgbStoreDefault2.b}, ${Math.min(1, storeDefaultBgOpacity * 1.8)}) 100%)`
+      : `rgba(${rgbStoreDefault1.r}, ${rgbStoreDefault1.g}, ${rgbStoreDefault1.b}, ${Math.min(1, storeDefaultBgOpacity * 1.8)})`
+
+  const storeBgActiveBorder = isStoreZeroBg
+    ? 'transparent'
+    : `rgba(${rgbStoreDefaultGlow.r}, ${rgbStoreDefaultGlow.g}, ${rgbStoreDefaultGlow.b}, ${Math.min(1, storeDefaultBgOpacity * 3)})`
+
   if (storeGlowMode === 'neon') {
-    css += `
-      .platforms-bar .platform-filter-btn {
-        background: transparent !important;
-        border: none !important;
-      }
-    `
-    if (storeGrad) {
+    if (isStoreZeroBg) {
       css += `
-        .platforms-bar .platform-filter-btn:hover .platform-filter-icon-img,
-        .platforms-bar .platform-filter-btn--active .platform-filter-icon-img {
-          filter: drop-shadow(-2px -2px calc(${storeGlowStrength} * 0.8) ${storeGlowRgba1}) 
-                  drop-shadow(2px 2px calc(${storeGlowStrength} * 0.8) ${storeGlowRgba2}) 
-                  drop-shadow(0 0 2px ${storeGlowCol1}) !important;
-          transform: scale(1.08) !important;
+        .platforms-bar.glow-mode-neon .platform-filter-btn,
+        .platforms-bar.glow-mode-neon .platform-filter-btn:hover,
+        .platforms-bar.glow-mode-neon .platform-filter-btn:focus,
+        .platforms-bar.glow-mode-neon .platform-filter-btn:active,
+        .platforms-bar.glow-mode-neon .platform-filter-btn--active,
+        .platforms-bar.glow-mode-neon .platform-filter-btn--active:hover {
+          background: none !important;
+          background-color: transparent !important;
+          background-image: none !important;
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          overflow: visible !important;
+          outline: none !important;
         }
-        .platforms-bar .platform-filter-btn:hover span,
-        .platforms-bar .platform-filter-btn--active span {
-          background: linear-gradient(135deg, ${storeColor1} 0%, ${storeColor2} 100%) !important;
-          -webkit-background-clip: text !important;
-          background-clip: text !important;
-          -webkit-text-fill-color: transparent !important;
-          filter: drop-shadow(-2px -2px 3px ${storeGlowRgba1}) 
-                  drop-shadow(2px 2px 3px ${storeGlowRgba2}) !important;
+        .platforms-bar.glow-mode-neon .platform-filter-btn::before,
+        .platforms-bar.glow-mode-neon .platform-filter-btn::after {
+          display: none !important;
         }
       `
     } else {
       css += `
-        .platforms-bar .platform-filter-btn:hover .platform-filter-icon-img,
-        .platforms-bar .platform-filter-btn--active .platform-filter-icon-img {
-          filter: drop-shadow(0 0 2px ${storeGlowCol1}) 
-                  drop-shadow(0 0 calc(${storeGlowStrength} * 0.8) ${storeGlowRgba1}) !important;
-          transform: scale(1.08) !important;
+        .platforms-bar.glow-mode-neon .platform-filter-btn {
+          background: ${storeBgStyle} !important;
+          border: 1px solid ${storeBgBorder} !important;
+          border-radius: ${storeBorderRadius}px !important;
+          box-shadow: none !important;
+          backdrop-filter: blur(12px) !important;
+          -webkit-backdrop-filter: blur(12px) !important;
+          transition: all 0.2s ease;
         }
-        .platforms-bar .platform-filter-btn:hover span,
-        .platforms-bar .platform-filter-btn--active span {
-          color: ${storeColor1} !important;
-          text-shadow: 0 0 2px ${storeGlowCol1},
-                       0 0 ${storeGlowStrength} ${storeGlowRgba1} !important;
+        .platforms-bar.glow-mode-neon .platform-filter-btn:hover {
+          background: ${storeBgHover} !important;
+          border: 1px solid ${storeBgHoverBorder} !important;
+        }
+        .platforms-bar.glow-mode-neon .platform-filter-btn--active {
+          background: ${storeBgActive} !important;
+          border: 1px solid ${storeBgActiveBorder} !important;
+          box-shadow: none !important;
+        }
+        .platforms-bar.glow-mode-neon .platform-filter-btn::before {
+          display: none !important;
+        }
+      `
+    }
+    // Logo glow (only if 'both' or 'logo')
+    if (storeGlowTarget === 'both' || storeGlowTarget === 'logo') {
+      if (storeGrad) {
+        css += `
+          .platforms-bar.glow-mode-neon .platform-filter-btn:hover .platform-filter-icon-img,
+          .platforms-bar.glow-mode-neon .platform-filter-btn--active .platform-filter-icon-img {
+            filter: drop-shadow(-1.5px -1.5px 0.5px ${storeColor1}) 
+                    drop-shadow(1.5px 1.5px 0.5px ${storeColor2}) 
+                    drop-shadow(-3px -3px calc(${storeGlowStrength} * 0.7) ${storeGlowRgba1}) 
+                    drop-shadow(3px 3px calc(${storeGlowStrength} * 0.7) ${storeGlowRgba2}) !important;
+            transform: scale(1.08) !important;
+            transition: all 0.2s ease !important;
+          }
+        `
+      } else {
+        css += `
+          .platforms-bar.glow-mode-neon .platform-filter-btn:hover .platform-filter-icon-img,
+          .platforms-bar.glow-mode-neon .platform-filter-btn--active .platform-filter-icon-img {
+            filter: drop-shadow(0 0 1px ${storeColor1}) 
+                    drop-shadow(0 0 calc(${storeGlowStrength} * 0.5) ${storeGlowCol1}) 
+                    drop-shadow(0 0 ${storeGlowStrength} ${storeGlowRgba1}) !important;
+            transform: scale(1.08) !important;
+            transition: all 0.2s ease !important;
+          }
+        `
+      }
+    } else {
+      // Se for Só no Nome: ícone NUNCA tem glow
+      css += `
+        .platforms-bar.glow-mode-neon .platform-filter-btn .platform-filter-icon-img,
+        .platforms-bar.glow-mode-neon .platform-filter-btn:hover .platform-filter-icon-img,
+        .platforms-bar.glow-mode-neon .platform-filter-btn--active .platform-filter-icon-img {
+          filter: none !important;
+          transform: none !important;
+        }
+      `
+    }
+
+    // Text glow (only if 'both' or 'text')
+    if (storeGlowTarget === 'both' || storeGlowTarget === 'text') {
+      if (storeGrad) {
+        css += `
+          .platforms-bar.glow-mode-neon .platform-filter-btn:hover span,
+          .platforms-bar.glow-mode-neon .platform-filter-btn--active span {
+            background: linear-gradient(135deg, ${storeColor1} 0%, ${storeColor2} 100%) !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            filter: drop-shadow(-1.5px -1.5px calc(${storeGlowStrength} * 0.35) ${storeGlowRgba1}) 
+                    drop-shadow(1.5px 1.5px calc(${storeGlowStrength} * 0.35) ${storeGlowRgba2}) !important;
+            display: inline-block !important;
+          }
+        `
+      } else {
+        css += `
+          .platforms-bar.glow-mode-neon .platform-filter-btn:hover span,
+          .platforms-bar.glow-mode-neon .platform-filter-btn--active span {
+            color: ${storeColor1} !important;
+            text-shadow: 0 0 2px ${storeGlowCol1},
+                         0 0 ${storeGlowStrength} ${storeGlowRgba1} !important;
+            background: none !important;
+            -webkit-text-fill-color: initial !important;
+            filter: none !important;
+            display: inline-block !important;
+          }
+        `
+      }
+    } else {
+      // Se for Só no Logo: texto NUNCA tem glow, fica branco puro
+      css += `
+        .platforms-bar.glow-mode-neon .platform-filter-btn span,
+        .platforms-bar.glow-mode-neon .platform-filter-btn:hover span,
+        .platforms-bar.glow-mode-neon .platform-filter-btn--active span {
+          color: #ffffff !important;
+          background: none !important;
+          -webkit-text-fill-color: #ffffff !important;
+          text-shadow: none !important;
+          filter: none !important;
         }
       `
     }
   } else {
     css += `
       .platforms-bar:not(.glow-mode-neon) .platform-filter-btn {
-        background: rgba(${rgbStoreDefault.r}, ${rgbStoreDefault.g}, ${rgbStoreDefault.b}, ${storeDefaultBgOpacity}) !important;
-        border: 1px solid rgba(${rgbStoreDefault.r}, ${rgbStoreDefault.g}, ${rgbStoreDefault.b}, ${Math.min(1, storeDefaultBgOpacity * 2.5)}) !important;
+        background: ${storeBgStyle} !important;
+        border: 1px solid ${storeBgBorder} !important;
+        border-radius: ${storeBorderRadius}px !important;
+        box-shadow: none !important;
+        backdrop-filter: ${storeDefaultBgOpacity === 0 ? 'none' : 'blur(12px)'} !important;
+        -webkit-backdrop-filter: ${storeDefaultBgOpacity === 0 ? 'none' : 'blur(12px)'} !important;
+        transition: all 0.2s ease;
+      }
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn:hover {
+        background: ${storeBgHover} !important;
+        border: 1px solid ${storeBgHoverBorder} !important;
+      }
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn--active {
+        background: ${storeBgActive} !important;
+        border: 1px solid ${storeBgActiveBorder} !important;
+        box-shadow: none !important;
+      }
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn::before {
+        display: none !important;
+      }
+    `
+  }
+
+  if (isStoreZeroBg) {
+    css += `
+      .platforms-bar .platform-filter-btn,
+      .platforms-bar .platform-filter-btn:hover,
+      .platforms-bar .platform-filter-btn:focus,
+      .platforms-bar .platform-filter-btn:active,
+      .platforms-bar .platform-filter-btn--active,
+      .platforms-bar .platform-filter-btn--active:hover,
+      .platforms-bar--zero-bg .platform-filter-btn,
+      .platforms-bar--zero-bg .platform-filter-btn:hover,
+      .platforms-bar--zero-bg .platform-filter-btn:focus,
+      .platforms-bar--zero-bg .platform-filter-btn:active,
+      .platforms-bar--zero-bg .platform-filter-btn--active,
+      .platforms-bar--zero-bg .platform-filter-btn--active:hover,
+      .platforms-bar.glow-mode-neon .platform-filter-btn,
+      .platforms-bar.glow-mode-neon .platform-filter-btn:hover,
+      .platforms-bar.glow-mode-neon .platform-filter-btn:focus,
+      .platforms-bar.glow-mode-neon .platform-filter-btn:active,
+      .platforms-bar.glow-mode-neon .platform-filter-btn--active,
+      .platforms-bar.glow-mode-neon .platform-filter-btn--active:hover,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn:hover,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn:focus,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn:active,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn--active,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn--active:hover,
+      .platforms-bar .platform-filter-btn--zero-bg,
+      .platforms-bar .platform-filter-btn--zero-bg:hover,
+      .platforms-bar .platform-filter-btn--zero-bg:focus,
+      .platforms-bar .platform-filter-btn--zero-bg:active,
+      .platforms-bar .platform-filter-btn--zero-bg.platform-filter-btn--active,
+      .platforms-bar .platform-filter-btn--zero-bg.platform-filter-btn--active:hover,
+      .platform-filter-btn--zero-bg,
+      .platform-filter-btn--zero-bg:hover,
+      .platform-filter-btn--zero-bg:focus,
+      .platform-filter-btn--zero-bg:active,
+      .platform-filter-btn--zero-bg.platform-filter-btn--active,
+      .platform-filter-btn--zero-bg.platform-filter-btn--active:hover,
+      button.platform-filter-btn--zero-bg,
+      button.platform-filter-btn--zero-bg:hover,
+      button.platform-filter-btn--zero-bg:focus,
+      button.platform-filter-btn--zero-bg:active,
+      button.platform-filter-btn--zero-bg.platform-filter-btn--active,
+      button.platform-filter-btn--zero-bg.platform-filter-btn--active:hover {
+        background: none !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        border: none !important;
+        border-width: 0 !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        overflow: visible !important;
+        outline: none !important;
+      }
+      .platforms-bar .platform-filter-btn::before,
+      .platforms-bar .platform-filter-btn:hover::before,
+      .platforms-bar .platform-filter-btn--active::before,
+      .platforms-bar .platform-filter-btn--active:hover::before,
+      .platforms-bar--zero-bg .platform-filter-btn::before,
+      .platforms-bar--zero-bg .platform-filter-btn:hover::before,
+      .platforms-bar--zero-bg .platform-filter-btn--active::before,
+      .platforms-bar--zero-bg .platform-filter-btn--active:hover::before,
+      .platforms-bar.glow-mode-neon .platform-filter-btn::before,
+      .platforms-bar.glow-mode-neon .platform-filter-btn:hover::before,
+      .platforms-bar.glow-mode-neon .platform-filter-btn--active::before,
+      .platforms-bar.glow-mode-neon .platform-filter-btn--active:hover::before,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn::before,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn:hover::before,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn--active::before,
+      .platforms-bar:not(.glow-mode-neon) .platform-filter-btn--active:hover::before,
+      .platforms-bar .platform-filter-btn--zero-bg::before,
+      .platforms-bar .platform-filter-btn--zero-bg:hover::before,
+      .platforms-bar .platform-filter-btn--zero-bg.platform-filter-btn--active::before,
+      .platforms-bar .platform-filter-btn--zero-bg.platform-filter-btn--active:hover::before,
+      .platform-filter-btn--zero-bg::before,
+      .platform-filter-btn--zero-bg:hover::before,
+      .platform-filter-btn--zero-bg.platform-filter-btn--active::before,
+      .platform-filter-btn--zero-bg.platform-filter-btn--active:hover::before {
+        display: none !important;
+        content: none !important;
       }
     `
   }
 
   // 4. Alphabet Filter
-  if (alphabetGlowMode === 'neon') {
+  const alphabetBgStyle = isAlphabetZeroBg
+    ? 'transparent'
+    : alphabetDefaultBgGradient
+      ? `linear-gradient(135deg, rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${alphabetDefaultBgOpacity}) 0%, rgba(${rgbAlphabetDefault2.r}, ${rgbAlphabetDefault2.g}, ${rgbAlphabetDefault2.b}, ${alphabetDefaultBgOpacity}) 100%)`
+      : `rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${alphabetDefaultBgOpacity})`
+
+  const alphabetBgBorder = isAlphabetZeroBg
+    ? 'transparent'
+    : `rgba(${rgbAlphabetDefaultGlow.r}, ${rgbAlphabetDefaultGlow.g}, ${rgbAlphabetDefaultGlow.b}, ${Math.min(1, alphabetDefaultBgOpacity * 2.5 + 0.05)})`
+
+  const alphabetBgHover = isAlphabetZeroBg
+    ? 'transparent'
+    : alphabetDefaultBgGradient
+      ? `linear-gradient(135deg, rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${Math.min(1, alphabetDefaultBgOpacity * 1.5)}) 0%, rgba(${rgbAlphabetDefault2.r}, ${rgbAlphabetDefault2.g}, ${rgbAlphabetDefault2.b}, ${Math.min(1, alphabetDefaultBgOpacity * 1.5)}) 100%)`
+      : `rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${Math.min(1, alphabetDefaultBgOpacity * 1.5)})`
+
+  const alphabetBgHoverBorder = isAlphabetZeroBg
+    ? 'transparent'
+    : `rgba(${rgbAlphabetDefaultGlow.r}, ${rgbAlphabetDefaultGlow.g}, ${rgbAlphabetDefaultGlow.b}, ${Math.min(1, alphabetDefaultBgOpacity * 2.8)})`
+
+  const alphabetBgActive = isAlphabetZeroBg
+    ? 'transparent'
+    : alphabetDefaultBgGradient
+      ? `linear-gradient(135deg, rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${Math.min(1, alphabetDefaultBgOpacity * 1.8)}) 0%, rgba(${rgbAlphabetDefault2.r}, ${rgbAlphabetDefault2.g}, ${rgbAlphabetDefault2.b}, ${Math.min(1, alphabetDefaultBgOpacity * 1.8)}) 100%)`
+      : `rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${Math.min(1, alphabetDefaultBgOpacity * 1.8)})`
+
+  const alphabetBgActiveBorder = isAlphabetZeroBg
+    ? 'transparent'
+    : `rgba(${rgbAlphabetDefaultGlow.r}, ${rgbAlphabetDefaultGlow.g}, ${rgbAlphabetDefaultGlow.b}, ${Math.min(1, alphabetDefaultBgOpacity * 3)})`
+
+  if (isAlphabetZeroBg) {
     css += `
-      .alphabet-filter-container .alphabet-filter-button {
-        background: transparent !important;
+      .alphabet-filter-container .alphabet-filter-button,
+      .alphabet-filter-container .alphabet-filter-button:hover,
+      .alphabet-filter-container .alphabet-filter-button:focus,
+      .alphabet-filter-container .alphabet-filter-button:active,
+      .alphabet-filter-container .alphabet-filter-button--active,
+      .alphabet-filter-container .alphabet-filter-button--active:hover,
+      .alphabet-filter-button--zero-bg,
+      .alphabet-filter-container--zero-bg .alphabet-filter-button,
+      .numberOfgames--zero-bg,
+      .numberOfgames.numberOfgames--zero-bg {
+        background: none !important;
+        background-color: transparent !important;
         border: none !important;
+        border-width: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
       }
     `
+  } else {
+    css += `
+      .alphabet-filter-container .alphabet-filter-button:not(.alphabet-filter-button--zero-bg) {
+        background: ${alphabetBgStyle} !important;
+        border-color: ${alphabetBgBorder} !important;
+      }
+      .alphabet-filter-container .alphabet-filter-button:not(.alphabet-filter-button--zero-bg):hover {
+        background: ${alphabetBgHover} !important;
+        border-color: ${alphabetBgHoverBorder} !important;
+      }
+      .alphabet-filter-container .alphabet-filter-button:not(.alphabet-filter-button--zero-bg).alphabet-filter-button--active {
+        background: ${alphabetBgActive} !important;
+        border-color: ${alphabetBgActiveBorder} !important;
+      }
+    `
+  }
+
+  if (alphabetGlowMode === 'neon') {
     if (alphabetGrad) {
       css += `
-        .alphabet-filter-container .alphabet-filter-button:hover span,
-        .alphabet-filter-container .alphabet-filter-button--active span {
+        .alphabet-filter-container .alphabet-filter-button span,
+        .alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button span,
+        .numberOfgames,
+        .numberOfgames.numberOfgames--neon {
           background: linear-gradient(135deg, ${alphabetColor1} 0%, ${alphabetColor2} 100%) !important;
           -webkit-background-clip: text !important;
           background-clip: text !important;
           -webkit-text-fill-color: transparent !important;
-          filter: drop-shadow(-2px -2px 3px ${alphabetGlowRgba1}) 
-                  drop-shadow(2px 2px 3px ${alphabetGlowRgba2}) !important;
-          transform: scale(1.15) !important;
-          display: inline-block !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          transition: all 0.2s ease !important;
+          opacity: 0.95 !important;
+        }
+        .alphabet-filter-container .alphabet-filter-button:hover span,
+        .alphabet-filter-container .alphabet-filter-button--active span,
+        .alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button:hover span,
+        .alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button--active span,
+        .numberOfgames:hover {
+          background: linear-gradient(135deg, ${alphabetColor1} 0%, ${alphabetColor2} 100%) !important;
+          -webkit-background-clip: text !important;
+          background-clip: text !important;
+          -webkit-text-fill-color: transparent !important;
+          filter: drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength} * 0.35) ${alphabetGlowRgba1}) 
+                  drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength} * 0.35) ${alphabetGlowRgba2}) !important;
+          transform: scale(1.08) !important;
+          opacity: 1 !important;
+          display: inline-flex !important;
         }
       `
     } else {
       css += `
+        .alphabet-filter-container .alphabet-filter-button span,
+        .alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button span,
+        .numberOfgames,
+        .numberOfgames.numberOfgames--neon {
+          color: ${alphabetColor1} !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          transition: all 0.2s ease !important;
+          opacity: 0.95 !important;
+        }
         .alphabet-filter-container .alphabet-filter-button:hover span,
-        .alphabet-filter-container .alphabet-filter-button--active span {
+        .alphabet-filter-container .alphabet-filter-button--active span,
+        .alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button:hover span,
+        .alphabet-filter-container.alphabet-filter--neon .alphabet-filter-button--active span,
+        .numberOfgames:hover {
           color: ${alphabetColor1} !important;
           text-shadow: 0 0 2px ${alphabetGlowCol1},
                        0 0 ${alphabetGlowStrength} ${alphabetGlowRgba1} !important;
-          transform: scale(1.15) !important;
-          display: inline-block !important;
+          transform: scale(1.08) !important;
+          opacity: 1 !important;
+          display: inline-flex !important;
         }
       `
     }
-  } else {
-    css += `
-      .alphabet-filter-container:not(.alphabet-filter--neon) .alphabet-filter-button {
-        background: rgba(${rgbAlphabetDefault.r}, ${rgbAlphabetDefault.g}, ${rgbAlphabetDefault.b}, ${alphabetDefaultBgOpacity}) !important;
-        border: 1px solid rgba(${rgbAlphabetDefault.r}, ${rgbAlphabetDefault.g}, ${rgbAlphabetDefault.b}, ${Math.min(1, alphabetDefaultBgOpacity * 2.5)}) !important;
-      }
-    `
   }
 
   // 5. Header Search & Add Game
@@ -700,6 +1048,7 @@ function applyGlobalPersonalizationStyles() {
 }
 
 applyGlobalPersonalizationStyles()
+;(window as unknown as { applyGlobalPersonalizationStyles: () => void }).applyGlobalPersonalizationStyles = applyGlobalPersonalizationStyles
 window.addEventListener('heroicSettingsChanged', applyGlobalPersonalizationStyles)
 
 window.setCustomCSS = (cssString: string) => {

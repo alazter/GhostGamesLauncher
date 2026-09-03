@@ -1,17 +1,13 @@
 import React from 'react'
 import ContextProvider from 'frontend/state/ContextProvider'
-import { GameInfo, GameStatus, Status } from 'common/types'
+import { GameInfo, GameStatus, InstallProgress, Status } from 'common/types'
 import { hasProgress } from './hasProgress'
 import { useTranslation } from 'react-i18next'
 import { getStatusLabel, handleNonAvailableGames } from './constants'
 
-export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
+export function hasStatus(gameInfo: GameInfo, gameSize?: string, customProgress?: InstallProgress) {
   const appName = gameInfo.app_name
   const { libraryStatus } = React.useContext(ContextProvider)
-  const [progress] = hasProgress(gameInfo.app_name, gameInfo.runner)
-  const [newGameInfo, setNewGameInfo] = React.useState<GameInfo | undefined>(
-    gameInfo
-  )
   const [availabilityTrigger, setAvailabilityTrigger] = React.useState(0)
   const { t } = useTranslation('gamepage')
 
@@ -28,26 +24,10 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
     runner = 'sideload',
     isEAManaged,
     isUbisoftManaged
-  } = { ...newGameInfo }
+  } = gameInfo
 
   React.useEffect(() => {
-    setNewGameInfo(gameInfo)
-  }, [gameInfo])
-
-  React.useEffect(() => {
-    const onAvailabilityChanged = (e: Event) => {
-      const detail = (e as CustomEvent<{ appName?: string; runner?: string }>)?.detail
-      if (!detail?.appName || detail.appName === appName) {
-        setAvailabilityTrigger((prev) => prev + 1)
-      }
-    }
-    window.addEventListener('heroicAvailabilityChanged', onAvailabilityChanged)
-    return () => {
-      window.removeEventListener('heroicAvailabilityChanged', onAvailabilityChanged)
-    }
-  }, [appName])
-
-  React.useEffect(() => {
+    let isMounted = true
     const checkGameStatus = async () => {
       const {
         status,
@@ -63,9 +43,10 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
           runner,
           size: gameSize,
           statusContext,
-          percent: progress.percent
+          percent: customProgress?.percent
         })
-        return setGameStatus({ status, folder, label, statusContext })
+        if (isMounted) setGameStatus({ status, folder, label, statusContext })
+        return
       }
 
       if (thirdPartyManagedApp && !isEAManaged && !isUbisoftManaged) {
@@ -74,15 +55,17 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
           t,
           runner
         })
-        return setGameStatus({
+        if (isMounted) setGameStatus({
           status: 'notSupportedGame',
           label,
           statusContext
         })
+        return
       }
 
       if (is_installed && !thirdPartyManagedApp) {
         const gameAvailable = await handleNonAvailableGames(appName, runner)
+        if (!isMounted) return
         if (!gameAvailable) {
           const label = getStatusLabel({
             status: 'notAvailable',
@@ -105,16 +88,19 @@ export function hasStatus(gameInfo: GameInfo, gameSize?: string) {
         t,
         runner
       })
-      return setGameStatus({ status: 'notInstalled', label, statusContext })
+      if (isMounted) setGameStatus({ status: 'notInstalled', label, statusContext })
     }
     checkGameStatus()
+    return () => {
+      isMounted = false
+    }
   }, [
     libraryStatus,
     appName,
     runner,
     gameSize,
     t,
-    progress.percent,
+    customProgress?.percent,
     is_installed,
     thirdPartyManagedApp,
     isEAManaged,

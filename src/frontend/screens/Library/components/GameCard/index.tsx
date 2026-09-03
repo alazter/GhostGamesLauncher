@@ -69,6 +69,9 @@ interface Card {
   gameInfo: GameInfo
   forceCard?: boolean
   dataTour?: string
+  isSelectedInline?: boolean
+  assignedCategory?: string | null
+  shouldShowIcons?: boolean
 }
 
 const storage: Storage = window.localStorage
@@ -126,59 +129,15 @@ const GameCard = ({
   isRecent = false,
   justPlayed = false,
   gameInfo: gameInfoFromProps,
-  dataTour
+  dataTour,
+  isSelectedInline = false,
+  assignedCategory = null,
+  shouldShowIcons = true
 }: Card) => {
   const { app_name: appName, runner } = gameInfoFromProps
-  const [gameInfo, setGameInfo] = useState<GameInfo>(gameInfoFromProps)
+  const gameInfo = gameInfoFromProps
   const [showUninstallModal, setShowUninstallModal] = useState(false)
   const [isLaunching, setIsLaunching] = useState(false)
-
-  const [isSelectedInline, setIsSelectedInline] = useState<boolean>(false)
-
-  // Listen to active selected game changes reactively
-  useEffect(() => {
-    const handleSelectedChange = (e: Event) => {
-      const customEvent = e as CustomEvent<{ appName: string | null; runner: Runner | null }>
-      const { appName: selAppName, runner: selRunner } = customEvent.detail
-      setIsSelectedInline(selAppName === appName && selRunner === runner)
-    }
-    window.addEventListener('heroicSelectedGameChanged', handleSelectedChange)
-    return () =>
-      window.removeEventListener('heroicSelectedGameChanged', handleSelectedChange)
-  }, [appName, runner])
-
-  const [cardTitle, setCardTitle] = useState<string>(
-    () => gameInfoFromProps.overrides?.title || gameInfoFromProps.title
-  )
-
-  // Keep card title synchronized with props
-  useEffect(() => {
-    setCardTitle(gameInfoFromProps.overrides?.title || gameInfoFromProps.title)
-  }, [gameInfoFromProps.title, gameInfoFromProps.overrides?.title])
-
-  // Shared cached settings to avoid 968 individual localStorage reads & listeners
-  const [hideIconsGamepad, setHideIconsGamepad] = useState<boolean>(() => {
-    const saved = storage.getItem('heroic_hide_icons_gamepad')
-    return saved !== null ? (JSON.parse(saved) as boolean) : true
-  })
-
-  const [hideIconsMouse, setHideIconsMouse] = useState<boolean>(() => {
-    const saved = storage.getItem('heroic_hide_icons_mouse')
-    return saved !== null ? (JSON.parse(saved) as boolean) : false
-  })
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedGamepad = storage.getItem('heroic_hide_icons_gamepad')
-      const savedMouse = storage.getItem('heroic_hide_icons_mouse')
-      if (savedGamepad !== null) setHideIconsGamepad(JSON.parse(savedGamepad) as boolean)
-      if (savedMouse !== null) setHideIconsMouse(JSON.parse(savedMouse) as boolean)
-    }
-
-    window.addEventListener('heroicSettingsChanged', handleStorageChange)
-    return () =>
-      window.removeEventListener('heroicSettingsChanged', handleStorageChange)
-  }, [])
 
   const { t } = useTranslation('gamepage')
   const { t: t2 } = useTranslation()
@@ -190,30 +149,21 @@ const GameCard = ({
     favouriteGames,
     showDialogModal,
     activeController,
-    connectivity,
-    customCategories
+    connectivity
   } = useContext(ContextProvider)
 
-  // A LÓGICA MESTRA DE EXIBIÇÃO
-  const shouldShowIcons = activeController ? !hideIconsGamepad : !hideIconsMouse
-
-  const { openGameSettingsModal, openGameLogsModal, openGameCategoriesModal, gameOverrides } =
-    useGlobalState.keys(
-      'openGameSettingsModal',
-      'openGameLogsModal',
-      'openGameCategoriesModal',
-      'gameOverrides'
-    )
-
   const { layout } = useContext(LibraryContext)
+
+  const { gameOverrides } = useGlobalState.keys('gameOverrides')
+  const gameOverride = gameOverrides?.[appName]
+  const title = gameOverride?.title || gameInfoFromProps.overrides?.title || gameInfoFromProps.title
 
   const {
     art_logo: logo = undefined,
     is_installed: isInstalled,
     install: gameInstallInfo
-  } = { ...gameInfoFromProps }
-  const gameOverride = gameOverrides[appName]
-  const title = gameOverride?.title || cardTitle
+  } = gameInfoFromProps
+
   const art_cover =
     gameOverride?.art_cover !== undefined
       ? gameOverride.art_cover
@@ -224,65 +174,23 @@ const GameCard = ({
       : gameInfoFromProps.overrides?.art_square ?? gameInfoFromProps.art_square
 
   const isInstallable =
-    gameInfo.installable === undefined || gameInfo.installable
+    gameInfoFromProps.installable === undefined || gameInfoFromProps.installable
 
   const [progress, previousProgress] = hasProgress(appName, runner)
   const { install_size: size = '0' } = {
     ...gameInstallInfo
   }
 
-  const { status, folder, label } = hasStatus(gameInfo, size)
-  const isBrowserGame = gameInfo.install.platform === 'Browser'
+  const { status, folder, label } = hasStatus(gameInfoFromProps, size, progress)
+  const isBrowserGame = gameInfoFromProps.install.platform === 'Browser'
 
-  const [isNew, setIsNew] = useState(() => isGameNew(appName, runner))
-
-  useEffect(() => {
-    const handleNewGamesUpdate = () => {
-      setIsNew(isGameNew(appName, runner))
-    }
-    window.addEventListener('heroicNewGamesChanged', handleNewGamesUpdate)
-    return () => {
-      window.removeEventListener('heroicNewGamesChanged', handleNewGamesUpdate)
-    }
-  }, [appName, runner])
+  const isNew = isGameNew(appName, runner)
 
   const onInstall = () => {
     if (runner !== 'sideload' && handleGameCardClick) {
       handleGameCardClick(appName, runner, gameInfoFromProps)
     }
   }
-
-  const assignedCategory = useMemo(() => {
-    if (!customCategories || !customCategories.list) return null
-
-    const mainKey = `${appName}_${runner}`
-    const legKey = `${appName}_legendary`
-    const epicKey = `${appName}_epic`
-    const nileKey = `${appName}_nile`
-    const amzKey = `${appName}_amazon`
-    const gogKey = `${appName}_gog`
-    const steamKey = `${appName}_steam`
-
-    for (const [categoryName, gamesArray] of Object.entries(
-      customCategories.list
-    )) {
-      if (Array.isArray(gamesArray)) {
-        if (
-          gamesArray.includes(mainKey) ||
-          gamesArray.includes(legKey) ||
-          gamesArray.includes(epicKey) ||
-          gamesArray.includes(nileKey) ||
-          gamesArray.includes(amzKey) ||
-          gamesArray.includes(gogKey) ||
-          gamesArray.includes(steamKey) ||
-          gamesArray.includes(appName)
-        ) {
-          return categoryName
-        }
-      }
-    }
-    return null
-  }, [customCategories, appName, runner])
 
   const effectiveStore = assignedCategory || runner
 
@@ -317,22 +225,6 @@ const GameCard = ({
         return <StoreLogos runner={storeOrCategory as Runner} appName={appName} />
     }
   }
-
-  useEffect(() => {
-    setIsLaunching(false)
-    const updateGameInfo = async () => {
-      const newInfo = await getGameInfo(appName, runner)
-      if (newInfo) {
-        setGameInfo(newInfo)
-      }
-    }
-    void updateGameInfo()
-  }, [status, appName, runner])
-
-  // Sync gameInfo state with new props when library updates
-  useEffect(() => {
-    setGameInfo(gameInfoFromProps)
-  }, [gameInfoFromProps])
 
   async function handleUpdate() {
     if (gameInfo.runner !== 'sideload')
@@ -557,13 +449,13 @@ const GameCard = ({
     },
     {
       label: t('submenu.settings', 'Settings'),
-      onclick: () => openGameSettingsModal(gameInfo),
+      onclick: () => useGlobalState.getState().openGameSettingsModal(gameInfo),
       show: isInstalled && !isUninstalling && !isBrowserGame,
       icon: <Settings />
     },
     {
       label: t('submenu.logs', 'Logs'),
-      onclick: () => openGameLogsModal(gameInfo),
+      onclick: () => useGlobalState.getState().openGameLogsModal(gameInfo),
       show: isInstalled && !isUninstalling && !isBrowserGame,
       icon: <Description />
     },
@@ -595,7 +487,7 @@ const GameCard = ({
     },
     {
       label: t('submenu.categories', 'Categories'),
-      onclick: () => openGameCategoriesModal(gameInfo),
+      onclick: () => useGlobalState.getState().openGameCategoriesModal(gameInfo),
       show: true,
       icon: <List />
     },
@@ -714,6 +606,8 @@ const GameCard = ({
           >
             {justPlayed ? (
               <CachedImage
+                loading="lazy"
+                decoding="async"
                 src={art_cover || fallBackImage}
                 fallback={fallBackImage}
                 className="justPlayedImg"
@@ -721,6 +615,8 @@ const GameCard = ({
               />
             ) : (
               <CachedImage
+                loading="lazy"
+                decoding="async"
                 src={getImageFormatting(cover, runner)}
                 fallback={
                   art_cover && art_cover !== cover
@@ -733,6 +629,8 @@ const GameCard = ({
             )}
             {(justPlayed || (runner !== 'nile' && runner !== 'steam')) && logo && (
               <CachedImage
+                loading="lazy"
+                decoding="async"
                 alt=""
                 src={logo.startsWith('http') ? `${logo}?h=400&resize=1&w=300` : logo}
                 className={logoClasses}
@@ -824,7 +722,7 @@ const GameCard = ({
                     activeController={activeController}
                     onClick={(e: React.MouseEvent) => {
                       e.stopPropagation()
-                      openGameSettingsModal(gameInfo)
+                      useGlobalState.getState().openGameSettingsModal(gameInfo)
                     }}
                   >
                     <SettingsIcon />

@@ -61,7 +61,7 @@ const GamesList = ({
   isRecent = false,
   isFavourite = false
 }: Props): JSX.Element => {
-  const { gameUpdates, allTilesInColor, titlesAlwaysVisible, refreshLibrary, hiddenGames } =
+  const { gameUpdates, allTilesInColor, titlesAlwaysVisible, refreshLibrary, hiddenGames, customCategories } =
     useContext(ContextProvider)
   const { gameOverrides } = useGlobalState.keys('gameOverrides')
   const { storesFilters, showPlaytestsAndDemos, filterText } = useContext(LibraryContext)
@@ -89,6 +89,62 @@ const GamesList = ({
       localStorage.getItem('heroic_game_assignments') || '{}'
     ) as Record<string, string>
   })
+
+  // 1 único listener centralizado de seleção inline para todos os cards
+  const [selectedInlineId, setSelectedInlineId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleSelectedChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ appName: string | null; runner: Runner | null }>
+      const { appName: selAppName, runner: selRunner } = customEvent.detail || {}
+      setSelectedInlineId(selAppName && selRunner ? `${selAppName}_${selRunner}` : null)
+    }
+    window.addEventListener('heroicSelectedGameChanged', handleSelectedChange)
+    return () =>
+      window.removeEventListener('heroicSelectedGameChanged', handleSelectedChange)
+  }, [])
+
+  // 1 único listener centralizado de configurações para todos os cards
+  const [hideIconsGamepad, setHideIconsGamepad] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_hide_icons_gamepad')
+    return saved !== null ? (JSON.parse(saved) as boolean) : true
+  })
+  const [hideIconsMouse, setHideIconsMouse] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_hide_icons_mouse')
+    return saved !== null ? (JSON.parse(saved) as boolean) : false
+  })
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedGamepad = localStorage.getItem('heroic_hide_icons_gamepad')
+      const savedMouse = localStorage.getItem('heroic_hide_icons_mouse')
+      if (savedGamepad !== null) setHideIconsGamepad(JSON.parse(savedGamepad) as boolean)
+      if (savedMouse !== null) setHideIconsMouse(JSON.parse(savedMouse) as boolean)
+    }
+
+    window.addEventListener('heroicSettingsChanged', handleStorageChange)
+    return () =>
+      window.removeEventListener('heroicSettingsChanged', handleStorageChange)
+  }, [])
+
+  const shouldShowIcons = activeController ? !hideIconsGamepad : !hideIconsMouse
+
+  // Pré-indexação O(1) de categorias para eliminar loops aninhados em 1.463 cards
+  const categoryByGameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    if (!customCategories || !customCategories.list) return map
+
+    for (const [categoryName, gamesArray] of Object.entries(customCategories.list)) {
+      if (Array.isArray(gamesArray)) {
+        for (const gameKey of gamesArray) {
+          if (typeof gameKey === 'string') {
+            map.set(gameKey, categoryName)
+          }
+        }
+      }
+    }
+    return map
+  }, [customCategories])
 
   // CORREÇÃO DOS ERROS DE TIPAGEM (ANY)
   useEffect(() => {
@@ -263,6 +319,30 @@ const GamesList = ({
       isGameVisibleInAllGames(game, customStores, assignments, storesFilters)
     )
   }, [library, isSearching, activeStoreFilter, assignments, customStores, storesFilters, showPlaytestsAndDemos])
+
+  const INITIAL_BATCH_SIZE = 80
+  const [renderLimit, setRenderLimit] = useState<number>(INITIAL_BATCH_SIZE)
+
+  useEffect(() => {
+    if (filteredLibrary.length > INITIAL_BATCH_SIZE) {
+      setRenderLimit(INITIAL_BATCH_SIZE)
+      const handle = requestAnimationFrame(() => {
+        setRenderLimit(filteredLibrary.length)
+      })
+      return () => {
+        cancelAnimationFrame(handle)
+      }
+    }
+    setRenderLimit(filteredLibrary.length)
+    return () => {}
+  }, [filteredLibrary.length])
+
+  const visibleLibrary = useMemo(() => {
+    if (filteredLibrary.length <= renderLimit) {
+      return filteredLibrary
+    }
+    return filteredLibrary.slice(0, renderLimit)
+  }, [filteredLibrary, renderLimit])
 
   useEffect(() => {
     (window as any).heroicActiveLibrary = filteredLibrary
@@ -1024,8 +1104,8 @@ const GamesList = ({
               <span>{t('wine.actions', 'Action')}</span>
             </div>
           )}
-          {!!filteredLibrary.length &&
-            filteredLibrary.map((gameInfo, index) => {
+          {!!visibleLibrary.length &&
+            visibleLibrary.map((gameInfo, index) => {
               const { app_name, is_installed, runner } = gameInfo
               const isJustPlayed = (isFavourite || isRecent) && index === 0
               let is_dlc = false
@@ -1037,6 +1117,10 @@ const GamesList = ({
               const isSelected = selectedGames.some(
                 (g) => g.app_name === app_name
               )
+
+              const mainKey = `${app_name}_${runner}`
+              const assignedCategory = categoryByGameMap.get(mainKey) || categoryByGameMap.get(app_name) || null
+              const isSelectedInline = selectedInlineId === mainKey
 
               return (
                 <div
@@ -1110,6 +1194,9 @@ const GamesList = ({
                       gameInfo={gameInfo}
                       justPlayed={isJustPlayed}
                       dataTour={index === 0 ? 'library-game-card' : undefined}
+                      isSelectedInline={isSelectedInline}
+                      assignedCategory={assignedCategory}
+                      shouldShowIcons={shouldShowIcons}
                     />
                   </div>
                 </div>

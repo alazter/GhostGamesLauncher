@@ -26,16 +26,34 @@
 
     .Sidebar__itemIcon {
       width: 24px;
+      height: 24px;
       display: inline-flex;
       justify-content: center;
+      align-items: center;
       position: relative;
       transition: all 0.2s ease;
+      flex-shrink: 0;
 
       svg,
       path,
       .svg-inline--fa {
         transition: all 0.2s ease;
         filter: none;
+        fill: currentColor;
+      }
+
+      svg:not(.svg-inline--fa) {
+        width: 20px;
+        height: 20px;
+        max-width: 22px;
+        max-height: 22px;
+        box-sizing: border-box;
+      }
+
+      .svg-inline--fa {
+        font-size: 19px;
+        height: 19px;
+        width: auto;
       }
 
       .Sidebar__badge {
@@ -108,8 +126,29 @@
       &::before {
         content: '• ';
       }
+      &:has(.Sidebar__itemIcon)::before {
+        display: none;
+      }
       & + .Sidebar__item:not(.SidebarLinks__subItem) {
         margin-top: 4px;
+      }
+
+      .Sidebar__itemIcon {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+
+        svg:not(.svg-inline--fa) {
+          width: 20px;
+          height: 20px;
+        }
+
+        .svg-inline--fa {
+          font-size: 19px;
+          height: 19px;
+        }
       }
     }
 
@@ -163,21 +202,63 @@
       }
 
       &.SidebarLinks__subItem {
-        padding: var(--space-xs) var(--sidebar-horizontal-padding);
+        padding: var(--space-xs) 0 !important;
+        justify-content: center !important;
+        margin: 2px 0 !important;
+
         &::before {
           display: none;
+        }
+
+        .Sidebar__itemIcon {
+          width: 28px !important;
+          height: 28px !important;
+          margin: 0 auto !important;
+          display: inline-flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+
+          svg:not(.svg-inline--fa) {
+            width: 22px !important;
+            height: 22px !important;
+            max-width: 24px !important;
+            max-height: 24px !important;
+          }
+
+          .svg-inline--fa {
+            font-size: 20px !important;
+            height: 20px !important;
+            width: auto !important;
+          }
+        }
+      }
+
+      .Sidebar__itemIcon {
+        width: 28px !important;
+        height: 28px !important;
+        margin: 0 auto !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+
+        svg:not(.svg-inline--fa) {
+          width: 22px !important;
+          height: 22px !important;
+          max-width: 24px !important;
+          max-height: 24px !important;
+        }
+
+        .svg-inline--fa {
+          font-size: 20px !important;
+          height: 20px !important;
+          width: auto !important;
         }
       }
 
       &.active svg,
       & svg {
-        transform: scale(1.2);
-        padding: var(--space-2xs) 0;
-      }
-
-      .Sidebar__itemIcon {
-        margin: 0 auto !important;
-        justify-content: center !important;
+        transform: scale(1.15);
+        padding: 0 !important;
       }
     }
   }

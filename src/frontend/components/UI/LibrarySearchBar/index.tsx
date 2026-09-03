@@ -96,8 +96,8 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
   })
 
   const [storeBtnGradientEnabled, setStoreBtnGradientEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_gradient_enabled')
-    return saved !== null ? (JSON.parse(saved) as boolean) : false
+    const saved = localStorage.getItem('heroic_store_btn_default_bg_gradient') ?? localStorage.getItem('heroic_store_btn_gradient_enabled')
+    return saved !== null ? saved === 'true' : false
   })
 
   const [storeBtnBgColor2, setStoreBtnBgColor2] = useState<string>(() => {
@@ -111,6 +111,10 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
 
   const [storeFilterGlowMode, setStoreFilterGlowMode] = useState<string>(() => {
     return localStorage.getItem('heroic_store_filter_glow_mode') || 'disabled'
+  })
+
+  const [storeFilterGlowTarget, setStoreFilterGlowTarget] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_filter_glow_target') || 'both'
   })
 
   useEffect(() => {
@@ -139,8 +143,8 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
       const borderRadiusSaved = localStorage.getItem('heroic_store_btn_border_radius')
       setStoreBtnBorderRadius(borderRadiusSaved !== null ? Number(borderRadiusSaved) : 12)
 
-      const gradientEnabledSaved = localStorage.getItem('heroic_store_btn_gradient_enabled')
-      setStoreBtnGradientEnabled(gradientEnabledSaved !== null ? (JSON.parse(gradientEnabledSaved) as boolean) : false)
+      const gradientEnabledSaved = localStorage.getItem('heroic_store_btn_default_bg_gradient') ?? localStorage.getItem('heroic_store_btn_gradient_enabled')
+      setStoreBtnGradientEnabled(gradientEnabledSaved !== null ? gradientEnabledSaved === 'true' : false)
 
       setStoreBtnBgColor2(localStorage.getItem('heroic_store_btn_bg_color_2') || '#e08a1e')
 
@@ -151,6 +155,7 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
       setStoreBtnActiveOpacity(activeOpacitySaved !== null ? Number(activeOpacitySaved) : 0.25)
 
       setStoreFilterGlowMode(localStorage.getItem('heroic_store_filter_glow_mode') || 'disabled')
+      setStoreFilterGlowTarget(localStorage.getItem('heroic_store_filter_glow_target') || 'both')
     }
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     return () =>
@@ -292,77 +297,107 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
       </div>
 
       {/* BARRA DE PLATAFORMAS INTERATIVA */}
-      <div
-        className={`platforms-bar glow-mode-${storeFilterGlowMode}`}
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'flex-start',
-          gap: '12px',
-          width: '100%',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
-          ...(isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4 } : {}),
-          '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
-          '--store-btn-border-width': storeBtnBorderEnabled ? '1px' : '0px',
-          '--store-btn-bg': storeBtnGradientEnabled
-            ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnBgOpacity}) 100%)`
-            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity})`,
-          '--store-btn-hover-bg': storeBtnGradientEnabled
-            ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnHoverOpacity}) 100%)`
-            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity})`,
-          '--store-btn-border-color': storeBtnBorderEnabled
-            ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnBgOpacity * 2.5)})`
-            : 'transparent',
-          '--store-btn-hover-border-color': storeBtnBorderEnabled
-            ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnHoverOpacity * 2.5)})`
-            : 'transparent',
-          '--store-btn-active-bg-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
-          '--store-btn-active-bg-end': storeBtnGradientEnabled
-            ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnActiveOpacity})`
-            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
-          '--store-btn-active-border-start': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
-          '--store-btn-active-border-end': storeBtnGradientEnabled
-            ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`
-            : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
-          '--store-btn-shadow-color': `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, 0.2)`,
-          '--store-btn-backdrop-filter': storeBtnBgOpacity === 0 ? 'none' : 'blur(12px)',
-          '--store-btn-hover-backdrop-filter': storeBtnHoverOpacity === 0 ? 'none' : 'blur(12px)'
-        } as React.CSSProperties}
-      >
-        {customStores
-          .filter((store) => store.isVisible !== false)
-          .map((store) => {
-            const imageSource = store.icon
-              ? store.icon
-              : `/images/${store.id}.png`
-            const isActive = activeFilter === store.id
+      {(() => {
+        const isZeroBg = storeBtnBgOpacity <= 0.001 || (localStorage.getItem('heroic_store_btn_default_bg_opacity') ?? localStorage.getItem('heroic_store_btn_bg_opacity')) === '0'
+        return (
+          <div
+            className={`platforms-bar glow-mode-${storeFilterGlowMode} glow-target-${storeFilterGlowTarget} ${isZeroBg ? 'platforms-bar--zero-bg' : ''}`}
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-start',
+              gap: '12px',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              ...(isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4 } : {}),
+              '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
+              '--store-btn-border-width': storeBtnBorderEnabled && !isZeroBg ? '1px' : '0px',
+              '--store-btn-bg': isZeroBg
+                ? 'transparent'
+                : storeBtnGradientEnabled
+                  ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnBgOpacity}) 100%)`
+                  : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnBgOpacity})`,
+              '--store-btn-hover-bg': isZeroBg
+                ? 'transparent'
+                : storeBtnGradientEnabled
+                  ? `linear-gradient(135deg, rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity}) 0%, rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnHoverOpacity}) 100%)`
+                  : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnHoverOpacity})`,
+              '--store-btn-border-color': storeBtnBorderEnabled && !isZeroBg
+                ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnBgOpacity * 2.5)})`
+                : 'transparent',
+              '--store-btn-hover-border-color': storeBtnBorderEnabled && !isZeroBg
+                ? `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(1, storeBtnHoverOpacity * 2.5)})`
+                : 'transparent',
+              '--store-btn-active-bg-start': isZeroBg
+                ? 'transparent'
+                : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`,
+              '--store-btn-active-bg-end': isZeroBg
+                ? 'transparent'
+                : (storeBtnGradientEnabled
+                  ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${storeBtnActiveOpacity})`
+                  : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${storeBtnActiveOpacity})`),
+              '--store-btn-active-border-start': isZeroBg
+                ? 'transparent'
+                : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`,
+              '--store-btn-active-border-end': isZeroBg
+                ? 'transparent'
+                : (storeBtnGradientEnabled
+                  ? `rgba(${storeRgb2.r}, ${storeRgb2.g}, ${storeRgb2.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`
+                  : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, ${Math.min(0.85, storeBtnActiveOpacity * 2)})`),
+              '--store-btn-shadow-color': isZeroBg ? 'transparent' : `rgba(${storeRgb.r}, ${storeRgb.g}, ${storeRgb.b}, 0.2)`,
+              '--store-btn-backdrop-filter': isZeroBg ? 'none' : 'blur(12px)',
+              '--store-btn-hover-backdrop-filter': isZeroBg ? 'none' : 'blur(12px)'
+            } as React.CSSProperties}
+          >
+            {customStores
+              .filter((store) => store.isVisible !== false)
+              .map((store) => {
+                const imageSource = store.icon
+                  ? store.icon
+                  : `/images/${store.id}.png`
+                const isActive = activeFilter === store.id
 
-            return (
-              <button
-                key={store.id}
-                onClick={() => handleFilterClick(store.id)}
-                className={`platform-filter-btn ${
-                  isActive ? 'platform-filter-btn--active' : ''
-                }`}
-              >
-                {(DISPLAY_MODE === 'icon-text' ||
-                  DISPLAY_MODE === 'icon-only') && (
-                  <img
-                    src={imageSource}
-                    alt={store.name}
-                    className="platform-filter-icon-img"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                )}
-                {(DISPLAY_MODE === 'icon-text' ||
-                  DISPLAY_MODE === 'text-only') && <span>{store.name}</span>}
-              </button>
-            )
-          })}
-      </div>
+                return (
+                  <button
+                    key={store.id}
+                    onClick={() => handleFilterClick(store.id)}
+                    className={`platform-filter-btn ${
+                      isActive ? 'platform-filter-btn--active' : ''
+                    } ${isZeroBg ? 'platform-filter-btn--zero-bg' : ''}`}
+                    style={isZeroBg ? {
+                      background: 'none',
+                      backgroundColor: 'transparent',
+                      backgroundImage: 'none',
+                      border: 'none',
+                      borderWidth: '0px',
+                      borderColor: 'transparent',
+                      boxShadow: 'none',
+                      outline: 'none',
+                      backdropFilter: 'none',
+                      WebkitBackdropFilter: 'none',
+                      overflow: 'visible'
+                    } : undefined}
+                  >
+                    {(DISPLAY_MODE === 'icon-text' ||
+                      DISPLAY_MODE === 'icon-only') && (
+                      <img
+                        src={imageSource}
+                        alt={store.name}
+                        className="platform-filter-icon-img"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    )}
+                    {(DISPLAY_MODE === 'icon-text' ||
+                      DISPLAY_MODE === 'text-only') && <span>{store.name}</span>}
+                  </button>
+                )
+              })}
+          </div>
+        )
+      })()}
     </div>
   )
 }

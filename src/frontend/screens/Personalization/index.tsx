@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
+import SteamLogo from 'frontend/assets/steam-logo.svg?react'
 import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 
 interface CustomStore {
@@ -27,7 +28,7 @@ interface CustomStore {
 }
 
 export default function PersonalizationScreen() {
-  const { epic, gog, sideloadedLibrary, amazon, zoom, zoomPercent, setZoomPercent } = useContext(ContextProvider)
+  const { epic, gog, sideloadedLibrary, amazon, zoom, steam, zoomPercent, setZoomPercent } = useContext(ContextProvider)
 
   const [bgImage, setBgImage] = useState<string | null>(() => {
     return localStorage.getItem('heroic_custom_bg')
@@ -225,12 +226,28 @@ export default function PersonalizationScreen() {
     return saved !== null ? Number(saved) : 8
   })
   const [storeBtnDefaultBgColor, setStoreBtnDefaultBgColor] = useState<string>(() => {
-    return localStorage.getItem('heroic_store_btn_default_bg_color') || '#ffffff'
+    return localStorage.getItem('heroic_store_btn_default_bg_color') || localStorage.getItem('heroic_store_btn_bg_color') || '#ffffff'
   })
+  const [storeBtnDefaultBgColor2, setStoreBtnDefaultBgColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_default_bg_color_2') || localStorage.getItem('heroic_store_btn_bg_color_2') || '#38d9e6'
+  })
+  const [storeBtnDefaultBgGradientEnabled, setStoreBtnDefaultBgGradientEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_default_bg_gradient') ?? localStorage.getItem('heroic_store_btn_gradient_enabled')
+    return saved !== null ? saved === 'true' : false
+  })
+  const [storeBtnDefaultBgGlowColor, setStoreBtnDefaultBgGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_store_btn_default_bg_glow_color') || localStorage.getItem('heroic_store_btn_glow_color') || '#00ffff'
+  })
+  const [storeBtnDefaultBgSyncGlow, setStoreBtnDefaultBgSyncGlow] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_store_btn_default_bg_sync_glow') ?? localStorage.getItem('heroic_store_btn_sync_glow_with_gradient')
+    return saved !== null ? saved !== 'false' : true
+  })
+  const [activeStoreBgTab, setActiveStoreBgTab] = useState<'color1' | 'color2' | 'glow'>('color1')
   const [storeBtnDefaultBgOpacity, setStoreBtnDefaultBgOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_store_btn_default_bg_opacity')
-    return saved !== null ? Number(saved) : 0.05
+    const saved = localStorage.getItem('heroic_store_btn_default_bg_opacity') ?? localStorage.getItem('heroic_store_btn_bg_opacity')
+    return saved !== null ? Number(saved) : 0
   })
+  const [showStoreBgColorPicker, setShowStoreBgColorPicker] = useState<boolean>(false)
   const [storeBtnBorderRadius, setStoreBtnBorderRadius] = useState<number>(() => {
     const saved = localStorage.getItem('heroic_store_btn_border_radius')
     return saved !== null ? Number(saved) : 12
@@ -238,6 +255,9 @@ export default function PersonalizationScreen() {
   const [storeBtnBorderEnabled, setStoreBtnBorderEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('heroic_store_btn_border_enabled')
     return saved !== null ? (JSON.parse(saved) as boolean) : true
+  })
+  const [storeFilterGlowTarget, setStoreFilterGlowTarget] = useState<'logo' | 'text' | 'both'>(() => {
+    return (localStorage.getItem('heroic_store_filter_glow_target') as 'logo' | 'text' | 'both') || 'both'
   })
 
   // 2. Filtro Alfabético & Contador
@@ -260,8 +280,24 @@ export default function PersonalizationScreen() {
   const [alphabetDefaultBgColor, setAlphabetDefaultBgColor] = useState<string>(() => {
     return localStorage.getItem('heroic_alphabet_btn_default_bg_color') || '#ffffff'
   })
+  const [alphabetDefaultBgColor2, setAlphabetDefaultBgColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_btn_default_bg_color_2') || '#38d9e6'
+  })
+  const [alphabetDefaultBgGlowColor, setAlphabetDefaultBgGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_btn_default_bg_glow_color') || '#00ffff'
+  })
+  const [alphabetDefaultBgGradientEnabled, setAlphabetDefaultBgGradientEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient')
+    return saved !== null ? (saved === 'true') : false
+  })
+  const [alphabetDefaultBgSyncGlow, setAlphabetDefaultBgSyncGlow] = useState<boolean>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_sync_glow')
+    return saved !== null ? saved !== 'false' : true
+  })
+  const [showAlphabetBgColorPicker, setShowAlphabetBgColorPicker] = useState<boolean>(false)
+  const [activeAlphabetBgTab, setActiveAlphabetBgTab] = useState<'color1' | 'color2' | 'glow'>('color1')
   const [alphabetDefaultBgOpacity, setAlphabetDefaultBgOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')
     return saved !== null ? Number(saved) : 0.05
   })
 
@@ -429,15 +465,22 @@ export default function PersonalizationScreen() {
   // ==============================================================
   // ESCOLHA ALEATÓRIA DE 6 JOGOS DA BIBLIOTECA REAL COM REPETIÇÃO
   // ==============================================================
-  const previewGames = useMemo(() => {
-    const realGamesList = [
+  const realGamesList = useMemo(() => {
+    return [
       ...(epic?.library ?? []),
       ...(gog?.library ?? []),
       ...(sideloadedLibrary ?? []),
       ...(amazon?.library ?? []),
-      ...(zoom?.library ?? [])
+      ...(zoom?.library ?? []),
+      ...(steam?.library ?? [])
     ].filter(Boolean)
+  }, [epic, gog, sideloadedLibrary, amazon, zoom, steam])
 
+  const totalRealGamesCount = useMemo(() => {
+    return realGamesList.length > 0 ? realGamesList.length : 6
+  }, [realGamesList])
+
+  const previewGames = useMemo(() => {
     const result = []
     
     if (realGamesList.length > 0) {
@@ -456,6 +499,7 @@ export default function PersonalizationScreen() {
         else if (game.runner === 'sideload') storeName = 'Adicionado'
         else if (game.runner === 'nile') storeName = 'Amazon'
         else if (game.runner === 'zoom') storeName = 'Zoom'
+        else if (game.runner === 'steam') storeName = 'Steam'
 
         // Gera um gradiente de fundo elegante baseado no título para jogos sem capa
         const charCodeSum = (game.title || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
@@ -552,6 +596,22 @@ export default function PersonalizationScreen() {
       setActivePreviewStoreId(firstVisible.id)
     }
   }, [stores, activePreviewStoreId])
+
+  useEffect(() => {
+    const handleExternalStoresChange = () => {
+      const saved = localStorage.getItem('heroic_custom_stores')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as CustomStore[]
+          if (JSON.stringify(parsed) !== JSON.stringify(stores)) {
+            setStores(parsed.map((s) => ({ ...s, isVisible: s.isVisible ?? true })))
+          }
+        } catch (err) {}
+      }
+    }
+    window.addEventListener('customStoresChanged', handleExternalStoresChange)
+    return () => window.removeEventListener('customStoresChanged', handleExternalStoresChange)
+  }, [stores])
 
   useEffect(() => {
     const handleModeChange = () => {
@@ -954,19 +1014,59 @@ export default function PersonalizationScreen() {
     setStoreBtnDefaultBgColor(val)
     if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
       localStorage.setItem('heroic_store_btn_default_bg_color', val)
+      localStorage.setItem('heroic_store_btn_bg_color', val)
       window.dispatchEvent(new Event('heroicSettingsChanged'))
     }
+  }
+
+  const handleStoreDefaultBgColor2Change = (val: string) => {
+    setStoreBtnDefaultBgColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_default_bg_color_2', val)
+      localStorage.setItem('heroic_store_btn_bg_color_2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleStoreDefaultBgGlowColorChange = (val: string) => {
+    setStoreBtnDefaultBgGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_store_btn_default_bg_glow_color', val)
+      localStorage.setItem('heroic_store_btn_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleStoreDefaultBgGradientToggle = (val: boolean) => {
+    setStoreBtnDefaultBgGradientEnabled(val)
+    localStorage.setItem('heroic_store_btn_default_bg_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreDefaultBgSyncGlowToggle = (val: boolean) => {
+    setStoreBtnDefaultBgSyncGlow(val)
+    localStorage.setItem('heroic_store_btn_default_bg_sync_glow', val ? 'true' : 'false')
+    localStorage.setItem('heroic_store_btn_sync_glow_with_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
   const handleStoreDefaultBgOpacityChange = (val: number) => {
     setStoreBtnDefaultBgOpacity(val)
     localStorage.setItem('heroic_store_btn_default_bg_opacity', val.toString())
+    localStorage.setItem('heroic_store_btn_bg_opacity', val.toString())
+    localStorage.setItem('heroic_store_btn_opacity', val.toString())
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
   const handleStoreBorderRadiusChange = (val: number) => {
     setStoreBtnBorderRadius(val)
     localStorage.setItem('heroic_store_btn_border_radius', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreFilterGlowTargetChange = (target: 'logo' | 'text' | 'both') => {
+    setStoreFilterGlowTarget(target)
+    localStorage.setItem('heroic_store_filter_glow_target', target)
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
@@ -1034,6 +1134,36 @@ export default function PersonalizationScreen() {
   const handleAlphabetDefaultBgOpacityChange = (val: number) => {
     setAlphabetDefaultBgOpacity(val)
     localStorage.setItem('heroic_alphabet_btn_default_bg_opacity', val.toString())
+    localStorage.setItem('heroic_alphabet_btn_opacity', val.toString())
+    localStorage.setItem('heroic_alphabet_bg_opacity', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetDefaultBgColor2Change = (val: string) => {
+    setAlphabetDefaultBgColor2(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_alphabet_btn_default_bg_color_2', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleAlphabetDefaultBgGlowColorChange = (val: string) => {
+    setAlphabetDefaultBgGlowColor(val)
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+      localStorage.setItem('heroic_alphabet_btn_default_bg_glow_color', val)
+      window.dispatchEvent(new Event('heroicSettingsChanged'))
+    }
+  }
+
+  const handleAlphabetDefaultBgGradientToggle = (val: boolean) => {
+    setAlphabetDefaultBgGradientEnabled(val)
+    localStorage.setItem('heroic_alphabet_btn_default_bg_gradient', val ? 'true' : 'false')
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetDefaultBgSyncGlowToggle = (val: boolean) => {
+    setAlphabetDefaultBgSyncGlow(val)
+    localStorage.setItem('heroic_alphabet_btn_default_bg_sync_glow', val ? 'true' : 'false')
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
@@ -1305,12 +1435,38 @@ export default function PersonalizationScreen() {
   const rgbStore1 = hexToRgb(storeBtnBgColor)
   const rgbStore2 = hexToRgb(storeBtnBgColor2)
   const rgbStoreGlow = hexToRgb(storeBtnGlowColor)
-  const rgbStoreDefaultBg = hexToRgb(storeBtnDefaultBgColor)
-  const storeDefaultBgHsl = rgbToHsl(rgbStoreDefaultBg.r, rgbStoreDefaultBg.g, rgbStoreDefaultBg.b)
+  const rgbStoreDefaultBg1 = hexToRgb(storeBtnDefaultBgColor)
+  const rgbStoreDefaultBg2 = hexToRgb(storeBtnDefaultBgColor2)
+  const effectiveStoreBgGlow = storeBtnDefaultBgSyncGlow ? storeBtnDefaultBgColor : storeBtnDefaultBgGlowColor
+  const rgbStoreDefaultBgGlow = hexToRgb(effectiveStoreBgGlow)
+
+  let currentEditingStoreBgColor = storeBtnDefaultBgColor
+  let currentEditingStoreBgHandler = handleStoreDefaultBgColorChange
+  if (activeStoreBgTab === 'glow') {
+    currentEditingStoreBgColor = storeBtnDefaultBgGlowColor
+    currentEditingStoreBgHandler = handleStoreDefaultBgGlowColorChange
+  } else if (storeBtnDefaultBgGradientEnabled && activeStoreBgTab === 'color2') {
+    currentEditingStoreBgColor = storeBtnDefaultBgColor2
+    currentEditingStoreBgHandler = handleStoreDefaultBgColor2Change
+  }
+  const currentEditingStoreBgRgb = hexToRgb(currentEditingStoreBgColor)
+  const currentEditingStoreBgHsl = rgbToHsl(currentEditingStoreBgRgb.r, currentEditingStoreBgRgb.g, currentEditingStoreBgRgb.b)
   const effectivePreviewStoreGlow1 = storeBtnSyncGlowWithGradient ? storeBtnBgColor : storeBtnGlowColor
   const effectivePreviewStoreGlow2 = storeBtnSyncGlowWithGradient ? storeBtnBgColor2 : storeBtnGlowColor
   const effectiveRgbPreviewStoreGlow1 = storeBtnSyncGlowWithGradient ? rgbStore1 : rgbStoreGlow
   const effectiveRgbPreviewStoreGlow2 = storeBtnSyncGlowWithGradient ? rgbStore2 : rgbStoreGlow
+  const effectiveStoreGlowRgba1 = `rgba(${effectiveRgbPreviewStoreGlow1.r}, ${effectiveRgbPreviewStoreGlow1.g}, ${effectiveRgbPreviewStoreGlow1.b}, ${Math.min(1, 0.5 * storeBtnOpacity)})`
+  const effectiveStoreGlowRgba2 = `rgba(${effectiveRgbPreviewStoreGlow2.r}, ${effectiveRgbPreviewStoreGlow2.g}, ${effectiveRgbPreviewStoreGlow2.b}, ${Math.min(1, 0.5 * storeBtnOpacity)})`
+
+  const targetExampleStore = useMemo(() => {
+    return (
+      stores.find((s) => s.id === activePreviewStoreId) ||
+      stores.find((s) => s.id === 'steam' || s.name?.toLowerCase() === 'steam') ||
+      DEFAULT_GHOST_CUSTOM_STORES.find((s) => s.id === 'steam' || s.name?.toLowerCase() === 'steam') ||
+      stores[0] ||
+      DEFAULT_GHOST_CUSTOM_STORES[0]
+    )
+  }, [stores, activePreviewStoreId])
 
   // Computações de Cores - 2. Filtro Alfabético & Contador
   let currentEditingAlphabetColor = alphabetBtnBgColor
@@ -1327,12 +1483,29 @@ export default function PersonalizationScreen() {
   const rgbAlphabet1 = hexToRgb(alphabetBtnBgColor)
   const rgbAlphabet2 = hexToRgb(alphabetBtnBgColor2)
   const rgbAlphabetGlow = hexToRgb(alphabetGlowColor)
-  const rgbAlphabetDefaultBg = hexToRgb(alphabetDefaultBgColor)
-  const alphabetDefaultBgHsl = rgbToHsl(rgbAlphabetDefaultBg.r, rgbAlphabetDefaultBg.g, rgbAlphabetDefaultBg.b)
+  const rgbAlphabetDefault1 = hexToRgb(alphabetDefaultBgColor)
+  const rgbAlphabetDefault2 = hexToRgb(alphabetDefaultBgColor2)
+  const effectiveAlphabetDefaultBgGlow = alphabetDefaultBgSyncGlow ? alphabetDefaultBgColor : alphabetDefaultBgGlowColor
+  const rgbAlphabetDefaultBgGlow = hexToRgb(effectiveAlphabetDefaultBgGlow)
+
+  let currentEditingAlphabetBgColor = alphabetDefaultBgColor
+  let currentEditingAlphabetBgHandler = handleAlphabetDefaultBgColorChange
+  if (activeAlphabetBgTab === 'glow') {
+    currentEditingAlphabetBgColor = alphabetDefaultBgGlowColor
+    currentEditingAlphabetBgHandler = handleAlphabetDefaultBgGlowColorChange
+  } else if (alphabetDefaultBgGradientEnabled && activeAlphabetBgTab === 'color2') {
+    currentEditingAlphabetBgColor = alphabetDefaultBgColor2
+    currentEditingAlphabetBgHandler = handleAlphabetDefaultBgColor2Change
+  }
+  const currentEditingAlphabetBgRgb = hexToRgb(currentEditingAlphabetBgColor)
+  const currentEditingAlphabetBgHsl = rgbToHsl(currentEditingAlphabetBgRgb.r, currentEditingAlphabetBgRgb.g, currentEditingAlphabetBgRgb.b)
+
   const effectivePreviewAlphabetGlow1 = alphabetSyncGlowWithGradient ? alphabetBtnBgColor : alphabetGlowColor
   const effectivePreviewAlphabetGlow2 = alphabetSyncGlowWithGradient ? alphabetBtnBgColor2 : alphabetGlowColor
   const effectiveRgbPreviewAlphabetGlow1 = alphabetSyncGlowWithGradient ? rgbAlphabet1 : rgbAlphabetGlow
   const effectiveRgbPreviewAlphabetGlow2 = alphabetSyncGlowWithGradient ? rgbAlphabet2 : rgbAlphabetGlow
+  const effectiveAlphabetGlowRgba1 = `rgba(${effectiveRgbPreviewAlphabetGlow1.r}, ${effectiveRgbPreviewAlphabetGlow1.g}, ${effectiveRgbPreviewAlphabetGlow1.b}, ${Math.min(1, 0.5 * alphabetOpacity)})`
+  const effectiveAlphabetGlowRgba2 = `rgba(${effectiveRgbPreviewAlphabetGlow2.r}, ${effectiveRgbPreviewAlphabetGlow2.g}, ${effectiveRgbPreviewAlphabetGlow2.b}, ${Math.min(1, 0.5 * alphabetOpacity)})`
 
   // Computações de Cores - 3. Header Search & Add Game
   let currentEditingHeaderSearchColor = headerSearchColor1
@@ -2293,7 +2466,7 @@ export default function PersonalizationScreen() {
         }
 
         /* Hover overlay using ::before pseudo-element */
-        .preview-platform-btn::before {
+        .preview-platforms-bar:not(.preview-platforms-bar--neon) .preview-platform-btn::before {
           content: "" !important;
           position: absolute !important;
           inset: 0 !important;
@@ -2306,11 +2479,11 @@ export default function PersonalizationScreen() {
           pointer-events: none !important;
         }
 
-        .preview-platform-btn:hover::before {
+        .preview-platforms-bar:not(.preview-platforms-bar--neon) .preview-platform-btn:hover::before {
           opacity: 1 !important;
         }
 
-        .preview-platform-btn--active {
+        .preview-platforms-bar:not(.preview-platforms-bar--neon) .preview-platform-btn--active {
           background: linear-gradient(135deg, var(--store-btn-active-bg-start, rgba(20, 24, 30, 0.6)) 0%, var(--store-btn-active-bg-end, rgba(230, 126, 34, 0.06)) 100%) padding-box, linear-gradient(135deg, var(--store-btn-active-border-start, rgba(255, 255, 255, 0.15)) 0%, var(--store-btn-active-border-end, rgba(230, 126, 34, 0.95)) 100%) border-box !important;
           border-color: transparent !important;
           font-weight: 400 !important;
@@ -2322,8 +2495,25 @@ export default function PersonalizationScreen() {
           transform: translate3d(0, 0, 0) scale(1.1) !important;
         }
 
-        .preview-platform-btn--active:hover {
+        .preview-platforms-bar:not(.preview-platforms-bar--neon) .preview-platform-btn--active:hover {
           transform: translate3d(0, 0, 0) scale(1.1) !important;
+        }
+
+        .preview-platforms-bar--zero-bg .preview-platform-btn,
+        .preview-platforms-bar--zero-bg .preview-platform-btn:hover,
+        .preview-platforms-bar--zero-bg .preview-platform-btn--active,
+        .preview-platforms-bar--zero-bg .preview-platform-btn--active:hover {
+          background: transparent !important;
+          border: 1px solid transparent !important;
+          border-color: transparent !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        .preview-platforms-bar--zero-bg .preview-platform-btn::before,
+        .preview-platforms-bar--zero-bg .preview-platform-btn:hover::before {
+          display: none !important;
         }
 
         .preview-platform-icon-img {
@@ -2425,14 +2615,36 @@ export default function PersonalizationScreen() {
           backdrop-filter: var(--alphabet-btn-backdrop-filter, blur(12px));
           -webkit-backdrop-filter: var(--alphabet-btn-backdrop-filter, blur(12px));
           position: relative !important;
-          overflow: hidden !important;
         }
         
         .preview-alphabet-btn:hover {
           transform: scale(1.08) !important;
         }
 
-        .preview-alphabet-btn::before {
+        .preview-alphabet-container--zero-bg .preview-alphabet-btn,
+        .preview-alphabet-btn--zero-bg {
+          background: none !important;
+          background-color: transparent !important;
+          background-image: none !important;
+          border: none !important;
+          border-width: 0 !important;
+          border-color: transparent !important;
+          box-shadow: none !important;
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+          overflow: visible !important;
+          outline: none !important;
+        }
+
+        .preview-alphabet-container--zero-bg .preview-alphabet-btn::before,
+        .preview-alphabet-btn--zero-bg::before,
+        .preview-alphabet-btn--zero-bg:hover::before,
+        .preview-alphabet-btn--zero-bg.preview-alphabet-btn--active::before {
+          display: none !important;
+          content: none !important;
+        }
+
+        .preview-alphabet-btn:not(.preview-alphabet-btn--zero-bg)::before {
           content: "" !important;
           position: absolute !important;
           inset: 0 !important;
@@ -2445,11 +2657,11 @@ export default function PersonalizationScreen() {
           pointer-events: none !important;
         }
 
-        .preview-alphabet-btn:hover::before {
+        .preview-alphabet-btn:not(.preview-alphabet-btn--zero-bg):hover::before {
           opacity: 1 !important;
         }
 
-        .preview-alphabet-btn--active {
+        .preview-alphabet-btn:not(.preview-alphabet-btn--zero-bg).preview-alphabet-btn--active {
           background: linear-gradient(135deg, var(--alphabet-btn-active-bg-start, rgba(20, 24, 30, 0.6)) 0%, var(--alphabet-btn-active-bg-end, rgba(230, 126, 34, 0.06)) 100%) padding-box, linear-gradient(135deg, var(--alphabet-btn-active-border-start, rgba(255, 255, 255, 0.2)) 0%, var(--alphabet-btn-active-border-end, rgba(230, 126, 34, 0.95)) 100%) border-box !important;
           border: 2px solid transparent !important;
           background-clip: padding-box, border-box !important;
@@ -3118,7 +3330,7 @@ export default function PersonalizationScreen() {
 
                 {/* LINHA 2: Barra de Lojas / Plataformas */}
                 <div 
-                  className={`preview-platforms-bar ${storeFilterGlowMode === 'neon' ? 'preview-platforms-bar--neon' : ''} ${storeBtnGradientEnabled ? 'preview-platforms-bar--gradient' : ''} ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''}`}
+                  className={`preview-platforms-bar ${storeFilterGlowMode === 'neon' ? 'preview-platforms-bar--neon' : ''} ${storeBtnGradientEnabled ? 'preview-platforms-bar--gradient' : ''} preview-platforms-bar--target-${storeFilterGlowTarget} ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''} ${storeBtnDefaultBgOpacity === 0 ? 'preview-platforms-bar--zero-bg' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     setRightPanelMode('storeButtons');
@@ -3133,15 +3345,50 @@ export default function PersonalizationScreen() {
                     '--preview-store-glow-color-2': effectivePreviewStoreGlow2,
                     '--preview-store-opacity': storeBtnOpacity,
                     '--preview-store-glow-strength': `${storeBtnGlowStrength}px`,
-                    '--preview-store-glow-rgba-1': `rgba(${effectiveRgbPreviewStoreGlow1.r}, ${effectiveRgbPreviewStoreGlow1.g}, ${effectiveRgbPreviewStoreGlow1.b}, ${Math.min(1, 0.9 * storeBtnOpacity)})`,
-                    '--preview-store-glow-rgba-2': `rgba(${effectiveRgbPreviewStoreGlow2.r}, ${effectiveRgbPreviewStoreGlow2.g}, ${effectiveRgbPreviewStoreGlow2.b}, ${Math.min(1, 0.9 * storeBtnOpacity)})`,
-                    '--preview-store-default-bg-color': `rgba(${rgbStoreDefaultBg.r}, ${rgbStoreDefaultBg.g}, ${rgbStoreDefaultBg.b}, ${storeBtnDefaultBgOpacity})`,
-                    '--preview-store-default-border-color': `rgba(${rgbStoreDefaultBg.r}, ${rgbStoreDefaultBg.g}, ${rgbStoreDefaultBg.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5)})`
+                    '--preview-store-glow-rgba-1': `rgba(${effectiveRgbPreviewStoreGlow1.r}, ${effectiveRgbPreviewStoreGlow1.g}, ${effectiveRgbPreviewStoreGlow1.b}, ${Math.min(1, 0.5 * storeBtnOpacity)})`,
+                    '--preview-store-glow-rgba-2': `rgba(${effectiveRgbPreviewStoreGlow2.r}, ${effectiveRgbPreviewStoreGlow2.g}, ${effectiveRgbPreviewStoreGlow2.b}, ${Math.min(1, 0.5 * storeBtnOpacity)})`,
+                    '--preview-store-default-bg-color': storeBtnDefaultBgOpacity === 0
+                      ? 'transparent'
+                      : storeBtnDefaultBgGradientEnabled
+                        ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                        : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                    '--preview-store-default-border-color': storeBtnDefaultBgOpacity === 0
+                      ? 'transparent'
+                      : `rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                    '--preview-store-default-bg-hover': storeBtnDefaultBgOpacity === 0
+                      ? 'transparent'
+                      : storeBtnDefaultBgGradientEnabled
+                        ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 1.5 + 0.04)}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 1.5 + 0.04)}) 100%)`
+                        : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 1.5 + 0.04)})`,
+                    '--preview-store-default-bg-active': storeBtnDefaultBgOpacity === 0
+                      ? 'transparent'
+                      : storeBtnDefaultBgGradientEnabled
+                        ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 1.8 + 0.08)}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 1.8 + 0.08)}) 100%)`
+                        : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 1.8 + 0.08)})`,
+                    '--preview-store-default-border-hover': storeBtnDefaultBgOpacity === 0
+                      ? 'transparent'
+                      : `rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.8 + 0.08)})`,
+                    '--preview-store-default-border-active': storeBtnDefaultBgOpacity === 0
+                      ? 'transparent'
+                      : `rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 3 + 0.12)})`,
+                    '--store-btn-bg': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-hover-bg': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-border-color': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-hover-border-color': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-active-bg-start': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-active-bg-end': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-active-border-start': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-active-border-end': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-shadow-color': storeBtnDefaultBgOpacity === 0 ? 'transparent' : undefined,
+                    '--store-btn-backdrop-filter': storeBtnDefaultBgOpacity === 0 ? 'none' : undefined,
+                    '--preview-store-bg-r': rgbStoreDefaultBg1.r,
+                    '--preview-store-bg-g': rgbStoreDefaultBg1.g,
+                    '--preview-store-bg-b': rgbStoreDefaultBg1.b,
+                    '--preview-store-bg-opacity': storeBtnDefaultBgOpacity
                   } as React.CSSProperties}
                 >
                   {stores
                     .filter((s) => s.isVisible ?? true)
-                    .slice(0, 6)
                     .map((store, index) => {
                       const imageSource = store.icon
                         ? store.icon
@@ -3150,7 +3397,7 @@ export default function PersonalizationScreen() {
                       return (
                         <div 
                           key={store.id} 
-                          className={`preview-platform-btn ${isActive ? 'preview-platform-btn--active' : ''}`}
+                          className={`preview-platform-btn ${isActive ? 'preview-platform-btn--active' : ''} ${storeBtnDefaultBgOpacity === 0 ? 'preview-platform-btn--zero-bg' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             setActivePreviewStoreId(store.id);
@@ -3188,19 +3435,62 @@ export default function PersonalizationScreen() {
                   marginBottom: '16px'
                 }}
               >
-                {/* 1. TÍTULO (Esquerda) */}
-                <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                {/* 1. TÍTULO E TOTAL DE JOGOS (Esquerda) */}
+                <div 
+                  style={{ display: 'flex', alignItems: 'center', flexShrink: 0, cursor: 'pointer' }}
+                  onClick={() => setRightPanelMode('alphabet')}
+                  title="Personalizar Filtro Alfabético & Total de Jogos"
+                  className={`preview-games-total-group ${rightPanelMode === 'alphabet' ? 'preview-games-total-group--selected' : ''}`}
+                >
                   <h5 className="preview-title" style={{ margin: 0, padding: 0 }}>
                     Todos os Jogos
                     <span 
-                      className={`preview-title-count ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''}`}
-                      style={alphabetGlowMode === 'neon' ? {
-                        color: '#38d9e6',
-                        textShadow: '0 0 4px rgba(0,229,255,0.6)',
-                        boxShadow: '0 0 8px rgba(0,229,255,0.25)'
-                      } : {}}
+                      className={`numberOfgames ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''} ${alphabetDefaultBgOpacity === 0 ? 'numberOfgames--zero-bg' : ''}`}
+                      style={{
+                        margin: 0,
+                        lineHeight: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '36px',
+                        height: '36px',
+                        padding: '0 8px',
+                        boxSizing: 'border-box',
+                        borderRadius: `${alphabetBtnBorderRadius}px`,
+                        background: alphabetDefaultBgOpacity === 0 ? 'transparent' : (
+                          alphabetDefaultBgGradientEnabled
+                            ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
+                            : alphabetDefaultBgColor
+                        ),
+                        border: alphabetDefaultBgOpacity === 0 ? 'none' : (
+                          alphabetBtnBorderEnabled
+                            ? `1px solid ${alphabetDefaultBgColor}`
+                            : 'none'
+                        ),
+                        ...(alphabetGlowMode === 'neon' ? (
+                          alphabetBtnGradientEnabled ? {
+                            background: `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`,
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`,
+                            display: 'inline-block'
+                          } : {
+                            color: alphabetBtnBgColor,
+                            textShadow: `0 0 2px ${effectivePreviewAlphabetGlow1}, 0 0 ${alphabetGlowStrength}px ${effectiveAlphabetGlowRgba1}`
+                          }
+                        ) : {
+                          color: '#ffffff'
+                        }),
+                        backdropFilter: alphabetDefaultBgOpacity === 0 ? 'none' : 'blur(12px)',
+                        WebkitBackdropFilter: alphabetDefaultBgOpacity === 0 ? 'none' : 'blur(12px)',
+                        fontFamily: 'inherit',
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        transition: 'all 0.2s ease-in-out'
+                      }}
                     >
-                      6
+                      {totalRealGamesCount}
                     </span>
                   </h5>
                 </div>
@@ -3218,7 +3508,7 @@ export default function PersonalizationScreen() {
                   }}
                 >
                   <div
-                    className={`preview-alphabet-container ${alphabetGlowMode === 'neon' ? 'preview-alphabet--neon' : ''} ${alphabetBtnGradientEnabled ? 'preview-alphabet--gradient' : ''} ${rightPanelMode === 'alphabet' ? 'preview-alphabet-container--selected' : ''}`}
+                    className={`preview-alphabet-container ${alphabetGlowMode === 'neon' ? 'preview-alphabet--neon' : ''} ${alphabetBtnGradientEnabled ? 'preview-alphabet--gradient' : ''} ${rightPanelMode === 'alphabet' ? 'preview-alphabet-container--selected' : ''} ${alphabetDefaultBgOpacity === 0 ? 'preview-alphabet-container--zero-bg' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setRightPanelMode('alphabet');
@@ -3231,10 +3521,17 @@ export default function PersonalizationScreen() {
                       '--preview-alphabet-glow-color-2': effectivePreviewAlphabetGlow2,
                       '--preview-alphabet-opacity': alphabetOpacity,
                       '--preview-alphabet-glow-strength': `${alphabetGlowStrength}px`,
-                      '--preview-alphabet-glow-rgba-1': `rgba(${effectiveRgbPreviewAlphabetGlow1.r}, ${effectiveRgbPreviewAlphabetGlow1.g}, ${effectiveRgbPreviewAlphabetGlow1.b}, ${Math.min(1, 0.9 * alphabetOpacity)})`,
-                      '--preview-alphabet-glow-rgba-2': `rgba(${effectiveRgbPreviewAlphabetGlow2.r}, ${effectiveRgbPreviewAlphabetGlow2.g}, ${effectiveRgbPreviewAlphabetGlow2.b}, ${Math.min(1, 0.9 * alphabetOpacity)})`,
-                      '--preview-alphabet-default-bg-color': `rgba(${rgbAlphabetDefaultBg.r}, ${rgbAlphabetDefaultBg.g}, ${rgbAlphabetDefaultBg.b}, ${alphabetDefaultBgOpacity})`,
-                      '--preview-alphabet-default-border-color': `rgba(${rgbAlphabetDefaultBg.r}, ${rgbAlphabetDefaultBg.g}, ${rgbAlphabetDefaultBg.b}, ${Math.min(1, alphabetDefaultBgOpacity * 2.5)})`,
+                      '--preview-alphabet-glow-rgba-1': effectiveAlphabetGlowRgba1,
+                      '--preview-alphabet-glow-rgba-2': effectiveAlphabetGlowRgba2,
+                      '--preview-alphabet-default-bg-color': alphabetDefaultBgOpacity === 0
+                        ? 'transparent'
+                        : alphabetDefaultBgGradientEnabled
+                          ? `linear-gradient(135deg, rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${alphabetDefaultBgOpacity}) 0%, rgba(${rgbAlphabetDefault2.r}, ${rgbAlphabetDefault2.g}, ${rgbAlphabetDefault2.b}, ${alphabetDefaultBgOpacity}) 100%)`
+                          : `rgba(${rgbAlphabetDefault1.r}, ${rgbAlphabetDefault1.g}, ${rgbAlphabetDefault1.b}, ${alphabetDefaultBgOpacity})`,
+                      '--preview-alphabet-default-border-color': alphabetDefaultBgOpacity === 0
+                        ? 'transparent'
+                        : `rgba(${rgbAlphabetDefaultBgGlow.r}, ${rgbAlphabetDefaultBgGlow.g}, ${rgbAlphabetDefaultBgGlow.b}, ${Math.min(1, alphabetDefaultBgOpacity * 2.5 + 0.05)})`,
+                      '--preview-alphabet-border-radius': `${alphabetBtnBorderRadius}px`,
                       width: alphabetAlignment === 'fill' ? '100%' : 'auto',
                       justifyContent: alphabetAlignment === 'fill' ? 'space-between' : 'center'
                     } as React.CSSProperties}
@@ -3243,6 +3540,7 @@ export default function PersonalizationScreen() {
                       const isActive = char === activePreviewLetter
                       let btnClass = 'preview-alphabet-btn'
                       if (isActive) btnClass += ' preview-alphabet-btn--active'
+                      if (alphabetDefaultBgOpacity === 0) btnClass += ' preview-alphabet-btn--zero-bg'
                       return (
                         <div 
                           key={char} 
@@ -3766,10 +4064,10 @@ export default function PersonalizationScreen() {
                 >
                   <div style={styles.toggleTextGroup}>
                     <span style={styles.toggleTitle}>
-                      🔤 Filtro Alfabético & Contador
+                      🔤 Filtro Alfabético & Total de Jogos (Contador)
                     </span>
                     <span style={styles.toggleSub}>
-                      Personalize estilo padrão vs neon suave, cores, degradê e transparência das letras A-Z
+                      Personalize estilo padrão vs neon suave, cores, degradê e background das letras A-Z e do contador de total de jogos
                     </span>
                   </div>
                   <button
@@ -3797,7 +4095,7 @@ export default function PersonalizationScreen() {
                       e.currentTarget.style.background = '#00e5ff'
                     }}
                   >
-                    🔤 Personalizar Filtro Alfabético
+                    🔤 Personalizar Letras A-Z e Total de Jogos
                   </button>
                 </div>
 
@@ -4099,6 +4397,303 @@ export default function PersonalizationScreen() {
                   {/* Configurações Modo Neon */}
                   {storeFilterGlowMode === 'neon' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
+                      {/* Seletor de Alvo do Efeito Neon (Só no Logo / Só no Nome / Em Ambos) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Alvo do Efeito Neon
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                          Escolha onde o efeito visual será aplicado ao passar o mouse ou selecionar uma loja:
+                        </span>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                          {/* Card 1: Só no Logo */}
+                          <div
+                            onClick={() => handleStoreFilterGlowTargetChange('logo')}
+                            className={`target-effect-card ${storeFilterGlowTarget === 'logo' ? 'target-effect-card--selected' : ''}`}
+                            style={{
+                              cursor: 'pointer',
+                              background: storeFilterGlowTarget === 'logo' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                              border: storeFilterGlowTarget === 'logo' ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: '8px',
+                              padding: '10px 6px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '8px',
+                              transition: 'all 0.25s ease',
+                              boxShadow: storeFilterGlowTarget === 'logo' ? '0 0 12px rgba(0, 229, 255, 0.25)' : 'none',
+                              position: 'relative'
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '5px 8px',
+                                borderRadius: `${Math.min(storeBtnBorderRadius, 8)}px`,
+                                background: storeBtnDefaultBgOpacity === 0
+                                  ? 'transparent'
+                                  : storeBtnDefaultBgGradientEnabled
+                                    ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                                    : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                                border: storeBtnDefaultBgOpacity === 0
+                                  ? '1px solid transparent'
+                                  : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                                width: '100%',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              {targetExampleStore?.icon ? (
+                                <img
+                                  src={targetExampleStore.icon}
+                                  alt=""
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    objectFit: 'contain',
+                                    filter: storeBtnGradientEnabled
+                                      ? `drop-shadow(-1.5px -1.5px 0.5px ${storeBtnBgColor}) drop-shadow(1.5px 1.5px 0.5px ${storeBtnBgColor2}) drop-shadow(-3px -3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba1}) drop-shadow(3px 3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba2})`
+                                      : `drop-shadow(0 0 1px ${storeBtnBgColor}) drop-shadow(0 0 calc(${storeBtnGlowStrength}px * 0.5) ${effectivePreviewStoreGlow1}) drop-shadow(0 0 ${storeBtnGlowStrength}px ${effectiveStoreGlowRgba1})`,
+                                    transform: 'scale(1.1)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                />
+                              ) : (
+                                <SteamLogo
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    fill: '#ffffff',
+                                    filter: storeBtnGradientEnabled
+                                      ? `drop-shadow(-1.5px -1.5px 0.5px ${storeBtnBgColor}) drop-shadow(1.5px 1.5px 0.5px ${storeBtnBgColor2}) drop-shadow(-3px -3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba1}) drop-shadow(3px 3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba2})`
+                                      : `drop-shadow(0 0 1px ${storeBtnBgColor}) drop-shadow(0 0 calc(${storeBtnGlowStrength}px * 0.5) ${effectivePreviewStoreGlow1}) drop-shadow(0 0 ${storeBtnGlowStrength}px ${effectiveStoreGlowRgba1})`,
+                                    transform: 'scale(1.1)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                />
+                              )}
+                              <span style={{ fontSize: '11px', color: '#fff', fontWeight: 500 }}>
+                                {targetExampleStore?.name || 'Steam'}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: storeFilterGlowTarget === 'logo' ? 'bold' : 'normal',
+                                color: storeFilterGlowTarget === 'logo' ? '#00e5ff' : '#ddd'
+                              }}>
+                                Só no Logo
+                              </span>
+                              {storeFilterGlowTarget === 'logo' && (
+                                <span style={{ fontSize: '10px', color: '#00e5ff', fontWeight: 'bold' }}>✓</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Card 2: Só no Nome */}
+                          <div
+                            onClick={() => handleStoreFilterGlowTargetChange('text')}
+                            className={`target-effect-card ${storeFilterGlowTarget === 'text' ? 'target-effect-card--selected' : ''}`}
+                            style={{
+                              cursor: 'pointer',
+                              background: storeFilterGlowTarget === 'text' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                              border: storeFilterGlowTarget === 'text' ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: '8px',
+                              padding: '10px 6px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '8px',
+                              transition: 'all 0.25s ease',
+                              boxShadow: storeFilterGlowTarget === 'text' ? '0 0 12px rgba(0, 229, 255, 0.25)' : 'none',
+                              position: 'relative'
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '5px 8px',
+                                borderRadius: `${Math.min(storeBtnBorderRadius, 8)}px`,
+                                background: storeBtnDefaultBgOpacity === 0
+                                  ? 'transparent'
+                                  : storeBtnDefaultBgGradientEnabled
+                                    ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                                    : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                                border: storeBtnDefaultBgOpacity === 0
+                                  ? '1px solid transparent'
+                                  : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                                width: '100%',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              {targetExampleStore?.icon ? (
+                                <img
+                                  src={targetExampleStore.icon}
+                                  alt=""
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    objectFit: 'contain'
+                                  }}
+                                />
+                              ) : (
+                                <SteamLogo
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    fill: '#ffffff'
+                                  }}
+                                />
+                              )}
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  ...(storeBtnGradientEnabled
+                                    ? {
+                                        background: `linear-gradient(135deg, ${storeBtnBgColor} 0%, ${storeBtnBgColor2} 100%)`,
+                                        WebkitBackgroundClip: 'text',
+                                        backgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        filter: `drop-shadow(-1.5px -1.5px calc(${storeBtnGlowStrength}px * 0.35) ${effectiveStoreGlowRgba1}) drop-shadow(1.5px 1.5px calc(${storeBtnGlowStrength}px * 0.35) ${effectiveStoreGlowRgba2})`
+                                      }
+                                    : {
+                                        color: storeBtnBgColor,
+                                        textShadow: `0 0 1px ${effectivePreviewStoreGlow1}, 0 0 4px ${effectiveStoreGlowRgba1}`
+                                      })
+                                }}
+                              >
+                                {targetExampleStore?.name || 'Steam'}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: storeFilterGlowTarget === 'text' ? 'bold' : 'normal',
+                                color: storeFilterGlowTarget === 'text' ? '#00e5ff' : '#ddd'
+                              }}>
+                                Só no Nome
+                              </span>
+                              {storeFilterGlowTarget === 'text' && (
+                                <span style={{ fontSize: '10px', color: '#00e5ff', fontWeight: 'bold' }}>✓</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Card 3: Em Ambos */}
+                          <div
+                            onClick={() => handleStoreFilterGlowTargetChange('both')}
+                            className={`target-effect-card ${storeFilterGlowTarget === 'both' ? 'target-effect-card--selected' : ''}`}
+                            style={{
+                              cursor: 'pointer',
+                              background: storeFilterGlowTarget === 'both' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                              border: storeFilterGlowTarget === 'both' ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                              borderRadius: '8px',
+                              padding: '10px 6px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '8px',
+                              transition: 'all 0.25s ease',
+                              boxShadow: storeFilterGlowTarget === 'both' ? '0 0 12px rgba(0, 229, 255, 0.25)' : 'none',
+                              position: 'relative'
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                padding: '5px 8px',
+                                borderRadius: `${Math.min(storeBtnBorderRadius, 8)}px`,
+                                background: storeBtnDefaultBgOpacity === 0
+                                  ? 'transparent'
+                                  : storeBtnDefaultBgGradientEnabled
+                                    ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                                    : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                                border: storeBtnDefaultBgOpacity === 0
+                                  ? '1px solid transparent'
+                                  : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                                width: '100%',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              {targetExampleStore?.icon ? (
+                                <img
+                                  src={targetExampleStore.icon}
+                                  alt=""
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    objectFit: 'contain',
+                                    filter: storeBtnGradientEnabled
+                                      ? `drop-shadow(-1.5px -1.5px 0.5px ${storeBtnBgColor}) drop-shadow(1.5px 1.5px 0.5px ${storeBtnBgColor2}) drop-shadow(-3px -3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba1}) drop-shadow(3px 3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba2})`
+                                      : `drop-shadow(0 0 1px ${storeBtnBgColor}) drop-shadow(0 0 calc(${storeBtnGlowStrength}px * 0.5) ${effectivePreviewStoreGlow1}) drop-shadow(0 0 ${storeBtnGlowStrength}px ${effectiveStoreGlowRgba1})`,
+                                    transform: 'scale(1.1)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                />
+                              ) : (
+                                <SteamLogo
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    fill: '#ffffff',
+                                    filter: storeBtnGradientEnabled
+                                      ? `drop-shadow(-1.5px -1.5px 0.5px ${storeBtnBgColor}) drop-shadow(1.5px 1.5px 0.5px ${storeBtnBgColor2}) drop-shadow(-3px -3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba1}) drop-shadow(3px 3px calc(${storeBtnGlowStrength}px * 0.7) ${effectiveStoreGlowRgba2})`
+                                      : `drop-shadow(0 0 1px ${storeBtnBgColor}) drop-shadow(0 0 calc(${storeBtnGlowStrength}px * 0.5) ${effectivePreviewStoreGlow1}) drop-shadow(0 0 ${storeBtnGlowStrength}px ${effectiveStoreGlowRgba1})`,
+                                    transform: 'scale(1.1)',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                />
+                              )}
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  ...(storeBtnGradientEnabled
+                                    ? {
+                                        background: `linear-gradient(135deg, ${storeBtnBgColor} 0%, ${storeBtnBgColor2} 100%)`,
+                                        WebkitBackgroundClip: 'text',
+                                        backgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        filter: `drop-shadow(-1.5px -1.5px calc(${storeBtnGlowStrength}px * 0.35) ${effectiveStoreGlowRgba1}) drop-shadow(1.5px 1.5px calc(${storeBtnGlowStrength}px * 0.35) ${effectiveStoreGlowRgba2})`
+                                      }
+                                    : {
+                                        color: storeBtnBgColor,
+                                        textShadow: `0 0 1px ${effectivePreviewStoreGlow1}, 0 0 4px ${effectiveStoreGlowRgba1}`
+                                      })
+                                }}
+                              >
+                                {targetExampleStore?.name || 'Steam'}
+                              </span>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: storeFilterGlowTarget === 'both' ? 'bold' : 'normal',
+                                color: storeFilterGlowTarget === 'both' ? '#00e5ff' : '#ddd'
+                              }}>
+                                Em Ambos
+                              </span>
+                              {storeFilterGlowTarget === 'both' && (
+                                <span style={{ fontSize: '10px', color: '#00e5ff', fontWeight: 'bold' }}>✓</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                           {storeBtnGradientEnabled ? 'Cor do Efeito (Degradê)' : 'Cor do Efeito Neon'}
@@ -4194,7 +4789,17 @@ export default function PersonalizationScreen() {
                                 gap: '6px'
                               }}
                             >
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnGlowColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                              <div
+                                style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  background: storeBtnSyncGlowWithGradient
+                                    ? (storeBtnGradientEnabled ? `linear-gradient(135deg, ${storeBtnBgColor}, ${storeBtnBgColor2})` : storeBtnBgColor)
+                                    : storeBtnGlowColor,
+                                  border: '1px solid rgba(255,255,255,0.3)'
+                                }}
+                              />
                               Cor Glow
                             </button>
                           </div>
@@ -4286,7 +4891,9 @@ export default function PersonalizationScreen() {
                               width: '18px',
                               height: '18px',
                               borderRadius: '4px',
-                              backgroundColor: currentEditingStoreColor,
+                              background: (activeStoreColorTab === 'glow' && storeBtnSyncGlowWithGradient && storeBtnGradientEnabled)
+                                ? `linear-gradient(135deg, ${storeBtnBgColor}, ${storeBtnBgColor2})`
+                                : currentEditingStoreColor,
                               border: '1px solid rgba(255, 255, 255, 0.2)',
                               flexShrink: 0
                             }}
@@ -4294,30 +4901,6 @@ export default function PersonalizationScreen() {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                          <span style={{ color: '#fff' }}>Transparência do Efeito (Alpha)</span>
-                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnOpacity * 100)}%</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                          <input
-                            type="range"
-                            min="0.1"
-                            max="1"
-                            step="0.01"
-                            value={storeBtnOpacity}
-                            onChange={(e) => handleStoreOpacityChange(Number(e.target.value))}
-                            style={{
-                              width: '100%',
-                              accentColor: '#4CAF50',
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              height: '6px',
-                              borderRadius: '3px',
-                              cursor: 'pointer'
-                            }}
-                          />
-                        </div>
-                      </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
@@ -4346,110 +4929,318 @@ export default function PersonalizationScreen() {
                     </div>
                   )}
 
-                  {/* Configurações Modo Padrão */}
-                  {storeFilterGlowMode === 'disabled' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {/* Divisor antes do Background */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+
+                  {/* 3. BACKGROUND INDIVIDUAL DA LOJA */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          Cor do Fundo Padrão
+                          Background Individual da Loja
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                          Cor e transparência do fundo de cada cápsula de loja
                         </span>
                       </div>
 
-                      <SVBox hexColor={storeBtnDefaultBgColor} onChange={handleStoreDefaultBgColorChange} />
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <input
-                            type="range"
-                            min="0"
-                            max="360"
-                            value={storeDefaultBgHsl.h}
-                            onChange={(e) => {
-                              const hVal = Number(e.target.value)
-                              const rgbVal = hexToRgb(storeBtnDefaultBgColor)
-                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
-                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
-                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-                              handleStoreDefaultBgColorChange(hex)
-                            }}
-                            className="color-picker-range hue-picker-range"
-                            style={{
-                              '--thumb-color': storeBtnDefaultBgColor,
-                              '--thumb-border-color': storeBtnDefaultBgColor
-                            } as React.CSSProperties}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      {/* Botão para trocar a cor do background */}
+                      <button
+                        type="button"
+                        onClick={() => setShowStoreBgColorPicker(!showStoreBgColorPicker)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          background: showStoreBgColorPicker ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                          border: showStoreBgColorPicker ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.12)',
+                          color: showStoreBgColorPicker ? '#00e5ff' : '#fff',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: showStoreBgColorPicker ? '0 0 10px rgba(0, 229, 255, 0.2)' : 'none'
+                        }}
+                      >
                         <div
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            background: 'rgba(0, 0, 0, 0.3)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '6px',
-                            padding: '8px 12px',
-                            gap: '10px',
-                            width: '100%',
-                            boxSizing: 'border-box'
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '3px',
+                            background: storeBtnDefaultBgGradientEnabled
+                              ? `linear-gradient(135deg, ${storeBtnDefaultBgColor}, ${storeBtnDefaultBgColor2})`
+                              : storeBtnDefaultBgColor,
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            boxShadow: `0 0 6px ${storeBtnDefaultBgColor}55`
                           }}
-                        >
-                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
-                          <input
-                            type="text"
-                            value={storeBtnDefaultBgColor.replace('#', '')}
-                            onChange={(e) => handleStoreDefaultBgColorChange('#' + e.target.value)}
-                            placeholder="ffffff"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#fff',
-                              fontSize: '14px',
-                              outline: 'none',
-                              width: '100%',
-                              fontFamily: 'monospace'
-                            }}
-                          />
+                        />
+                        <span>🎨 Trocar Cor do Fundo</span>
+                        <span style={{ fontSize: '10px', opacity: 0.7, fontFamily: 'monospace' }}>
+                          {storeBtnDefaultBgGradientEnabled ? 'Degradê' : storeBtnDefaultBgColor.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: '8px', transform: showStoreBgColorPicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
+                          ▼
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Módulo Réplica da Imagem para o Background ao Clicar no Botão */}
+                    {showStoreBgColorPicker && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '14px',
+                          background: 'rgba(0, 0, 0, 0.35)',
+                          padding: '14px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.08)'
+                        }}
+                      >
+                        {/* Header com Toggle Degradê */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {storeBtnDefaultBgGradientEnabled ? 'COR DO BACKGROUND (DEGRADÊ)' : 'COR DO BACKGROUND'}
+                          </span>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                            <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={storeBtnDefaultBgGradientEnabled}
+                                onChange={(e) => handleStoreDefaultBgGradientToggle(e.target.checked)}
+                              />
+                              <span className="premium-slider"></span>
+                            </label>
+                          </label>
+                        </div>
+
+                        {/* Abas Degradê (Cor Inicial, Cor Final, Cor Glow) */}
+                        {storeBtnDefaultBgGradientEnabled && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                borderRadius: '6px',
+                                padding: '3px',
+                                gap: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.05)'
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setActiveStoreBgTab('color1')}
+                                style={{
+                                  flex: 1,
+                                  height: '28px',
+                                  background: activeStoreBgTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                  color: '#fff',
+                                  border: activeStoreBgTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnDefaultBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                                Cor Inicial
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveStoreBgTab('color2')}
+                                style={{
+                                  flex: 1,
+                                  height: '28px',
+                                  background: activeStoreBgTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                  color: '#fff',
+                                  border: activeStoreBgTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: storeBtnDefaultBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                                Cor Final
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveStoreBgTab('glow')}
+                                style={{
+                                  flex: 1,
+                                  height: '28px',
+                                  background: activeStoreBgTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                  color: '#fff',
+                                  border: activeStoreBgTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: storeBtnDefaultBgSyncGlow
+                                      ? (storeBtnDefaultBgGradientEnabled ? `linear-gradient(135deg, ${storeBtnDefaultBgColor}, ${storeBtnDefaultBgColor2})` : storeBtnDefaultBgColor)
+                                      : storeBtnDefaultBgGlowColor,
+                                    border: '1px solid rgba(255,255,255,0.3)'
+                                  }}
+                                />
+                                Cor Glow
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                              <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                              <button
+                                type="button"
+                                onClick={() => handleStoreDefaultBgSyncGlowToggle(!storeBtnDefaultBgSyncGlow)}
+                                style={{
+                                  background: storeBtnDefaultBgSyncGlow ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: storeBtnDefaultBgSyncGlow ? '#00e5ff' : '#fff',
+                                  border: storeBtnDefaultBgSyncGlow ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                  borderRadius: '4px',
+                                  padding: '4px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: storeBtnDefaultBgSyncGlow ? 'bold' : 'normal',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                {storeBtnDefaultBgSyncGlow ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SVBox */}
+                        <SVBox hexColor={currentEditingStoreBgColor} onChange={currentEditingStoreBgHandler} />
+
+                        {/* Hue Slider */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="range"
+                              min="0"
+                              max="360"
+                              value={currentEditingStoreBgHsl.h}
+                              onChange={(e) => {
+                                const hVal = Number(e.target.value)
+                                const rgbVal = hexToRgb(currentEditingStoreBgColor)
+                                const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                                const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                                const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                                currentEditingStoreBgHandler(hex)
+                              }}
+                              className="color-picker-range hue-picker-range"
+                              style={{
+                                '--thumb-color': currentEditingStoreBgColor,
+                                '--thumb-border-color': currentEditingStoreBgColor
+                              } as React.CSSProperties}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Hex input com thumbnail */}
+                        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                           <div
                             style={{
-                              width: '18px',
-                              height: '18px',
-                              borderRadius: '4px',
-                              backgroundColor: storeBtnDefaultBgColor,
-                              border: '1px solid rgba(255, 255, 255, 0.2)',
-                              flexShrink: 0
+                              display: 'flex',
+                              alignItems: 'center',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              gap: '10px',
+                              width: '100%',
+                              boxSizing: 'border-box'
                             }}
-                          />
+                          >
+                            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                            <input
+                              type="text"
+                              value={currentEditingStoreBgColor.replace('#', '')}
+                              onChange={(e) => currentEditingStoreBgHandler('#' + e.target.value)}
+                              placeholder="ffffff"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#fff',
+                                fontSize: '14px',
+                                outline: 'none',
+                                width: '100%',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <div
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '4px',
+                                background: (activeStoreBgTab === 'glow' && storeBtnDefaultBgSyncGlow && storeBtnDefaultBgGradientEnabled)
+                                  ? `linear-gradient(135deg, ${storeBtnDefaultBgColor}, ${storeBtnDefaultBgColor2})`
+                                  : currentEditingStoreBgColor,
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                flexShrink: 0
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
+                    )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
-                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(storeBtnDefaultBgOpacity * 100)}%</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={storeBtnDefaultBgOpacity}
-                            onChange={(e) => handleStoreDefaultBgOpacityChange(Number(e.target.value))}
-                            style={{
-                              width: '100%',
-                              accentColor: '#4CAF50',
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              height: '6px',
-                              borderRadius: '3px',
-                              cursor: 'pointer'
-                            }}
-                          />
-                        </div>
+                    {/* Slider de Transparência do Background */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ color: '#fff' }}>Transparência do Background</span>
+                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                          {Math.round(storeBtnDefaultBgOpacity * 100)}%{storeBtnDefaultBgOpacity === 0 ? ' (0% - Totalmente Transparente)' : ''}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={storeBtnDefaultBgOpacity}
+                          onChange={(e) => handleStoreDefaultBgOpacityChange(Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            accentColor: '#4CAF50',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            height: '6px',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                          }}
+                        />
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Arredondamento das Bordas comum a ambos os modos */}
                   <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
@@ -4482,9 +5273,9 @@ export default function PersonalizationScreen() {
             </>
           ) : rightPanelMode === 'alphabet' ? (
             <>
-              {/* PAINEL 2: FILTRO ALFABÉTICO & CONTADOR */}
+              {/* PAINEL 2: FILTRO ALFABÉTICO & TOTAL DE JOGOS (CONTADOR) */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <span style={styles.sectionTitle}>FILTRO ALFABÉTICO & CONTADOR</span>
+                <span style={styles.sectionTitle}>FILTRO ALFABÉTICO & TOTAL DE JOGOS</span>
                 <button
                   onClick={() => setRightPanelMode('default')}
                   style={{
@@ -4511,6 +5302,122 @@ export default function PersonalizationScreen() {
                 >
                   ← Voltar
                 </button>
+              </div>
+
+              {/* CARD DE DEMONSTRAÇÃO EM TEMPO REAL: TOTAL DE JOGOS & LETRAS A-Z */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '16px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Preview:
+                  </span>
+                  <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
+                    Todos os Jogos
+                  </span>
+                  <span
+                    className={`numberOfgames ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''} ${alphabetDefaultBgOpacity === 0 ? 'numberOfgames--zero-bg' : ''}`}
+                    style={{
+                      margin: 0,
+                      lineHeight: 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '36px',
+                      height: '36px',
+                      padding: '0 8px',
+                      boxSizing: 'border-box',
+                      borderRadius: `${alphabetBtnBorderRadius}px`,
+                      background: alphabetDefaultBgOpacity === 0 ? 'transparent' : (
+                        alphabetDefaultBgGradientEnabled
+                          ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
+                          : alphabetDefaultBgColor
+                      ),
+                      border: alphabetDefaultBgOpacity === 0 ? 'none' : (
+                        alphabetBtnBorderEnabled ? `1px solid ${alphabetDefaultBgColor}` : 'none'
+                      ),
+                      ...(alphabetGlowMode === 'neon' ? (
+                        alphabetBtnGradientEnabled ? {
+                          background: `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`,
+                          WebkitBackgroundClip: 'text',
+                          backgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`,
+                          display: 'inline-block'
+                        } : {
+                          color: alphabetBtnBgColor,
+                          textShadow: `0 0 2px ${effectivePreviewAlphabetGlow1}, 0 0 ${alphabetGlowStrength}px ${effectiveAlphabetGlowRgba1}`
+                        }
+                      ) : {
+                        color: '#ffffff'
+                      }),
+                      backdropFilter: alphabetDefaultBgOpacity === 0 ? 'none' : 'blur(12px)',
+                      WebkitBackdropFilter: alphabetDefaultBgOpacity === 0 ? 'none' : 'blur(12px)',
+                      fontFamily: 'inherit',
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    {totalRealGamesCount}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Letra:</span>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: `${alphabetBtnBorderRadius}px`,
+                      background: alphabetDefaultBgOpacity === 0 ? 'transparent' : (
+                        alphabetDefaultBgGradientEnabled
+                          ? `linear-gradient(135deg, ${alphabetDefaultBgColor} 0%, ${alphabetDefaultBgColor2} 100%)`
+                          : alphabetDefaultBgColor
+                      ),
+                      border: alphabetDefaultBgOpacity === 0 ? 'none' : (
+                        alphabetBtnBorderEnabled ? `1px solid ${alphabetDefaultBgColor}` : 'none'
+                      ),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 600,
+                      fontSize: '15px',
+                      backdropFilter: alphabetDefaultBgOpacity === 0 ? 'none' : 'blur(12px)',
+                      WebkitBackdropFilter: alphabetDefaultBgOpacity === 0 ? 'none' : 'blur(12px)',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    <span
+                      style={alphabetGlowMode === 'neon' ? (
+                        alphabetBtnGradientEnabled ? {
+                          background: `linear-gradient(135deg, ${alphabetBtnBgColor} 0%, ${alphabetBtnBgColor2} 100%)`,
+                          WebkitBackgroundClip: 'text',
+                          backgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${effectiveAlphabetGlowRgba2})`,
+                          display: 'inline-block'
+                        } : {
+                          color: alphabetBtnBgColor,
+                          textShadow: `0 0 2px ${effectivePreviewAlphabetGlow1}, 0 0 ${alphabetGlowStrength}px ${effectiveAlphabetGlowRgba1}`
+                        }
+                      ) : {
+                        color: '#ffffff'
+                      }}
+                    >
+                      A
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div
@@ -4768,7 +5675,9 @@ export default function PersonalizationScreen() {
                               width: '18px',
                               height: '18px',
                               borderRadius: '4px',
-                              backgroundColor: currentEditingAlphabetColor,
+                              background: (activeAlphabetColorTab === 'glow' && alphabetSyncGlowWithGradient && alphabetBtnGradientEnabled)
+                                ? `linear-gradient(135deg, ${alphabetBtnBgColor}, ${alphabetBtnBgColor2})`
+                                : currentEditingAlphabetColor,
                               border: '1px solid rgba(255, 255, 255, 0.2)',
                               flexShrink: 0
                             }}
@@ -4828,110 +5737,345 @@ export default function PersonalizationScreen() {
                     </div>
                   )}
 
-                  {/* Configurações Modo Padrão */}
-                  {alphabetGlowMode === 'disabled' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {/* Divisor antes do Background */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+
+                  {/* 3. BACKGROUND INDIVIDUAL DO FILTRO ALFABÉTICO & CONTADOR */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          Cor do Fundo Padrão
+                          Background Individual das Letras / Botões
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                          Cor e transparência do fundo de cada botão do filtro alfabético
                         </span>
                       </div>
 
-                      <SVBox hexColor={alphabetDefaultBgColor} onChange={handleAlphabetDefaultBgColorChange} />
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <input
-                            type="range"
-                            min="0"
-                            max="360"
-                            value={alphabetDefaultBgHsl.h}
-                            onChange={(e) => {
-                              const hVal = Number(e.target.value)
-                              const rgbVal = hexToRgb(alphabetDefaultBgColor)
-                              const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
-                              const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
-                              const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
-                              handleAlphabetDefaultBgColorChange(hex)
-                            }}
-                            className="color-picker-range hue-picker-range"
-                            style={{
-                              '--thumb-color': alphabetDefaultBgColor,
-                              '--thumb-border-color': alphabetDefaultBgColor
-                            } as React.CSSProperties}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      {/* Botão para trocar a cor do background */}
+                      <button
+                        type="button"
+                        onClick={() => setShowAlphabetBgColorPicker(!showAlphabetBgColorPicker)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          background: showAlphabetBgColorPicker ? 'rgba(0, 229, 255, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                          border: showAlphabetBgColorPicker ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.12)',
+                          color: showAlphabetBgColorPicker ? '#00e5ff' : '#fff',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: showAlphabetBgColorPicker ? '0 0 10px rgba(0, 229, 255, 0.2)' : 'none'
+                        }}
+                      >
                         <div
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            background: 'rgba(0, 0, 0, 0.3)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '6px',
-                            padding: '8px 12px',
-                            gap: '10px',
-                            width: '100%',
-                            boxSizing: 'border-box'
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '3px',
+                            background: alphabetDefaultBgGradientEnabled
+                              ? `linear-gradient(135deg, ${alphabetDefaultBgColor}, ${alphabetDefaultBgColor2})`
+                              : alphabetDefaultBgColor,
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            boxShadow: `0 0 6px ${alphabetDefaultBgColor}55`
                           }}
-                        >
-                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
-                          <input
-                            type="text"
-                            value={alphabetDefaultBgColor.replace('#', '')}
-                            onChange={(e) => handleAlphabetDefaultBgColorChange('#' + e.target.value)}
-                            placeholder="ffffff"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#fff',
-                              fontSize: '14px',
-                              outline: 'none',
-                              width: '100%',
-                              fontFamily: 'monospace'
-                            }}
-                          />
+                        />
+                        <span>🎨 Trocar Cor do Fundo</span>
+                        <span style={{ fontSize: '10px', opacity: 0.7, fontFamily: 'monospace' }}>
+                          {alphabetDefaultBgGradientEnabled ? 'Degradê' : alphabetDefaultBgColor.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: '8px', transform: showAlphabetBgColorPicker ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
+                          ▼
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Módulo Réplica para o Background ao Clicar no Botão */}
+                    {showAlphabetBgColorPicker && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '14px',
+                          background: 'rgba(0, 0, 0, 0.35)',
+                          padding: '14px',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255, 255, 255, 0.08)'
+                        }}
+                      >
+                        {/* Header com Toggle Degradê */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {alphabetDefaultBgGradientEnabled ? 'COR DO BACKGROUND (DEGRADÊ)' : 'COR DO BACKGROUND'}
+                          </span>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Degradê</span>
+                            <label className="premium-switch" style={{ cursor: 'pointer', margin: 0 }}>
+                              <input
+                                type="checkbox"
+                                checked={alphabetDefaultBgGradientEnabled}
+                                onChange={(e) => handleAlphabetDefaultBgGradientToggle(e.target.checked)}
+                              />
+                              <span className="premium-slider"></span>
+                            </label>
+                          </label>
+                        </div>
+
+                        {/* Abas Degradê (Cor Inicial, Cor Final, Cor Glow) */}
+                        {alphabetDefaultBgGradientEnabled && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                borderRadius: '6px',
+                                padding: '3px',
+                                gap: '4px',
+                                border: '1px solid rgba(255, 255, 255, 0.05)'
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setActiveAlphabetBgTab('color1')}
+                                style={{
+                                  flex: 1,
+                                  height: '28px',
+                                  background: activeAlphabetBgTab === 'color1' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                  color: '#fff',
+                                  border: activeAlphabetBgTab === 'color1' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetDefaultBgColor, border: '1px solid rgba(255,255,255,0.3)' }} />
+                                Cor Inicial
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveAlphabetBgTab('color2')}
+                                style={{
+                                  flex: 1,
+                                  height: '28px',
+                                  background: activeAlphabetBgTab === 'color2' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                  color: '#fff',
+                                  border: activeAlphabetBgTab === 'color2' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: alphabetDefaultBgColor2, border: '1px solid rgba(255,255,255,0.3)' }} />
+                                Cor Final
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setActiveAlphabetBgTab('glow')}
+                                style={{
+                                  flex: 1,
+                                  height: '28px',
+                                  background: activeAlphabetBgTab === 'glow' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                                  color: '#fff',
+                                  border: activeAlphabetBgTab === 'glow' ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid transparent',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px'
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    background: alphabetDefaultBgSyncGlow
+                                      ? (alphabetDefaultBgGradientEnabled ? `linear-gradient(135deg, ${alphabetDefaultBgColor}, ${alphabetDefaultBgColor2})` : alphabetDefaultBgColor)
+                                      : alphabetDefaultBgGlowColor,
+                                    border: '1px solid rgba(255,255,255,0.3)'
+                                  }}
+                                />
+                                Cor Glow
+                              </button>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px' }}>
+                              <span style={{ fontSize: '11px', color: '#8a9bb0' }}>Sincronizar Glow com Degradê</span>
+                              <button
+                                type="button"
+                                onClick={() => handleAlphabetDefaultBgSyncGlowToggle(!alphabetDefaultBgSyncGlow)}
+                                style={{
+                                  background: alphabetDefaultBgSyncGlow ? 'rgba(0, 229, 255, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: alphabetDefaultBgSyncGlow ? '#00e5ff' : '#fff',
+                                  border: alphabetDefaultBgSyncGlow ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.1)',
+                                  borderRadius: '4px',
+                                  padding: '4px 10px',
+                                  fontSize: '11px',
+                                  fontWeight: alphabetDefaultBgSyncGlow ? 'bold' : 'normal',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '5px'
+                                }}
+                              >
+                                {alphabetDefaultBgSyncGlow ? '✓ Glow Sincronizado' : '🔄 Sincronizar'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SVBox */}
+                        <SVBox hexColor={currentEditingAlphabetBgColor} onChange={currentEditingAlphabetBgHandler} />
+
+                        {/* Hue Slider */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="range"
+                              min="0"
+                              max="360"
+                              value={currentEditingAlphabetBgHsl.h}
+                              onChange={(e) => {
+                                const hVal = Number(e.target.value)
+                                const rgbVal = hexToRgb(currentEditingAlphabetBgColor)
+                                const hsvVal = rgbToHsv(rgbVal.r, rgbVal.g, rgbVal.b)
+                                const newRgb = hsvToRgb(hVal, hsvVal.s, hsvVal.v)
+                                const hex = rgbToHex(newRgb.r, newRgb.g, newRgb.b)
+                                currentEditingAlphabetBgHandler(hex)
+                              }}
+                              className="color-picker-range hue-picker-range"
+                              style={{
+                                '--thumb-color': currentEditingAlphabetBgColor,
+                                '--thumb-border-color': currentEditingAlphabetBgColor
+                              } as React.CSSProperties}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Hex input com thumbnail */}
+                        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                           <div
                             style={{
-                              width: '18px',
-                              height: '18px',
-                              borderRadius: '4px',
-                              backgroundColor: alphabetDefaultBgColor,
-                              border: '1px solid rgba(255, 255, 255, 0.2)',
-                              flexShrink: 0
+                              display: 'flex',
+                              alignItems: 'center',
+                              background: 'rgba(0, 0, 0, 0.3)',
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              borderRadius: '6px',
+                              padding: '8px 12px',
+                              gap: '10px',
+                              width: '100%',
+                              boxSizing: 'border-box'
                             }}
-                          />
+                          >
+                            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontFamily: 'monospace' }}>#</span>
+                            <input
+                              type="text"
+                              value={currentEditingAlphabetBgColor.replace('#', '')}
+                              onChange={(e) => currentEditingAlphabetBgHandler('#' + e.target.value)}
+                              placeholder="ffffff"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#fff',
+                                fontSize: '14px',
+                                outline: 'none',
+                                width: '100%',
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <div
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '4px',
+                                background: (activeAlphabetBgTab === 'glow' && alphabetDefaultBgSyncGlow && alphabetDefaultBgGradientEnabled)
+                                  ? `linear-gradient(135deg, ${alphabetDefaultBgColor}, ${alphabetDefaultBgColor2})`
+                                  : currentEditingAlphabetBgColor,
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                flexShrink: 0
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
+                    )}
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                          <span style={{ color: '#fff' }}>Transparência do Fundo (Alpha)</span>
-                          <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{Math.round(alphabetDefaultBgOpacity * 100)}%</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={alphabetDefaultBgOpacity}
-                            onChange={(e) => handleAlphabetDefaultBgOpacityChange(Number(e.target.value))}
-                            style={{
-                              width: '100%',
-                              accentColor: '#4CAF50',
-                              background: 'rgba(255, 255, 255, 0.1)',
-                              height: '6px',
-                              borderRadius: '3px',
-                              cursor: 'pointer'
-                            }}
-                          />
-                        </div>
+                    {/* Slider de Transparência do Background */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ color: '#fff' }}>Transparência do Background</span>
+                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                          {Math.round(alphabetDefaultBgOpacity * 100)}%{alphabetDefaultBgOpacity === 0 ? ' (0% - Totalmente Transparente)' : ''}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={alphabetDefaultBgOpacity}
+                          onChange={(e) => handleAlphabetDefaultBgOpacityChange(Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            accentColor: '#4CAF50',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            height: '6px',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                          }}
+                        />
                       </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Arredondamento das Bordas comum a ambos os modos */}
+                  <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: '#fff' }}>Arredondamento das Bordas</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{alphabetBtnBorderRadius}px</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', height: '20px', paddingTop: '10px', paddingBottom: '10px' }}>
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        step="1"
+                        value={alphabetBtnBorderRadius}
+                        onChange={(e) => handleAlphabetBorderRadiusChange(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          accentColor: '#4CAF50',
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          height: '6px',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </>

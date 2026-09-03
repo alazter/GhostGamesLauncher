@@ -16,23 +16,23 @@ const AlphabetFilter: React.FC = () => {
   })
 
   const [btnBgOpacity, setBtnBgOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_opacity')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')
     return saved !== null ? Number(saved) : 0.05
   })
 
   const [btnBgColor, setBtnBgColor] = useState<string>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_color')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_color') || localStorage.getItem('heroic_alphabet_color')
     return saved !== null ? saved : '#ffffff'
   })
 
   const [btnBgColor2, setBtnBgColor2] = useState<string>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_bg_color_2')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_color_2') || localStorage.getItem('heroic_alphabet_btn_bg_color_2')
     return saved !== null ? saved : '#00e5ff'
   })
 
   const [btnGradientEnabled, setBtnGradientEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
-    return saved !== null ? (JSON.parse(saved) as boolean) : false
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient') ?? localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
+    return saved !== null ? saved === 'true' : false
   })
 
   const [btnBorderEnabled, setBtnBorderEnabled] = useState<boolean>(() => {
@@ -60,21 +60,22 @@ const AlphabetFilter: React.FC = () => {
   })
 
   useEffect(() => {
+    ;(window as any).applyGlobalPersonalizationStyles?.()
     const handleSettingsChange = () => {
       const savedBg = localStorage.getItem('heroic_alphabet_bg_opacity')
       setBgOpacity(savedBg !== null ? Number(savedBg) : 0.08)
 
-      const savedBtn = localStorage.getItem('heroic_alphabet_btn_opacity')
+      const savedBtn = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')
       setBtnBgOpacity(savedBtn !== null ? Number(savedBtn) : 0.05)
 
-      const savedColor = localStorage.getItem('heroic_alphabet_color')
+      const savedColor = localStorage.getItem('heroic_alphabet_btn_default_bg_color') || localStorage.getItem('heroic_alphabet_color')
       setBtnBgColor(savedColor !== null ? savedColor : '#ffffff')
 
-      const savedColor2 = localStorage.getItem('heroic_alphabet_btn_bg_color_2')
+      const savedColor2 = localStorage.getItem('heroic_alphabet_btn_default_bg_color_2') || localStorage.getItem('heroic_alphabet_btn_bg_color_2')
       setBtnBgColor2(savedColor2 !== null ? savedColor2 : '#00e5ff')
 
-      const savedGrad = localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
-      setBtnGradientEnabled(savedGrad !== null ? (JSON.parse(savedGrad) as boolean) : false)
+      const savedGrad = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient') ?? localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
+      setBtnGradientEnabled(savedGrad !== null ? savedGrad === 'true' : false)
 
       const savedBrd = localStorage.getItem('heroic_alphabet_btn_border_enabled')
       setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : false)
@@ -94,10 +95,15 @@ const AlphabetFilter: React.FC = () => {
     return () => window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
   }, [])
 
+  const isZeroBg = btnBgOpacity <= 0.001 || (localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')) === '0'
+
   const getButtonClassName = (value: string) => {
     let className = 'alphabet-filter-button'
     if (value === currentFilter) {
       className += ' alphabet-filter-button--active'
+    }
+    if (isZeroBg) {
+      className += ' alphabet-filter-button--zero-bg'
     }
     return className
   }
@@ -141,7 +147,7 @@ const AlphabetFilter: React.FC = () => {
 
   return (
     <div
-      className={`alphabet-filter-container ${alphabetGlowMode === 'neon' ? 'alphabet-filter--neon' : ''}`}
+      className={`alphabet-filter-container ${alphabetGlowMode === 'neon' ? 'alphabet-filter--neon' : ''} ${isZeroBg ? 'alphabet-filter-container--zero-bg' : ''}`}
       style={{
         '--alphabet-filter-container-bg-opacity': bgOpacity,
         '--alphabet-filter-base-r': r,
@@ -151,44 +157,58 @@ const AlphabetFilter: React.FC = () => {
         
         // Custom button styles:
         '--alphabet-btn-border-radius': `${btnBorderRadius}px`,
-        '--alphabet-btn-border-width': btnBorderEnabled ? '1px' : '0px',
-        '--alphabet-btn-bg': btnGradientEnabled
-          ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnBgOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnBgOpacity}) 100%)`
-          : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnBgOpacity})`,
-        '--alphabet-btn-border-color': btnBorderEnabled
-          ? `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, btnBgOpacity * 2.5)})`
-          : 'transparent',
-        '--alphabet-btn-hover-bg': btnGradientEnabled
-          ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnHoverOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnHoverOpacity}) 100%)`
-          : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnHoverOpacity})`,
-        '--alphabet-btn-hover-border-color': btnBorderEnabled
-          ? `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, btnHoverOpacity * 2.5)})`
-          : 'transparent',
-        '--alphabet-btn-active-bg-start': `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnActiveOpacity})`,
-        '--alphabet-btn-active-bg-end': btnGradientEnabled
-          ? `rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnActiveOpacity})`
-          : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnActiveOpacity})`,
-        '--alphabet-btn-active-border-start': `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(0.85, btnActiveOpacity * 2)})`,
-        '--alphabet-btn-active-border-end': btnGradientEnabled
-          ? `rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${Math.min(0.85, btnActiveOpacity * 2)})`
-          : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(0.85, btnActiveOpacity * 2)})`,
-        '--alphabet-btn-shadow-color': `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, 0.2)`,
-        '--alphabet-btn-backdrop-filter': btnBgOpacity === 0 ? 'none' : 'blur(12px)',
-        '--alphabet-btn-hover-backdrop-filter': btnHoverOpacity === 0 ? 'none' : 'blur(12px)',
+        '--alphabet-btn-border-width': isZeroBg ? '0px' : (btnBorderEnabled ? '1px' : '0px'),
+        '--alphabet-btn-bg': isZeroBg
+          ? 'transparent'
+          : btnGradientEnabled
+            ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnBgOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnBgOpacity}) 100%)`
+            : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnBgOpacity})`,
+        '--alphabet-btn-border-color': isZeroBg
+          ? 'transparent'
+          : btnBorderEnabled
+            ? `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, btnBgOpacity * 2.5)})`
+            : 'transparent',
+        '--alphabet-btn-hover-bg': isZeroBg
+          ? 'transparent'
+          : btnGradientEnabled
+            ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnHoverOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnHoverOpacity}) 100%)`
+            : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnHoverOpacity})`,
+        '--alphabet-btn-hover-border-color': isZeroBg
+          ? 'transparent'
+          : btnBorderEnabled
+            ? `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, btnHoverOpacity * 2.5)})`
+            : 'transparent',
+        '--alphabet-btn-active-bg-start': isZeroBg ? 'transparent' : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnActiveOpacity})`,
+        '--alphabet-btn-active-bg-end': isZeroBg
+          ? 'transparent'
+          : btnGradientEnabled
+            ? `rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnActiveOpacity})`
+            : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnActiveOpacity})`,
+        '--alphabet-btn-active-border-start': isZeroBg ? 'transparent' : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(0.85, btnActiveOpacity * 2)})`,
+        '--alphabet-btn-active-border-end': isZeroBg
+          ? 'transparent'
+          : btnGradientEnabled
+            ? `rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${Math.min(0.85, btnActiveOpacity * 2)})`
+            : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(0.85, btnActiveOpacity * 2)})`,
+        '--alphabet-btn-shadow-color': isZeroBg ? 'transparent' : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, 0.2)`,
+        '--alphabet-btn-backdrop-filter': (isZeroBg || btnBgOpacity === 0) ? 'none' : 'blur(12px)',
+        '--alphabet-btn-hover-backdrop-filter': (isZeroBg || btnHoverOpacity === 0) ? 'none' : 'blur(12px)',
         
         // Text color mappings:
         '--alphabet-filter-button-text-color': btnTextColor,
         '--alphabet-filter-button-disabled-text-color': btnDisabledTextColor,
         '--alphabet-filter-button-hover-text-color': btnHoverTextColor,
-        '--alphabet-filter-active-btn-bg': activeBtnBg
+        '--alphabet-filter-active-btn-bg': isZeroBg ? 'transparent' : activeBtnBg
       } as React.CSSProperties}
     >
       {CHARS.map((char) => {
         return (
           <button
             key={char}
+            type="button"
             onClick={() => handleClick(char)}
             className={getButtonClassName(char)}
+            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
           >
             <span style={{ position: 'relative', zIndex: 2 }}>{char}</span>
           </button>

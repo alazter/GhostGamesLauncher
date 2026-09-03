@@ -7,6 +7,11 @@
   margin: 0 0 var(--space-md);
 }
 
+.gameList > div:hover,
+.gameList > div:focus-within {
+  z-index: 10;
+}
+
 .gameList.firstLane {
   padding: 0 var(--space-md-fixed) var(--space-md-fixed);
 }

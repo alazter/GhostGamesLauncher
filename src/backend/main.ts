@@ -40,6 +40,7 @@ import gogPresence from './storeManagers/gog/presence'
 import { NileUser } from './storeManagers/nile/user'
 import { ZoomUser } from './storeManagers/zoom/user'
 import { SteamUser } from './storeManagers/steam/user'
+import { syncAutoStartSettings, getPermanentAppExecutable } from './autostart'
 
 if (process.platform === 'win32') {
   app.name = 'Ghost Games Launcher'
@@ -479,8 +480,7 @@ if (!gotTheLock) {
       app.setAppUserModelId('com.ghostgameslauncher.ghost')
 
       try {
-        const currentExePath =
-          process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
+        const currentExePath = getPermanentAppExecutable()
         const startMenuFolder = path.join(
           app.getPath('appData'),
           'Microsoft',
@@ -561,31 +561,10 @@ if (!gotTheLock) {
 
     const settings = GlobalConfig.get().getSettings()
 
-    if (!app.isPackaged) {
-      // In development mode, ensure electron.exe is NOT registered in Windows startup
-      try {
-        app.setLoginItemSettings({
-          openAtLogin: false,
-          path: app.getPath('exe')
-        })
-        if (isWindows) {
-          const cp = require('child_process')
-          cp.exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "com.ghostgameslauncher.ghost" /f', () => {})
-          cp.exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "Electron" /f', () => {})
-        }
-      } catch (err) {}
-    } else if (isWindows || isMac) {
-      try {
-        app.setLoginItemSettings({
-          openAtLogin: settings.startAtLogin === true,
-          openAsHidden: settings.startInTray === true,
-          path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe'),
-          args: settings.startInTray ? ['--hidden'] : []
-        })
-      } catch (err) {
-        logError(`Failed to initialize login item settings: ${err}`, LogPrefix.Backend)
-      }
-    }
+    syncAutoStartSettings(
+      settings.startAtLogin === true,
+      settings.startInTray === true
+    )
 
     if (settings && settings.analyticsOptIn === true) {
       startPlausible()
@@ -1016,7 +995,7 @@ addHandler('checkTodayTrackedReleases', async (): Promise<{ count: number; title
 
 addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
   const { downloadFile } = await import('./utils')
-  const exePath = process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe')
+  const exePath = getPermanentAppExecutable()
   const currentExeName = path.basename(exePath).toLowerCase()
   const isPortable = currentExeName.includes('portable')
 
@@ -1437,25 +1416,11 @@ addListener('setSetting', (event, { appName, key, value }) => {
   if (appName === 'default') {
     GlobalConfig.get().setSetting(key, value)
     if (key === 'startAtLogin' || key === 'startInTray') {
-      try {
-        if (!app.isPackaged) {
-          app.setLoginItemSettings({
-            openAtLogin: false,
-            path: app.getPath('exe')
-          })
-        } else {
-          const curSettings = GlobalConfig.get().getSettings()
-          app.setLoginItemSettings({
-            openAtLogin: curSettings.startAtLogin === true,
-            openAsHidden: curSettings.startInTray === true,
-            path: process.env.PORTABLE_EXECUTABLE_FILE || app.getPath('exe'),
-            args: curSettings.startInTray ? ['--hidden'] : []
-          })
-          logInfo(`Updated login item settings (startAtLogin: ${curSettings.startAtLogin}, startInTray: ${curSettings.startInTray})`, LogPrefix.Backend)
-        }
-      } catch (err) {
-        logError(`Failed to set login item settings: ${err}`, LogPrefix.Backend)
-      }
+      const curSettings = GlobalConfig.get().getSettings()
+      syncAutoStartSettings(
+        curSettings.startAtLogin === true,
+        curSettings.startInTray === true
+      )
     }
   } else {
     GameConfig.get(appName).setSetting(key, value)

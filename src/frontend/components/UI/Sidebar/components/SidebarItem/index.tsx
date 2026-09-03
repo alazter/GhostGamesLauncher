@@ -12,6 +12,7 @@ interface SidebarItemProps {
   url?: string
   state?: any
   icon?: FontAwesomeIconProps['icon']
+  customIcon?: React.ReactNode
   isActiveFallback?: boolean
   onClick?: MouseEventHandler
   onMouseEnter?: React.MouseEventHandler
@@ -32,6 +33,7 @@ interface SidebarItemProps {
 
 export default function SidebarItem({
   icon,
+  customIcon,
   label,
   url = '',
   state,
@@ -54,9 +56,13 @@ export default function SidebarItem({
 }: SidebarItemProps) {
   const itemContent = (
     <>
-      {icon && (
+      {(icon || customIcon) && (
         <div className="Sidebar__itemIcon">
-          <FontAwesomeIcon icon={icon} title={label} />
+          {customIcon ? (
+            customIcon
+          ) : icon ? (
+            <FontAwesomeIcon icon={icon} title={label} />
+          ) : null}
           {badgeText !== undefined ? (
             <span
               className={classNames('Sidebar__badge', {

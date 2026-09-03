@@ -7,10 +7,6 @@
   gap: 8px !important;
   padding: 4px 6px !important;
   border-radius: var(--store-btn-border-radius, 12px) !important;
-  background: var(--store-btn-bg, rgba(255, 255, 255, 0.03)) padding-box, transparent border-box !important;
-  border: 1px solid var(--store-btn-border-color, rgba(255, 255, 255, 0.08)) !important;
-  background-clip: padding-box, border-box !important;
-  background-origin: padding-box, border-box !important;
   color: #fff !important;
   font-size: 18px !important;
   font-weight: 400 !important;
@@ -23,11 +19,16 @@
   transform: translate3d(0, 0, 0) scale(1) !important;
   backface-visibility: hidden !important;
   will-change: transform, border-color, box-shadow !important;
-  backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
-  -webkit-backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
+  backdrop-filter: var(--store-btn-backdrop-filter, none) !important;
+  -webkit-backdrop-filter: var(--store-btn-backdrop-filter, none) !important;
   position: relative !important;
-  overflow: hidden !important;
   outline: none !important;
+}
+
+.platform-filter-btn:not(.platform-filter-btn--zero-bg) {
+  background: var(--store-default-bg-color, var(--store-btn-bg, transparent)) !important;
+  border: 1px solid var(--store-default-border-color, var(--store-btn-border-color, transparent)) !important;
+  overflow: hidden !important;
 }
 
 .platform-filter-btn:focus,
@@ -36,8 +37,18 @@
   outline: none !important;
 }
 
-.platform-filter-btn:hover {
+.platforms-bar:not(.platforms-bar--zero-bg) .platform-filter-btn:not(.platform-filter-btn--zero-bg):hover {
+  background: var(--store-default-bg-hover, var(--store-btn-hover-bg, transparent)) !important;
+  border: 1px solid var(--store-default-border-hover, var(--store-btn-hover-border-color, transparent)) !important;
   transform: translate3d(0, 0, 0) scale(1.08) !important;
+}
+
+.platforms-bar:not(.platforms-bar--zero-bg) .platform-filter-btn--active:not(.platform-filter-btn--zero-bg),
+.platforms-bar:not(.platforms-bar--zero-bg) .platform-filter-btn--active:not(.platform-filter-btn--zero-bg):hover {
+  background: var(--store-default-bg-active, var(--store-btn-active-bg-start, transparent)) !important;
+  border: 1px solid var(--store-default-border-active, var(--store-btn-active-border-start, transparent)) !important;
+  box-shadow: none !important;
+  transform: translate3d(0, 0, 0) scale(1.1) !important;
 }
 
 /* Ensure contents stay above the hover overlay */
@@ -47,39 +58,9 @@
   z-index: 2 !important;
 }
 
-/* Hover overlay using ::before pseudo-element */
-.platform-filter-btn::before {
-  content: "" !important;
-  position: absolute !important;
-  inset: 0 !important;
-  background: var(--store-btn-hover-bg, rgba(255, 255, 255, 0.06)) padding-box, transparent border-box !important;
-  background-clip: padding-box, border-box !important;
-  background-origin: padding-box, border-box !important;
-  opacity: 0 !important;
-  transition: opacity 0.2s ease-in-out !important;
-  z-index: 1 !important;
-  pointer-events: none !important;
-}
-
-.platform-filter-btn:hover::before {
-  opacity: 1 !important;
-}
-
-/* Active style (when platform is selected) */
-.platform-filter-btn--active {
-  background: linear-gradient(135deg, var(--store-btn-active-bg-start, rgba(20, 24, 30, 0.6)) 0%, var(--store-btn-active-bg-end, rgba(230, 126, 34, 0.06)) 100%) padding-box, linear-gradient(135deg, var(--store-btn-active-border-start, rgba(255, 255, 255, 0.15)) 0%, var(--store-btn-active-border-end, rgba(230, 126, 34, 0.95)) 100%) border-box !important;
-  border-color: transparent !important;
-  font-weight: 400 !important;
-  backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
-  -webkit-backdrop-filter: var(--store-btn-backdrop-filter, blur(12px)) !important;
-  box-shadow: 0 3px 12px 0 var(--store-btn-shadow-color, rgba(230, 126, 34, 0.14)), inset 0 0 8px rgba(255, 255, 255, 0.05) !important;
-  position: relative !important;
-  z-index: 2 !important;
-  transform: translate3d(0, 0, 0) scale(1.1) !important;
-}
-
-.platform-filter-btn--active:hover {
-  transform: translate3d(0, 0, 0) scale(1.1) !important;
+.platforms-bar .platform-filter-btn::before,
+.platforms-bar .platform-filter-btn:hover::before {
+  display: none !important;
 }
 
 /* Platform filter icon image styling */
@@ -90,28 +71,94 @@
   transition: transform 0.25s ease, filter 0.25s ease !important;
 }
 
-/* Efeito Neon Modo 2: Somente no Logo da Loja */
-.platforms-bar.glow-mode-logo .platform-filter-btn:hover .platform-filter-icon-img,
-.platforms-bar.glow-mode-logo .platform-filter-btn--active .platform-filter-icon-img {
-  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 6px rgba(0, 229, 255, 0.65)) !important;
-  transform: scale(1.06);
+/* ============================================================= */
+/* MODO NEON DA BARRA DE PLATAFORMAS (LIBRARY SEARCH BAR)        */
+/* ============================================================= */
+.platforms-bar.glow-mode-neon:not(.platforms-bar--zero-bg) .platform-filter-btn:not(.platform-filter-btn--zero-bg) {
+  background: var(--store-default-bg-color, var(--store-btn-bg, transparent)) !important;
+  border: 1px solid var(--store-default-border-color, var(--store-btn-border-color, transparent)) !important;
+  box-shadow: none !important;
 }
 
-/* Efeito Neon Modo 3: Logo e Nome da Loja */
-.platforms-bar.glow-mode-logo_and_text .platform-filter-btn:hover .platform-filter-icon-img,
-.platforms-bar.glow-mode-logo_and_text .platform-filter-btn--active .platform-filter-icon-img,
-.platforms-bar.glow-mode-logo-text .platform-filter-btn:hover .platform-filter-icon-img,
-.platforms-bar.glow-mode-logo-text .platform-filter-btn--active .platform-filter-icon-img {
-  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 6px rgba(0, 229, 255, 0.65)) !important;
-  transform: scale(1.06);
+.platforms-bar.glow-mode-neon:not(.platforms-bar--zero-bg) .platform-filter-btn:not(.platform-filter-btn--zero-bg):hover {
+  background: var(--store-default-bg-hover, var(--store-btn-hover-bg, transparent)) !important;
+  border: 1px solid var(--store-default-border-hover, var(--store-btn-hover-border-color, transparent)) !important;
 }
 
-.platforms-bar.glow-mode-logo_and_text .platform-filter-btn:hover span,
-.platforms-bar.glow-mode-logo_and_text .platform-filter-btn--active span,
-.platforms-bar.glow-mode-logo-text .platform-filter-btn:hover span,
-.platforms-bar.glow-mode-logo-text .platform-filter-btn--active span {
-  color: #38d9e6 !important;
-  text-shadow: 0 0 4px rgba(0, 229, 255, 0.6), 0 0 8px rgba(0, 229, 255, 0.3) !important;
-  transition: all 0.25s ease !important;
+.platforms-bar.glow-mode-neon:not(.platforms-bar--zero-bg) .platform-filter-btn--active:not(.platform-filter-btn--zero-bg) {
+  background: var(--store-default-bg-active, var(--store-btn-active-bg-start, transparent)) !important;
+  border: 1px solid var(--store-default-border-active, var(--store-btn-active-border-start, transparent)) !important;
+  box-shadow: none !important;
+}
+
+.platforms-bar.glow-mode-neon .platform-filter-btn::before {
+  display: none !important;
+}
+
+/* Zero Background Transparency: Repouso, Hover e Active estritamente sem caixa ou fundo */
+.platforms-bar--zero-bg .platform-filter-btn,
+.platforms-bar--zero-bg .platform-filter-btn:hover,
+.platforms-bar--zero-bg .platform-filter-btn:focus,
+.platforms-bar--zero-bg .platform-filter-btn:active,
+.platforms-bar--zero-bg .platform-filter-btn--active,
+.platforms-bar--zero-bg .platform-filter-btn--active:hover,
+.platforms-bar .platform-filter-btn.platform-filter-btn--zero-bg,
+.platforms-bar .platform-filter-btn.platform-filter-btn--zero-bg:hover,
+.platforms-bar .platform-filter-btn.platform-filter-btn--zero-bg:focus,
+.platforms-bar .platform-filter-btn.platform-filter-btn--zero-bg:active,
+.platforms-bar .platform-filter-btn.platform-filter-btn--zero-bg.platform-filter-btn--active,
+.platforms-bar .platform-filter-btn.platform-filter-btn--zero-bg.platform-filter-btn--active:hover,
+button.platform-filter-btn--zero-bg,
+button.platform-filter-btn--zero-bg:hover,
+button.platform-filter-btn--zero-bg:focus,
+button.platform-filter-btn--zero-bg:active,
+button.platform-filter-btn--zero-bg.platform-filter-btn--active,
+button.platform-filter-btn--zero-bg.platform-filter-btn--active:hover {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+  outline: none !important;
+}
+
+.platforms-bar--zero-bg .platform-filter-btn::before,
+.platforms-bar--zero-bg .platform-filter-btn:hover::before,
+.platforms-bar--zero-bg .platform-filter-btn--active::before,
+.platforms-bar--zero-bg .platform-filter-btn--active:hover::before,
+.platforms-bar .platform-filter-btn--zero-bg::before,
+.platforms-bar .platform-filter-btn--zero-bg:hover::before,
+.platforms-bar .platform-filter-btn--zero-bg.platform-filter-btn--active::before,
+.platforms-bar .platform-filter-btn--zero-bg.platform-filter-btn--active:hover::before,
+.platform-filter-btn--zero-bg::before,
+.platform-filter-btn--zero-bg:hover::before,
+.platform-filter-btn--zero-bg.platform-filter-btn--active::before,
+.platform-filter-btn--zero-bg.platform-filter-btn--active:hover::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Alvo 1: Só no Logo -> Texto NUNCA tem glow, fica branco puro */
+.platforms-bar.glow-mode-neon.glow-target-logo .platform-filter-btn span,
+.platforms-bar.glow-mode-neon.glow-target-logo .platform-filter-btn:hover span,
+.platforms-bar.glow-mode-neon.glow-target-logo .platform-filter-btn--active span {
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Alvo 2: Só no Nome -> Ícone NUNCA tem glow */
+.platforms-bar.glow-mode-neon.glow-target-text .platform-filter-btn .platform-filter-icon-img,
+.platforms-bar.glow-mode-neon.glow-target-text .platform-filter-btn:hover .platform-filter-icon-img,
+.platforms-bar.glow-mode-neon.glow-target-text .platform-filter-btn--active .platform-filter-icon-img {
+  filter: none !important;
+  transform: none !important;
 }
 

@@ -28,6 +28,15 @@
 - [x] **Transparência Absoluta e Proibição de Moldura/Vidro Atrás do Logo nas Notas de Lançamento**: Eliminação total de qualquer caixa, fundo estilo vidro, borda ou sombra atrás do logo oficial do Ghost ou imagens inseridas nas notas de atualização (`ChangelogModal` e `UpdatePopupModal`).
 - [x] **Preservação Permanente de Capas de Jogos Ocultados (Cover Snapshot on Hide)**: Gravação e retenção da capa ativa (customizada, SteamGridDB ou oficial) no instante exato da ocultação, blindagem contra syncs em lote e renderização 100% fiel na aba de Jogos Ocultados.
 - [x] **Busca Universal e Irrestrita na Biblioteca (Bypass de Filtros Ativos)**: Ao pesquisar no campo de busca, o launcher consulta toda a biblioteca mestre, contornando abas de lojas, favoritos, categorias, instalados, plataformas e filtros alfabéticos para exibir o jogo procurado instantaneamente.
+- [x] **Otimização Extrema de Performance da Biblioteca (1.463+ Jogos)**: Contenção nativa do Chromium via `content-visibility: auto`, eliminação de 4.400 listeners de janela por card, pré-indexação O(1) de categorias, lazy loading de imagens com decodificação assíncrona e lote inicial instantâneo para fluidez total a 60/120 FPS.
+- [x] **Sincronização 1:1 da Barra de Lojas, Preview Fiel de Glow e 3 Alvos Interativos (Só no Logo / Só no Nome / Em Ambos)**: Barra de filtro de lojas sem corte de 6 lojas na Personalização, espelho total da Biblioteca com sincronização bidirecional, correção do preview do degradê na Cor Glow e cards visuais selecionáveis com demonstração em tempo real de cada modo de efeito.
+- [x] **Resolução Segura e Dinâmica dos Ícones nos Cards de Alvo Neon (Zero Imagens Quebradas)**: Substituição de caminho estático inexistente por `targetExampleStore.icon` dinâmico em memória com fallback oficial para `<SteamLogo />` vetorial em SVG.
+- [x] **Aplicação Prática e Diferenciação Fiel dos 3 Alvos do Efeito Neon (Preview & Biblioteca)**: Resolução de especificidade no CSS do preview e isolamento de seletores dinâmicos na Biblioteca. Selecionar "Só no Logo" agora aplica o neon estritamente no ícone da loja (texto branco puro), "Só no Nome" aplica neon/degradê estritamente no texto (ícone sem filtro), e "Em Ambos" ilumina ambos em perfeita harmonia.
+- [x] **Controle Completo do Background da Loja Individual na Store Filter Bar (Slider de Transparência + Botão de Troca de Cor)**: Slider de transparência (0% a 100%) e botão de troca de cor com seletor expansível na seção dedicada "Background Individual da Loja", com sincronização em tempo real no Live Preview, nos 3 cards de demonstração e na Biblioteca.
+- [x] **Sincronização 1:1 e Transparência Absoluta do Background na Biblioteca de Jogos**: Persistência simultânea de chaves novas e legadas (`default_bg_opacity` + `bg_opacity`), eliminação de sobreposição de fallback `0.05` no boot, desativação irrestrita de `backdrop-filter` em 0% e blindagem inline de transparência no `<button className="platform-filter-btn">`.
+- [x] **Extinção Definitiva do Retângulo Avermelhado Cortado por overflow:hidden e Blindagem Total do Zero-Background na Biblioteca de Jogos**: Eliminação absoluta de qualquer caixa de fundo nos estados de repouso, hover e active através de `overflow: visible !important;`, `border: none !important; border-width: 0 !important;` e isolamento de especificidade `:not(.platform-filter-btn--zero-bg)`.
+- [x] **Harmonização Perfeita do Contorno em Degradê com a Força do Neon (Glow) na Store Filter Bar**: Eliminação do ofuscamento do degradê através da arquitetura de dupla camada de luz (`drop-shadow` de contorno nítido a 135° em 0.5px de blur + halo neon suave em 0.5 de opacidade proporcional ao slider), remoção da sombra monocromática central e sincronização 1:1 no preview, cards de alvos e biblioteca.
+- [x] **Paridade Completa de Customização do Alphabetical Filter & Counter com a Store Filter Bar**: Implementação do slider oficial 'Transparência do Background' (0% a 100%), botão 'Trocar Cor do Fundo' expansível com módulo réplica completo (switch Degradê, 3 abas, sincronização de glow, SVBox, Hue slider e campo Hex), blindagem anti-cápsula zero-background (zero caixas avermelhadas em repouso, hover e ativo via `overflow: visible !important;`) e neon harmônico em dupla camada para as letras A-Z e o contador de jogos.
 
 ## 🚫 Regra de Notas de Lançamento (Changelog)
 - **Zero Molduras/Fundos nas Imagens**: Em todas as telas de Changelog / Notas de Lançamento, imagens e ilustrações (como o mascote Ghost lendo o pergaminho) são estritamente transparentes (`background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important;`). NUNCA aplicar background estilo vidro ou bordas atrás dessas imagens.
@@ -38,5 +47,55 @@
 ## 🔍 Regra de Busca Universal na Biblioteca
 - **Bypass de Filtros Contextuais**: O campo de busca pesquisa na biblioteca mestre completa (`makeLibrary()`), exibindo os resultados imediatamente sem ser restringido pela loja ativa, letra do alfabeto, apenas instalados ou categorias.
 
+## ⚡ Regra de Alta Performance para Bibliotecas Massivas
+- **Contenção Nativa e Zero Listeners em Cards**: Todo container de grade e lista deve ter `content-visibility: auto`, cards sem listeners de janela internos, categorias indexadas em O(1) e lazy loading assíncrono em todas as capas.
+
+## 🎨 Regra da Barra de Filtro de Lojas (Sincronização e 3 Alvos)
+- **Sincronização 1:1 e 3 Alvos Selecionáveis**: A barra de filtro de lojas da Personalização deve renderizar todas as lojas visíveis sem limitação (`.slice(0, 6)`), e disponibilizar os 3 cards selecionáveis ("Só no Logo", "Só no Nome", "Em Ambos") com preview dinâmico em tempo real.
+
+## 🛡️ Regra de Resolução Segura de Ícones (Zero Imagens Quebradas)
+- **store.icon e Fallback SVG Vetorial**: Nunca utilizar caminhos estáticos hardcoded (`/images/<loja>.png`); utilizar `store.icon` em memória ou componentes SVG vetoriais com `?react` como fallback seguro.
+
+## 🎯 Regra de Isolamento e Especificidade de CSS em Controles com Múltiplos Alvos
+- **Seletores Diretos Condicionados ao Alvo**: Em componentes com múltiplos alvos visuais seletivos (`target-logo`, `target-text`, `target-both`), NUNCA aplicar regras genéricas de glow com `!important` na classe base para depois tentar cancelá-las com regras de menor especificidade. Condicione o CSS diretamente à classe do alvo ativo (`.target-logo`, `.target-text`, `.target-both`) e force o estado neutro (`color: #fff !important; filter: none !important;`) nos elementos não contemplados.
+
+## 🎨 Regra de Customização do Background dos Botões Individuais da Barra de Lojas
+- **Slider de Transparência do Background (0% a 100%) e Módulo Réplica de Cor**: Os botões individuais de loja na Store Filter Bar devem possuir controle total de fundo com slider nomeado oficialmente como **Transparência do Background** (escala de 0% totalmente transparente até 100% sólido) e botão "Trocar Cor do Fundo" que expande o módulo réplica completo (switch Degradê, 3 abas de cor: Cor Inicial, Cor Final, Cor Glow, botão de sincronização de glow e seletor de cor com SVBox, Hue slider e campo Hex), refletindo instantaneamente no Preview, nos 3 cards de demonstração e na Biblioteca. **Quando a Transparência do Background for colocada em 0%, na Biblioteca de Jogos não pode existir nenhuma caixa de fundo avermelhado nem em repouso, nem ao passar o mouse e nem quando a loja estiver clicada/selecionada.**
+
+## 🔄 Regra de Sincronização Bidirecional e Paridade de Armazenamento
+- **Persistência Simultânea e Desativação de Backdrop-Filter em 0%**: Salvar sempre chaves novas e legadas (`default_bg_opacity` + `bg_opacity`), ler via coalescência nula `??` com fallback `0` e desligar expressamente `backdrop-filter: none` em 0% para eliminar resíduo de vidro fosco em botões de lojas na Biblioteca.
+
+## 🛡️ Regra Anti-Cápsula e Proibição de overflow:hidden em Efeitos Neon com Fundo Transparente
+- **Proibição de overflow:hidden em Elementos com Neon/Glow e Zero-Background**: Em qualquer componente (como os botões da Store Filter Bar) onde o usuário possa definir a transparência do background em 0%, é **TERMINANTEMENTE PROIBIDO** manter `overflow: hidden` no elemento pai. O `overflow: hidden` decepa o `drop-shadow` nas quinas do `border-radius`, transformando o feixe de luz num retângulo geométrico fechado/sólido. Nesses estados, o elemento DEVE ter obrigatoriamente:
+  - `overflow: visible !important;`
+  - `border: none !important; border-width: 0 !important;`
+  - `background: none !important; background-color: transparent !important; background-image: none !important;`
+  - `box-shadow: none !important; backdrop-filter: none !important;`
+  - Todas as regras de hover e active condicionadas a `:not(.platform-filter-btn--zero-bg)` para impedir que o CSS de neon herde fundos ou bordas sólidas.
+
+## ✨ Regra de Harmonização entre Contorno em Degradê e Força do Neon (Glow)
+- **Dupla Camada de Iluminação**: Em logos e ícones no modo Degradê, nunca aplicar drop-shadows difusos e de alta opacidade que saturem a silhueta. Aplicar estritamente:
+  1. `drop-shadow(-1.5px -1.5px 0.5px ${cor1}) drop-shadow(1.5px 1.5px 0.5px ${cor2})`: traça o contorno do ícone com nitidez absoluta nas duas cores puras a 135°.
+  2. `drop-shadow(-3px -3px calc(${força} * 0.7) ${cor1_suave}) drop-shadow(3px 3px calc(${força} * 0.7) ${cor2_suave})`: aura neon translúcida (alpha 0.5) proporcional ao slider de força sem apagar o contorno.
+  3. Proibido adicionar sombras centrais monocromáticas `(0 0 2px ...)` no modo degradê para não contaminar a transição das cores.
+
+## 🔤 Regra de Paridade do Filtro Alfabético & Contador
+- **Paridade Visual e Comportamental 1:1**: O Filtro Alfabético e o Contador de Jogos seguem estritamente a arquitetura da Store Filter Bar: controle completo de background individual com slider oficial **Transparência do Background** (0% a 100%), botão **Trocar Cor do Fundo** com amostra dinâmica e módulo réplica completo (switch Degradê, 3 abas, sincronização de glow, SVBox, Hue slider e campo Hex), blindagem anti-cápsula zero-background (`overflow: visible !important; border: none !important;`) sem caixas avermelhadas sob 0% em repouso, hover ou ativo, e neon harmônico com texto degradê suave em dupla camada para as letras A-Z e contador.
+
+## 🔢 Regra do Elemento Total de Jogos em Telas de Customização
+- **Fidelidade da Contagem Unificada e Interatividade**: Em qualquer tela de customização com Live Preview (como `PersonalizationScreen`), o elemento **Total de Jogos** (`numberOfgames`) NUNCA deve exibir números fictícios ou estáticos (como "6"). Deve calcular a contagem real e unificada da biblioteca em memória (`realGamesList.length`, somando Epic, GOG, Steam, Amazon, Zoom e Sideloaded), ser totalmente clicável no preview (`.preview-games-total-group` com feedback de contorno ciano `#00e5ff` ao passar o mouse e selecionado) direcionando ao painel correspondente, e possuir um card de demonstração dinâmico em tempo real dentro do painel lateral.
+
+## 🃏 Regra de Preservação Obrigatória do Efeito de Ampliação nos Cards de Jogos
+- **Proibição de Contenção de Pintura e Padrão de Hover**: É terminantemente proibido utilizar `content-visibility: auto` ou `contain: paint` em `.gameList > div` ou nos cards de jogos, pois isso decepa a escala de hover. No hover, o card deve executar `transform: scale(1.06)`, `z-index: 10` e sombra profunda `box-shadow: 0px 10px 28px 6px rgba(0, 0, 0, 0.75)`, com o container da célula recebendo `.gameList > div:hover { z-index: 10; }` e a capa aplicando zoom interno suave `transform: scale(1.03)` sem cortes.
+
+## 🏬 Regra de Logotipos Oficiais para Lojas na Barra Lateral
+- **Eliminação de Ícones Genéricos**: É terminantemente proibido utilizar ícones genéricos (`faShoppingBag` ou `faStore`) para representar plataformas na barra lateral ou menus flutuantes. Devem ser utilizados estritamente os vetores oficiais: `<EpicLogo />` (`epic-logo.svg`), `<GOGLogo />` (`gog-logo.svg`), `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />` e `<ZoomLogo />` (`zoom-logo.svg`), com `fill="currentColor"` e proporções de `16px`.
+
 ## 🔔 Lembretes Ativos para o Próximo Contato
 - [ ] **Testar Nova Versão no Windows Sandbox (VM)**: Ao lançar uma nova versão, lembrar o usuário de testar em uma VM nova no Windows Sandbox, apresentando a lista detalhada de todas as alterações feitas.
+
+
+
+
+
+

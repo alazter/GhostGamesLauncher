@@ -53,23 +53,23 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
 
   // Alphabet styling synchronization
   const [btnBgOpacity, setBtnBgOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_opacity')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')
     return saved !== null ? Number(saved) : 0.05
   })
 
   const [btnBgColor, setBtnBgColor] = useState<string>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_color')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_color_1') || localStorage.getItem('heroic_alphabet_color')
     return saved !== null ? saved : '#ffffff'
   })
 
   const [btnBgColor2, setBtnBgColor2] = useState<string>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_bg_color_2')
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_color_2') || localStorage.getItem('heroic_alphabet_btn_bg_color_2')
     return saved !== null ? saved : '#00e5ff'
   })
 
   const [btnGradientEnabled, setBtnGradientEnabled] = useState<boolean>(() => {
-    const saved = localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
-    return saved !== null ? (JSON.parse(saved) as boolean) : false
+    const saved = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient') ?? localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
+    return saved !== null ? saved === 'true' || saved === true : false
   })
 
   const [btnBorderEnabled, setBtnBorderEnabled] = useState<boolean>(() => {
@@ -86,21 +86,41 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     return localStorage.getItem('heroic_alphabet_glow_mode') || 'disabled'
   })
 
+  const [alphabetColor1, setAlphabetColor1] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_color_1') || localStorage.getItem('heroic_alphabet_color') || '#00ffff'
+  })
+
+  const [alphabetColor2, setAlphabetColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_color_2') || '#38d9e6'
+  })
+
+  const [alphabetGradEnabled, setAlphabetGradEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_alphabet_gradient') === 'true'
+  })
+
+  const [alphabetGlowColor1, setAlphabetGlowColor1] = useState<string>(() => {
+    return localStorage.getItem('heroic_alphabet_glow_color_1') || '#00ffff'
+  })
+
+  const [alphabetGlowStrength, setAlphabetGlowStrength] = useState<number>(() => {
+    return Number(localStorage.getItem('heroic_alphabet_glow_strength') || '8')
+  })
+
   useEffect(() => {
     const handleSettingsChange = () => {
       setAlignment(localStorage.getItem('heroic_alphabet_alignment') || 'center')
 
-      const savedBtn = localStorage.getItem('heroic_alphabet_btn_opacity')
+      const savedBtn = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')
       setBtnBgOpacity(savedBtn !== null ? Number(savedBtn) : 0.05)
 
-      const savedColor = localStorage.getItem('heroic_alphabet_color')
+      const savedColor = localStorage.getItem('heroic_alphabet_btn_default_bg_color_1') || localStorage.getItem('heroic_alphabet_color')
       setBtnBgColor(savedColor !== null ? savedColor : '#ffffff')
 
-      const savedColor2 = localStorage.getItem('heroic_alphabet_btn_bg_color_2')
+      const savedColor2 = localStorage.getItem('heroic_alphabet_btn_default_bg_color_2') || localStorage.getItem('heroic_alphabet_btn_bg_color_2')
       setBtnBgColor2(savedColor2 !== null ? savedColor2 : '#00e5ff')
 
-      const savedGrad = localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
-      setBtnGradientEnabled(savedGrad !== null ? (JSON.parse(savedGrad) as boolean) : false)
+      const savedGrad = localStorage.getItem('heroic_alphabet_btn_default_bg_gradient') ?? localStorage.getItem('heroic_alphabet_btn_gradient_enabled')
+      setBtnGradientEnabled(savedGrad !== null ? savedGrad === 'true' || savedGrad === true : false)
 
       const savedBrd = localStorage.getItem('heroic_alphabet_btn_border_enabled')
       setBtnBorderEnabled(savedBrd !== null ? (JSON.parse(savedBrd) as boolean) : false)
@@ -109,6 +129,11 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
       setBtnBorderRadius(savedRadius !== null ? Number(savedRadius) : 18)
 
       setAlphabetGlowMode(localStorage.getItem('heroic_alphabet_glow_mode') || 'disabled')
+      setAlphabetColor1(localStorage.getItem('heroic_alphabet_color_1') || localStorage.getItem('heroic_alphabet_color') || '#00ffff')
+      setAlphabetColor2(localStorage.getItem('heroic_alphabet_color_2') || '#38d9e6')
+      setAlphabetGradEnabled(localStorage.getItem('heroic_alphabet_gradient') === 'true')
+      setAlphabetGlowColor1(localStorage.getItem('heroic_alphabet_glow_color_1') || '#00ffff')
+      setAlphabetGlowStrength(Number(localStorage.getItem('heroic_alphabet_glow_strength') || '8'))
     }
 
     const handleFilterChange = () =>
@@ -221,11 +246,17 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
 
   const btnTextColor = useDarkText ? 'rgba(0, 0, 0, 0.85)' : 'rgba(255, 255, 255, 0.7)'
 
-  const badgeBg = btnGradientEnabled
+  const isZeroBg = btnBgOpacity <= 0.001
+
+  const badgeBg = isZeroBg
+    ? 'transparent'
+    : btnGradientEnabled
     ? `linear-gradient(135deg, rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnBgOpacity}) 0%, rgba(${alphabetRgb2.r}, ${alphabetRgb2.g}, ${alphabetRgb2.b}, ${btnBgOpacity}) 100%)`
     : `rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${btnBgOpacity})`
 
-  const badgeBorder = btnBorderEnabled
+  const badgeBorder = isZeroBg
+    ? 'none'
+    : btnBorderEnabled
     ? `1px solid rgba(${alphabetRgb.r}, ${alphabetRgb.g}, ${alphabetRgb.b}, ${Math.min(1, btnBgOpacity * 2.5)})`
     : 'none'
 
@@ -278,7 +309,7 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
               ? '⏱️ Mais Jogados'
               : t('title.allGames', 'All Games')}
             <span
-              className={`numberOfgames ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''}`}
+              className={`numberOfgames ${alphabetGlowMode === 'neon' ? 'numberOfgames--neon' : ''} ${isZeroBg ? 'numberOfgames--zero-bg' : ''}`}
               style={{
                 margin: 0,
                 lineHeight: 1,
@@ -292,11 +323,24 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
                 borderRadius: `${btnBorderRadius}px`,
                 background: badgeBg,
                 border: badgeBorder,
-                color: alphabetGlowMode === 'neon' ? '#38d9e6' : btnTextColor,
-                textShadow: alphabetGlowMode === 'neon' ? '0 0 4px rgba(0, 229, 255, 0.6)' : 'none',
-                boxShadow: alphabetGlowMode === 'neon' ? '0 0 8px rgba(0, 229, 255, 0.25)' : 'none',
-                backdropFilter: btnBgOpacity === 0 ? 'none' : 'blur(12px)',
-                WebkitBackdropFilter: btnBgOpacity === 0 ? 'none' : 'blur(12px)',
+                ...(alphabetGlowMode === 'neon' ? (
+                  alphabetGradEnabled ? {
+                    background: `linear-gradient(135deg, ${alphabetColor1} 0%, ${alphabetColor2} 100%)`,
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: `drop-shadow(-1.5px -1.5px calc(${alphabetGlowStrength}px * 0.35) ${alphabetGlowColor1}) drop-shadow(1.5px 1.5px calc(${alphabetGlowStrength}px * 0.35) ${alphabetColor2})`,
+                    display: 'inline-flex'
+                  } : {
+                    color: alphabetColor1,
+                    textShadow: `0 0 2px ${alphabetGlowColor1}, 0 0 ${alphabetGlowStrength}px ${alphabetGlowColor1}`,
+                    display: 'inline-flex'
+                  }
+                ) : {
+                  color: btnTextColor
+                }),
+                backdropFilter: isZeroBg ? 'none' : 'blur(12px)',
+                WebkitBackdropFilter: isZeroBg ? 'none' : 'blur(12px)',
                 fontFamily: 'inherit',
                 fontSize: '15px',
                 fontWeight: 600,

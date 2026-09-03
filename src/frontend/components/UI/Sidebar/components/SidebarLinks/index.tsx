@@ -9,8 +9,7 @@ import {
   faBarsProgress,
   faTv,
   faPaintBrush,
-  faClock,
-  faShoppingBag
+  faClock
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { useContext, useState, useEffect } from 'react'
@@ -21,6 +20,9 @@ import {
   faAmazon
 } from '@fortawesome/free-brands-svg-icons'
 
+import EpicLogo from 'frontend/assets/epic-logo.svg?react'
+import GOGLogo from 'frontend/assets/gog-logo.svg?react'
+import ZoomLogo from 'frontend/assets/zoom-logo.svg?react'
 import ContextProvider from 'frontend/state/ContextProvider'
 import QuitButton from '../QuitButton'
 import { SHOW_EXTERNAL_LINK_DIALOG_STORAGE_KEY } from 'frontend/components/UI/ExternalLinkDialog'
@@ -332,7 +334,7 @@ export default function SidebarLinks() {
                 <SidebarItem
                   className="SidebarLinks__subItem"
                   url="/store/epic"
-                  icon={faShoppingBag}
+                  customIcon={<EpicLogo />}
                   label="Epic Games"
                   onClick={() =>
                     localStorage.setItem('ghost_last_selected_store', 'epic')
@@ -350,7 +352,7 @@ export default function SidebarLinks() {
                 <SidebarItem
                   className="SidebarLinks__subItem"
                   url="/store/gog"
-                  icon={faShoppingBag}
+                  customIcon={<GOGLogo />}
                   label="GOG"
                   onClick={() =>
                     localStorage.setItem('ghost_last_selected_store', 'gog')
@@ -369,7 +371,7 @@ export default function SidebarLinks() {
                   <SidebarItem
                     className="SidebarLinks__subItem"
                     url="/store/zoom"
-                    icon={faStore}
+                    customIcon={<ZoomLogo />}
                     label="Zoom Platform"
                     onClick={() =>
                       localStorage.setItem('ghost_last_selected_store', 'zoom')

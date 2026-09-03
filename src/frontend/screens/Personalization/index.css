@@ -139,50 +139,179 @@
 /* ========================================= */
 /* 3. Live Preview Store Filter Bar */
 /* ========================================= */
-.preview-platforms-bar:not(.preview-platforms-bar--neon) .preview-platform-btn {
+.preview-platforms-bar .preview-platform-btn {
   background: var(--preview-store-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
   border: 1px solid var(--preview-store-default-border-color, rgba(255, 255, 255, 0.1)) !important;
   border-radius: var(--store-btn-border-radius, 12px) !important;
+  box-shadow: none !important;
   transition: all 0.2s ease;
 }
 
-.preview-platforms-bar--neon .preview-platform-btn {
-  background: transparent !important;
+.preview-platforms-bar .preview-platform-btn:hover {
+  background: var(--preview-store-default-bg-hover, rgba(255, 255, 255, 0.08)) !important;
+  border: 1px solid var(--preview-store-default-border-hover, rgba(255, 255, 255, 0.2)) !important;
+}
+
+.preview-platforms-bar .preview-platform-btn--active {
+  background: var(--preview-store-default-bg-active, rgba(255, 255, 255, 0.12)) !important;
+  border: 1px solid var(--preview-store-default-border-active, rgba(255, 255, 255, 0.3)) !important;
+  box-shadow: none !important;
+}
+
+.preview-platforms-bar .preview-platform-btn::before {
+  display: none !important;
+}
+
+.preview-platforms-bar--zero-bg .preview-platform-btn,
+.preview-platforms-bar--zero-bg .preview-platform-btn:hover,
+.preview-platforms-bar--zero-bg .preview-platform-btn--active,
+.preview-platforms-bar--zero-bg .preview-platform-btn--active:hover,
+.preview-platform-btn--zero-bg {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
   border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+  outline: none !important;
 }
 
-.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover .preview-platform-icon-img,
-.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn--active .preview-platform-icon-img {
-  filter: drop-shadow(0 0 2px var(--preview-store-glow-color-1, var(--preview-store-color-1, #00ffff))) 
-          drop-shadow(0 0 calc(var(--preview-store-glow-strength, 8px) * 0.8) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.85))) !important;
-  transform: scale(1.08);
+.preview-platforms-bar--zero-bg .preview-platform-btn::before,
+.preview-platforms-bar--zero-bg .preview-platform-btn:hover::before {
+  display: none !important;
+}
+
+/* --- PREVIEW BAR NEON: 1. SÓ NO LOGO (target-logo) --- */
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo:not(.preview-platforms-bar--gradient) .preview-platform-btn--active .preview-platform-icon-img {
+  filter: drop-shadow(0 0 1px var(--preview-store-color-1, #00ffff)) 
+          drop-shadow(0 0 calc(var(--preview-store-glow-strength, 8px) * 0.5) var(--preview-store-glow-color-1, var(--preview-store-color-1, #00ffff))) 
+          drop-shadow(0 0 var(--preview-store-glow-strength, 8px) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5))) !important;
+  transform: scale(1.08) !important;
   transition: all 0.2s ease;
 }
 
-.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover span,
-.preview-platforms-bar--neon:not(.preview-platforms-bar--gradient) .preview-platform-btn--active span {
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo.preview-platforms-bar--gradient .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo.preview-platforms-bar--gradient .preview-platform-btn--active .preview-platform-icon-img {
+  filter: drop-shadow(-1.5px -1.5px 0.5px var(--preview-store-color-1, #00ffff)) 
+          drop-shadow(1.5px 1.5px 0.5px var(--preview-store-color-2, #38d9e6)) 
+          drop-shadow(-3px -3px calc(var(--preview-store-glow-strength, 8px) * 0.7) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5))) 
+          drop-shadow(3px 3px calc(var(--preview-store-glow-strength, 8px) * 0.7) var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.5))) !important;
+  transform: scale(1.08) !important;
+  transition: all 0.2s ease;
+}
+
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo .preview-platform-btn span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo .preview-platform-btn:hover span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-logo .preview-platform-btn--active span {
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* --- PREVIEW BAR NEON: 2. SÓ NO NOME (target-text) --- */
+.preview-platforms-bar--neon.preview-platforms-bar--target-text .preview-platform-btn .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-text .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-text .preview-platform-btn--active .preview-platform-icon-img {
+  filter: none !important;
+  transform: none !important;
+}
+
+.preview-platforms-bar--neon.preview-platforms-bar--target-text:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-text:not(.preview-platforms-bar--gradient) .preview-platform-btn--active span {
   color: var(--preview-store-color-1, #00ffff) !important;
   text-shadow: 0 0 2px var(--preview-store-glow-color-1, #00ffff),
-               0 0 var(--preview-store-glow-strength, 8px) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.6)) !important;
+               0 0 var(--preview-store-glow-strength, 8px) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5)) !important;
+  background: none !important;
+  -webkit-text-fill-color: initial !important;
+  filter: none !important;
+  display: inline-block !important;
 }
 
-.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn:hover .preview-platform-icon-img,
-.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn--active .preview-platform-icon-img {
-  filter: drop-shadow(-2px -2px calc(var(--preview-store-glow-strength, 8px) * 0.8) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
-          drop-shadow(2px 2px calc(var(--preview-store-glow-strength, 8px) * 0.8) var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
-          drop-shadow(0 0 2px var(--preview-store-glow-color-1, #00ffff)) !important;
-  transform: scale(1.08);
-  transition: all 0.2s ease;
-}
-
-.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn:hover span,
-.preview-platforms-bar--neon.preview-platforms-bar--gradient .preview-platform-btn--active span {
+.preview-platforms-bar--neon.preview-platforms-bar--target-text.preview-platforms-bar--gradient .preview-platform-btn:hover span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-text.preview-platforms-bar--gradient .preview-platform-btn--active span {
   background: linear-gradient(135deg, var(--preview-store-color-1, #00ffff) 0%, var(--preview-store-color-2, #38d9e6) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  filter: drop-shadow(-2px -2px 3px var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.6))) 
-          drop-shadow(2px 2px 3px var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.6))) !important;
+  filter: drop-shadow(-1.5px -1.5px calc(var(--preview-store-glow-strength, 8px) * 0.35) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5))) 
+          drop-shadow(1.5px 1.5px calc(var(--preview-store-glow-strength, 8px) * 0.35) var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.5))) !important;
+  display: inline-block !important;
+}
+
+/* --- PREVIEW BAR NEON: 3. EM AMBOS (target-both ou padrão) --- */
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text):not(.preview-platforms-bar--gradient) .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text):not(.preview-platforms-bar--gradient) .preview-platform-btn--active .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both:not(.preview-platforms-bar--gradient) .preview-platform-btn--active .preview-platform-icon-img {
+  filter: drop-shadow(0 0 1px var(--preview-store-color-1, #00ffff)) 
+          drop-shadow(0 0 calc(var(--preview-store-glow-strength, 8px) * 0.5) var(--preview-store-glow-color-1, var(--preview-store-color-1, #00ffff))) 
+          drop-shadow(0 0 var(--preview-store-glow-strength, 8px) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5))) !important;
+  transform: scale(1.08) !important;
+  transition: all 0.2s ease;
+}
+
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text).preview-platforms-bar--gradient .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text).preview-platforms-bar--gradient .preview-platform-btn--active .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both.preview-platforms-bar--gradient .preview-platform-btn:hover .preview-platform-icon-img,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both.preview-platforms-bar--gradient .preview-platform-btn--active .preview-platform-icon-img {
+  filter: drop-shadow(-1.5px -1.5px 0.5px var(--preview-store-color-1, #00ffff)) 
+          drop-shadow(1.5px 1.5px 0.5px var(--preview-store-color-2, #38d9e6)) 
+          drop-shadow(-3px -3px calc(var(--preview-store-glow-strength, 8px) * 0.7) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5))) 
+          drop-shadow(3px 3px calc(var(--preview-store-glow-strength, 8px) * 0.7) var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.5))) !important;
+  transform: scale(1.08) !important;
+  transition: all 0.2s ease;
+}
+
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text):not(.preview-platforms-bar--gradient) .preview-platform-btn:hover span,
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text):not(.preview-platforms-bar--gradient) .preview-platform-btn--active span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both:not(.preview-platforms-bar--gradient) .preview-platform-btn:hover span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both:not(.preview-platforms-bar--gradient) .preview-platform-btn--active span {
+  color: var(--preview-store-color-1, #00ffff) !important;
+  text-shadow: 0 0 2px var(--preview-store-glow-color-1, #00ffff),
+               0 0 var(--preview-store-glow-strength, 8px) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5)) !important;
+  background: none !important;
+  -webkit-text-fill-color: initial !important;
+  filter: none !important;
+  display: inline-block !important;
+}
+
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text).preview-platforms-bar--gradient .preview-platform-btn:hover span,
+.preview-platforms-bar--neon:not(.preview-platforms-bar--target-logo):not(.preview-platforms-bar--target-text).preview-platforms-bar--gradient .preview-platform-btn--active span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both.preview-platforms-bar--gradient .preview-platform-btn:hover span,
+.preview-platforms-bar--neon.preview-platforms-bar--target-both.preview-platforms-bar--gradient .preview-platform-btn--active span {
+  background: linear-gradient(135deg, var(--preview-store-color-1, #00ffff) 0%, var(--preview-store-color-2, #38d9e6) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(-1.5px -1.5px calc(var(--preview-store-glow-strength, 8px) * 0.35) var(--preview-store-glow-rgba-1, rgba(0, 229, 255, 0.5))) 
+          drop-shadow(1.5px 1.5px calc(var(--preview-store-glow-strength, 8px) * 0.35) var(--preview-store-glow-rgba-2, rgba(56, 217, 230, 0.5))) !important;
+  display: inline-block !important;
+}
+
+/* Cards Interativos de Seleção de Alvo (Só no Logo / Só no Nome / Em Ambos) */
+.target-effect-card {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  user-select: none;
+}
+
+.target-effect-card:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(0, 229, 255, 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+.target-effect-card--selected {
+  background: rgba(0, 229, 255, 0.09) !important;
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3) !important;
 }
 
 /* ========================================= */
@@ -191,21 +320,69 @@
 .preview-alphabet-container:not(.preview-alphabet--neon) .preview-alphabet-btn {
   background: var(--preview-alphabet-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
   border: 1px solid var(--preview-alphabet-default-border-color, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: var(--preview-alphabet-border-radius, 18px) !important;
 }
 
 .preview-alphabet--neon .preview-alphabet-btn {
-  background: transparent !important;
+  background: var(--preview-alphabet-default-bg-color, transparent) !important;
+  border: 1px solid var(--preview-alphabet-default-border-color, transparent) !important;
+  border-radius: var(--preview-alphabet-border-radius, 18px) !important;
+}
+
+/* Zero Background no Preview do Alfabeto */
+.preview-alphabet-container--zero-bg .preview-alphabet-btn,
+.preview-alphabet-container--zero-bg .preview-alphabet-btn:hover,
+.preview-alphabet-container--zero-bg .preview-alphabet-btn--active,
+.preview-alphabet-btn--zero-bg,
+.preview-alphabet-btn--zero-bg:hover,
+.preview-alphabet-btn--zero-bg--active,
+.preview-alphabet-btn--zero-bg.preview-alphabet-btn--active {
+  background: none !important;
+  background-color: transparent !important;
+  background-image: none !important;
   border: none !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+  outline: none !important;
+}
+
+.preview-alphabet-container--zero-bg .preview-alphabet-btn::before,
+.preview-alphabet-btn--zero-bg::before,
+.preview-alphabet-btn--zero-bg:hover::before,
+.preview-alphabet-btn--zero-bg.preview-alphabet-btn--active::before {
+  display: none !important;
+  content: none !important;
+}
+
+.preview-alphabet--neon:not(.preview-alphabet--gradient) .preview-alphabet-btn span {
+  color: var(--preview-alphabet-color-1, #00ffff) !important;
+  display: inline-block;
+  transition: all 0.2s ease;
+  opacity: 0.95;
 }
 
 .preview-alphabet--neon:not(.preview-alphabet--gradient) .preview-alphabet-btn:hover span,
 .preview-alphabet--neon:not(.preview-alphabet--gradient) .preview-alphabet-btn--active span {
   color: var(--preview-alphabet-color-1, #00ffff) !important;
   text-shadow: 0 0 2px var(--preview-alphabet-glow-color-1, #00ffff),
-               0 0 var(--preview-alphabet-glow-strength, 8px) var(--preview-alphabet-glow-rgba-1, rgba(0, 229, 255, 0.85)) !important;
+               0 0 var(--preview-alphabet-glow-strength, 8px) var(--preview-alphabet-glow-rgba-1, rgba(0, 229, 255, 0.5)) !important;
   transform: scale(1.15);
+  opacity: 1 !important;
+  display: inline-block;
+}
+
+.preview-alphabet--neon.preview-alphabet--gradient .preview-alphabet-btn span {
+  background: linear-gradient(135deg, var(--preview-alphabet-color-1, #00ffff) 0%, var(--preview-alphabet-color-2, #38d9e6) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
   display: inline-block;
   transition: all 0.2s ease;
+  opacity: 0.95;
 }
 
 .preview-alphabet--neon.preview-alphabet--gradient .preview-alphabet-btn:hover span,
@@ -214,11 +391,11 @@
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  filter: drop-shadow(-2px -2px 3px var(--preview-alphabet-glow-rgba-1, rgba(0, 229, 255, 0.7))) 
-          drop-shadow(2px 2px 3px var(--preview-alphabet-glow-rgba-2, rgba(56, 217, 230, 0.7))) !important;
+  filter: drop-shadow(-1.5px -1.5px calc(var(--preview-alphabet-glow-strength, 8px) * 0.35) var(--preview-alphabet-glow-rgba-1, rgba(0, 229, 255, 0.5))) 
+          drop-shadow(1.5px 1.5px calc(var(--preview-alphabet-glow-strength, 8px) * 0.35) var(--preview-alphabet-glow-rgba-2, rgba(56, 217, 230, 0.5))) !important;
   transform: scale(1.15);
+  opacity: 1 !important;
   display: inline-block;
-  transition: all 0.2s ease;
 }
 
 /* ========================================= */
@@ -311,5 +488,28 @@
   transform: scale(1.04);
   transition: all 0.2s ease !important;
 }
+
+/* ========================================= */
+/* 7. Live Preview Total de Jogos Group */
+/* ========================================= */
+.preview-games-total-group {
+  padding: 4px 8px;
+  border-radius: 8px;
+  outline: 1.5px dashed transparent;
+  outline-offset: 2px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.preview-games-total-group:hover {
+  outline-color: rgba(0, 229, 255, 0.5);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.preview-games-total-group--selected {
+  outline-color: #00e5ff !important;
+  background: rgba(0, 229, 255, 0.08) !important;
+}
+
 
 
