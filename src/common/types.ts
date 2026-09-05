@@ -844,6 +844,12 @@ export interface WineManagerUISettings {
 
 export type DownloadManagerState = 'idle' | 'running' | 'paused' | 'stopped'
 
+export interface DMQueue {
+  elements: DMQueueElement[]
+  finished: DMQueueElement[]
+  state: DownloadManagerState
+}
+
 export interface WindowProps extends Electron.Rectangle {
   maximized: boolean
   frame?: boolean

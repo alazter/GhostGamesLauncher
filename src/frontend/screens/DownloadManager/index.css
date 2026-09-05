@@ -1,51 +1,191 @@
-.dmItemList > .gameListHeader {
-  padding: var(--space-md) 0;
-  grid-template-columns: 2fr 1fr 1fr 1fr 10%;
+.downloadManagerPage {
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: var(--space-sm) var(--space-xl) var(--space-2xl);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
-.downloadManager
-  > .MuiTabs-root
-  > .MuiTabs-scroller
-  > .MuiTabs-flexContainer
-  > .MuiTab-root {
-  color: var(--text-default);
-}
-
-.downloadManager
-  > .MuiTabs-root
-  > .MuiTabs-scroller
-  > .MuiTabs-flexContainer
-  > .Mui-selected {
-  color: var(--accent);
-}
-
-.downloadManager > .MuiTabs-root > .MuiTabs-scroller > .MuiTabs-indicator {
-  background-color: var(--accent);
-}
-
-.downloadManager {
+/* Top Bar Header with Auto-Update Switch */
+.downloadManagerTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
   padding: 0;
+}
+
+.downloadManagerTitle {
   margin: 0;
+  text-align: start;
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
 }
 
-.downloadManagerCurrentSectionTitle {
-  margin: 0px;
-  text-align: initial;
-  padding-inline-start: 30px;
+.downloadManagerAutoUpdateWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
 }
 
-.downloadManagerQueuedSectionTitle {
-  margin: 30px 0px 0px;
-  text-align: initial;
-  padding-inline-start: 30px;
+.downloadManagerAutoUpdateText {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Premium sliding switch toggle */
+.downloadManagerAutoUpdateWrapper .premium-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.downloadManagerAutoUpdateWrapper .premium-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.downloadManagerAutoUpdateWrapper .premium-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+}
+
+.downloadManagerAutoUpdateWrapper .premium-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: #ffffff;
+  transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+.downloadManagerAutoUpdateWrapper .premium-switch input:checked + .premium-slider {
+  background-color: #00d2ff;
+  border-color: #00ffff;
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.6);
+}
+
+.downloadManagerAutoUpdateWrapper .premium-switch input:checked + .premium-slider:before {
+  transform: translateX(21px);
+  background-color: #ffffff;
+}
+
+/* Split Grid Layout (Active Download + Queue) */
+.downloadManagerSplitGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: var(--space-lg);
+  align-items: stretch;
+}
+
+@media (max-width: 960px) {
+  .downloadManagerSplitGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.downloadManagerColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
 .downloadManagerSectionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 30px var(--space-lg) 10px;
+  margin-bottom: 4px;
   padding: 0;
+}
+
+.downloadManagerSectionTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.downloadManagerActiveWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.downloadManagerQueueList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.downloadManagerQueueList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.downloadManagerQueueList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.downloadManagerQueueList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.downloadManagerQueueList::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.4);
+}
+
+/* Finished Downloads Section (2-Column Grid!) */
+.downloadManagerFinishedSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: var(--space-xs);
+}
+
+.downloadManagerFinishedGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .downloadManagerFinishedGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .downloadManagerClearButton {
@@ -53,28 +193,24 @@
   align-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 14px;
+  padding: 6px 16px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .downloadManagerClearButton:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(0, 255, 255, 0.5);
-  color: #00ffff;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+  background: rgba(239, 68, 68, 0.16);
+  border-color: #ef4444;
+  color: #ef4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
 }
 
-.dmItemList {
-  border: solid 2px var(--input-background);
-  background-color: var(--input-background);
-  border-radius: 6px;
-  margin: var(--space-3xs) var(--space-lg);
-  padding: 0 var(--space-sm-fixed);
-}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import classNames from 'classnames'
 
 interface CachedImageProps {
@@ -6,6 +6,7 @@ interface CachedImageProps {
   fallback?: string | string[]
   hideOnError?: boolean
   className?: string
+  priority?: boolean
   onLoad?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void
   onError?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void
 }
@@ -41,11 +42,13 @@ const CachedImage = (props: Props) => {
 
   const [fallbackIndex, setFallbackIndex] = useState<number>(-1)
   const [errorHidden, setErrorHidden] = useState<boolean>(false)
+  const [reconnectCount, setReconnectCount] = useState<number>(0)
 
   // Reset candidate index when props.src changes
   useEffect(() => {
     setFallbackIndex(-1)
     setErrorHidden(false)
+    setReconnectCount(0)
   }, [props.src, targetSrc])
 
   const displayCandidate =
@@ -61,6 +64,74 @@ const CachedImage = (props: Props) => {
     setLoaded(nextLoaded)
   }, [displaySrc])
 
+  const isEager = props.loading === 'eager' || Boolean(props.priority) || isAlreadyLoaded
+  const [isInView, setIsInView] = useState<boolean>(() => Boolean(isEager))
+  const imgRef = useRef<HTMLImageElement | null>(null)
+
+  useEffect(() => {
+    if (isEager) {
+      setIsInView(true)
+      return
+    }
+
+    if (isInView) return
+
+    const el = imgRef.current
+    if (!el) return
+
+    const scrollContainer = document.getElementById('games-scroll-area')
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsInView(true)
+            observer.disconnect()
+            break
+          }
+        }
+      },
+      {
+        root: scrollContainer || null,
+        rootMargin: '800px 0px'
+      }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [isEager, isInView])
+
+  // Ouvinte do comando global de Reconectar Capas Pendentes
+  useEffect(() => {
+    const handleReconnect = () => {
+      // Reconecta EXCLUSIVAMENTE capas que ainda NÃO carregaram
+      if (!loaded && !isAlreadyLoaded) {
+        setFallbackIndex(-1)
+        setErrorHidden(false)
+        setIsInView(true)
+        setReconnectCount((c) => c + 1)
+      }
+    }
+
+    window.addEventListener('heroicReconnectPendingCovers', handleReconnect)
+    return () =>
+      window.removeEventListener('heroicReconnectPendingCovers', handleReconnect)
+  }, [loaded, isAlreadyLoaded])
+
+  // Watchdog automático: se o card está no campo de visão mas após 3.5s ainda não carregou,
+  // tenta reconectar 1 vez automaticamente
+  useEffect(() => {
+    if (!isInView || loaded || isAlreadyLoaded || reconnectCount > 0) return
+
+    const timer = setTimeout(() => {
+      if (!loaded && !isAlreadyLoaded) {
+        setReconnectCount((c) => c + 1)
+      }
+    }, 3500)
+
+    return () => clearTimeout(timer)
+  }, [isInView, loaded, isAlreadyLoaded, reconnectCount])
+
   if (errorHidden || (!displaySrc && props.hideOnError)) {
     return null
   }
@@ -71,17 +142,25 @@ const CachedImage = (props: Props) => {
     hideOnError: _hideOnError,
     onLoad: _onLoad,
     onError: _onError,
-    loading = 'eager',
+    loading: _loading,
     decoding = 'async',
+    priority: _priority,
     ...rest
   } = props
 
+  const finalSrc = isInView
+    ? reconnectCount > 0 && displaySrc
+      ? `${displaySrc}${displaySrc.includes('?') ? '&' : '?'}reconnect=${reconnectCount}`
+      : displaySrc
+    : undefined
+
   return (
     <img
-      loading={loading}
+      ref={imgRef}
+      loading="eager"
       decoding={decoding}
       {...rest}
-      src={displaySrc}
+      src={finalSrc}
       onLoad={(e) => {
         if (displaySrc) {
           loadedUrls.add(displaySrc)

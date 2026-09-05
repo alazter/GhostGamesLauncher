@@ -112,6 +112,7 @@ interface SyncIPCFunctions {
   resumeCurrentDownload: () => void
   pauseCurrentDownload: () => void
   cancelDownload: (removeDownloaded: boolean) => void
+  clearAutoUpdates: () => void
   copySystemInfoToClipboard: () => void
   minimizeWindow: () => void
   maximizeWindow: () => void
@@ -136,12 +137,14 @@ interface SyncIPCFunctions {
     title?: string
     art_cover?: string
     art_square?: string
+    art_background?: string
     is_manual?: boolean
   }) => void
   setAllGameOverrides: (overrides: Record<string, {
     title?: string
     art_cover?: string
     art_square?: string
+    art_background?: string
     is_manual?: boolean
   }>) => void
 }
@@ -333,11 +336,17 @@ interface AsyncIPCFunctions {
   isEosOverlayEnabled: (appName?: string) => Promise<boolean>
   downloadRuntime: (runtime_name: RuntimeName) => Promise<boolean>
   isRuntimeInstalled: (runtime_name: RuntimeName) => Promise<boolean>
-  getDMQueueInformation: () => {
-    elements: DMQueueElement[]
-    finished: DMQueueElement[]
-    state: DownloadManagerState
-  }
+  getDMQueueInformation: () =>
+    | Promise<{
+        elements: DMQueueElement[]
+        finished: DMQueueElement[]
+        state: DownloadManagerState
+      }>
+    | {
+        elements: DMQueueElement[]
+        finished: DMQueueElement[]
+        state: DownloadManagerState
+      }
   'get-connectivity-status': () => {
     status: ConnectivityStatus
     retryIn: number
@@ -466,6 +475,8 @@ interface AsyncIPCFunctions {
   setGoogleCredentials: (clientId: string, clientSecret: string) => Promise<void>
   uploadBackupToCloud: (frontendData?: { localStorageData?: Record<string, string> }) => Promise<{ success: boolean; error?: string }>
   downloadBackupFromCloud: () => Promise<{ success: boolean; data?: any; error?: string }>
+  preCacheImages: (urls: string[]) => Promise<void>
+  clearImageCacheNegative: () => Promise<boolean>
 }
 
 interface FrontendMessages {
@@ -479,7 +490,8 @@ interface FrontendMessages {
   ) => void
   changedDMQueueInformation: (
     elements: DMQueueElement[],
-    state: DownloadManagerState
+    state: DownloadManagerState,
+    finished?: DMQueueElement[]
   ) => void
   maximized: () => void
   unmaximized: () => void

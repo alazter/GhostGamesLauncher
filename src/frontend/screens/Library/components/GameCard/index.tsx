@@ -72,6 +72,7 @@ interface Card {
   isSelectedInline?: boolean
   assignedCategory?: string | null
   shouldShowIcons?: boolean
+  priority?: boolean
 }
 
 const storage: Storage = window.localStorage
@@ -132,7 +133,8 @@ const GameCard = ({
   dataTour,
   isSelectedInline = false,
   assignedCategory = null,
-  shouldShowIcons = true
+  shouldShowIcons = true,
+  priority = false
 }: Card) => {
   const { app_name: appName, runner } = gameInfoFromProps
   const gameInfo = gameInfoFromProps
@@ -183,10 +185,12 @@ const GameCard = ({
 
   const { status, folder, label } = hasStatus(gameInfoFromProps, size, progress)
   const isBrowserGame = gameInfoFromProps.install.platform === 'Browser'
-
   const isNew = isGameNew(appName, runner)
 
   const onInstall = () => {
+    if (runner === 'steam') {
+      return window.api.openExternalUrl(`steam://install/${appName}`)
+    }
     if (runner !== 'sideload' && handleGameCardClick) {
       handleGameCardClick(appName, runner, gameInfoFromProps)
     }
@@ -430,7 +434,12 @@ const GameCard = ({
     },
     {
       label: t('button.install'),
-      onclick: () => onInstall(),
+      onclick: () => {
+        if (runner === 'steam') {
+          return window.api.openExternalUrl(`steam://install/${appName}`)
+        }
+        return onInstall()
+      },
       show: !isInstalled && !isQueued && isInstallable,
       icon: <Download />
     },
@@ -606,7 +615,7 @@ const GameCard = ({
           >
             {justPlayed ? (
               <CachedImage
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 src={art_cover || fallBackImage}
                 fallback={fallBackImage}
@@ -615,7 +624,7 @@ const GameCard = ({
               />
             ) : (
               <CachedImage
-                loading="lazy"
+                loading={priority ? 'eager' : 'lazy'}
                 decoding="async"
                 src={getImageFormatting(cover, runner)}
                 fallback={
@@ -629,7 +638,7 @@ const GameCard = ({
             )}
             {(justPlayed || (runner !== 'nile' && runner !== 'steam')) && logo && (
               <CachedImage
-                loading="lazy"
+                loading={priority ? 'eager' : 'lazy'}
                 decoding="async"
                 alt=""
                 src={logo.startsWith('http') ? `${logo}?h=400&resize=1&w=300` : logo}

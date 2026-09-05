@@ -295,6 +295,12 @@ export function InstallGameWrapper() {
     return <></>
   }
 
+  if (installGameModalState.runner === 'steam') {
+    void window.api.openExternalUrl(`steam://install/${installGameModalState.appName}`)
+    closeInstallGameModal()
+    return <></>
+  }
+
   return (
     <InstallModal
       appName={installGameModalState.appName!}

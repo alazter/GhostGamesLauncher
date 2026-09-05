@@ -23,6 +23,8 @@ interface CoversBackupData {
   timestamp: number
   dateString: string
   totalOverrides: number
+  totalVerticalOverrides?: number
+  totalHorizontalOverrides?: number
   overrides: Record<string, any>
 }
 
@@ -36,6 +38,14 @@ export const createCoversBackupSnapshot = async () => {
     const currentOverrides =
       (gameOverridesStore.get('overrides', {}) as Record<string, any>) || {}
 
+    let totalVertical = 0
+    let totalHorizontal = 0
+    for (const key of Object.keys(currentOverrides)) {
+      const item = currentOverrides[key]
+      if (item.art_square) totalVertical++
+      if (item.art_cover || item.art_background) totalHorizontal++
+    }
+
     const now = new Date()
     const backupData: CoversBackupData = {
       timestamp: now.getTime(),
@@ -48,6 +58,8 @@ export const createCoversBackupSnapshot = async () => {
         second: '2-digit'
       }),
       totalOverrides: Object.keys(currentOverrides).length,
+      totalVerticalOverrides: totalVertical,
+      totalHorizontalOverrides: totalHorizontal,
       overrides: { ...currentOverrides }
     }
 
@@ -58,7 +70,7 @@ export const createCoversBackupSnapshot = async () => {
     }
     writeFileSync(backupPath, JSON.stringify(backupData, null, 2), 'utf8')
     logInfo(
-      `[CoversBackup] Snapshot created successfully with ${backupData.totalOverrides} overrides at ${backupData.dateString}`,
+      `[CoversBackup] Snapshot created successfully with ${backupData.totalOverrides} overrides (${totalVertical} verticais, ${totalHorizontal} horizontais) at ${backupData.dateString}`,
       LogPrefix.Backend
     )
     return backupData
@@ -555,7 +567,10 @@ addHandler(
                 ...currentOverrides[game.app_name],
                 title: game.title,
                 art_square: coverData.art_square,
-                art_cover: coverData.art_cover || coverData.art_square
+                art_cover:
+                  currentOverrides[game.app_name]?.art_cover ||
+                  coverData.art_cover ||
+                  coverData.art_square
               }
               updated++
               processed++
@@ -598,11 +613,29 @@ addHandler('steamgriddb.getCoversBackupInfo', () => {
     }
     const content = readFileSync(backupPath, 'utf8')
     const data = JSON.parse(content) as CoversBackupData
+
+    let totalVertical = data.totalVerticalOverrides
+    let totalHorizontal = data.totalHorizontalOverrides
+
+    if (totalVertical === undefined || totalHorizontal === undefined) {
+      totalVertical = 0
+      totalHorizontal = 0
+      if (data.overrides) {
+        for (const key of Object.keys(data.overrides)) {
+          const item = data.overrides[key]
+          if (item.art_square) totalVertical++
+          if (item.art_cover || item.art_background) totalHorizontal++
+        }
+      }
+    }
+
     return {
       hasBackup: true,
       timestamp: data.timestamp,
       date: data.dateString,
-      totalOverrides: data.totalOverrides || 0
+      totalOverrides: data.totalOverrides || 0,
+      totalVerticalOverrides: totalVertical,
+      totalHorizontalOverrides: totalHorizontal
     }
   } catch {
     return { hasBackup: false }
@@ -637,6 +670,18 @@ addHandler('steamgriddb.restoreCoversBackup', async () => {
       LogPrefix.Backend
     )
 
+    let totalVertical = data.totalVerticalOverrides
+    let totalHorizontal = data.totalHorizontalOverrides
+    if (totalVertical === undefined || totalHorizontal === undefined) {
+      totalVertical = 0
+      totalHorizontal = 0
+      for (const key of Object.keys(overridesToRestore)) {
+        const item = overridesToRestore[key]
+        if (item.art_square) totalVertical++
+        if (item.art_cover || item.art_background) totalHorizontal++
+      }
+    }
+
     const { BrowserWindow } = await import('electron')
     for (const win of BrowserWindow.getAllWindows()) {
       if (!win.isDestroyed()) {
@@ -652,7 +697,9 @@ addHandler('steamgriddb.restoreCoversBackup', async () => {
     return {
       success: true,
       date: data.dateString,
-      totalOverrides: data.totalOverrides || 0
+      totalOverrides: data.totalOverrides || 0,
+      totalVerticalOverrides: totalVertical,
+      totalHorizontalOverrides: totalHorizontal
     }
   } catch (err) {
     logError(['[CoversBackup] Failed to restore backup:', err], LogPrefix.Backend)

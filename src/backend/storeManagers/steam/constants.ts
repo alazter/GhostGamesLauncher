@@ -26,10 +26,12 @@ export const IGNORED_STEAM_APP_IDS = new Set([
   '228987',
   '228988',
   '228989',
-  '228990'
+  '228990',
+  '1003800' // Gang Beasts Soundtrack (DLC/Depot sem download ativo)
 ])
 
 export const KNOWN_STEAM_TITLES: Record<string, string> = {
+  '1003800': 'Gang Beasts Soundtrack',
   '10': 'Counter-Strike',
   '20': 'Team Fortress Classic',
   '30': 'Day of Defeat',

@@ -1,12 +1,16 @@
 import { promises as fsPromises, existsSync, writeFile, mkdirSync, readdirSync } from 'graceful-fs'
 import { createHash } from 'crypto'
 import { join } from 'path'
-import { protocol, net } from 'electron'
+import { protocol, net, ipcMain } from 'electron'
 import { appFolder } from './constants/paths'
 
 const imagesCachePath = join(appFolder, 'images-cache')
 const cachedHashes = new Set<string>()
 const failedUrls = new Set<string>()
+
+export const clearImageCacheNegative = () => {
+  failedUrls.clear()
+}
 
 interface MemoryCacheEntry {
   buffer: Buffer
@@ -40,6 +44,11 @@ export const initImagesCache = () => {
 
   protocol.handle('imagecache', async (request) => {
     return getImageFromCache(request)
+  })
+
+  ipcMain.handle('clearImageCacheNegative', () => {
+    failedUrls.clear()
+    return true
   })
 }
 
@@ -103,7 +112,9 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
   } else if (cleanUrl.startsWith('imagecache://')) {
     cleanUrl = cleanUrl.replace('imagecache://', '')
   }
-  const realUrl = decodeURIComponent(cleanUrl)
+  const rawUrl = decodeURIComponent(cleanUrl)
+  // Strip any ?reconnect=N or &reconnect=N query params added by the reconnect engine
+  const realUrl = rawUrl.replace(/[?&]reconnect=\d+/, '').replace(/\?$/, '')
 
   // 1. Instant negative cache check (0ms for known 404s)
   if (failedUrls.has(realUrl)) {
@@ -127,10 +138,25 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
 
   // 3. Local file path on disk
   if (!realUrl.startsWith('http://') && !realUrl.startsWith('https://')) {
-    if (existsSync(realUrl)) {
+    let localPath = realUrl
+    if (localPath.startsWith('file:///')) {
+      localPath = decodeURIComponent(localPath.slice(8))
+    } else if (localPath.startsWith('file://')) {
+      localPath = decodeURIComponent(localPath.slice(7))
+    }
+
+    let resolvedPath = localPath
+    if (!existsSync(resolvedPath)) {
+      const winPath = resolvedPath.replace(/\//g, '\\')
+      if (existsSync(winPath)) {
+        resolvedPath = winPath
+      }
+    }
+
+    if (existsSync(resolvedPath)) {
       try {
-        const buffer = await fsPromises.readFile(realUrl)
-        const mime = detectMimeType(realUrl, buffer)
+        const buffer = await fsPromises.readFile(resolvedPath)
+        const mime = detectMimeType(resolvedPath, buffer)
         setMemoryCache(realUrl, { buffer, mime })
 
         const headers = new Headers()
@@ -184,10 +210,10 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     }
   }
 
-  // 4.3 Remote download with 2.5s network timeout and 0ms negative caching
+  // 4.3 Remote download with 15s network timeout and safe negative caching
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 2500)
+    const timeout = setTimeout(() => controller.abort(), 15000)
 
     const response = await net.fetch(realUrl, {
       headers: getForwardHeaders(request),
@@ -219,17 +245,19 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
       })
     }
 
-    // Cache 404 so subsequent requests respond in 0ms!
-    failedUrls.add(realUrl)
+    // Only cache genuine 404 so subsequent requests respond in 0ms!
+    if (response.status === 404) {
+      failedUrls.add(realUrl)
+    }
     return new Response('Not found', {
-      status: 404,
-      headers: { 'Cache-Control': 'public, max-age=86400' }
+      status: response.status || 404,
+      headers: { 'Cache-Control': response.status === 404 ? 'public, max-age=86400' : 'no-cache' }
     })
   } catch (err) {
-    failedUrls.add(realUrl)
+    // DO NOT blacklist transient timeouts or network interruptions in failedUrls!
     return new Response('Not found', {
       status: 404,
-      headers: { 'Cache-Control': 'public, max-age=86400' }
+      headers: { 'Cache-Control': 'no-cache' }
     })
   }
 }

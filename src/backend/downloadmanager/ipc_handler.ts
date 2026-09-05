@@ -2,6 +2,7 @@ import { addHandler, addListener } from '../ipc'
 import {
   addToQueue,
   cancelCurrentDownload,
+  clearAutoUpdatesFromQueue,
   getQueueInformation,
   pauseCurrentDownload,
   removeFromQueue,
@@ -44,14 +45,11 @@ addHandler('install', async (_e, args) => {
 })
 
 addHandler('updateGame', async (_e, args) => {
-  const {
-    gameInfo: {
-      install: { platform, install_path }
-    }
-  } = args
+  const platform = args.gameInfo?.install?.platform || 'Windows'
+  const install_path = args.gameInfo?.install?.install_path || ''
 
   const dmQueueElement: DMQueueElement = {
-    params: { ...args, path: install_path!, platformToInstall: platform! },
+    params: { ...args, path: install_path, platformToInstall: platform },
     type: 'update',
     addToQueueTime: Date.now(),
     endTime: 0,
@@ -67,4 +65,5 @@ addListener('pauseCurrentDownload', () => pauseCurrentDownload())
 addListener('cancelDownload', (e, removeDownloaded) =>
   cancelCurrentDownload({ removeDownloaded })
 )
+addListener('clearAutoUpdates', () => clearAutoUpdatesFromQueue())
 addHandler('getDMQueueInformation', getQueueInformation)

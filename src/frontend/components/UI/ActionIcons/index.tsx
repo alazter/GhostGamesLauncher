@@ -7,7 +7,8 @@ import {
   faHardDrive as hardDriveSolid,
   faFilter,
   faFilterCircleXmark,
-  faImage
+  faImage,
+  faRotate
 } from '@fortawesome/free-solid-svg-icons'
 import { faHardDrive as hardDriveLight } from '@fortawesome/free-regular-svg-icons'
 
@@ -31,6 +32,21 @@ export default React.memo(function ActionIcons({
   const { t } = useTranslation()
   const { refreshLibrary, refreshing } = useContext(ContextProvider)
   const [showSteamGridModal, setShowSteamGridModal] = useState(false)
+  const [isReconnecting, setIsReconnecting] = useState(false)
+
+  const handleReconnectCovers = async () => {
+    if (isReconnecting) return
+    setIsReconnecting(true)
+    try {
+      if ((window.api as any)?.clearImageCacheNegative) {
+        await (window.api as any).clearImageCacheNegative()
+      }
+    } catch {}
+    window.dispatchEvent(new CustomEvent('heroicReconnectPendingCovers'))
+    setTimeout(() => {
+      setIsReconnecting(false)
+    }, 1500)
+  }
   const [actionIconsGlowMode, setActionIconsGlowMode] = useState<string>(() => {
     return localStorage.getItem('heroic_action_icons_glow_mode') || 'disabled'
   })
@@ -224,14 +240,33 @@ export default React.memo(function ActionIcons({
         </button>
         <button
           className={classNames('FormControl__button', {
+            active: isReconnecting
+          })}
+          title="Reconectar Capas Pendentes (Forçar Carregamento)"
+          onClick={handleReconnectCovers}
+        >
+          <FontAwesomeIcon
+            className="FormControl__segmentedFaIcon"
+            spin={isReconnecting}
+            icon={faRotate}
+          />
+        </button>
+        <button
+          className={classNames('FormControl__button', {
             active: refreshing
           })}
           title={t('generic.library.refresh', 'Refresh Library')}
-          onClick={async () =>
+          onClick={async () => {
+            try {
+              if ((window.api as any)?.clearImageCacheNegative) {
+                await (window.api as any).clearImageCacheNegative()
+              }
+            } catch {}
+            window.dispatchEvent(new CustomEvent('heroicReconnectPendingCovers'))
             refreshLibrary({
               checkForUpdates: true
             })
-          }
+          }}
         >
           <FontAwesomeIcon
             className="FormControl__segmentedFaIcon"

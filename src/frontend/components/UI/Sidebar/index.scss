@@ -6,7 +6,10 @@
   --sidebar-divider-color: var(--divider);
 
   width: var(--sidebar-width);
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  max-height: 100vh;
   z-index: 10;
   display: grid;
   grid-template-rows: min-content 2fr min-content min-content;
@@ -16,7 +19,7 @@
   font-family: var(--secondary-font-family);
   text-align: start;
   background: var(--sidebar-background);
-  overflow: auto;
+  overflow-y: auto;
   overflow-x: hidden;
   -webkit-app-region: drag;
 

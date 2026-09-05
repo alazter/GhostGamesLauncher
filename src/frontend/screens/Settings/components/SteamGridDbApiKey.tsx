@@ -50,6 +50,8 @@ export default function SteamGridDbApiKey() {
     hasBackup: boolean
     date?: string
     totalOverrides?: number
+    totalVerticalOverrides?: number
+    totalHorizontalOverrides?: number
     timestamp?: number
   } | null>(null)
 
@@ -265,7 +267,7 @@ export default function SteamGridDbApiKey() {
                 </div>
                 <span style={{ fontSize: '12px', color: '#a0aec0' }}>
                   📅 Salvo em: <strong style={{ color: '#fff' }}>{backupInfo.date}</strong>{' '}
-                  • {backupInfo.totalOverrides} capas salvas
+                  • {backupInfo.totalVerticalOverrides ?? backupInfo.totalOverrides} capas verticais, {backupInfo.totalHorizontalOverrides ?? 0} capas horizontais (heroes)
                 </span>
               </div>
 

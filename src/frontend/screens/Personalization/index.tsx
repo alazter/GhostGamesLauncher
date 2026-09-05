@@ -13,7 +13,8 @@ import {
   faPaintBrush,
   faPowerOff,
   faQuestionCircle,
-  faClock
+  faClock,
+  faTrash
 } from '@fortawesome/free-solid-svg-icons'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
@@ -659,6 +660,12 @@ export default function PersonalizationScreen() {
       window.dispatchEvent(new Event('customBgChanged'))
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleResetBg = () => {
+    setBgImage(null)
+    localStorage.removeItem('heroic_custom_bg')
+    window.dispatchEvent(new Event('customBgChanged'))
   }
 
   const handleIconUpload = (
@@ -1849,7 +1856,28 @@ export default function PersonalizationScreen() {
       padding: '10px 25px',
       fontSize: '14px',
       fontWeight: 'bold',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    } as React.CSSProperties,
+
+    resetBgBtn: {
+      background: 'rgba(255, 75, 75, 0.12)',
+      color: '#ff8a8a',
+      border: '1px solid rgba(255, 100, 100, 0.3)',
+      borderRadius: '6px',
+      padding: '8px 18px',
+      fontSize: '13px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '7px',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+      marginTop: '4px'
     } as React.CSSProperties,
 
     recommendationText: {
@@ -3635,15 +3663,48 @@ export default function PersonalizationScreen() {
                 </span>
                 <span style={{ fontSize: '14px', color: '#8a9bb0' }}>ou</span>
 
-                <label style={styles.searchFileBtn}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBgUpload}
-                    style={{ display: 'none' }}
-                  />
-                  Pesquisar Arquivo
-                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', width: '100%' }}>
+                  <label style={styles.searchFileBtn}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBgUpload}
+                      style={{ display: 'none' }}
+                    />
+                    Pesquisar Arquivo
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleResetBg}
+                    disabled={!bgImage}
+                    style={{
+                      ...styles.resetBgBtn,
+                      opacity: bgImage ? 1 : 0.4,
+                      cursor: bgImage ? 'pointer' : 'not-allowed'
+                    }}
+                    title={
+                      bgImage
+                        ? 'Restaurar para o background original do Ghost Games Launcher'
+                        : 'O background original já está ativo'
+                    }
+                    onMouseEnter={(e) => {
+                      if (bgImage) {
+                        e.currentTarget.style.background = 'rgba(255, 75, 75, 0.25)'
+                        e.currentTarget.style.borderColor = 'rgba(255, 100, 100, 0.6)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (bgImage) {
+                        e.currentTarget.style.background = 'rgba(255, 75, 75, 0.12)'
+                        e.currentTarget.style.borderColor = 'rgba(255, 100, 100, 0.3)'
+                      }
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTrash} style={{ fontSize: '12px' }} />
+                    Restaurar Background Original
+                  </button>
+                </div>
 
                 <p style={styles.recommendationText}>
                   Nós recomendamos usar uma imagem com a resolução de 1860x950 para

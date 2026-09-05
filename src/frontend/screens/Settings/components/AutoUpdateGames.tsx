@@ -6,7 +6,7 @@ const AutoUpdateGames = () => {
   const { t } = useTranslation()
   const [autoUpdateGames, setAutoUpdateGames] = useSetting(
     'autoUpdateGames',
-    true
+    false
   )
 
   return (

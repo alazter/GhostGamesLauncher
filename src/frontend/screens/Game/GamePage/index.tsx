@@ -284,6 +284,10 @@ export default React.memo(function GamePage(): JSX.Element | null {
   }
 
   function handleModal() {
+    if (runner === 'steam') {
+      void window.api.openExternalUrl(`steam://install/${appName}`)
+      return
+    }
     openInstallGameModal({ appName, runner, gameInfo })
   }
 

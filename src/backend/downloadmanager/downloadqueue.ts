@@ -2,7 +2,7 @@ import { libraryManagerMap } from 'backend/storeManagers'
 import { TypeCheckedStoreBackend } from './../electron_store'
 import { logError, logInfo, LogPrefix, logWarning } from 'backend/logger'
 import { getFileSize, removeFolder, sendGameStatusUpdate } from '../utils'
-import { DMQueueElement, DMStatus, DownloadManagerState } from 'common/types'
+import { DMQueue, DMQueueElement, DMStatus, DownloadManagerState } from 'common/types'
 import { installQueueElement, updateQueueElement } from './utils'
 import { sendFrontendMessage } from '../ipc'
 import { callAbortController } from 'backend/utils/aborthandler/aborthandler'
@@ -12,10 +12,21 @@ import { createRedistDMQueueElement } from 'backend/storeManagers/gog/redist'
 import { existsSync } from 'fs'
 import { gogRedistPath } from 'backend/storeManagers/gog/constants'
 import { onConnectivityChange } from 'backend/online_monitor'
+import { GlobalConfig } from 'backend/config'
+import { SteamQueueWatcher } from 'backend/storeManagers/steam/queueWatcher'
 
 const downloadManager = new TypeCheckedStoreBackend('downloadManager', {
   cwd: 'store',
   name: 'download-manager'
+})
+
+async function emitQueueUpdate() {
+  const info = await getQueueInformation()
+  sendFrontendMessage('changedDMQueueInformation', info.elements, info.state, info.finished)
+}
+
+SteamQueueWatcher.setOnQueueChanged(async () => {
+  await emitQueueUpdate()
 })
 
 /*
@@ -48,7 +59,7 @@ function isPaused(): boolean {
 }
 
 function isIdle(): boolean {
-  return queueState === 'idle' || !currentElement
+  return queueState === 'idle'
 }
 
 function isRunning(): boolean {
@@ -80,9 +91,26 @@ function addToFinished(element: DMQueueElement, status: DMStatus) {
 */
 
 async function initQueue() {
+  SteamQueueWatcher.startWatcher()
   let element = getFirstQueueElement()
 
   while (element) {
+    if (element.params.runner === 'steam') {
+      await removeFromQueue(element.params.appName)
+      element = getFirstQueueElement()
+      continue
+    }
+
+    if (element.type === 'update' && !GlobalConfig.get().getSettings().autoUpdateGames) {
+      logInfo(
+        `Skipping auto-update for ${element.params.gameInfo?.title || element.params.appName} because auto-updates are disabled`,
+        LogPrefix.DownloadManager
+      )
+      await removeFromQueue(element.params.appName)
+      element = getFirstQueueElement()
+      continue
+    }
+
     const queuedElements = downloadManager.get('queue', [])
     element.startTime = Date.now()
     queuedElements[0] = element
@@ -91,7 +119,7 @@ async function initQueue() {
     currentElement = element
 
     queueState = 'running'
-    sendFrontendMessage('changedDMQueueInformation', queuedElements, queueState)
+    await emitQueueUpdate()
 
     const { status } =
       element.type === 'install'
@@ -103,7 +131,7 @@ async function initQueue() {
 
     if (!isPaused()) {
       addToFinished(element, status)
-      removeFromQueue(element.params.appName)
+      await removeFromQueue(element.params.appName)
       element = getFirstQueueElement()
     } else {
       element = null
@@ -112,7 +140,9 @@ async function initQueue() {
 
   if (queueState !== 'paused') {
     queueState = 'idle'
+    currentElement = null
   }
+  await emitQueueUpdate()
 }
 
 async function addToQueue(element: DMQueueElement) {
@@ -188,24 +218,28 @@ async function addToQueue(element: DMQueueElement) {
     LogPrefix.DownloadManager
   )
 
-  sendFrontendMessage('changedDMQueueInformation', elements, queueState)
+  await emitQueueUpdate()
 
   if (isIdle()) {
     void initQueue()
   }
 }
 
-function removeFromQueue(appName: string) {
-  if (appName && downloadManager.has('queue')) {
-    const elements = downloadManager.get('queue', [])
-    const index = elements.findIndex(
-      (queueElement) => queueElement?.params.appName === appName
-    )
-    if (index !== -1) {
-      elements.splice(index, 1)
-      downloadManager.delete('queue')
-      downloadManager.set('queue', elements)
+async function removeFromQueue(appName: string) {
+  if (appName) {
+    if (downloadManager.has('queue')) {
+      const elements = downloadManager.get('queue', [])
+      const index = elements.findIndex(
+        (queueElement) => queueElement?.params.appName === appName
+      )
+      if (index !== -1) {
+        elements.splice(index, 1)
+        downloadManager.delete('queue')
+        downloadManager.set('queue', elements)
+      }
     }
+
+    SteamQueueWatcher.dismissApp(appName)
 
     sendGameStatusUpdate({
       appName,
@@ -217,32 +251,130 @@ function removeFromQueue(appName: string) {
       LogPrefix.DownloadManager
     )
 
-    sendFrontendMessage('changedDMQueueInformation', elements, queueState)
+    await emitQueueUpdate()
   }
 }
 
-function getQueueInformation() {
-  const elements = downloadManager.get('queue', [])
+async function removeFromFinished(appName: string) {
+  if (!appName) return
   const finished = downloadManager.get('finished', [])
-
-  return { elements, finished, state: queueState }
+  const filtered = finished.filter((f) => f.params?.appName !== appName)
+  if (filtered.length !== finished.length) {
+    downloadManager.set('finished', filtered)
+  }
 }
 
-function cancelCurrentDownload({ removeDownloaded = false }) {
-  if (currentElement) {
+async function getQueueInformation(): Promise<DMQueue> {
+  const elements = downloadManager.get('queue', [])
+  const finished = downloadManager.get('finished', [])
+  const finishedAppNames = new Set(finished.map((f) => f.params.appName))
+
+  try {
+    SteamQueueWatcher.startWatcherIfNeeded()
+    const steamState = await SteamQueueWatcher.getSteamDownloadState()
+
+    // 1. Determine active element
+    let activeElement: DMQueueElement | null = null
+
+    if (currentElement && queueState !== 'idle' && currentElement.params.runner !== 'steam') {
+      activeElement = currentElement
+    } else if (
+      steamState.active &&
+      !SteamQueueWatcher.isDismissed(steamState.active.params.appName)
+    ) {
+      activeElement = steamState.active
+    } else if (elements.length > 0 && queueState === 'running') {
+      activeElement = elements[0]
+    }
+
+    // Determine state
+    const isSteamPaused = Boolean(
+      (steamState.active &&
+        steamState.rawActive &&
+        steamState.rawActive.isPaused) ||
+      (steamState.active &&
+        SteamQueueWatcher.isUserPaused(steamState.active.params.appName))
+    )
+    const effectiveState: DownloadManagerState =
+      queueState === 'paused' || isSteamPaused
+        ? 'paused'
+        : activeElement
+        ? 'running'
+        : 'idle'
+
+    // 2. Gather candidates for queue (all non-active elements)
+    const activeAppName = activeElement?.params.appName
+
+    // Heroic queue items (excluding active and finished)
+    const heroicQueueCandidates = elements.filter(
+      (el) => el.params.appName !== activeAppName && !finishedAppNames.has(el.params.appName)
+    )
+
+    // Steam queue items (excluding active and dismissed)
+    const steamQueueCandidates: DMQueueElement[] = []
+
+    if (
+      steamState.active &&
+      steamState.active.params.appName !== activeAppName &&
+      !SteamQueueWatcher.isDismissed(steamState.active.params.appName)
+    ) {
+      steamQueueCandidates.push(steamState.active)
+    }
+
+    for (const sq of steamState.queue) {
+      if (
+        sq.params.appName !== activeAppName &&
+        !SteamQueueWatcher.isDismissed(sq.params.appName)
+      ) {
+        steamQueueCandidates.push(sq)
+      }
+    }
+
+    // 3. Strict deduplication of queue items by appName
+    const dedupedQueue: DMQueueElement[] = []
+    const seenAppNames = new Set<string>()
+    if (activeAppName) {
+      seenAppNames.add(activeAppName)
+    }
+
+    for (const item of [...heroicQueueCandidates, ...steamQueueCandidates]) {
+      const id = item.params.appName
+      if (!seenAppNames.has(id)) {
+        seenAppNames.add(id)
+        dedupedQueue.push(item)
+      }
+    }
+
+    const allElements = activeElement
+      ? [activeElement, ...dedupedQueue]
+      : dedupedQueue
+
+    return {
+      elements: allElements,
+      finished,
+      state: effectiveState
+    }
+  } catch (err) {
+    logWarning(['Failed to scan Steam download state:', err], LogPrefix.DownloadManager)
+    return { elements, finished, state: queueState }
+  }
+}
+
+async function cancelCurrentDownload({ removeDownloaded = false }) {
+  if (currentElement && currentElement.params.runner !== 'steam') {
     if (Array.isArray(currentElement.params.installDlcs)) {
       const dlcsToRemove = currentElement.params.installDlcs
       for (const dlc of dlcsToRemove) {
-        removeFromQueue(dlc)
+        await removeFromQueue(dlc)
       }
     }
     if (isRunning()) {
       stopCurrentDownload()
     }
-    removeFromQueue(currentElement.params.appName)
+    await removeFromQueue(currentElement.params.appName)
 
     if (removeDownloaded) {
-      const { appName, runner } = currentElement.params
+      const { runner, appName } = currentElement.params
       const { folder_name } = libraryManagerMap[runner]
         .getGame(appName)
         .getGameInfo()
@@ -251,25 +383,71 @@ function cancelCurrentDownload({ removeDownloaded = false }) {
       }
     }
     currentElement = null
+  } else {
+    try {
+      const steamState = await SteamQueueWatcher.getSteamDownloadState()
+      const steamAppId =
+        currentElement?.params?.runner === 'steam'
+          ? currentElement.params.appName
+          : steamState.active?.params?.appName
+      if (steamAppId) {
+        SteamQueueWatcher.dismissApp(steamAppId)
+      }
+    } catch {}
+    currentElement = null
   }
+
+  queueState = 'idle'
+  await emitQueueUpdate()
 }
 
-function pauseCurrentDownload() {
-  if (currentElement) {
-    stopCurrentDownload()
-  }
+async function pauseCurrentDownload() {
   queueState = 'paused'
   autoPaused = false
-  sendFrontendMessage(
-    'changedDMQueueInformation',
-    downloadManager.get('queue', []),
-    queueState
-  )
+
+  if (currentElement && currentElement.params.runner !== 'steam') {
+    stopCurrentDownload()
+  } else {
+    try {
+      const steamState = await SteamQueueWatcher.getSteamDownloadState()
+      const steamAppId =
+        currentElement?.params?.runner === 'steam'
+          ? currentElement.params.appName
+          : steamState.active?.params?.appName
+      if (steamAppId) {
+        await SteamQueueWatcher.pauseApp(steamAppId)
+      }
+    } catch {}
+  }
+
+  await emitQueueUpdate()
 }
 
-function resumeCurrentDownload() {
+async function resumeCurrentDownload() {
+  queueState = 'running'
   autoPaused = false
-  void initQueue()
+
+  if (currentElement && currentElement.params.runner !== 'steam') {
+    void initQueue()
+  } else {
+    try {
+      const steamState = await SteamQueueWatcher.getSteamDownloadState()
+      const steamAppId =
+        currentElement?.params?.runner === 'steam'
+          ? currentElement.params.appName
+          : steamState.active?.params?.appName
+
+      if (steamAppId) {
+        await SteamQueueWatcher.resumeApp(steamAppId)
+      } else {
+        void initQueue()
+      }
+    } catch {
+      void initQueue()
+    }
+  }
+
+  await emitQueueUpdate()
 }
 
 function stopCurrentDownload() {
@@ -332,13 +510,31 @@ function processNotification(element: DMQueueElement, status: DMStatus) {
   }
 }
 
+async function clearAutoUpdatesFromQueue() {
+  const elements = downloadManager.get('queue', [])
+  const filtered = elements.filter((el) => el.type !== 'update')
+  downloadManager.set('queue', filtered)
+
+  if (currentElement && currentElement.type === 'update') {
+    logInfo('Stopping active auto-update as autoUpdateGames was disabled', LogPrefix.DownloadManager)
+    await cancelCurrentDownload({ removeDownloaded: false })
+  }
+
+  await emitQueueUpdate()
+  logInfo(`Cleared auto-updates from queue. Remaining elements: ${filtered.length}`, LogPrefix.DownloadManager)
+}
+
 export {
   initQueue,
   addToQueue,
   removeFromQueue,
+  removeFromFinished,
+  addToFinished,
   getQueueInformation,
   cancelCurrentDownload,
   pauseCurrentDownload,
   resumeCurrentDownload,
-  isRunning
+  clearAutoUpdatesFromQueue,
+  isRunning,
+  emitQueueUpdate
 }

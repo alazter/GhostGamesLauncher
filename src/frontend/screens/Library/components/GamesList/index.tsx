@@ -1197,6 +1197,7 @@ const GamesList = ({
                       isSelectedInline={isSelectedInline}
                       assignedCategory={assignedCategory}
                       shouldShowIcons={shouldShowIcons}
+                      priority={isFirstLane || isRecent || isFavourite || index < 36}
                     />
                   </div>
                 </div>

@@ -30,6 +30,20 @@ export class SteamUser {
     if (isWindows) {
       try {
         const { stdout } = await execAsync(
+          'reg query "HKCU\\Software\\Valve\\Steam" /v SteamPath'
+        )
+        const match = stdout.match(/SteamPath\s+REG_SZ\s+(.*)/i)
+        if (match) {
+          const regPath = match[1].trim().replace(/\//g, '\\')
+          if (regPath && existsSync(regPath)) {
+            this.cachedSteamPath = regPath
+            return regPath
+          }
+        }
+      } catch {}
+
+      try {
+        const { stdout } = await execAsync(
           'powershell -NoProfile -Command "(Get-ItemProperty -Path HKCU:\\Software\\Valve\\Steam).SteamPath"'
         )
         const regPath = stdout.trim().replace(/\//g, '\\')

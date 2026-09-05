@@ -44,4 +44,7 @@ export const getGoogleCredentials = makeHandlerInvoker('getGoogleCredentials')
 export const setGoogleCredentials = makeHandlerInvoker('setGoogleCredentials')
 export const uploadBackupToCloud = makeHandlerInvoker('uploadBackupToCloud')
 export const downloadBackupFromCloud = makeHandlerInvoker('downloadBackupFromCloud')
+export const preCacheImages = makeHandlerInvoker('preCacheImages')
+export const clearImageCacheNegative = makeHandlerInvoker('clearImageCacheNegative')
+
 

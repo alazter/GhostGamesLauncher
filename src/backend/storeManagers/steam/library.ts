@@ -140,6 +140,9 @@ export default class SteamLibraryManager implements LibraryManager {
             const installDirName = (appState.installdir || appState.installdir || '').trim()
             const installDir = installDirName ? join(steamappsDir, 'common', installDirName) : ''
             const size = parseInt(appState.SizeOnDisk || appState.sizeondisk || '0', 10) || 0
+            const stateFlags = parseInt(appState.StateFlags || appState.stateflags || '0', 10) || 0
+            const bytesDownloaded = parseInt(appState.BytesDownloaded || appState.bytesdownloaded || '0', 10) || 0
+            const bytesToDownload = parseInt(appState.BytesToDownload || appState.bytestodownload || '0', 10) || 0
 
             const lowerTitle = title.toLowerCase()
             if (
@@ -149,6 +152,19 @@ export default class SteamLibraryManager implements LibraryManager {
               lowerTitle.includes('dedicated server') ||
               lowerTitle.includes('soundtrack')
             ) {
+              continue
+            }
+
+            // Game is ONLY fully installed if:
+            // 1. StateFlags has flag 4 (StateFullyInstalled)
+            // 2. Download is complete (bytes downloaded >= bytesToDownload)
+            // 3. Size on disk > 0 (not an empty residual manifest or in-progress download)
+            const isFullyInstalled =
+              (stateFlags & 4) !== 0 &&
+              (bytesToDownload === 0 || bytesDownloaded >= bytesToDownload) &&
+              size > 0
+
+            if (!isFullyInstalled) {
               continue
             }
 

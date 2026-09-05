@@ -18,7 +18,11 @@ import {
   killSteamGameProcesses,
   findGameExecutables
 } from './processWatcher'
+import { join } from 'path'
+import { existsSync } from 'fs'
 import { SteamDownloader } from './downloader'
+import { SteamQueueWatcher } from './queueWatcher'
+import { SteamUser } from './user'
 
 export default class SteamGame implements Game {
   private readonly id: string
@@ -88,7 +92,7 @@ export default class SteamGame implements Game {
     })
 
     const url = STEAM_PROTOCOL.runGame(this.id)
-    await shell.openExternal(url)
+    await SteamQueueWatcher.triggerSteamUrl(url)
 
     const success = await watchSteamGameSession({
       appId: this.id,
@@ -110,24 +114,26 @@ export default class SteamGame implements Game {
     return success
   }
 
+  private async triggerSteamUrl(url: string): Promise<void> {
+    await SteamQueueWatcher.triggerSteamUrl(url)
+  }
+
   async install(): Promise<InstallResult> {
     logInfo(`Initiating Steam install for ${this.id}`, LogPrefix.Steam)
+    SteamQueueWatcher.undismissApp(this.id)
+    SteamQueueWatcher.trackPendingInstall(this.id)
     const url = `steam://install/${this.id}`
-    try {
-      await shell.openExternal(url)
-    } catch {
-      if (process.platform === 'win32') {
-        const { exec } = await import('child_process')
-        exec(`start "" "${url}"`)
-      }
-    }
-    return { status: 'done' }
+    await this.triggerSteamUrl(url)
+    SteamQueueWatcher.startWatcher()
+    return SteamQueueWatcher.waitForCompletion(this.id)
   }
 
   async stop(): Promise<void> {
     logInfo(`Stop requested for Steam game ${this.id}`, LogPrefix.Steam)
     this.isStopping = true
     SteamDownloader.cancelDownload(this.id)
+    SteamQueueWatcher.dismissApp(this.id)
+    await SteamQueueWatcher.pauseApp(this.id)
 
     const gameInfo = this.getGameInfo()
     const installDir = gameInfo.install?.install_path || ''
@@ -146,7 +152,7 @@ export default class SteamGame implements Game {
 
   async uninstall(): Promise<ExecResult> {
     const url = `steam://uninstall/${this.id}`
-    await shell.openExternal(url)
+    await this.triggerSteamUrl(url)
     return { stdout: '', stderr: '' }
   }
 
@@ -157,7 +163,7 @@ export default class SteamGame implements Game {
   async repair(): Promise<ExecResult> {
     logInfo(`Repair requested for Steam game ${this.id}`, LogPrefix.Steam)
     const url = `steam://validate/${this.id}`
-    await shell.openExternal(url)
+    await this.triggerSteamUrl(url)
     void SteamDownloader.watchDownload(this.id)
     return { stdout: '', stderr: '' }
   }
@@ -165,7 +171,7 @@ export default class SteamGame implements Game {
   async update(): Promise<InstallResult> {
     logInfo(`Update requested for Steam game ${this.id}`, LogPrefix.Steam)
     const url = `steam://validate/${this.id}`
-    await shell.openExternal(url)
+    await this.triggerSteamUrl(url)
     return SteamDownloader.watchDownload(this.id)
   }
 

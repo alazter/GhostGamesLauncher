@@ -136,8 +136,6 @@ const syncFrontendStoreForOverride = (
   }
 }
 
-const SHOW_HORIZONTAL_BANNER = false
-
 export default function InlineGameSettings({ game, onClose }: Props) {
   const { t, i18n } = useTranslation('gamepage')
   const { showDialogModal, refreshLibrary } = useContext(ContextProvider)
@@ -833,12 +831,13 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           border: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
           padding: '16px',
-          marginTop: '-9px',
+          marginTop: '0px',
           marginRight: '15px',
-          marginBottom: '20px',
-          height: 'calc(100% - 11px)',
+          marginBottom: '4px',
+          height: 'calc(100% - 4px)',
           minHeight: 0,
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          overflow: 'hidden'
         }}
       >
         <div style={{ display: 'flex', gap: '0px', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -856,7 +855,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             {/* Capa Vertical */}
             <div style={{ marginBottom: '16px' }}>
               <span style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
-                Capa Vertical
+                Capa Vertical (Poster)
               </span>
               <div
                 style={{
@@ -864,46 +863,46 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                   cursor: 'pointer',
                   borderRadius: '10px',
                   overflow: 'hidden',
-                  border: '3px solid rgba(255, 255, 255, 0.08)',
+                  border: inlineSgdbTarget === 'square' ? '3px solid #3cf2e6' : '3px solid rgba(255, 255, 255, 0.08)',
                   transition: 'all 0.2s ease',
-                  transform: 'none',
-                  boxShadow: 'none'
+                  transform: inlineSgdbTarget === 'square' ? 'scale(1.02)' : 'none',
+                  boxShadow: inlineSgdbTarget === 'square' ? '0 0 15px rgba(60, 242, 230, 0.35)' : 'none'
                 }}
                 onClick={() => setInlineSgdbTarget('square')}
+                title="Clique para buscar e selecionar Capas Verticais (Grids) no SteamGridDB"
               >
                 <CachedImage
                   style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }}
-                  src={editSquare || fallbackImage}
+                  src={editSquare || gameOverride?.art_square || game.overrides?.art_square || game.art_square || fallbackImage}
                 />
               </div>
             </div>
 
-            {/* Banner Horizontal */}
-            {SHOW_HORIZONTAL_BANNER && (
-              <div style={{ marginBottom: '16px' }}>
-                <span style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
-                  Banner Horizontal
-                </span>
-                <div
-                  style={{
-                    position: 'relative',
-                    cursor: 'pointer',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                    border: inlineSgdbTarget === 'cover' ? '3px solid #3cf2e6' : '3px solid rgba(255, 255, 255, 0.08)',
-                    transition: 'all 0.2s ease',
-                    transform: inlineSgdbTarget === 'cover' ? 'scale(1.02)' : 'none',
-                    boxShadow: inlineSgdbTarget === 'cover' ? '0 0 15px rgba(60, 242, 230, 0.35)' : 'none'
-                  }}
-                  onClick={() => setInlineSgdbTarget('cover')}
-                >
-                  <CachedImage
-                    style={{ width: '100%', aspectRatio: '1600/650', objectFit: 'cover', display: 'block' }}
-                    src={editCover || editSquare || fallbackImage}
-                  />
-                </div>
+            {/* Banner Horizontal (Hero) */}
+            <div style={{ marginBottom: '16px' }}>
+              <span style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '8px' }}>
+                Banner Horizontal (Hero)
+              </span>
+              <div
+                style={{
+                  position: 'relative',
+                  cursor: 'pointer',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  border: inlineSgdbTarget === 'cover' ? '3px solid #3cf2e6' : '3px solid rgba(255, 255, 255, 0.08)',
+                  transition: 'all 0.2s ease',
+                  transform: inlineSgdbTarget === 'cover' ? 'scale(1.02)' : 'none',
+                  boxShadow: inlineSgdbTarget === 'cover' ? '0 0 15px rgba(60, 242, 230, 0.35)' : 'none'
+                }}
+                onClick={() => setInlineSgdbTarget('cover')}
+                title="Clique para buscar e selecionar Banners Horizontais (Heroes) no SteamGridDB"
+              >
+                <CachedImage
+                  style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }}
+                  src={editCover || gameOverride?.art_cover || game.overrides?.art_cover || game.art_cover || fallbackImage}
+                />
               </div>
-            )}
+            </div>
 
             {/* Informações do Jogo */}
             <div style={{
@@ -1076,10 +1075,10 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           border: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
           padding: '16px',
-          marginTop: '-9px',
+          marginTop: '0px',
           marginRight: '15px',
-          marginBottom: '20px',
-          height: 'calc(100% - 11px)',
+          marginBottom: '4px',
+          height: 'calc(100% - 4px)',
           minHeight: 0,
           boxSizing: 'border-box',
           overflow: 'hidden'

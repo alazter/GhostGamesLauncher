@@ -74,12 +74,12 @@ export function setGameOverrides(
       GameMetadataOverride
     >
 
-    if (!override.art_cover && !override.art_square) {
+    if (!override.art_cover && !override.art_square && !override.art_background) {
       removeImagesForApp(appName)
     }
 
     // If override is empty, remove it and drop any stored image files.
-    if (!override.title && !override.art_cover && !override.art_square) {
+    if (!override.title && !override.art_cover && !override.art_square && !override.art_background) {
       delete currentOverrides[appName]
     } else {
       currentOverrides[appName] = {
@@ -125,8 +125,8 @@ export function setAllGameOverrides(overrides: Record<string, GameMetadataOverri
       const prev = previousOverrides[appName]
       const next = overrides[appName]
       if (
-        (prev.art_cover || prev.art_square) &&
-        (!next || (!next.art_cover && !next.art_square))
+        (prev.art_cover || prev.art_square || prev.art_background) &&
+        (!next || (!next.art_cover && !next.art_square && !next.art_background))
       ) {
         removeImagesForApp(appName)
       }

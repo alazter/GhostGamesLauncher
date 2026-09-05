@@ -243,6 +243,7 @@
             "type": "Tipo"
         },
         "title": "Downloads",
+        "auto-update": "Atualizações automáticas",
         "ETA": "Tempo estimado"
     },
     "epic": {

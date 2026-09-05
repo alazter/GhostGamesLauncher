@@ -7,6 +7,7 @@ import SteamLibraryManager from 'backend/storeManagers/steam/library'
 
 import { logInfo, RunnerToLogPrefixMap } from 'backend/logger'
 import { addToQueue } from 'backend/downloadmanager/downloadqueue'
+import { GlobalConfig } from 'backend/config'
 
 import type { DMQueueElement, GameInfo, Runner } from 'common/types'
 import type { LibraryManager } from 'common/types/game_manager'
@@ -21,17 +22,17 @@ export const libraryManagerMap = {
 } satisfies Record<Runner, LibraryManager>
 
 function getDMElement(gameInfo: GameInfo, appName: string) {
-  const {
-    install: { install_path, platform },
-    runner
-  } = gameInfo
+  const platform = gameInfo.install?.platform || 'Windows'
+  const install_path = gameInfo.install?.install_path || ''
+  const runner = gameInfo.runner
+
   const dmQueueElement: DMQueueElement = {
     params: {
       appName,
       gameInfo,
       runner,
-      path: install_path!,
-      platformToInstall: platform!
+      path: install_path,
+      platformToInstall: platform
     },
     type: 'update',
     addToQueueTime: Date.now(),
@@ -42,7 +43,14 @@ function getDMElement(gameInfo: GameInfo, appName: string) {
 }
 
 export function autoUpdate(runner: Runner, gamesToUpdate: string[]) {
+  const { autoUpdateGames } = GlobalConfig.get().getSettings()
   const logPrefix = RunnerToLogPrefixMap[runner]
+
+  if (!autoUpdateGames) {
+    logInfo('Auto-update disabled in settings, skipping.', logPrefix)
+    return gamesToUpdate
+  }
+
   gamesToUpdate.forEach(async (appName) => {
     const game = libraryManagerMap[runner].getGame(appName)
     const { ignoreGameUpdates } = await game.getSettings()

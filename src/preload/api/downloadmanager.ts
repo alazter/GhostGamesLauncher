@@ -8,3 +8,4 @@ export const handleDMQueueInformation = frontendListenerSlot('changedDMQueueInfo
 export const cancelDownload = makeListenerCaller('cancelDownload')
 export const resumeCurrentDownload = makeListenerCaller('resumeCurrentDownload')
 export const pauseCurrentDownload = makeListenerCaller('pauseCurrentDownload')
+export const clearAutoUpdates = makeListenerCaller('clearAutoUpdates')

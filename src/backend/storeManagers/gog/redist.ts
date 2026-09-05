@@ -97,10 +97,10 @@ export async function checkForRedistUpdates() {
 }
 
 async function pushRedistUpdateToQueue() {
-  const currentQueue = getQueueInformation()
+  const currentQueue = await getQueueInformation()
 
   const currentRedistElement = currentQueue.elements.find(
-    (element) => element.params.appName === 'gog-redist'
+    (element: DMQueueElement) => element.params.appName === 'gog-redist'
   )
 
   if (currentRedistElement) {

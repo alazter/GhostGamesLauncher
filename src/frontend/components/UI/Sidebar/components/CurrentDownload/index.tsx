@@ -34,12 +34,13 @@ export default React.memo(function CurrentDownload({ appName, runner }: Props) {
       ) {
         title = 'EOS Overlay'
       } else {
-        title = (await getGameInfo(appName, runner))!.title
+        const info = await getGameInfo(appName, runner)
+        title = info?.title || appName
       }
-      setGameTitle(title)
+      setGameTitle(title || appName)
     }
     getGameTitle()
-  }, [appName])
+  }, [appName, runner])
 
   function getStatus() {
     return progress.percent && progress.percent > 98

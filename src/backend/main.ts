@@ -677,6 +677,10 @@ if (!gotTheLock) {
 
     initTrayIcon(mainWindow)
 
+    void import('./storeManagers/steam/queueWatcher').then(({ SteamQueueWatcher }) => {
+      SteamQueueWatcher.startWatcher()
+    })
+
     return
   })
 }
@@ -691,6 +695,10 @@ addOneTimeListener('frontendReady', () => {
   if (isCLINoGui) {
     return
   }
+
+  void import('./storeManagers/steam/queueWatcher').then(({ SteamQueueWatcher }) => {
+    SteamQueueWatcher.startWatcher()
+  })
 
   setTimeout(() => {
     logInfo('Starting the Download Queue', LogPrefix.Backend)
@@ -835,7 +843,39 @@ app.on('open-url', (event, url) => {
   }
 })
 
-addListener('openExternalUrl', async (event, url) => openUrlOrFile(url))
+addListener('openExternalUrl', async (event, url) => {
+  logInfo([`openExternalUrl invoked with: ${url}`], LogPrefix.Backend)
+  if (url.startsWith('steam://install/')) {
+    const appId = url.replace('steam://install/', '').replace(/\/$/, '')
+    try {
+      const { SteamQueueWatcher } = await import('./storeManagers/steam/queueWatcher')
+      SteamQueueWatcher.undismissApp(appId)
+      SteamQueueWatcher.trackPendingInstall(appId)
+      const { removeFromFinished, emitQueueUpdate } = await import('./downloadmanager/downloadqueue')
+      await removeFromFinished(appId)
+      sendGameStatusUpdate({
+        appName: appId,
+        runner: 'steam',
+        status: 'installing'
+      })
+      await SteamQueueWatcher.triggerSteamUrl(url)
+      void emitQueueUpdate()
+      void SteamQueueWatcher.startWatcherIfNeeded()
+      return
+    } catch (err) {
+      logError(['Error handling steam install url:', err], LogPrefix.Steam)
+    }
+  } else if (url.startsWith('steam://')) {
+    try {
+      const { SteamQueueWatcher } = await import('./storeManagers/steam/queueWatcher')
+      await SteamQueueWatcher.triggerSteamUrl(url)
+      return
+    } catch (err) {
+      logError(['Error handling steam url:', err], LogPrefix.Steam)
+    }
+  }
+  return openUrlOrFile(url)
+})
 addListener('openFolder', async (event, folder) => openUrlOrFile(folder))
 addListener('openSupportPage', async () => openUrlOrFile(supportURL))
 addListener('openReleases', async () => openUrlOrFile(heroicGithubURL))
@@ -1150,8 +1190,30 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
     if (Array.isArray(backupData.sideloadedGames)) {
       libraryStore.set('games', backupData.sideloadedGames)
     }
+    if (Array.isArray(backupData.steamGames)) {
+      try {
+        const { libraryStore: steamLibraryStore } = await import(
+          './storeManagers/steam/electronStores'
+        )
+        steamLibraryStore.set('games', backupData.steamGames)
+      } catch (err) {
+        logWarning(['Failed to restore steam games from backup:', err], LogPrefix.Backend)
+      }
+    }
     if (backupData.gameOverrides) {
       gameOverridesStore.set('overrides', backupData.gameOverrides)
+      sendFrontendMessage('metadataChanged', backupData.gameOverrides)
+    }
+    if (backupData.coversBackup) {
+      try {
+        const { join } = await import('path')
+        const { writeFileSync } = await import('graceful-fs')
+        const { userDataPath } = await import('./constants/paths')
+        const coversBackupPath = join(userDataPath, 'store', 'covers-backup.json')
+        writeFileSync(coversBackupPath, JSON.stringify(backupData.coversBackup, null, 2), 'utf8')
+      } catch (err) {
+        logWarning(['Failed to restore covers backup file:', err], LogPrefix.Backend)
+      }
     }
     if (Array.isArray(backupData.blacklist)) {
       await clearBlacklist()
@@ -1421,6 +1483,11 @@ addListener('setSetting', (event, { appName, key, value }) => {
         curSettings.startAtLogin === true,
         curSettings.startInTray === true
       )
+    }
+    if (key === 'autoUpdateGames' && value === false) {
+      import('backend/downloadmanager/downloadqueue').then(({ clearAutoUpdatesFromQueue }) => {
+        clearAutoUpdatesFromQueue()
+      }).catch(() => {})
     }
   } else {
     GameConfig.get(appName).setSetting(key, value)
@@ -1938,8 +2005,8 @@ addHandler('exportScanLog', async (e, text: string) => {
 })
 
 addListener('setGameMetadataOverride', (e, args) => {
-  const { appName, title, art_cover, art_square, is_manual } = args
-  setGameOverrides(appName, { title, art_cover, art_square, is_manual: is_manual ?? true })
+  const { appName, title, art_cover, art_square, art_background, is_manual } = args
+  setGameOverrides(appName, { title, art_cover, art_square, art_background, is_manual: is_manual ?? true })
   sendFrontendMessage('metadataChanged', getAllGameOverrides())
 })
 

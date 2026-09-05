@@ -412,7 +412,8 @@
             "start-time": "Started at",
             "type": "Type"
         },
-        "title": "Downloads"
+        "title": "Downloads",
+        "auto-update": "Auto updates"
     },
     "emptyLibrary": {
         "noGames": "Your library is empty.<br /><br />Click <4>here</4> to log in with your Epic, GOG.com, or Amazon accounts. Then, your games will show up here in the Library.<br /><br />To use games or apps from other sources, click <br /> to add them manually.",
