@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import classNames from 'classnames'
+import { observeImageVisibility } from 'frontend/helpers/imageVisibilityObserver'
+
+const PLACEHOLDER_SRC = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="173" height="275"></svg>'
 
 interface CachedImageProps {
   src: string
@@ -79,26 +82,9 @@ const CachedImage = (props: Props) => {
     const el = imgRef.current
     if (!el) return
 
-    const scrollContainer = document.getElementById('games-scroll-area')
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setIsInView(true)
-            observer.disconnect()
-            break
-          }
-        }
-      },
-      {
-        root: scrollContainer || null,
-        rootMargin: '800px 0px'
-      }
-    )
-
-    observer.observe(el)
-    return () => observer.disconnect()
+    return observeImageVisibility(el, () => {
+      setIsInView(true)
+    })
   }, [isEager, isInView])
 
   // Ouvinte do comando global de Reconectar Capas Pendentes
@@ -152,7 +138,7 @@ const CachedImage = (props: Props) => {
     ? reconnectCount > 0 && displaySrc
       ? `${displaySrc}${displaySrc.includes('?') ? '&' : '?'}reconnect=${reconnectCount}`
       : displaySrc
-    : undefined
+    : PLACEHOLDER_SRC
 
   return (
     <img
@@ -162,10 +148,10 @@ const CachedImage = (props: Props) => {
       {...rest}
       src={finalSrc}
       onLoad={(e) => {
-        if (displaySrc) {
+        if (isInView && displaySrc) {
           loadedUrls.add(displaySrc)
+          setLoaded(true)
         }
-        setLoaded(true)
         props.onLoad?.(e)
       }}
       onError={(e) => {

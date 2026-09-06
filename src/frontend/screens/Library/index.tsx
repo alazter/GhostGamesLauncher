@@ -53,6 +53,7 @@ import HeroPanel from './components/HeroPanel'
 import InlineGameSettings from './components/InlineGameSettings'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { configStore } from 'frontend/helpers/electronStores'
+import { sweepVisibleImages } from 'frontend/helpers/imageVisibilityObserver'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCloud, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
@@ -249,69 +250,94 @@ export default memo(function Library(): JSX.Element {
     let lastMenuNode: Element | null = null
 
     const getOpenMenu = () => {
-      const menus = Array.from(
-        document.querySelectorAll('.contexify, .react-contexify, [role="menu"]')
-      ).filter((el) => {
-        const style = window.getComputedStyle(el)
-        return (
-          style.display !== 'none' &&
-          style.visibility !== 'hidden' &&
-          style.opacity !== '0'
-        )
-      })
-      return menus[menus.length - 1]
+      // Fast check: react-contexify only adds .contexify--show when active
+      const visibleMenu = document.querySelector(
+        '.contexify--show, .react-contexify.contexify--show, [role="menu"][aria-hidden="false"]'
+      )
+      if (!visibleMenu) return null
+
+      const style = window.getComputedStyle(visibleMenu)
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        style.opacity === '0'
+      ) {
+        return null
+      }
+      return visibleMenu
     }
 
     const getMenuItems = (menu: Element) => {
       return Array.from(
         menu.querySelectorAll(
-          '.contexify_item, .react-contexify__item, [role="menuitem"]'
+          '.contexify_item:not([disabled]), .react-contexify__item:not([disabled]), [role="menuitem"]:not([disabled])'
         )
       ).filter((el) => {
-        if (
-          el.hasAttribute('disabled') ||
-          el.classList.contains('contexify_separator') ||
-          el.classList.contains('react-contexify__separator')
+        return (
+          !el.classList.contains('contexify_separator') &&
+          !el.classList.contains('react-contexify__separator')
         )
-          return false
-        const rect = el.getBoundingClientRect()
-        return window.getComputedStyle(el).display !== 'none' && rect.height > 0
       })
     }
 
+    let isUpdatingPhantom = false
     const updatePhantomBox = () => {
-      const menu = getOpenMenu()
-      if (!menu) {
-        overlay.style.display = 'none'
+      // Fast check without getComputedStyle: if no open menu element exists, early exit in 0ms
+      const quickCheck = document.querySelector(
+        '.contexify--show, .react-contexify.contexify--show, [role="menu"][aria-hidden="false"]'
+      )
+      if (!quickCheck) {
+        if (overlay.style.display !== 'none') {
+          overlay.style.display = 'none'
+        }
         lastMenuNode = null
         return
       }
 
-      if (menu !== lastMenuNode) {
-        menuIndex = 0
-        lastMenuNode = menu
-      }
+      if (isUpdatingPhantom) return
+      isUpdatingPhantom = true
 
-      const items = getMenuItems(menu)
-      if (items.length === 0) return
+      requestAnimationFrame(() => {
+        isUpdatingPhantom = false
+        const menu = getOpenMenu()
+        if (!menu) {
+          if (overlay.style.display !== 'none') {
+            overlay.style.display = 'none'
+          }
+          lastMenuNode = null
+          return
+        }
 
-      if (menuIndex < 0) menuIndex = items.length - 1
-      if (menuIndex >= items.length) menuIndex = 0
+        if (menu !== lastMenuNode) {
+          menuIndex = 0
+          lastMenuNode = menu
+        }
 
-      const activeItem = items[menuIndex]
-      const contentNode =
-        activeItem.querySelector(
-          '.contexify_itemContent, .react-contexify__item__content'
-        ) || activeItem
-      const rect = contentNode.getBoundingClientRect()
+        const items = getMenuItems(menu)
+        if (items.length === 0) return
 
-      if (rect.width > 0 && rect.height > 0) {
-        overlay.style.top = rect.top + 'px'
-        overlay.style.left = rect.left + 'px'
-        overlay.style.width = rect.width + 'px'
-        overlay.style.height = rect.height + 'px'
-        overlay.style.display = 'block'
-      }
+        if (menuIndex < 0) menuIndex = items.length - 1
+        if (menuIndex >= items.length) menuIndex = 0
+
+        const activeItem = items[menuIndex]
+        const contentNode =
+          activeItem.querySelector(
+            '.contexify_itemContent, .react-contexify__item__content'
+          ) || activeItem
+        const rect = contentNode.getBoundingClientRect()
+
+        if (rect.width > 0 && rect.height > 0) {
+          const topStr = rect.top + 'px'
+          const leftStr = rect.left + 'px'
+          const widthStr = rect.width + 'px'
+          const heightStr = rect.height + 'px'
+          if (overlay.style.top !== topStr) overlay.style.top = topStr
+          if (overlay.style.left !== leftStr) overlay.style.left = leftStr
+          if (overlay.style.width !== widthStr) overlay.style.width = widthStr
+          if (overlay.style.height !== heightStr) overlay.style.height = heightStr
+          if (overlay.style.display !== 'block') overlay.style.display = 'block'
+        }
+      })
     }
 
     const handleMenuNav = (e: KeyboardEvent) => {
@@ -328,21 +354,27 @@ export default memo(function Library(): JSX.Element {
     }
 
     const handleMouseMove = (e: MouseEvent) => {
+      // Fast bypass when no menu is open
+      if (!document.querySelector('.contexify--show, .react-contexify.contexify--show, [role="menu"][aria-hidden="false"]')) {
+        return
+      }
       const menu = getOpenMenu()
       if (!menu) return
 
       const items = getMenuItems(menu)
       items.forEach((item, index) => {
         if (item.contains(e.target as Node)) {
-          menuIndex = index
-          updatePhantomBox()
+          if (menuIndex !== index) {
+            menuIndex = index
+            updatePhantomBox()
+          }
         }
       })
     }
 
     window.addEventListener('keydown', handleMenuNav, { capture: true })
-    window.addEventListener('mousemove', handleMouseMove, { capture: true })
-    const interval = setInterval(updatePhantomBox, 50)
+    window.addEventListener('mousemove', handleMouseMove, { capture: true, passive: true })
+    const interval = setInterval(updatePhantomBox, 100)
 
     return () => {
       clearInterval(interval)
@@ -773,11 +805,33 @@ export default memo(function Library(): JSX.Element {
     let lastY = false
 
     const actionClearSelectionB = () => {
+      // 1. Fechar configurações inline se abertas
+      setShowInlineSettings(false)
+
+      // 2. Fechar o expanded game card (HeroPanel) e desmarcar a capa selecionada
+      setSelectedInlineGame(null)
+      window.dispatchEvent(
+        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+      )
+      window.dispatchEvent(
+        new CustomEvent('heroicSelectedGameChanged', {
+          detail: { appName: null, runner: null }
+        })
+      )
+
+      // 3. Desmarcar modo de edição em massa se estiver ativo
+      window.dispatchEvent(
+        new CustomEvent('heroicToggleMassEdit', { detail: { active: false } })
+      )
+
+      // 4. Remover foco do elemento ativo
       const active = document.activeElement as HTMLElement
       if (
         active &&
         (active.classList.contains('gameCard') ||
-          active.classList.contains('gameListItem'))
+          active.classList.contains('gameListItem') ||
+          active.closest('.gameCard') ||
+          active.closest('.gameListItem'))
       ) {
         active.blur()
         document.body.focus()
@@ -861,6 +915,16 @@ export default memo(function Library(): JSX.Element {
     const handleKeyboard = (e: KeyboardEvent) => {
       if (!e.isTrusted) return
 
+      if (e.key === 'Escape') {
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) {
+          ;(document.activeElement as HTMLElement)?.blur()
+          return
+        }
+        e.preventDefault()
+        actionClearSelectionB()
+        return
+      }
+
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || ''))
         return
 
@@ -868,7 +932,6 @@ export default memo(function Library(): JSX.Element {
         e.preventDefault()
         actionFocusStoreX()
       } else if (
-        e.key === 'Escape' ||
         e.key === 'Backspace' ||
         e.key.toLowerCase() === 'b'
       ) {
@@ -1226,21 +1289,32 @@ export default memo(function Library(): JSX.Element {
     }
   }, [])
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const scrollPosition = parseInt(storage?.getItem('scrollPosition') || '0')
     const scrollArea = document.getElementById('games-scroll-area')
 
+    let debounceTimer: NodeJS.Timeout | null = null
     const storeScrollPosition = (e: Event) => {
       const target = e.target as HTMLDivElement
-      storage?.setItem('scrollPosition', target.scrollTop.toString() || '0')
+      if (!target) return
+      const top = target.scrollTop
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        storage?.setItem('scrollPosition', top.toString())
+      }, 150)
     }
 
     if (scrollArea) {
-      scrollArea.addEventListener('scroll', storeScrollPosition)
-      scrollArea.scrollTo(0, scrollPosition || 0)
+      scrollArea.addEventListener('scroll', storeScrollPosition, { passive: true })
+      requestAnimationFrame(() => {
+        if (scrollPosition > 0 && scrollArea) {
+          scrollArea.scrollTo(0, scrollPosition)
+        }
+      })
     }
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
       if (scrollArea)
         scrollArea.removeEventListener('scroll', storeScrollPosition)
     }
@@ -1251,32 +1325,35 @@ export default memo(function Library(): JSX.Element {
     const bottomBtn = document.getElementById('goToBottomBtn')
     const scrollArea = document.getElementById('games-scroll-area')
 
-    const scrollCallback = (e: Event) => {
-      const target = e.target as HTMLDivElement
-      if (target) {
-        const isScrolledPast = target.scrollTop > 450
-        if (btn) {
-          btn.style.visibility = isScrolledPast ? 'visible' : 'hidden'
-        }
-        if (bottomBtn) {
-          const isScrollable = target.scrollHeight > target.clientHeight
-          const isNearBottom = target.scrollTop + target.clientHeight > target.scrollHeight - 450
-          bottomBtn.style.visibility = (isScrolledPast && isScrollable && !isNearBottom) ? 'visible' : 'hidden'
-        }
-      }
-    }
-
-    if (scrollArea) {
-      scrollArea.addEventListener('scroll', scrollCallback)
-      const isScrolledPast = scrollArea.scrollTop > 450
+    let rafId: number | null = null
+    const updateButtons = (top: number, scrollHeight: number, clientHeight: number) => {
+      const isScrolledPast = top > 450
       if (btn) {
         btn.style.visibility = isScrolledPast ? 'visible' : 'hidden'
       }
       if (bottomBtn) {
-        const isScrollable = scrollArea.scrollHeight > scrollArea.clientHeight
-        const isNearBottom = scrollArea.scrollTop + scrollArea.clientHeight > scrollArea.scrollHeight - 450
+        const isScrollable = scrollHeight > clientHeight
+        const isNearBottom = top + clientHeight > scrollHeight - 450
         bottomBtn.style.visibility = (isScrolledPast && isScrollable && !isNearBottom) ? 'visible' : 'hidden'
       }
+    }
+
+    const scrollCallback = (e: Event) => {
+      const target = e.target as HTMLDivElement
+      if (!target) return
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        updateButtons(target.scrollTop, target.scrollHeight, target.clientHeight)
+      })
+    }
+
+    if (scrollArea) {
+      scrollArea.addEventListener('scroll', scrollCallback, { passive: true })
+      requestAnimationFrame(() => {
+        if (scrollArea) {
+          updateButtons(scrollArea.scrollTop, scrollArea.scrollHeight, scrollArea.clientHeight)
+        }
+      })
     } else {
       if (btn) {
         btn.style.visibility = 'hidden'
@@ -2027,33 +2104,45 @@ export default memo(function Library(): JSX.Element {
   }, [fullGamesForAlphabetFilter, alphabetFilterLetter, filterText])
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null
+    let rafId: number | null = null
+    let resizeTimer: NodeJS.Timeout | null = null
+    let lastHeaderHeight = -1
 
-    const setHeaderHightCSS = () => {
-      if (timer) clearTimeout(timer)
-
-      timer = setTimeout(() => {
+    const updateHeaderHeight = () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
         const header = document.querySelector('.Header')
-        if (header) {
-          const headerHeight = header.getBoundingClientRect().height
+        if (!header) return
+        const headerHeight = Math.round(header.getBoundingClientRect().height)
+        if (headerHeight > 0 && headerHeight !== lastHeaderHeight) {
+          lastHeaderHeight = headerHeight
           document.documentElement.style.setProperty(
             '--header-height',
             `${headerHeight}px`
           )
           const libraryHeader =
             document.querySelector<HTMLDivElement>('.libraryHeader')
-          if (libraryHeader)
+          if (libraryHeader) {
             libraryHeader.style.setProperty(
               '--header-height',
               `${headerHeight}px`
             )
+          }
         }
-      }, 50)
+      })
     }
-    setHeaderHightCSS()
-    window.addEventListener('resize', setHeaderHightCSS)
+
+    const setHeaderHightCSS = () => {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(updateHeaderHeight, 50)
+    }
+
+    updateHeaderHeight()
+    window.addEventListener('resize', setHeaderHightCSS, { passive: true })
 
     return () => {
+      if (resizeTimer) clearTimeout(resizeTimer)
+      if (rafId) cancelAnimationFrame(rafId)
       window.removeEventListener('resize', setHeaderHightCSS)
     }
   }, [])
@@ -2199,6 +2288,7 @@ export default memo(function Library(): JSX.Element {
               <div
                 id="games-scroll-area"
                 data-sn-section="main-games-grid"
+                onScroll={sweepVisibleImages}
                 style={{
                   flex: 1,
                   overflowY: 'auto',

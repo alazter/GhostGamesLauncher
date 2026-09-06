@@ -32,24 +32,35 @@ interface Props {
   isFavourite?: boolean
 }
 
+let focusScrollRafId: number | null = null
 const scrollCardIntoView = (ev: FocusEvent) => {
-  const windowHeight = window.innerHeight
   const trgt = ev.target as HTMLElement
-  const rect = trgt.getBoundingClientRect()
-  const scrollArea =
-    document.getElementById('games-scroll-area') || document.body
+  if (!trgt) return
 
-  if (rect.top < 100) {
-    scrollArea.scrollTo({
-      top: trgt.parentElement!.offsetTop - 200,
-      behavior: 'smooth'
-    })
-  } else if (rect.bottom > windowHeight - 100) {
-    scrollArea.scrollTo({
-      top: trgt.parentElement!.offsetTop - windowHeight + rect.height + 150,
-      behavior: 'smooth'
-    })
-  }
+  if (focusScrollRafId) cancelAnimationFrame(focusScrollRafId)
+  focusScrollRafId = requestAnimationFrame(() => {
+    if (!trgt.isConnected) return
+    const windowHeight = window.innerHeight
+    const rect = trgt.getBoundingClientRect()
+    const scrollArea =
+      document.getElementById('games-scroll-area') || document.body
+
+    const parent = trgt.parentElement
+    if (!parent) return
+    const parentTop = parent.offsetTop
+
+    if (rect.top < 100) {
+      scrollArea.scrollTo({
+        top: Math.max(0, parentTop - 200),
+        behavior: 'smooth'
+      })
+    } else if (rect.bottom > windowHeight - 100) {
+      scrollArea.scrollTo({
+        top: parentTop - windowHeight + rect.height + 150,
+        behavior: 'smooth'
+      })
+    }
+  })
 }
 
 const GamesList = ({
@@ -451,34 +462,6 @@ const GamesList = ({
       window.api.logError(`Error during bulk uninstall: ${String(err)}`)
     }
   }
-
-  useEffect(() => {
-    if (filteredLibrary.length) {
-      const options = { rootMargin: '500px', threshold: 0 }
-      const callback: IntersectionObserverCallback = (entries, observer) => {
-        const entered: string[] = []
-        entries.forEach((entry) => {
-          if (entry.intersectionRatio > 0) {
-            const appName = (entry.target as HTMLDivElement).dataset
-              .appName as string
-            if (appName) entered.push(appName)
-            observer.unobserve(entry.target)
-          }
-        })
-        if (entered.length > 0) {
-          window.dispatchEvent(
-            new CustomEvent('visible-cards', { detail: { appNames: entered } })
-          )
-        }
-      }
-      const observer = new IntersectionObserver(callback, options)
-      document
-        .querySelectorAll('[data-invisible]')
-        .forEach((card) => observer.observe(card))
-      return () => observer.disconnect()
-    }
-    return () => ({})
-  }, [filteredLibrary])
 
   useEffect(() => {
     const listNode = listRef.current
@@ -1197,7 +1180,7 @@ const GamesList = ({
                       isSelectedInline={isSelectedInline}
                       assignedCategory={assignedCategory}
                       shouldShowIcons={shouldShowIcons}
-                      priority={isFirstLane || isRecent || isFavourite || index < 36}
+                      priority={isFirstLane || isRecent || isFavourite || index < 60}
                     />
                   </div>
                 </div>

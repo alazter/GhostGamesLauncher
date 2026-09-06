@@ -192,10 +192,17 @@ export default function InlineGameSettings({ game, onClose }: Props) {
           activeEl.tagName === 'SELECT' ||
           activeEl.getAttribute('contenteditable') === 'true')
       ) {
+        if (e.key === 'Escape') {
+          ;(activeEl as HTMLElement).blur()
+        }
         return
       }
 
-      if (e.key === 'ArrowLeft') {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        onClose()
+      } else if (e.key === 'ArrowLeft') {
         handlePrevGame()
       } else if (e.key === 'ArrowRight') {
         handleNextGame()
@@ -204,7 +211,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handlePrevGame, handleNextGame])
+  }, [handlePrevGame, handleNextGame, onClose])
 
   const [isEditingTitle, setIsEditingTitle] = useState(false)
 

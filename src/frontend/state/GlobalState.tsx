@@ -1444,34 +1444,45 @@ class GlobalState extends PureComponent<Props> {
     })
 
     // Delayed daily automatic upload routine (runs after 2 minutes of startup)
-    setTimeout(async () => {
-      try {
-        const settings = (configStore as any).get('settings', {}) as any
-        const provider = settings.cloudBackupProvider || 'none'
-        const lastSuccess = (configStore as any).get('backup.lastSuccess', 0) as number
-        const lastModified = (configStore as any).get('backup.lastModified', 0) as number
+    setTimeout(() => {
+      const runAutoBackup = async () => {
+        try {
+          const settings = (configStore as any).get('settings', {}) as any
+          const provider = settings?.cloudBackupProvider || 'none'
+          if (provider === 'none') return
 
-        if (provider !== 'none' && lastModified > lastSuccess) {
-          const oneDay = 24 * 60 * 60 * 1000
-          if (Date.now() - lastSuccess >= oneDay) {
-            window.api.logInfo('[Cloud Backup] Running daily automatic background backup upload...')
-            window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: true } }))
-            
-            syncLocalStorageToBackend()
-            await new Promise(r => setTimeout(r, 100))
+          const lastSuccess = (configStore as any).get('backup.lastSuccess', 0) as number
+          const lastModified = (configStore as any).get('backup.lastModified', 0) as number
 
-            const res = await window.api.uploadBackupToCloud()
-            if (res.success) {
-              window.api.logInfo('[Cloud Backup] Daily automatic background backup completed successfully')
-            } else {
-              window.api.logError(`[Cloud Backup] Daily automatic backup failed: ${res.error}`)
+          if (lastModified > lastSuccess) {
+            const oneDay = 24 * 60 * 60 * 1000
+            if (Date.now() - lastSuccess >= oneDay) {
+              window.api.logInfo('[Cloud Backup] Running daily automatic background backup upload...')
+              window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: true } }))
+              
+              syncLocalStorageToBackend()
+              await new Promise(r => setTimeout(r, 100))
+
+              const res = await window.api.uploadBackupToCloud()
+              if (res.success) {
+                window.api.logInfo('[Cloud Backup] Daily automatic background backup completed successfully')
+              } else {
+                window.api.logError(`[Cloud Backup] Daily automatic backup failed: ${res.error}`)
+              }
+              
+              window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: false } }))
             }
-            
-            window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: false } }))
           }
+        } catch (err) {
+          window.api.logError(`[Cloud Backup] Failed during auto-backup checks: ${err}`)
+          window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: false } }))
         }
-      } catch (err) {
-        window.api.logError(`[Cloud Backup] Failed during auto-backup checks: ${err}`)
+      }
+
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        ;(window as any).requestIdleCallback(() => void runAutoBackup(), { timeout: 10000 })
+      } else {
+        void runAutoBackup()
       }
     }, 120000)
 

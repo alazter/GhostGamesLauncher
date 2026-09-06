@@ -108,6 +108,18 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       window.removeEventListener('heroicGameCoverChanged', handleCoverChanged)
   }, [game.app_name, game.runner])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   const playTimeStr = useMemo(() => {
     if (!tsInfo || !tsInfo.totalPlayed) return t('game.neverPlayed', 'Never')
     const hours = Math.floor(tsInfo.totalPlayed / 60)
