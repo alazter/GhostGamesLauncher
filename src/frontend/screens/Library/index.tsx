@@ -53,7 +53,6 @@ import HeroPanel from './components/HeroPanel'
 import InlineGameSettings from './components/InlineGameSettings'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { configStore } from 'frontend/helpers/electronStores'
-import { sweepVisibleImages } from 'frontend/helpers/imageVisibilityObserver'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCloud, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
@@ -2288,7 +2287,6 @@ export default memo(function Library(): JSX.Element {
               <div
                 id="games-scroll-area"
                 data-sn-section="main-games-grid"
-                onScroll={sweepVisibleImages}
                 style={{
                   flex: 1,
                   overflowY: 'auto',

@@ -32,37 +32,6 @@ interface Props {
   isFavourite?: boolean
 }
 
-let focusScrollRafId: number | null = null
-const scrollCardIntoView = (ev: FocusEvent) => {
-  const trgt = ev.target as HTMLElement
-  if (!trgt) return
-
-  if (focusScrollRafId) cancelAnimationFrame(focusScrollRafId)
-  focusScrollRafId = requestAnimationFrame(() => {
-    if (!trgt.isConnected) return
-    const windowHeight = window.innerHeight
-    const rect = trgt.getBoundingClientRect()
-    const scrollArea =
-      document.getElementById('games-scroll-area') || document.body
-
-    const parent = trgt.parentElement
-    if (!parent) return
-    const parentTop = parent.offsetTop
-
-    if (rect.top < 100) {
-      scrollArea.scrollTo({
-        top: Math.max(0, parentTop - 200),
-        behavior: 'smooth'
-      })
-    } else if (rect.bottom > windowHeight - 100) {
-      scrollArea.scrollTo({
-        top: parentTop - windowHeight + rect.height + 150,
-        behavior: 'smooth'
-      })
-    }
-  })
-}
-
 const GamesList = ({
   library = [],
   layout = 'grid',
@@ -462,18 +431,6 @@ const GamesList = ({
       window.api.logError(`Error during bulk uninstall: ${String(err)}`)
     }
   }
-
-  useEffect(() => {
-    const listNode = listRef.current
-    if (listNode && activeController) {
-      listNode.addEventListener('focus', scrollCardIntoView, { capture: true })
-      return () =>
-        listNode.removeEventListener('focus', scrollCardIntoView, {
-          capture: true
-        })
-    }
-    return () => ({})
-  }, [activeController])
 
   return (
     <>

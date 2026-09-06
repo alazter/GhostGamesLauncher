@@ -1,158 +1,76 @@
 /**
- * Singleton de Visibilidade de Imagens do Ghost Games Launcher
+ * Singleton de Visibilidade de Imagens de Alta Performance do Ghost Games Launcher
  * 
- * Substitui a criação de milhares de instâncias de IntersectionObserver por:
- * 1. Um único IntersectionObserver compartilhado (root: null, rootMargin: '1200px 0px')
- * 2. Pré-checagem geométrica instantânea no registro (0ms para cards no viewport)
- * 3. Varredura global passiva em eventos de 'scroll', 'scrollend' e 'resize'
- * 4. Desobservação imediata assim que a imagem entra em visualização
+ * Utiliza exclusivamente a API nativa de C++ do IntersectionObserver do Chromium:
+ * 1. Um único IntersectionObserver compartilhado (root: null, rootMargin: '1000px 0px')
+ * 2. Zero chamadas síncronas a getBoundingClientRect() (zero layout thrashing)
+ * 3. Zero listeners de scroll síncronos na thread de UI
+ * 4. Desobservação imediata assim que a imagem entra na margem de visualização
  */
 
 const pendingElements = new Map<Element, () => void>()
 
 let sharedObserver: IntersectionObserver | null = null
-let isListenersInitialized = false
-let sweepScheduled = false
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-function getSharedObserver(): IntersectionObserver {
-  if (!sharedObserver && typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+function getSharedObserver(): IntersectionObserver | null {
+  if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+    return null
+  }
+
+  if (!sharedObserver) {
     sharedObserver = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            const cb = pendingElements.get(entry.target)
-            if (cb) {
-              pendingElements.delete(entry.target)
-              sharedObserver?.unobserve(entry.target)
-              cb()
+            const target = entry.target
+            const callback = pendingElements.get(target)
+            if (callback) {
+              pendingElements.delete(target)
+              sharedObserver?.unobserve(target)
+              callback()
             }
           }
         }
       },
       {
-        root: null, // Viewport global da janela - universal para containers aninhados
-        rootMargin: '1200px 0px', // Antecipa o carregamento em 1200px antes de entrar na tela
+        root: null, // Viewport global da janela - cobre containers aninhados naturalmente
+        rootMargin: '1000px 0px', // Antecipa o carregamento em 1000px antes de entrar na tela
         threshold: 0
       }
     )
   }
-  return sharedObserver!
+
+  return sharedObserver
 }
 
 /**
- * Varre os elementos pendentes para acionar qualquer card que esteja dentro
- * da janela de visualização expandida (viewport + 1200px).
+ * Stub leve mantido para compatibilidade retroativa, sem overhead de CPU.
  */
 export function sweepVisibleImages(): void {
-  if (pendingElements.size === 0) return
-
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-  }
-
-  // Agenda varredura no próximo quadro de animação
-  if (!sweepScheduled) {
-    sweepScheduled = true
-    requestAnimationFrame(() => {
-      sweepScheduled = false
-      runSweep()
-    })
-  }
-
-  // Agenda também uma varredura de repouso (100ms após o término do scroll)
-  debounceTimer = setTimeout(() => {
-    runSweep()
-  }, 100)
-}
-
-function runSweep(): void {
-  if (pendingElements.size === 0) return
-
-  const windowHeight =
-    typeof window !== 'undefined'
-      ? window.innerHeight || document.documentElement.clientHeight || 1000
-      : 1000
-
-  const topThreshold = -1200
-  const bottomThreshold = windowHeight + 1200
-
-  const triggered: Array<() => void> = []
-
-  for (const [el, cb] of pendingElements.entries()) {
-    const rect = el.getBoundingClientRect()
-    // Elemento está no range de carregamento antecipado
-    if (rect.top < bottomThreshold && rect.bottom > topThreshold) {
-      triggered.push(() => {
-        pendingElements.delete(el)
-        sharedObserver?.unobserve(el)
-        cb()
-      })
-    }
-  }
-
-  for (const trigger of triggered) {
-    trigger()
-  }
-}
-
-function initGlobalListeners(): void {
-  if (isListenersInitialized || typeof window === 'undefined') return
-  isListenersInitialized = true
-
-  // Captura eventos de scroll de qualquer container aninhado na aplicação (ex: #games-scroll-area)
-  window.addEventListener('scroll', sweepVisibleImages, {
-    capture: true,
-    passive: true
-  })
-
-  // Evento nativo disparado no término da rolagem
-  window.addEventListener('scrollend', sweepVisibleImages, {
-    capture: true,
-    passive: true
-  })
-
-  window.addEventListener('resize', sweepVisibleImages, {
-    passive: true
-  })
+  // O IntersectionObserver nativo gerencia a visibilidade de forma assíncrona em C++.
 }
 
 /**
  * Registra um elemento HTML para ser notificado assim que estiver visível ou próximo
- * da área de visualização.
+ * da área de visualização (1000px).
  * Retorna uma função de limpeza para desregistrar.
  */
 export function observeImageVisibility(
   el: Element,
   onVisible: () => void
 ): () => void {
-  initGlobalListeners()
-
-  // 1. Verificação instantânea: se o elemento já estiver dentro da margem visível
-  const rect = el.getBoundingClientRect()
-  const windowHeight =
-    typeof window !== 'undefined'
-      ? window.innerHeight || document.documentElement.clientHeight || 1000
-      : 1000
-
-  if (
-    rect.top < windowHeight + 1200 &&
-    rect.bottom > -1200 &&
-    (rect.height > 0 || rect.width > 0)
-  ) {
+  const observer = getSharedObserver()
+  if (!observer) {
     onVisible()
     return () => {}
   }
 
-  // 2. Se estiver fora da margem, adiciona ao observador compartilhado e ao mapa pendente
   pendingElements.set(el, onVisible)
-  const observer = getSharedObserver()
-  if (observer) {
-    observer.observe(el)
-  }
+  observer.observe(el)
 
   return () => {
     pendingElements.delete(el)
-    observer?.unobserve(el)
+    observer.unobserve(el)
   }
 }
+

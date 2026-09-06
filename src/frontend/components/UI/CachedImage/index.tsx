@@ -104,20 +104,6 @@ const CachedImage = (props: Props) => {
       window.removeEventListener('heroicReconnectPendingCovers', handleReconnect)
   }, [loaded, isAlreadyLoaded])
 
-  // Watchdog automático: se o card está no campo de visão mas após 3.5s ainda não carregou,
-  // tenta reconectar 1 vez automaticamente
-  useEffect(() => {
-    if (!isInView || loaded || isAlreadyLoaded || reconnectCount > 0) return
-
-    const timer = setTimeout(() => {
-      if (!loaded && !isAlreadyLoaded) {
-        setReconnectCount((c) => c + 1)
-      }
-    }, 3500)
-
-    return () => clearTimeout(timer)
-  }, [isInView, loaded, isAlreadyLoaded, reconnectCount])
-
   if (errorHidden || (!displaySrc && props.hideOnError)) {
     return null
   }
@@ -143,7 +129,7 @@ const CachedImage = (props: Props) => {
   return (
     <img
       ref={imgRef}
-      loading="eager"
+      loading={props.loading || (isEager ? 'eager' : 'lazy')}
       decoding={decoding}
       {...rest}
       src={finalSrc}
