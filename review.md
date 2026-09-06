@@ -677,6 +677,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Sincronização silenciosa e não-intrusiva da Steam via `SteamQueueWatcher` (0% CPU em repouso), descarte de falsos positivos como o app ID "1003800" (Gang Beasts Soundtrack) e eliminação do crash de boot por TDZ de logging.
   - Otimização extrema da tela de Configurações dividida em 26 subcomponentes com lazy loading e carregamento instantâneo de capas via geometria reservada e `loading="eager"`.
 
+### 36. Eliminação Total de Lag na Navegação da Biblioteca e Interceptação ESC
+* **Problema:** Otimização de renderização, remoção de listeners desnecessários e atalho global ESC para desmarcar seleção e fechar HeroPanel/InlineSettings.
+* **Solução:**
+  - Extinção definitiva do lag na navegação por scroll, teclado e controle na Biblioteca. Purificação de `imageVisibilityObserver.ts` com remoção total de `runSweep()`, `sweepVisibleImages()` e todos os listeners manuais de scroll.
+  - Interceptação global e local da tecla ESC desmarcando instantaneamente o contorno neon ciano (`.selectedInline`) da capa selecionada no grid da Biblioteca, fechando o painel expandido (`HeroPanel`), fechando as configurações inline (`InlineGameSettings`) e desativando a edição em massa (`heroicToggleMassEdit`).
+  - Otimização do phantom box overlay para menus de contexto via `requestAnimationFrame` e early exit em 0ms quando nenhum menu está visível.
+  - Otimização do cálculo de altura do header via `requestAnimationFrame` e listener passivo de `resize`.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
