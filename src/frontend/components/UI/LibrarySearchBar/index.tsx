@@ -189,7 +189,11 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
     }
 
     // Grita para a lista de jogos atualizar
-    window.dispatchEvent(new Event('heroicFilterChanged'))
+    window.dispatchEvent(
+      new CustomEvent('heroicFilterChanged', {
+        detail: { storeFilter: newFilter }
+      })
+    )
   }
   // =========================================================
 

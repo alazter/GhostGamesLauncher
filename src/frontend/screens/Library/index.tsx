@@ -44,6 +44,10 @@ import {
 import RecentlyPlayed from './components/RecentlyPlayed'
 import LibraryContext from './LibraryContext'
 import { isPlaytestOrDemo } from 'frontend/helpers/customStoreFiltering'
+import {
+  loadStoreFilterSettings,
+  saveStoreFilterSettings
+} from 'frontend/helpers/storeFiltersStorage'
 import { Category, PlatformsFilters, StoresFilters } from 'frontend/types'
 import { hasHelp } from 'frontend/hooks/hasHelp'
 import EmptyLibraryMessage from './components/EmptyLibrary'
@@ -1003,91 +1007,79 @@ export default memo(function Library(): JSX.Element {
     setStoresFilters_(newFilters)
   }
 
-  let initialPlatformsfilters: PlatformsFilters
-  const plaformsFiltersString = storage.getItem('platformsFilters')
-  if (plaformsFiltersString) {
-    initialPlatformsfilters = JSON.parse(
-      plaformsFiltersString
-    ) as PlatformsFilters
-  } else {
-    const storedCategory = storage.getItem('filterPlatform') || 'all'
-    initialPlatformsfilters = {
-      win: ['all', 'win'].includes(storedCategory),
-      linux: ['all', 'linux'].includes(storedCategory),
-      mac: ['all', 'mac'].includes(storedCategory),
-      browser: ['all', 'browser'].includes(storedCategory)
-    }
-  }
+  const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
+    () => localStorage.getItem('heroic_active_store_filter')
+  )
+  const activeStoreFilterRef = useRef<string | null>(activeStoreFilter)
+  useEffect(() => {
+    activeStoreFilterRef.current = activeStoreFilter
+  }, [activeStoreFilter])
+
+  const initialStoreSettings = useMemo(() => {
+    return loadStoreFilterSettings(activeStoreFilter)
+  }, [])
 
   const [platformsFilters, setPlatformsFilters_] = useState<PlatformsFilters>(
-    initialPlatformsfilters
+    initialStoreSettings.platformsFilters
   )
 
   const setPlatformsFilters = (newFilters: PlatformsFilters) => {
-    storage.setItem('platformsFilters', JSON.stringify(newFilters))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { platformsFilters: newFilters })
     setPlatformsFilters_(newFilters)
   }
 
   const [filterText, setFilterText] = useState('')
 
-  const [showHidden, setShowHidden] = useState<boolean>(
-    JSON.parse(storage.getItem('show_hidden') || 'false') as boolean
-  )
+  const [showHidden, setShowHidden] = useState<boolean>(initialStoreSettings.showHidden)
   const handleShowHidden = (value: boolean) => {
-    storage.setItem('show_hidden', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showHidden: value })
     setShowHidden(value)
   }
 
   const [showFavouritesLibrary, setShowFavourites] = useState<boolean>(
-    JSON.parse(storage.getItem('show_favorites') || 'false') as boolean
+    initialStoreSettings.showFavourites
   )
   const handleShowFavourites = (value: boolean) => {
-    storage.setItem('show_favorites', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showFavourites: value })
     setShowFavourites(value)
   }
 
   const [showInstalledOnly, setShowInstalledOnly] = useState<boolean>(
-    JSON.parse(storage.getItem('show_installed_only') || 'false') as boolean
+    initialStoreSettings.showInstalledOnly
   )
   const handleShowInstalledOnly = (value: boolean) => {
-    storage.setItem('show_installed_only', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showInstalledOnly: value })
     setShowInstalledOnly(value)
   }
 
   const [showNonAvailable, setShowNonAvailable] = useState<boolean>(
-    JSON.parse(storage.getItem('show_non_available') || 'true') as boolean
+    initialStoreSettings.showNonAvailable
   )
   const handleShowNonAvailable = (value: boolean) => {
-    storage.setItem('show_non_available', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showNonAvailable: value })
     setShowNonAvailable(value)
   }
 
   const [showSupportOfflineOnly, setSupportOfflineOnly] = useState<boolean>(
-    JSON.parse(
-      storage.getItem('show_support_offline_only') || 'false'
-    ) as boolean
+    initialStoreSettings.showSupportOfflineOnly
   )
   const handleShowSupportOfflineOnly = (value: boolean) => {
-    storage.setItem('show_support_offline_only', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showSupportOfflineOnly: value })
     setSupportOfflineOnly(value)
   }
 
   const [showThirdPartyManagedOnly, setShowThirdPartyManagedOnly] =
-    useState<boolean>(
-      JSON.parse(
-        storage.getItem('show_third_party_managed_only') || 'false'
-      ) as boolean
-    )
+    useState<boolean>(initialStoreSettings.showThirdPartyManagedOnly)
   const handleShowThirdPartyOnly = (value: boolean) => {
-    storage.setItem('show_third_party_managed_only', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showThirdPartyManagedOnly: value })
     setShowThirdPartyManagedOnly(value)
   }
 
   const [showUpdatesOnly, setShowUpdatesOnly] = useState<boolean>(
-    JSON.parse(storage.getItem('show_updates_only') || 'false') as boolean
+    initialStoreSettings.showUpdatesOnly
   )
   const handleShowUpdatesOnly = (value: boolean) => {
-    storage.setItem('show_updates_only', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showUpdatesOnly: value })
     setShowUpdatesOnly(value)
   }
 
@@ -1154,21 +1146,21 @@ export default memo(function Library(): JSX.Element {
   }, [])
 
   const [duplicatesVersion, setDuplicatesVersion] = useState(0)
-  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(() => {
-    return storage.getItem('heroic_show_playtests_demos') === 'true'
-  })
+  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(
+    initialStoreSettings.showPlaytestsAndDemos
+  )
+  const handleSetShowPlaytestsAndDemos = (val: boolean) => {
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showPlaytestsAndDemos: val })
+    setShowPlaytestsAndDemos(val)
+    window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
+  }
 
   useEffect(() => {
     const handleDupChange = () => setDuplicatesVersion((v) => v + 1)
-    const handlePlaytestsChange = () => {
-      setShowPlaytestsAndDemos(storage.getItem('heroic_show_playtests_demos') === 'true')
-    }
 
     window.addEventListener('heroicDuplicatesChanged', handleDupChange)
-    window.addEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
     return () => {
       window.removeEventListener('heroicDuplicatesChanged', handleDupChange)
-      window.removeEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
     }
   }, [])
   // ====================================================================
@@ -1192,63 +1184,64 @@ export default memo(function Library(): JSX.Element {
   }, [])
 
   const [showAlphabetFilter, setShowAlphabetFilter] = useState<boolean>(
-    JSON.parse(storage.getItem('showAlphabetFilter') || 'true') as boolean
+    initialStoreSettings.showAlphabetFilter
   )
   const handleToggleAlphabetFilter = () => {
     const newValue = !showAlphabetFilter
-    storage.setItem('showAlphabetFilter', JSON.stringify(newValue))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { showAlphabetFilter: newValue })
     setShowAlphabetFilter(newValue)
   }
-  const [alphabetFilterLetter, setAlphabetFilterLetter] = useState<
-    string | null
-  >(null)
+  const [alphabetFilterLetter, setAlphabetFilterLetter] = useState<string | null>(
+    initialStoreSettings.alphabetFilterLetter
+  )
+  const handleSetAlphabetFilterLetter = (letter: string | null) => {
+    saveStoreFilterSettings(activeStoreFilterRef.current, { alphabetFilterLetter: letter })
+    setAlphabetFilterLetter(letter)
+  }
 
   const [sortDescending, setSortDescending] = useState<boolean>(
-    JSON.parse(storage?.getItem('sortDescending') || 'false') as boolean
+    initialStoreSettings.sortDescending
   )
   function handleSortDescending(value: boolean) {
-    storage.setItem('sortDescending', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { sortDescending: value })
     setSortDescending(value)
   }
 
   const [sortInstalled, setSortInstalled] = useState<boolean>(
-    JSON.parse(storage?.getItem('sortInstalled') || 'true') as boolean
+    initialStoreSettings.sortInstalled
   )
   function handleSortInstalled(value: boolean) {
-    storage.setItem('sortInstalled', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { sortInstalled: value })
     setSortInstalled(value)
   }
 
-  const [sortByRecent, setSortByRecent] = useState<boolean>(() => {
-    return JSON.parse(storage?.getItem('sortByRecent') || 'false') as boolean
-  })
+  const [sortByRecent, setSortByRecent] = useState<boolean>(
+    initialStoreSettings.sortByRecent
+  )
   function handleSortByRecent(value: boolean) {
-    storage.setItem('sortByRecent', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { sortByRecent: value })
     setSortByRecent(value)
   }
 
-  const [sortByMostPlayed, setSortByMostPlayed] = useState<boolean>(() => {
-    return JSON.parse(storage?.getItem('sortByMostPlayed') || 'false') as boolean
-  })
+  const [sortByMostPlayed, setSortByMostPlayed] = useState<boolean>(
+    initialStoreSettings.sortByMostPlayed
+  )
   function handleSortByMostPlayed(value: boolean) {
-    storage.setItem('sortByMostPlayed', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { sortByMostPlayed: value })
     setSortByMostPlayed(value)
   }
 
-  const [sortByNewlyAdded, setSortByNewlyAdded] = useState<boolean>(() => {
-    return JSON.parse(storage?.getItem('sortByNewlyAdded') || 'false') as boolean
-  })
+  const [sortByNewlyAdded, setSortByNewlyAdded] = useState<boolean>(
+    initialStoreSettings.sortByNewlyAdded
+  )
   function handleSortByNewlyAdded(value: boolean) {
-    storage.setItem('sortByNewlyAdded', JSON.stringify(value))
+    saveStoreFilterSettings(activeStoreFilterRef.current, { sortByNewlyAdded: value })
     setSortByNewlyAdded(value)
   }
 
   const backToTopElement = useRef<HTMLButtonElement | null>(null)
   const goToBottomElement = useRef<HTMLButtonElement | null>(null)
 
-  const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
-    () => localStorage.getItem('heroic_active_store_filter')
-  )
   const [assignments, setAssignments] = useState<Record<string, string>>(
     () =>
       JSON.parse(
@@ -1257,9 +1250,36 @@ export default memo(function Library(): JSX.Element {
   )
 
   useEffect(() => {
-    const handleFilterChange = () => {
-      const storeFilter = localStorage.getItem('heroic_active_store_filter')
+    const handleFilterChange = (e?: Event) => {
+      const customEvent = e as CustomEvent<{ storeFilter?: string | null }>
+      const storeFilter =
+        customEvent?.detail?.storeFilter !== undefined
+          ? customEvent.detail.storeFilter
+          : localStorage.getItem('heroic_active_store_filter')
+
       setActiveStoreFilter(storeFilter)
+      activeStoreFilterRef.current = storeFilter
+
+      // Restaura instantaneamente (0ms) todos os filtros e ordenações exclusivos desta aba/loja
+      const storeSettings = loadStoreFilterSettings(storeFilter)
+
+      setShowInstalledOnly(storeSettings.showInstalledOnly)
+      setShowFavourites(storeSettings.showFavourites)
+      setShowHidden(storeSettings.showHidden)
+      setShowNonAvailable(storeSettings.showNonAvailable)
+      setSupportOfflineOnly(storeSettings.showSupportOfflineOnly)
+      setShowThirdPartyManagedOnly(storeSettings.showThirdPartyManagedOnly)
+      setShowUpdatesOnly(storeSettings.showUpdatesOnly)
+      setPlatformsFilters_(storeSettings.platformsFilters)
+      setSortDescending(storeSettings.sortDescending)
+      setSortInstalled(storeSettings.sortInstalled)
+      setSortByRecent(storeSettings.sortByRecent)
+      setSortByMostPlayed(storeSettings.sortByMostPlayed)
+      setSortByNewlyAdded(storeSettings.sortByNewlyAdded)
+      setShowAlphabetFilter(storeSettings.showAlphabetFilter)
+      setAlphabetFilterLetter(storeSettings.alphabetFilterLetter)
+      setShowPlaytestsAndDemos(storeSettings.showPlaytestsAndDemos)
+
       if (storeFilter) {
         setShowUnclassifiedOnly(false)
         window.dispatchEvent(
@@ -2199,14 +2219,10 @@ export default memo(function Library(): JSX.Element {
         onToggleAlphabetFilter: handleToggleAlphabetFilter,
         gamesForAlphabetFilter,
         alphabetFilterLetter,
-        setAlphabetFilterLetter,
+        setAlphabetFilterLetter: handleSetAlphabetFilterLetter,
         showUnclassifiedOnly,
         showPlaytestsAndDemos,
-        setShowPlaytestsAndDemos: (val: boolean) => {
-          setShowPlaytestsAndDemos(val)
-          storage.setItem('heroic_show_playtests_demos', String(val))
-          window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
-        }
+        setShowPlaytestsAndDemos: handleSetShowPlaytestsAndDemos
       }}
     >
       <div

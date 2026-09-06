@@ -34,7 +34,9 @@ export default function LibraryFilters() {
     sortByNewlyAdded,
     setSortByNewlyAdded,
     sortByMostPlayed,
-    setSortByMostPlayed
+    setSortByMostPlayed,
+    showPlaytestsAndDemos,
+    setShowPlaytestsAndDemos
   } = useContext(LibraryContext)
 
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
@@ -71,15 +73,10 @@ export default function LibraryFilters() {
     window.dispatchEvent(new Event('heroicDuplicatesChanged'))
   }
 
-  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(() => {
-    return localStorage.getItem('heroic_show_playtests_demos') === 'true'
-  })
-
   const toggleShowPlaytestsAndDemos = () => {
-    const nextVal = !showPlaytestsAndDemos
-    setShowPlaytestsAndDemos(nextVal)
-    localStorage.setItem('heroic_show_playtests_demos', String(nextVal))
-    window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
+    if (setShowPlaytestsAndDemos) {
+      setShowPlaytestsAndDemos(!showPlaytestsAndDemos)
+    }
   }
 
   const toggleShowHidden = () => {
@@ -241,7 +238,7 @@ export default function LibraryFilters() {
     if (setSortByMostPlayed) setSortByMostPlayed(false)
     if (setSortByNewlyAdded) setSortByNewlyAdded(false)
     setShowHiddenDuplicates(false)
-    setShowPlaytestsAndDemos(false)
+    if (setShowPlaytestsAndDemos) setShowPlaytestsAndDemos(false)
     localStorage.removeItem('heroic_show_hidden_duplicates')
     localStorage.removeItem('heroic_show_playtests_demos')
     window.dispatchEvent(new Event('heroicDuplicatesChanged'))

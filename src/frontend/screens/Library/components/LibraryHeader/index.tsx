@@ -27,7 +27,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     sortByNewlyAdded,
     sortByMostPlayed,
     storesFilters,
-    filterText
+    filterText,
+    showPlaytestsAndDemos
   } = useContext(LibraryContext)
 
   const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
@@ -41,10 +42,6 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
     const saved = localStorage.getItem('heroic_custom_stores')
     return saved ? (JSON.parse(saved) as CustomStore[]) : DEFAULT_GHOST_CUSTOM_STORES
-  })
-
-  const [showPlaytestsAndDemos, setShowPlaytestsAndDemos] = useState<boolean>(() => {
-    return localStorage.getItem('heroic_show_playtests_demos') === 'true'
   })
 
   const [alignment, setAlignment] = useState<string>(() => {
@@ -148,15 +145,11 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
       const saved = localStorage.getItem('heroic_custom_stores')
       if (saved) setCustomStores(JSON.parse(saved) as CustomStore[])
     }
-    const handlePlaytestsChange = () => {
-      setShowPlaytestsAndDemos(localStorage.getItem('heroic_show_playtests_demos') === 'true')
-    }
 
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     window.addEventListener('heroicFilterChanged', handleFilterChange)
     window.addEventListener('gameAssignmentsChanged', handleAssignmentsChange)
     window.addEventListener('customStoresChanged', handleStoresChange)
-    window.addEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
 
     return () => {
       window.removeEventListener('heroicSettingsChanged', handleSettingsChange)
@@ -166,7 +159,6 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
         handleAssignmentsChange
       )
       window.removeEventListener('customStoresChanged', handleStoresChange)
-      window.removeEventListener('heroicPlaytestsFilterChanged', handlePlaytestsChange)
     }
   }, [])
 
