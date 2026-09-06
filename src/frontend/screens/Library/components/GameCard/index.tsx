@@ -615,7 +615,7 @@ const GameCard = ({
           >
             {justPlayed ? (
               <CachedImage
-                loading="eager"
+                priority
                 decoding="async"
                 src={art_cover || fallBackImage}
                 fallback={fallBackImage}
@@ -624,7 +624,7 @@ const GameCard = ({
               />
             ) : (
               <CachedImage
-                loading={priority ? 'eager' : 'lazy'}
+                priority={priority}
                 decoding="async"
                 src={getImageFormatting(cover, runner)}
                 fallback={
@@ -638,7 +638,7 @@ const GameCard = ({
             )}
             {(justPlayed || (runner !== 'nile' && runner !== 'steam')) && logo && (
               <CachedImage
-                loading={priority ? 'eager' : 'lazy'}
+                priority={priority}
                 decoding="async"
                 alt=""
                 src={logo.startsWith('http') ? `${logo}?h=400&resize=1&w=300` : logo}

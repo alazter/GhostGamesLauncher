@@ -67,25 +67,27 @@ const CachedImage = (props: Props) => {
     setLoaded(nextLoaded)
   }, [displaySrc])
 
-  const isEager = props.loading === 'eager' || Boolean(props.priority) || isAlreadyLoaded
-  const [isInView, setIsInView] = useState<boolean>(() => Boolean(isEager))
+  // Se loading for explicitamente 'eager' sem flag de priority dinâmica, mantém o elemento ativo permanentemente (ex: modais isolados)
+  const isStaticEager = props.loading === 'eager' && !props.priority
+
+  // Prioridade dinâmica ou static eager iniciam como true para exibição instantânea no frame inicial
+  const initialInView = Boolean(isStaticEager || props.priority)
+  const [isInView, setIsInView] = useState<boolean>(initialInView)
   const imgRef = useRef<HTMLImageElement | null>(null)
 
   useEffect(() => {
-    if (isEager) {
+    if (isStaticEager) {
       setIsInView(true)
       return
     }
 
-    if (isInView) return
-
     const el = imgRef.current
     if (!el) return
 
-    return observeImageVisibility(el, () => {
-      setIsInView(true)
+    return observeImageVisibility(el, (visible) => {
+      setIsInView(visible)
     })
-  }, [isEager, isInView])
+  }, [isStaticEager, displaySrc])
 
   // Ouvinte do comando global de Reconectar Capas Pendentes
   useEffect(() => {
@@ -129,7 +131,7 @@ const CachedImage = (props: Props) => {
   return (
     <img
       ref={imgRef}
-      loading={props.loading || (isEager ? 'eager' : 'lazy')}
+      loading={props.loading || (props.priority ? 'eager' : 'lazy')}
       decoding={decoding}
       {...rest}
       src={finalSrc}

@@ -2,13 +2,15 @@
  * Singleton de Visibilidade de Imagens de Alta Performance do Ghost Games Launcher
  * 
  * Utiliza exclusivamente a API nativa de C++ do IntersectionObserver do Chromium:
- * 1. Um único IntersectionObserver compartilhado (root: null, rootMargin: '1000px 0px')
+ * 1. Um único IntersectionObserver compartilhado (root: null, rootMargin: '1200px 0px')
  * 2. Zero chamadas síncronas a getBoundingClientRect() (zero layout thrashing)
  * 3. Zero listeners de scroll síncronos na thread de UI
- * 4. Desobservação imediata assim que a imagem entra na margem de visualização
+ * 4. Monitoramento bidirecional: ativa a capa ao entrar no buffer (1200px) e descarrega a textura da VRAM ao sair
  */
 
-const pendingElements = new Map<Element, () => void>()
+type VisibilityCallback = (isVisible: boolean) => void
+
+const observedElements = new Map<Element, VisibilityCallback>()
 
 let sharedObserver: IntersectionObserver | null = null
 
@@ -20,21 +22,17 @@ function getSharedObserver(): IntersectionObserver | null {
   if (!sharedObserver) {
     sharedObserver = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const target = entry.target
-            const callback = pendingElements.get(target)
-            if (callback) {
-              pendingElements.delete(target)
-              sharedObserver?.unobserve(target)
-              callback()
-            }
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i]
+          const callback = observedElements.get(entry.target)
+          if (callback) {
+            callback(entry.isIntersecting)
           }
         }
       },
       {
         root: null, // Viewport global da janela - cobre containers aninhados naturalmente
-        rootMargin: '1000px 0px', // Antecipa o carregamento em 1000px antes de entrar na tela
+        rootMargin: '1200px 0px', // Antecipa o carregamento em 1200px antes de entrar na tela e descarrega ao afastar
         threshold: 0
       }
     )
@@ -51,25 +49,25 @@ export function sweepVisibleImages(): void {
 }
 
 /**
- * Registra um elemento HTML para ser notificado assim que estiver visível ou próximo
- * da área de visualização (1000px).
+ * Registra um elemento HTML para ser notificado sobre mudanças de visibilidade na área
+ * de visualização (margem de 1200px).
  * Retorna uma função de limpeza para desregistrar.
  */
 export function observeImageVisibility(
   el: Element,
-  onVisible: () => void
+  onVisibilityChange: (isVisible: boolean) => void
 ): () => void {
   const observer = getSharedObserver()
   if (!observer) {
-    onVisible()
+    onVisibilityChange(true)
     return () => {}
   }
 
-  pendingElements.set(el, onVisible)
+  observedElements.set(el, onVisibilityChange)
   observer.observe(el)
 
   return () => {
-    pendingElements.delete(el)
+    observedElements.delete(el)
     observer.unobserve(el)
   }
 }
