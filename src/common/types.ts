@@ -126,6 +126,7 @@ export interface AppSettings extends GameSettings {
   downloadProtonToSteam: boolean
   egsLinkedPath: string
   enableUpdates: boolean
+  monitorSteamDownloads?: boolean
   exitToTray: boolean
   gamepadRepeatDelay: number
   gamepadInitialRepeatDelay: number
@@ -288,6 +289,8 @@ export interface GameSettings {
   gogSaves?: GOGCloudSavesLocation[]
   beforeLaunchScriptPath: string
   afterLaunchScriptPath: string
+  waitBeforeLaunchScript?: boolean
+  waitAfterLaunchScript?: boolean
   disableUMU: boolean
   verboseLogs: boolean
   advertiseAvxForRosetta: boolean

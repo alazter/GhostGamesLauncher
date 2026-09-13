@@ -55,6 +55,13 @@ import type { GOGCloudSavesLocation, UserData } from './gog'
 import type { NileLoginData, NileRegisterData, NileUserData } from './nile'
 import type { GameOverride, SelectiveDownload } from './legendary'
 import type { GetLogFileArgs } from 'backend/logger/paths'
+import type {
+  PluginInfo,
+  PluginInstallResult,
+  PluginPackResult,
+  GhostSearchResult,
+  GhostDownloadSource
+} from './plugins'
 
 // ts-prune-ignore-next
 interface SyncIPCFunctions {
@@ -477,9 +484,33 @@ interface AsyncIPCFunctions {
   downloadBackupFromCloud: () => Promise<{ success: boolean; data?: any; error?: string }>
   preCacheImages: (urls: string[]) => Promise<void>
   clearImageCacheNegative: () => Promise<boolean>
+  detectGameVersion: (game: GameInfo) => Promise<DetectedVersionResult | null>
+  resolveDateVersionOnline: (title: string, dateStr: string) => Promise<DetectedVersionResult>
+  setGameVersion: (appName: string, version: string) => Promise<{ success: boolean; version: string }>
+  pluginsGetList: () => Promise<PluginInfo[]>
+  pluginsToggle: (pluginId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>
+  pluginsInstall: (filePath?: string) => Promise<PluginInstallResult>
+  pluginsInstallFromBuffer: (fileName: string, bufferBase64: string) => Promise<PluginInstallResult>
+  pluginsUninstall: (pluginId: string) => Promise<{ success: boolean; error?: string }>
+  pluginsLoadUnpacked: (dirPath?: string) => Promise<PluginInstallResult>
+  pluginsPack: (sourceDir?: string, outputDir?: string) => Promise<PluginPackResult>
+  pluginsSearchSources: (query: string) => Promise<GhostSearchResult[]>
+  pluginsGetDownloadSources: (providerId: string, gameId: string) => Promise<GhostDownloadSource[]>
+  pluginsStartDownload: (source: GhostDownloadSource, gameTitle: string, coverUrl?: string) => Promise<{ success: boolean; error?: string }>
+  pluginsGetActiveCSS: () => Promise<Record<string, string>>
+}
+
+export interface DetectedVersionResult {
+  version: string
+  source: 'override' | 'ankergames' | 'folder' | 'title' | 'manifest' | 'pe_header' | 'online_date' | 'date' | 'manual'
+  rawDate?: string
+  isDate?: boolean
+  details?: string
 }
 
 interface FrontendMessages {
+  'plugins-updated': (plugins: PluginInfo[]) => void
+  'plugins-css-changed': (cssMap: Record<string, string>) => void
   gameStatusUpdate: (status: GameStatus) => void
   wineVersionsUpdated: () => void
   showDialog: (

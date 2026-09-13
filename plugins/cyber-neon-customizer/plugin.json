@@ -1,0 +1,14 @@
+{
+  "id": "com.ghost.cyber-neon-customizer",
+  "name": "Cyber Neon Layout & Customizer",
+  "version": "1.0.0",
+  "description": "Personalização profunda de interface: alteração do formato de botões neon, disposição fluida das capas da Biblioteca e efeitos luminosos Cyberpunk.",
+  "author": "Ghost Community UI Labs",
+  "type": "layout",
+  "entrypoint": "index.js",
+  "style": "theme.css",
+  "permissions": [
+    "ui:inject-css"
+  ],
+  "tier": 1
+}

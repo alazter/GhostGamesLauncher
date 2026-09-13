@@ -1,0 +1,21 @@
+{
+  "id": "com.ghost.ankergames-source",
+  "name": "AnkerGames Game Source",
+  "version": "1.0.0",
+  "description": "Provedor oficial da comunidade para busca de jogos, capas em HD e múltiplas opções de download (Direto, TorBox API e Torrent/Magnet).",
+  "author": "Comunidade Ghost & AnkerGames",
+  "type": "game-source",
+  "entrypoint": "index.js",
+  "permissions": [
+    "network",
+    "game-sources"
+  ],
+  "allowedDomains": [
+    "*.ankergames.net",
+    "ankergames.net",
+    "steamcdn-a.akamaihd.net",
+    "shared.cloudflare.steamstatic.com"
+  ],
+  "tier": 1,
+  "homepage": "https://ankergames.net"
+}

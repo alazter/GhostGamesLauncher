@@ -58,8 +58,10 @@ import InlineGameSettings from './components/InlineGameSettings'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { configStore } from 'frontend/helpers/electronStores'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCloud, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { faCloud, faSpinner, faGlobe, faDownload } from '@fortawesome/free-solid-svg-icons'
 import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
+import DownloadSourceModal from 'frontend/components/UI/DownloadSourceModal'
+import type { GhostSearchResult } from 'common/types/plugins'
 const storage = window.localStorage
 
 type SearchableGame = {
@@ -1029,6 +1031,30 @@ export default memo(function Library(): JSX.Element {
   }
 
   const [filterText, setFilterText] = useState('')
+  const [communitySearchResults, setCommunitySearchResults] = useState<GhostSearchResult[]>([])
+  const [selectedCommunityGame, setSelectedCommunityGame] = useState<GhostSearchResult | null>(null)
+
+  useEffect(() => {
+    if (!filterText || filterText.trim().length < 2) {
+      setCommunitySearchResults([])
+      return
+    }
+
+    const timer = setTimeout(() => {
+      if (window.api?.pluginsSearchSources) {
+        window.api
+          .pluginsSearchSources(filterText.trim())
+          .then((res) => {
+            setCommunitySearchResults(res || [])
+          })
+          .catch(() => {
+            setCommunitySearchResults([])
+          })
+      }
+    }, 350)
+
+    return () => clearTimeout(timer)
+  }, [filterText])
 
   const [showHidden, setShowHidden] = useState<boolean>(initialStoreSettings.showHidden)
   const handleShowHidden = (value: boolean) => {
@@ -2325,6 +2351,114 @@ export default memo(function Library(): JSX.Element {
                       handleGameCardClick={handleModal}
                     />
                   )}
+
+                {filterText && communitySearchResults.length > 0 && (
+                  <div className="ghost-community-results-section" style={{ marginTop: '30px', padding: '0 4px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '16px',
+                      paddingBottom: '10px',
+                      borderBottom: '1px solid rgba(0, 255, 255, 0.2)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <FontAwesomeIcon icon={faGlobe} style={{ color: '#00ffff', fontSize: '18px' }} />
+                        <h3 style={{ margin: 0, fontSize: '18px', color: '#fff', fontWeight: 700 }}>
+                          Fontes da Comunidade (Plugins Ativos)
+                        </h3>
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#00ffff', background: 'rgba(0, 255, 255, 0.1)', padding: '3px 10px', borderRadius: '12px', border: '1px solid rgba(0, 255, 255, 0.3)' }}>
+                        {communitySearchResults.length} {communitySearchResults.length === 1 ? 'jogo encontrado' : 'jogos encontrados'}
+                      </span>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                      gap: '16px'
+                    }}>
+                      {communitySearchResults.map((game) => (
+                        <div
+                          key={`${game.providerId}-${game.id}`}
+                          style={{
+                            background: '#131a20',
+                            border: '1px solid rgba(0, 255, 255, 0.3)',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)'
+                          }}
+                          onClick={() => setSelectedCommunityGame(game)}
+                        >
+                          <div style={{ position: 'relative', width: '100%', height: '230px', background: '#090d14' }}>
+                            {game.coverUrl ? (
+                              <img
+                                src={game.coverUrl}
+                                alt={game.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                                <FontAwesomeIcon icon={faGlobe} style={{ fontSize: '36px' }} />
+                              </div>
+                            )}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              padding: '8px',
+                              background: 'linear-gradient(transparent, rgba(0,0,0,0.85))'
+                            }}>
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#00ffff', textTransform: 'uppercase' }}>
+                                {game.providerName}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={game.title}>
+                              {game.title}
+                            </span>
+                            {game.size && (
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                💾 {game.size}
+                              </span>
+                            )}
+                            <button
+                              style={{
+                                marginTop: 'auto',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                background: 'linear-gradient(135deg, #00ffff, #0088cc)',
+                                color: '#000',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '8px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedCommunityGame(game)
+                              }}
+                            >
+                              <FontAwesomeIcon icon={faDownload} />
+                              <span>Obter Jogo</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2337,6 +2471,7 @@ export default memo(function Library(): JSX.Element {
         ref={goToBottomElement}
         tabIndex={0}
         data-sn-focusable="true"
+        style={{ zIndex: 9999 }}
       >
         <ArrowDropDown id="goToBottomArrow" className="material-icons" />
       </button>
@@ -2347,6 +2482,7 @@ export default memo(function Library(): JSX.Element {
         ref={backToTopElement}
         tabIndex={0}
         data-sn-focusable="true"
+        style={{ zIndex: 9999 }}
       >
         <ArrowDropUp id="backToTopArrow" className="material-icons" />
       </button>
@@ -2582,6 +2718,17 @@ export default memo(function Library(): JSX.Element {
           {cloudLabel}
         </span>
       </div>
+
+      {selectedCommunityGame && (
+        <DownloadSourceModal
+          isOpen={Boolean(selectedCommunityGame)}
+          onClose={() => setSelectedCommunityGame(null)}
+          gameTitle={selectedCommunityGame.title}
+          coverUrl={selectedCommunityGame.coverUrl}
+          providerId={selectedCommunityGame.providerId}
+          gameId={selectedCommunityGame.id}
+        />
+      )}
     </LibraryContext.Provider>
   )
 })

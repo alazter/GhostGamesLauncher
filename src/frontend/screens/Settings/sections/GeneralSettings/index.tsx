@@ -14,6 +14,7 @@ import {
   MaxRecentGames,
   MaxWorkers,
   MinimizeOnGameLaunch,
+  MonitorSteamDownloads,
   Shortcuts,
   StartInConsoleMode,
   StartAtLogin,
@@ -52,6 +53,8 @@ export default function GeneralSettings() {
       <WinePrefixesBasePath />
 
       <DefaultSteamPath />
+
+      <MonitorSteamDownloads />
 
       <EgsSettings />
 

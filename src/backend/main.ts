@@ -27,6 +27,8 @@ import { autoUpdater } from 'electron-updater'
 import { cpus } from 'os'
 import { existsSync, watch, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'graceful-fs'
 import 'source-map-support/register'
+import { registerPluginsIPC } from './plugins/ipcHandler'
+import { PluginManager } from './plugins/pluginManager'
 
 import Backend from 'i18next-fs-backend'
 import i18next from 'i18next'
@@ -140,6 +142,11 @@ import {
 } from './game_overrides'
 import { backendEvents } from './backend_events'
 import { libraryStore } from './storeManagers/sideload/electronStores'
+import {
+  detectPirateGameVersion,
+  resolveDateVersionOnline,
+  setGameVersion
+} from './storeManagers/sideload/versionDetector'
 import { gameOverridesStore } from './game_overrides/electronStores'
 import { configStore, tsStore } from './constants/key_value_stores'
 import {
@@ -416,6 +423,8 @@ if (!gotTheLock) {
     initOnlineMonitor()
     initStoreManagers()
     initImagesCache()
+    registerPluginsIPC()
+    await PluginManager.getInstance().init()
 
     // Add User-Agent Client hints to behave like Windows
     if (process.argv.includes('--spoof-windows')) {
@@ -1284,6 +1293,18 @@ addHandler('downloadBackupFromCloud', async () => {
   }
 })
 
+addHandler('detectGameVersion', async (_event, game) => {
+  return detectPirateGameVersion(game)
+})
+
+addHandler('resolveDateVersionOnline', async (_event, title, dateStr) => {
+  return await resolveDateVersionOnline(title, dateStr)
+})
+
+addHandler('setGameVersion', async (_event, appName, version) => {
+  return setGameVersion(appName, version)
+})
+
 addListener('clearCache', (event, showDialog, fromVersionChange = false) => {
   clearCache(undefined, fromVersionChange)
   sendFrontendMessage('refreshLibrary')
@@ -1487,6 +1508,15 @@ addListener('setSetting', (event, { appName, key, value }) => {
     if (key === 'autoUpdateGames' && value === false) {
       import('backend/downloadmanager/downloadqueue').then(({ clearAutoUpdatesFromQueue }) => {
         clearAutoUpdatesFromQueue()
+      }).catch(() => {})
+    }
+    if (key === 'monitorSteamDownloads') {
+      import('backend/storeManagers/steam/queueWatcher').then(({ SteamQueueWatcher }) => {
+        if (value === false) {
+          SteamQueueWatcher.stopWatcher()
+        } else {
+          SteamQueueWatcher.startWatcherIfNeeded()
+        }
       }).catch(() => {})
     }
   } else {

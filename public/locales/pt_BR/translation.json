@@ -139,7 +139,7 @@
         "select": {
             "button": "Selecionar",
             "exe": "Selecionar EXE",
-            "script": "Selecionar script..."
+            "script": "Selecionar software (.exe) ou script..."
         },
         "shortcuts": {
             "message": "Os atalhos foram criados na área de trabalho e no menu Iniciar",
@@ -776,8 +776,13 @@
             },
             "label": "Permitir instalação de jogos com o sistema anti-trapaças comprometido ou não suportado"
         },
-        "before-launch-script-path": "Selecione um script para executar antes do jogo ser iniciado",
-        "after-launch-script-path": "Selecione um script para executar após o jogo ser fechado",
+        "before-launch-script-path": "Selecione um software (.exe) ou script (.bat, .cmd, .ps1) para executar antes de iniciar o jogo",
+        "after-launch-script-path": "Selecione um software (.exe) ou script (.bat, .cmd, .ps1) para executar após o jogo ser fechado",
+        "wait-before-launch-script": "Aguardar o software/script fechar antes de iniciar o jogo (desmarque para programas em segundo plano)",
+        "wait-before-launch-script-desc": "Quando desmarcado, o software/script é iniciado e o jogo abre imediatamente sem travar.",
+        "wait-after-launch-script": "Aguardar o software/script finalizar após fechar o jogo",
+        "wait-after-launch-script-desc": "Quando desmarcado, o software/script é iniciado em segundo plano sem prender o encerramento do Ghost.",
+        "scripts": "Scripts e Softwares:",
         "verboseLogs": {
             "description": "Habilitar logs detalhados"
         },

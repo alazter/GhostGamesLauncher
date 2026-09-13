@@ -254,3 +254,53 @@ export function isPlaytestOrDemo(game: GameInfo): boolean {
 
   return false
 }
+
+export function isPirateOrNonOfficialGame(
+  game: GameInfo,
+  assignments?: Record<string, string>
+): boolean {
+  if (!game) return false
+  const runner = (game.runner || '').toLowerCase()
+
+  // Se pertencer a lojas oficiais, NUNCA é jogo pirata
+  if (
+    runner === 'steam' ||
+    runner === 'legendary' ||
+    runner === 'epic' ||
+    runner === 'gog' ||
+    runner === 'nile' ||
+    runner === 'amazon' ||
+    runner === 'zoom'
+  ) {
+    return false
+  }
+
+  // Se o runner for sideload, é jogo fora de loja oficial
+  if (runner === 'sideload' || runner === 'sideloaded') {
+    return true
+  }
+
+  // Verifica se o usuário atribuiu à loja piratas
+  if (assignments && game.app_name) {
+    const assigned = (assignments[game.app_name] || '').toLowerCase()
+    if (assigned === 'piratas' || assigned.includes('pirata')) {
+      return true
+    }
+  }
+
+  // Fallback via localStorage se assignments não for passado
+  try {
+    const raw = localStorage.getItem('heroic_game_assignments')
+    if (raw && game.app_name) {
+      const parsed = JSON.parse(raw)
+      const assigned = (parsed[game.app_name] || '').toLowerCase()
+      if (assigned === 'piratas' || assigned.includes('pirata')) {
+        return true
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return false
+}

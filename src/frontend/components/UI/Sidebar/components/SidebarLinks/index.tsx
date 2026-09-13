@@ -9,7 +9,8 @@ import {
   faBarsProgress,
   faTv,
   faPaintBrush,
-  faClock
+  faClock,
+  faPuzzlePiece
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { useContext, useState, useEffect } from 'react'
@@ -108,6 +109,7 @@ export default function SidebarLinks() {
       'library',
       'releases',
       'personalization',
+      'plugins',
       'login',
       'stores',
       'divider-1',
@@ -131,6 +133,13 @@ export default function SidebarLinks() {
         })
         defaultOrder.forEach(id => {
           if (!orderedList.includes(id)) {
+            if (id === 'plugins') {
+              const pIdx = orderedList.indexOf('personalization')
+              if (pIdx !== -1) {
+                orderedList.splice(pIdx + 1, 0, id)
+                return
+              }
+            }
             orderedList.push(id)
           }
         })
@@ -282,6 +291,17 @@ export default function SidebarLinks() {
             icon={faPaintBrush}
             label="Personalização"
             dataTour="sidebar-personalization"
+            {...dragProps}
+          />
+        )
+      case 'plugins':
+        return (
+          <SidebarItem
+            key="plugins"
+            url="/plugins"
+            icon={faPuzzlePiece}
+            label="Plugins"
+            dataTour="sidebar-plugins"
             {...dragProps}
           />
         )

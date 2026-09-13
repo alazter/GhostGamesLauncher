@@ -20,7 +20,7 @@ import {
 
 import i18next from 'i18next'
 import { existsSync, mkdirSync } from 'graceful-fs'
-import { join, dirname, isAbsolute } from 'path'
+import { join, dirname, isAbsolute, extname } from 'path'
 
 import {
   constructAndUpdateRPC,
@@ -243,20 +243,20 @@ const launchEventCallback: (args: LaunchParams) => StatusPromise = async ({
     await gogPresence.setPresence()
   }
 
-  const launchResult = await command
-    .catch(async (exception) => {
-      logError(exception, LogPrefix.Backend)
-      await logWriter.logError([
-        `An exception occurred when launching the game:`
-      ])
-      await logWriter.logError(exception)
+  const launchResult = await command.catch(async (exception) => {
+    logError(exception, LogPrefix.Backend)
+    await logWriter.logError([
+      `An exception occurred when launching the game:`
+    ])
+    await logWriter.logError(exception)
 
-      return false
-    })
-    .finally(async () => {
-      await runAfterLaunchScript(gameInfo, gameSettings, logWriter)
-      await logWriter.close()
-    })
+    return false
+  })
+
+  if (launchResult !== false) {
+    await runAfterLaunchScript(gameInfo, gameSettings, logWriter)
+  }
+  await logWriter.close()
 
   if (runner === 'gog') {
     gogPresence.setCurrentGame('')
@@ -2039,9 +2039,24 @@ async function runScriptForGame(
 ): Promise<boolean | string> {
   return new Promise((resolve, reject) => {
     const scriptPath = gameSettings[`${scriptStage}LaunchScriptPath`]
+    if (!scriptPath) {
+      resolve(true)
+      return
+    }
+
+    let scriptCwd = process.cwd()
+    if (
+      gameInfo.install?.install_path &&
+      existsSync(gameInfo.install.install_path)
+    ) {
+      scriptCwd = gameInfo.install.install_path
+    } else if (existsSync(dirname(scriptPath))) {
+      scriptCwd = dirname(scriptPath)
+    }
+
     const scriptEnv = {
       HEROIC_GAME_APP_NAME: gameInfo.app_name,
-      HEROIC_GAME_EXEC: gameInfo.install.executable,
+      HEROIC_GAME_EXEC: gameInfo.install?.executable || '',
       HEROIC_GAME_PREFIX: gameSettings.winePrefix,
       HEROIC_GAME_RUNNER: gameInfo.runner,
       HEROIC_GAME_SCRIPT_STAGE: scriptStage,
@@ -2050,33 +2065,104 @@ async function runScriptForGame(
       HEROIC_GAME_INFO: JSON.stringify(gameInfo),
       ...process.env
     }
-    const child = spawn(scriptPath, {
-      cwd: gameInfo.install.install_path,
-      env: scriptEnv
-    })
-    child.stdout.setEncoding('utf-8')
-    child.stderr.setEncoding('utf-8')
+
+    const ext = extname(scriptPath).toLowerCase()
+    let bin = scriptPath
+    let args: string[] = []
+    let useShell = false
+
+    if (isWindows) {
+      if (ext === '.bat' || ext === '.cmd') {
+        bin = `"${scriptPath}"`
+        useShell = true
+      } else if (ext === '.ps1') {
+        bin = 'powershell.exe'
+        args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath]
+      }
+    } else {
+      if (ext === '.sh' || ext === '.bash') {
+        bin = 'bash'
+        args = [scriptPath]
+      }
+    }
+
+    const shouldWait =
+      scriptStage === 'before'
+        ? Boolean(gameSettings.waitBeforeLaunchScript)
+        : Boolean(gameSettings.waitAfterLaunchScript)
+
+    let child: ReturnType<typeof spawn>
+    try {
+      child = spawn(bin, args, {
+        cwd: scriptCwd,
+        env: scriptEnv,
+        shell: useShell,
+        detached: true,
+        windowsHide: false
+      })
+    } catch (err) {
+      if (gameSettings.verboseLogs) {
+        logWriter.logError(err as Error)
+      }
+      reject(err)
+      return
+    }
+
+    child.stdout?.setEncoding('utf-8')
+    child.stderr?.setEncoding('utf-8')
 
     if (gameSettings.verboseLogs) {
-      child.stdout.on('data', (data: string) => {
+      child.stdout?.on('data', (data: string) => {
         logWriter.writeString(data)
       })
 
-      child.stderr.on('data', (data: string) => {
+      child.stderr?.on('data', (data: string) => {
         logWriter.writeString(data)
       })
     }
+
+    let hasResolved = false
 
     child.on('error', (err) => {
       if (gameSettings.verboseLogs) {
         logWriter.logError(err)
       }
-      reject(err)
+      if (!hasResolved) {
+        hasResolved = true
+        reject(err)
+      }
     })
 
-    child.on('exit', () => {
-      resolve(true)
+    child.on('exit', (code) => {
+      if (gameSettings.verboseLogs) {
+        logWriter.writeString(
+          `Script/software (${scriptStage}) exited with code ${code}\n`
+        )
+      }
+      if (!hasResolved) {
+        hasResolved = true
+        resolve(true)
+      }
     })
+
+    if (!shouldWait) {
+      // Grace period of 500ms to detect immediate spawn/path errors.
+      // If process is still active (e.g. companion app/GUI software), unref and let game launch!
+      setTimeout(() => {
+        if (!hasResolved) {
+          hasResolved = true
+          try {
+            child.unref()
+          } catch {}
+          if (gameSettings.verboseLogs) {
+            logWriter.writeString(
+              `Script/software (${scriptStage}) running in background (PID: ${child.pid}). Proceeding...\n`
+            )
+          }
+          resolve(true)
+        }
+      }, 500)
+    }
   })
 }
 

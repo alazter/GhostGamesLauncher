@@ -14,7 +14,8 @@ import {
   faPowerOff,
   faQuestionCircle,
   faClock,
-  faTrash
+  faTrash,
+  faPuzzlePiece
 } from '@fortawesome/free-solid-svg-icons'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
@@ -1932,6 +1933,7 @@ export default function PersonalizationScreen() {
       { id: 'library', icon: faGamepad, active: false },
       { id: 'releases', icon: faClock, active: false },
       { id: 'personalization', icon: faPaintBrush, active: true },
+      { id: 'plugins', icon: faPuzzlePiece, active: false },
       { id: 'login', icon: faUser, active: false },
       { id: 'stores', icon: faStore, active: false },
       { id: 'divider-1', isDivider: true },
@@ -1953,6 +1955,13 @@ export default function PersonalizationScreen() {
         })
         defaultOrder.forEach(item => {
           if (!orderedList.some(o => o.id === item.id)) {
+            if (item.id === 'plugins') {
+              const pIdx = orderedList.findIndex(o => o.id === 'personalization')
+              if (pIdx !== -1) {
+                orderedList.splice(pIdx + 1, 0, item)
+                return
+              }
+            }
             orderedList.push(item)
           }
         })

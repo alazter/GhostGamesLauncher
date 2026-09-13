@@ -19,6 +19,7 @@ import { sendGameStatusUpdate, sendProgressUpdate } from '../../utils'
 import { sendFrontendMessage } from '../../ipc'
 import { logInfo, logWarning, LogPrefix } from 'backend/logger'
 import { findGameExecutables } from './processWatcher'
+import { GlobalConfig } from 'backend/config'
 
 function safeLogInfo(message: any, prefix?: LogPrefix) {
   try {
@@ -112,12 +113,25 @@ export class SteamQueueWatcher {
     lastSpeedMBps: number
   } | null = null
 
+  // Sentinela de metadados e cache de varredura (Dormência Inteligente)
+  private static lastLogMtime = 0
+  private static lastLogSize = 0
+  private static lastLibMtime = 0
+  private static cachedScanResult: SteamDownloadScanResult | null = null
+  private static lastScanTime = 0
+
   // ---------------------------------------------------------------
   // 1. LIFECYCLE & MASTER 3-SECOND WATCHER
   // ---------------------------------------------------------------
 
   public static startWatcher() {
     if (this.watchTimer) return
+
+    const { monitorSteamDownloads = true } = GlobalConfig.get().getSettings()
+    if (!monitorSteamDownloads) {
+      safeLogInfo('Steam download monitoring is disabled in settings, skipping watcher start', LogPrefix.Steam)
+      return
+    }
 
     safeLogInfo('Starting unified 3-second SteamQueueWatcher', LogPrefix.Steam)
     void this.tick()
@@ -136,6 +150,8 @@ export class SteamQueueWatcher {
   }
 
   public static startWatcherIfNeeded() {
+    const { monitorSteamDownloads = true } = GlobalConfig.get().getSettings()
+    if (!monitorSteamDownloads) return
     this.startWatcher()
   }
 
@@ -305,14 +321,73 @@ export class SteamQueueWatcher {
   // 3. VARREDURA CIENTÍFICA DE MANIFESTOS (.acf)
   // ---------------------------------------------------------------
 
-  public static async getSteamDownloadState(): Promise<SteamDownloadScanResult> {
-    const steamRoot = await this.getSteamRootPath()
-    const libraryFolders = await SteamDownloader.getSteamLibraryFolders()
-    if (!libraryFolders || libraryFolders.length === 0) {
+  public static async getSteamDownloadState(forceScan = false): Promise<SteamDownloadScanResult> {
+    const { monitorSteamDownloads = true } = GlobalConfig.get().getSettings()
+    if (!monitorSteamDownloads) {
+      if (this.watchTimer) {
+        this.stopWatcher()
+      }
       return { active: null, rawActive: null, queue: [] }
     }
 
+    const now = Date.now()
+    if (!forceScan && this.cachedScanResult && now - this.lastScanTime < 2000) {
+      return this.cachedScanResult
+    }
+
+    const steamRoot = await this.getSteamRootPath()
+    const libraryFolders = await SteamDownloader.getSteamLibraryFolders()
+    if (!libraryFolders || libraryFolders.length === 0) {
+      this.cachedScanResult = { active: null, rawActive: null, queue: [] }
+      this.lastScanTime = now
+      return this.cachedScanResult
+    }
+
     const logPath = steamRoot ? join(steamRoot, 'logs', 'content_log.txt') : ''
+    const vdfPath = steamRoot ? join(steamRoot, 'steamapps', 'libraryfolders.vdf') : ''
+
+    // SENTINELA DE DORMÊNCIA INTELIGENTE:
+    // Se não há download ativo nem instalações pendentes na memória,
+    // verifica se o content_log.txt ou libraryfolders.vdf sofreram qualquer alteração física.
+    const hasActiveTracking =
+      this.isWatching || this.trackedApps.size > 0 || this.pendingInstalls.size > 0
+
+    if (!forceScan && !hasActiveTracking) {
+      let logMtime = 0
+      let logSize = 0
+      let libMtime = 0
+
+      try {
+        if (logPath && existsSync(logPath)) {
+          const st = statSync(logPath)
+          logMtime = st.mtimeMs
+          logSize = st.size
+        }
+      } catch {}
+
+      try {
+        if (vdfPath && existsSync(vdfPath)) {
+          const st = statSync(vdfPath)
+          libMtime = st.mtimeMs
+        }
+      } catch {}
+
+      // Se NADA mudou no disco e não temos apps ativos, economiza a leitura de todos os manifestos .acf
+      if (
+        this.cachedScanResult &&
+        this.lastLogMtime === logMtime &&
+        this.lastLogSize === logSize &&
+        this.lastLibMtime === libMtime
+      ) {
+        this.lastScanTime = now
+        return this.cachedScanResult
+      }
+
+      this.lastLogMtime = logMtime
+      this.lastLogSize = logSize
+      this.lastLibMtime = libMtime
+    }
+
     const logContent = this.readTailLog(logPath)
     const logTelemetry = this.parseSteamLog(logContent)
 
@@ -449,7 +524,6 @@ export class SteamQueueWatcher {
     }
 
     // Processa instalações pendentes iniciadas pelo Ghost que ainda não criaram manifestos
-    const now = Date.now()
     for (const [pAppId, pTime] of this.pendingInstalls.entries()) {
       if (now - pTime > 25000) {
         this.pendingInstalls.delete(pAppId)
@@ -508,11 +582,16 @@ export class SteamQueueWatcher {
 
     const queuedApps = detectedApps.filter((a) => a.appId !== activeApp?.appId)
 
-    return {
+    const scanResult: SteamDownloadScanResult = {
       active: activeApp ? this.mapToDMElement(activeApp, true) : null,
       rawActive: activeApp,
       queue: queuedApps.map((a) => this.mapToDMElement(a, false))
     }
+
+    this.cachedScanResult = scanResult
+    this.lastScanTime = Date.now()
+
+    return scanResult
   }
 
   // ---------------------------------------------------------------
@@ -804,6 +883,7 @@ export class SteamQueueWatcher {
 
   public static async pauseApp(appId: string): Promise<void> {
     this.userPausedAppIds.add(appId)
+    this.lastScanTime = 0
     await this.triggerSteamUrl(`steam://pause/${appId}`)
     void this.tick()
   }
@@ -811,6 +891,7 @@ export class SteamQueueWatcher {
   public static async resumeApp(appId: string): Promise<void> {
     this.userPausedAppIds.delete(appId)
     this.dismissedApps.delete(appId)
+    this.lastScanTime = 0
     await this.triggerSteamUrl(`steam://install/${appId}`)
     void this.tick()
   }
@@ -819,6 +900,7 @@ export class SteamQueueWatcher {
     this.dismissedApps.add(appId)
     this.pendingInstalls.delete(appId)
     this.userPausedAppIds.delete(appId)
+    this.lastScanTime = 0
 
     const resolver = this.completionResolvers.get(appId)
     if (resolver) {
@@ -832,6 +914,7 @@ export class SteamQueueWatcher {
 
   public static undismissApp(appId: string) {
     this.dismissedApps.delete(appId)
+    this.lastScanTime = 0
   }
 
   public static isDismissed(appId: string): boolean {
@@ -845,6 +928,7 @@ export class SteamQueueWatcher {
   public static trackPendingInstall(appId: string) {
     this.dismissedApps.delete(appId)
     this.userPausedAppIds.delete(appId)
+    this.lastScanTime = 0
     this.pendingInstalls.set(appId, Date.now())
   }
 

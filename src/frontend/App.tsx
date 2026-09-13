@@ -23,6 +23,7 @@ import { SettingsModalWrapper } from './screens/Settings/components/SettingsModa
 
 
 import { syncLocalStorageToBackend } from './utils/localStorageBackup'
+import { usePluginThemes } from './hooks/usePluginThemes'
 
 interface HeroicAppContext {
   isRTL: boolean
@@ -44,6 +45,8 @@ function Root() {
     help,
     disableAnimations
   } = context
+
+  usePluginThemes()
 
   const nav = navigator as unknown as Record<string, Record<string, boolean>>
   const hasNativeOverlayControls =
@@ -309,6 +312,10 @@ const router = createHashRouter([
       {
         path: 'personalization',
         lazy: makeLazyFunc(import('./screens/Personalization'))
+      },
+      {
+        path: 'plugins',
+        lazy: makeLazyFunc(import('./screens/Plugins'))
       },
       {
         path: 'console',

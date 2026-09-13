@@ -1,0 +1,40 @@
+/* ========================================================= */
+/* Ghost Plugin: Cyber Neon Layout & Customizer               */
+/* Personalização de Layout, Formato de Botões e Capas       */
+/* ========================================================= */
+
+/* 1. FORMATO DOS BOTÕES: Borda Neon Ciano e Cantos Arredondados */
+button.primary,
+.ghost-btn-primary,
+.dialog-btn-primary {
+  border-radius: 12px !important;
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.4) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px !important;
+  transition: all 0.25s ease !important;
+}
+
+button.primary:hover,
+.ghost-btn-primary:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 0 26px rgba(0, 255, 255, 0.75) !important;
+}
+
+/* 2. DISPOSIÇÃO E ELEVAÇÃO DAS CAPAS DA BIBLIOTECA */
+.game-card,
+.games-grid > div {
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.25s ease !important;
+}
+
+.game-card:hover {
+  transform: translateY(-5px) scale(1.03) !important;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.8), 0 0 22px rgba(0, 255, 255, 0.35) !important;
+  border-color: rgba(0, 255, 255, 0.6) !important;
+}
+
+/* 3. BARRA DE PESQUISA & CONTROLES CYBER */
+.search-bar-container input,
+.ghost-plugins-search-box input {
+  font-family: 'Segoe UI', system-ui, sans-serif !important;
+  letter-spacing: 0.3px !important;
+}

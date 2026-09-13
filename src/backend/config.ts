@@ -385,6 +385,8 @@ class GlobalConfigV0 extends GlobalConfig {
       hideWindowOnProtocolLaunch: false,
       beforeLaunchScriptPath: '',
       afterLaunchScriptPath: '',
+      waitBeforeLaunchScript: false,
+      waitAfterLaunchScript: false,
       disableUMU: false,
       verboseLogs: true,
       downloadProtonToSteam: false,
@@ -395,6 +397,7 @@ class GlobalConfigV0 extends GlobalConfig {
       steamGridDbNsfw: false,
       steamGridDbDownloadCovers: true,
       disableGOGPresence: false,
+      monitorSteamDownloads: true,
       startAtLogin: false
     }
     // @ts-expect-error TODO: We need to settle on *one* place to define settings defaults

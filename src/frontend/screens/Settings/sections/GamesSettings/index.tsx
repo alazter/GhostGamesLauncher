@@ -231,7 +231,7 @@ export default function GamesSettings() {
         <LaunchOptionSelector />
         <LauncherArgs />
         <div className="Field">
-          <label>{t('setting.scripts', 'Scripts:')}</label>
+          <label>{t('setting.scripts', 'Scripts e Softwares:')}</label>
           <BeforeLaunchScriptPath />
           <AfterLaunchScriptPath />
         </div>

@@ -39,6 +39,8 @@ import useGlobalState from 'frontend/state/GlobalStateV2'
 import EditGameDialog from 'frontend/components/UI/EditGameDialog'
 import UninstallModal from 'frontend/components/UI/UninstallModal'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
+import GameVersionBadge from './GameVersionBadge'
+import { isPirateOrNonOfficialGame } from 'frontend/helpers/customStoreFiltering'
 
 interface Props {
   game: GameInfo
@@ -144,6 +146,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
     'gameOverrides'
   )
   const gameOverride = gameOverrides[game.app_name]
+  const isPirateGame = useMemo(() => isPirateOrNonOfficialGame(game), [game])
 
   const gameList = useMemo(() => {
     return (window as any).heroicActiveLibrary || []
@@ -1239,6 +1242,20 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             >
               <DeleteIcon style={{ fontSize: '18px' }} />
             </button>
+            {isPirateGame && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '0 12px'
+                }}
+              >
+                <GameVersionBadge game={game} />
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexShrink: 0 }}>
             {showNavArrows && (
@@ -1475,9 +1492,9 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                 <LauncherArgs />
               </div>
 
-              {/* Scripts */}
+              {/* Scripts e Softwares */}
               <div>
-                <h3 style={sectionHeaderStyle}>Scripts</h3>
+                <h3 style={sectionHeaderStyle}>Scripts e Softwares</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <BeforeLaunchScriptPath />
                   <AfterLaunchScriptPath />

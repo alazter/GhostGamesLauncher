@@ -20,9 +20,24 @@ const downloadManager = new TypeCheckedStoreBackend('downloadManager', {
   name: 'download-manager'
 })
 
+let lastQueueFingerprint = ''
+
 async function emitQueueUpdate() {
   const info = await getQueueInformation()
-  sendFrontendMessage('changedDMQueueInformation', info.elements, info.state, info.finished)
+  const fingerprint = JSON.stringify({
+    state: info.state,
+    count: info.elements.length,
+    activeApp: info.elements[0]?.params?.appName,
+    activeStatus: info.elements[0]?.status,
+    queueApps: info.elements.slice(1).map((e) => e.params.appName),
+    finishedCount: info.finished.length,
+    finishedLastTime: info.finished[0]?.endTime
+  })
+
+  if (fingerprint !== lastQueueFingerprint) {
+    lastQueueFingerprint = fingerprint
+    sendFrontendMessage('changedDMQueueInformation', info.elements, info.state, info.finished)
+  }
 }
 
 SteamQueueWatcher.setOnQueueChanged(async () => {
