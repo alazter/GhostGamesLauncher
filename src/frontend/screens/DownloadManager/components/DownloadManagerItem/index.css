@@ -12,6 +12,8 @@
   align-items: stretch;
   transition: all 0.25s ease;
   height: 180px;
+  min-height: 180px;
+  flex-shrink: 0;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
@@ -398,6 +400,9 @@
   box-shadow: 0 0 25px rgba(0, 229, 255, 0.2), 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(0, 229, 255, 0.2);
   transition: all 0.25s ease;
   height: 82px;
+  min-height: 82px;
+  max-height: 82px;
+  flex-shrink: 0;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;
@@ -515,6 +520,8 @@
   box-shadow: 0 0 25px rgba(0, 229, 255, 0.2), 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(0, 229, 255, 0.2);
   transition: all 0.25s ease;
   height: 150px;
+  min-height: 150px;
+  flex-shrink: 0;
   box-sizing: border-box;
   position: relative;
   overflow: hidden;

@@ -14,6 +14,8 @@ import { gogRedistPath } from 'backend/storeManagers/gog/constants'
 import { onConnectivityChange } from 'backend/online_monitor'
 import { GlobalConfig } from 'backend/config'
 import { SteamQueueWatcher } from 'backend/storeManagers/steam/queueWatcher'
+import { ExternalGames, setOnExternalQueueChanged } from 'backend/plugins/externalGames'
+import type { ExternalDownloadJob } from 'common/types/plugins'
 
 const downloadManager = new TypeCheckedStoreBackend('downloadManager', {
   cwd: 'store',
@@ -43,6 +45,39 @@ async function emitQueueUpdate() {
 SteamQueueWatcher.setOnQueueChanged(async () => {
   await emitQueueUpdate()
 })
+
+setOnExternalQueueChanged(async () => {
+  await emitQueueUpdate()
+})
+
+function externalJobToDMElement(job: ExternalDownloadJob): DMQueueElement {
+  const appName = `external-${job.installationId}`
+  const sizeStr = job.total && job.total > 0
+    ? `${(job.total / (1024 * 1024 * 1024)).toFixed(2)} GB`
+    : job.game.size || '?? GB'
+
+  return {
+    type: job.operation === 'update' ? 'update' : 'install',
+    params: {
+      appName,
+      runner: 'sideload',
+      gameInfo: {
+        app_name: appName,
+        title: job.game.title,
+        runner: 'sideload',
+        art_cover: job.game.coverUrl || '',
+        art_square: job.game.coverUrl || '',
+        is_installed: false
+      } as any,
+      size: sizeStr,
+      path: ''
+    } as any,
+    addToQueueTime: Date.parse(job.createdAt) || Date.now(),
+    startTime: Date.parse(job.createdAt) || Date.now(),
+    endTime: 0,
+    status: job.status === 'paused' ? 'paused' : undefined
+  }
+}
 
 /*
 #### Private ####
@@ -242,6 +277,17 @@ async function addToQueue(element: DMQueueElement) {
 
 async function removeFromQueue(appName: string) {
   if (appName) {
+    if (appName.startsWith('external-')) {
+      try {
+        const installationId = appName.replace('external-', '')
+        const extJobs = ExternalGames.getInstance().snapshot().jobs
+        const matchJob = extJobs.find((j) => j.installationId === installationId)
+        if (matchJob) {
+          await ExternalGames.getInstance().action({ type: 'cancel', jobId: matchJob.id })
+        }
+      } catch {}
+    }
+
     if (downloadManager.has('queue')) {
       const elements = downloadManager.get('queue', [])
       const index = elements.findIndex(
@@ -288,15 +334,49 @@ async function getQueueInformation(): Promise<DMQueue> {
     SteamQueueWatcher.startWatcherIfNeeded()
     const steamState = await SteamQueueWatcher.getSteamDownloadState()
 
+    // 0. Coleta de downloads de fontes comunitárias / ExternalGames
+    let externalActive: DMQueueElement | null = null
+    const externalQueueCandidates: DMQueueElement[] = []
+    try {
+      const extJobs = ExternalGames.getInstance().snapshot().jobs
+      for (const job of extJobs) {
+        if (['downloading', 'extracting', 'installing'].includes(job.status)) {
+          if (!externalActive) {
+            externalActive = externalJobToDMElement(job)
+          } else {
+            externalQueueCandidates.push(externalJobToDMElement(job))
+          }
+        } else if (job.status === 'queued') {
+          externalQueueCandidates.push(externalJobToDMElement(job))
+        }
+      }
+    } catch {
+      // ignora erro ao ler ExternalGames
+    }
+
     // 1. Determine active element
     let activeElement: DMQueueElement | null = null
 
+    const isSteamActiveRunning = Boolean(
+      steamState.active &&
+        steamState.rawActive &&
+        (steamState.rawActive.bytesDownloaded < steamState.rawActive.bytesToDownload ||
+          (steamState.rawActive.stateFlags & (256 | 1024 | 131072 | 262144 | 524288)) !== 0)
+    )
+
     if (currentElement && queueState !== 'idle' && currentElement.params.runner !== 'steam') {
       activeElement = currentElement
+    } else if (externalActive) {
+      activeElement = externalActive
     } else if (
       steamState.active &&
-      !SteamQueueWatcher.isDismissed(steamState.active.params.appName)
+      !SteamQueueWatcher.isDismissed(steamState.active.params.appName) &&
+      isSteamActiveRunning
     ) {
+      if (finishedAppNames.has(steamState.active.params.appName)) {
+        await removeFromFinished(steamState.active.params.appName)
+        finishedAppNames.delete(steamState.active.params.appName)
+      }
       activeElement = steamState.active
     } else if (elements.length > 0 && queueState === 'running') {
       activeElement = elements[0]
@@ -352,7 +432,7 @@ async function getQueueInformation(): Promise<DMQueue> {
       seenAppNames.add(activeAppName)
     }
 
-    for (const item of [...heroicQueueCandidates, ...steamQueueCandidates]) {
+    for (const item of [...heroicQueueCandidates, ...externalQueueCandidates, ...steamQueueCandidates]) {
       const id = item.params.appName
       if (!seenAppNames.has(id)) {
         seenAppNames.add(id)
@@ -364,9 +444,13 @@ async function getQueueInformation(): Promise<DMQueue> {
       ? [activeElement, ...dedupedQueue]
       : dedupedQueue
 
+    // Filtra apps ativos ou na fila para não duplicar na lista de concluídos exibida
+    const currentAppNames = new Set(allElements.map((el) => el.params.appName))
+    const displayFinished = finished.filter((f) => !currentAppNames.has(f.params.appName))
+
     return {
       elements: allElements,
-      finished,
+      finished: displayFinished,
       state: effectiveState
     }
   } catch (err) {
@@ -420,6 +504,14 @@ async function pauseCurrentDownload() {
   queueState = 'paused'
   autoPaused = false
 
+  try {
+    const extJobs = ExternalGames.getInstance().snapshot().jobs
+    const activeExtJob = extJobs.find((j) => j.status === 'downloading')
+    if (activeExtJob) {
+      await ExternalGames.getInstance().action({ type: 'pause', jobId: activeExtJob.id })
+    }
+  } catch {}
+
   if (currentElement && currentElement.params.runner !== 'steam') {
     stopCurrentDownload()
   } else {
@@ -441,6 +533,14 @@ async function pauseCurrentDownload() {
 async function resumeCurrentDownload() {
   queueState = 'running'
   autoPaused = false
+
+  try {
+    const extJobs = ExternalGames.getInstance().snapshot().jobs
+    const pausedExtJob = extJobs.find((j) => j.status === 'paused')
+    if (pausedExtJob) {
+      await ExternalGames.getInstance().action({ type: 'resume', jobId: pausedExtJob.id })
+    }
+  } catch {}
 
   if (currentElement && currentElement.params.runner !== 'steam') {
     void initQueue()

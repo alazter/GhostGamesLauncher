@@ -1,0 +1,19 @@
+{
+  "id": "com.ghost.online-fix-source",
+  "name": "Online-Fix",
+  "version": "1.2.0",
+  "author": "Ghost Community",
+  "description": "Catálogo público, busca inteligente, detecção de atualizações, backup de saves e instalação automática.",
+  "type": "game-source",
+  "entrypoint": "index.js",
+  "permissions": [
+    "network",
+    "game-sources"
+  ],
+  "tier": 2,
+  "allowedDomains": [
+    "online-fix.me"
+  ],
+  "homepage": "https://online-fix.me",
+  "minGhostVersion": "0.2.7-beta"
+}

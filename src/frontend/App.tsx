@@ -126,6 +126,7 @@ function Root() {
         .App, 
         main.content, 
         main.content > div,
+        .externalGamesPage,
         nav[class*="TitleBar"],
         .window-controls {
           background-color: transparent !important;
@@ -316,6 +317,10 @@ const router = createHashRouter([
       {
         path: 'plugins',
         lazy: makeLazyFunc(import('./screens/Plugins'))
+      },
+      {
+        path: 'external-games',
+        lazy: makeLazyFunc(import('./screens/ExternalGames'))
       },
       {
         path: 'console',

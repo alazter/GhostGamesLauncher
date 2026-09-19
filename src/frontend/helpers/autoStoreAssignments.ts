@@ -91,8 +91,89 @@ export function syncAutoStoreAssignments(
       localStorage.setItem('heroic_game_assignments', JSON.stringify(currentAssignments))
       window.dispatchEvent(new Event('gameAssignmentsChanged'))
     }
+
+    // Also sync Piratas store assignments for SteamRIP, AnkerGames and Online-Fix
+    void syncPiratasStoreAssignments()
   } catch (e) {
     console.error('Error syncing auto store assignments:', e)
+  }
+}
+
+export function findPiratasStoreId(): string {
+  try {
+    const rawCustomStores = localStorage.getItem('heroic_custom_stores') || '[]'
+    const customStores: Array<{ id: string; name: string }> = JSON.parse(rawCustomStores)
+    const found = customStores.find((s) => {
+      const nameLower = (s.name || '').toLowerCase()
+      const idLower = (s.id || '').toLowerCase()
+      return nameLower.includes('pirata') || idLower === 'piratas'
+    })
+    return found ? found.id : 'piratas'
+  } catch {
+    return 'piratas'
+  }
+}
+
+export function assignGameToPiratasStore(appName: string): boolean {
+  if (!appName) return false
+  try {
+    const piratasStoreId = findPiratasStoreId()
+    const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+    let currentAssignments: Record<string, string> = {}
+    try {
+      currentAssignments = JSON.parse(rawAssignments)
+    } catch {
+      currentAssignments = {}
+    }
+
+    if (currentAssignments[appName] !== piratasStoreId) {
+      currentAssignments[appName] = piratasStoreId
+      localStorage.setItem('heroic_game_assignments', JSON.stringify(currentAssignments))
+      window.dispatchEvent(new Event('gameAssignmentsChanged'))
+      return true
+    }
+  } catch (e) {
+    console.error('Error assigning game to Piratas store:', e)
+  }
+  return false
+}
+
+export async function syncPiratasStoreAssignments(): Promise<void> {
+  try {
+    if (!window.api?.externalGamesState) return
+    const state = await window.api.externalGamesState()
+    if (!state?.installations?.length) return
+
+    // Exclusive sources allowed for Piratas store
+    const piratasSources = ['anker', 'steamrip', 'online-fix', 'ankergames']
+    const piratasStoreId = findPiratasStoreId()
+    const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+    let currentAssignments: Record<string, string> = {}
+    try {
+      currentAssignments = JSON.parse(rawAssignments)
+    } catch {
+      currentAssignments = {}
+    }
+
+    let hasChanges = false
+    for (const inst of state.installations) {
+      const isEligible = piratasSources.some(
+        (s) =>
+          (inst.game?.providerId || '').toLowerCase().includes(s) ||
+          (inst.game?.providerName || '').toLowerCase().includes(s)
+      )
+      if (isEligible && inst.appName && currentAssignments[inst.appName] !== piratasStoreId) {
+        currentAssignments[inst.appName] = piratasStoreId
+        hasChanges = true
+      }
+    }
+
+    if (hasChanges) {
+      localStorage.setItem('heroic_game_assignments', JSON.stringify(currentAssignments))
+      window.dispatchEvent(new Event('gameAssignmentsChanged'))
+    }
+  } catch (e) {
+    console.error('Error syncing Piratas store assignments:', e)
   }
 }
 

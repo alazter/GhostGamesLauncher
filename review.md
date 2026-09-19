@@ -433,7 +433,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Substituídos ícones genéricos na sidebar por vetores oficiais de marcas (`<EpicLogo />`, `<GOGLogo />`, `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />`, `<ZoomLogo />`).
   - Registradas todas as novas diretrizes no `.agents/AGENTS.md`.
 
-# Review das Alterações - 05/09/2026
+# Review das Alterações - 19/09/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -684,6 +684,19 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Interceptação global e local da tecla ESC desmarcando instantaneamente o contorno neon ciano (`.selectedInline`) da capa selecionada no grid da Biblioteca, fechando o painel expandido (`HeroPanel`), fechando as configurações inline (`InlineGameSettings`) e desativando a edição em massa (`heroicToggleMassEdit`).
   - Otimização do phantom box overlay para menus de contexto via `requestAnimationFrame` e early exit em 0ms quando nenhum menu está visível.
   - Otimização do cálculo de altura do header via `requestAnimationFrame` e listener passivo de `resize`.
+
+### 37. Sistema de Plugins de Fontes de Jogos, GhostShield Save Manager (48 Jogos Piratas), Comparador Multi-Fonte Cyber Neon, Preservação de Saves em Migrações e Detecção Precisa de Tamanhos
+* **Problema:** Integração de plugins de download e busca de jogos fora de lojas oficiais (SteamRIP, AnkerGames, Online-Fix, NXBrew, NSWGF, RomsLab), falta de backup automático de saves para jogos de procedência "Piratas", bloqueio de diálogos nativos brancos do Windows (`showMessageBox`), incompatibilidade com mirrors externos e desacoplamento na busca/gerenciador de downloads.
+* **Solução:**
+  - **Ecossistema de Plugins Game Source Sandbox**: Criação do SDK Sandbox (`pluginManager.ts`, `pluginHost.ts`, `networkGuard.ts`) com permissão `'game-sources'` e lista `TRUSTED_GAME_MIRROR_DOMAINS` (`pixeldrain`, `buzzheavier`, `fileditch`, `gofile`, `1fichier`, `rapidgator`, `mega`, `mediafire`, `archive.org`), suporte a resoluções diretas, Magnet e integração com TorBox API (`torboxClient.ts`).
+  - **GhostShield Save Manager & Motor de IA (48 Jogos Piratas)**: Motor em 7 camadas (`piratasSaveKnowledge.ts`) para auto-detecção e snapshot automático de saves de jogos da loja Piratas (Goldberg, RUNE, CODEX, OnlineFix, Unreal, Unity, Godot) cobrindo 48 jogos mapeados (~2 GB protegidos). Modal Cyber Neon com restore em 1 clique e snapshot preventivo automático.
+  - **Eliminação Definitiva de Diálogos Nativos do Win32 (`dialog.showMessageBox`)**: Criação do Modal Cyber Neon de Troca de Fonte / Atualização de Jogos com container `#131a20`, contorno ciano neon, comparador visual dinâmico (*Fonte Atual ➔ Nova Fonte*), preservação de saves GhostShield e botão fechar `<FontAwesomeIcon icon={faTimes} />` sem moldura (Regra 12).
+  - **Resolução e Separação Precisa de Tamanho de Download vs Tamanho Instalado**: Extração multi-camada no backend (`websiteSource.ts`) tratando JSON-LD, badges e especificações, exibindo badges dinâmicas no Hero Card e chips técnicos.
+  - **Detecção Automática e Inclusão da Pasta Atual no Seletor "Instalar em:"**: Auto-detecção do diretório atual do jogo instalado com injeção automática no topo do `<select>` com rótulo `🎯 ${p} (Pasta Atual do Jogo)`, permitindo atualizações *in-place* diretas e preservação de saves.
+  - **Integração de Downloads Externos no Gerenciador de Downloads (`/download-manager`)**: Renderização de `<ExternalDownloads hideWhenEmpty={true} />` com cards Cyber Neon, capas com blur, velocidade em tempo real, suporte a arquivos `.zip`, `.rar`, `.7z`, `.iso` e botão `[ ▶ Jogar ]` com glow verde-esmeralda.
+  - **Normalização Universal de Providers e Vitrine Interativa**: Resolvedor universal `isMatchingProvider` corrigindo o clique nos cards de destaques da Home (AnkerGames, SteamRIP, Online-Fix, Nintendo Switch Collection) com fallback resiliente de download e injeção síncrona em memória.
+  - **Atribuição Seletiva Exclusiva à Loja "Piratas"**: Restrição rígida em `autoStoreAssignments.ts` para que apenas jogos de SteamRIP, AnkerGames e Online-Fix sejam atribuídos à loja Piratas, isolando jogos de Switch (NXBrew, NSWGF, RomsLab) em suas respectivas categorias.
+  - **Qualidade & Testes**: Suíte de testes unitários Jest automatizados (`src/backend/plugins/__tests__`) com 100% de aprovação e 0 erros no TypeScript (`pnpm exec tsc --noEmit`).
 
 ---
 

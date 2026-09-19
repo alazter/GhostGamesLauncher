@@ -60,6 +60,7 @@ export interface DetectedSteamApp {
   sizeOnDisk: number
   buildId: string
   isPaused: boolean
+  scheduledAutoUpdate?: number
 }
 
 interface SteamLogTelemetry {
@@ -275,23 +276,41 @@ export class SteamQueueWatcher {
         }
 
         if (!appEntry.stateDetermined) {
-          if (line.includes('Running Update') && !line.includes('(Suspended)')) {
-            if (!res.activeAppId) {
-              res.activeAppId = appId
-            }
-            appEntry.isRunning = true
-            appEntry.isPaused = false
+          if (
+            line.includes('scheduler finished : removed from schedule') ||
+            line.includes('state changed : Fully Installed') ||
+            line.includes('App update changed : None') ||
+            line.includes('finished update,')
+          ) {
+            appEntry.isFinished = true
+            appEntry.isRunning = false
             appEntry.stateDetermined = true
+            if (res.activeAppId === appId) {
+              res.activeAppId = null
+            }
           } else if (line.includes('(Suspended)') || line.includes('Update Paused')) {
             appEntry.isPaused = true
             appEntry.isRunning = false
             appEntry.stateDetermined = true
-          } else if (
-            line.includes('scheduler finished : removed from schedule') ||
-            line.includes('state changed : Fully Installed,')
-          ) {
-            appEntry.isFinished = true
-            appEntry.stateDetermined = true
+            if (res.activeAppId === appId) {
+              res.activeAppId = null
+            }
+          } else if (line.includes('Running Update') && !line.includes('(Suspended)')) {
+            const lineDateMatch = line.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]/)
+            const lineAgeSec = lineDateMatch ? (now - this.parseLocalLogDate(lineDateMatch[1])) / 1000 : 0
+            const isFresh = lineAgeSec < 90 || (res.rateAgeSec < 45 && res.lastRateMbps > 0)
+
+            if (isFresh) {
+              if (!res.activeAppId) {
+                res.activeAppId = appId
+              }
+              appEntry.isRunning = true
+              appEntry.isPaused = false
+              appEntry.stateDetermined = true
+            } else {
+              appEntry.isRunning = false
+              appEntry.stateDetermined = true
+            }
           }
         }
 
@@ -420,6 +439,8 @@ export class SteamQueueWatcher {
             const toStageMatch = content.match(/"BytesToStage"\s+"([^"]+)"/i)
             const sizeMatch = content.match(/"SizeOnDisk"\s+"([^"]+)"/i)
             const buildMatch = content.match(/"buildid"\s+"([^"]+)"/i)
+            const schedMatch = content.match(/"ScheduledAutoUpdate"\s+"([^"]+)"/i)
+            const scheduledAutoUpdate = schedMatch ? parseInt(schedMatch[1], 10) : 0
 
             const title = nameMatch ? nameMatch[1].trim() : `Steam App ${appId}`
             const installDir = dirMatch ? dirMatch[1].trim() : appId
@@ -483,6 +504,35 @@ export class SteamQueueWatcher {
               continue
             }
 
+            // 3. Se todos os bytes já foram baixados e processados e o jogo não está executando ativamente,
+            // o download já terminou e os bytes no manifesto são apenas o registro do download concluído
+            const isAllBytesFinished =
+              effToDownload > 0 &&
+              bytesDownloaded >= effToDownload &&
+              (effToStage === 0 || bytesStaged >= effToStage)
+
+            if (isAllBytesFinished && !isActivelyRunning && !isPending) {
+              if (wasTracked || logEntry?.isFinished) {
+                justFinishedApps.push({
+                  appId,
+                  name: title,
+                  installDir,
+                  fullInstallPath,
+                  stateFlags: 4,
+                  bytesDownloaded: bytesToDownload,
+                  bytesToDownload,
+                  bytesStaged: bytesToStage,
+                  bytesToStage,
+                  sizeOnDisk,
+                  buildId,
+                  isPaused: false
+                })
+                this.trackedApps.delete(appId)
+                this.pendingInstalls.delete(appId)
+              }
+              continue
+            }
+
             const isPaused =
               (stateFlags & 512) !== 0 ||
               this.userPausedAppIds.has(appId) ||
@@ -511,7 +561,8 @@ export class SteamQueueWatcher {
               bytesToStage: logEntry?.bytesToStage || bytesToStage,
               sizeOnDisk,
               buildId,
-              isPaused
+              isPaused,
+              scheduledAutoUpdate
             })
           } catch {}
         }
@@ -548,8 +599,18 @@ export class SteamQueueWatcher {
       }
     }
 
+    for (const id of Array.from(this.trackedApps)) {
+      if (!seenAppIds.has(id)) {
+        this.trackedApps.delete(id)
+      }
+    }
+
     if (detectedApps.length === 0) {
-      return { active: null, rawActive: null, queue: [] }
+      this.trackedApps.clear()
+      const emptyResult: SteamDownloadScanResult = { active: null, rawActive: null, queue: [] }
+      this.cachedScanResult = emptyResult
+      this.lastScanTime = now
+      return emptyResult
     }
 
     // Determina o aplicativo ativo:
@@ -559,9 +620,14 @@ export class SteamQueueWatcher {
       activeApp = detectedApps.find((a) => a.appId === logTelemetry.activeAppId) || null
     }
 
-    // Prioridade 2: Flag 256 (Update Running) ativa
+    // Prioridade 2: Flags ativas de execução (256: Running, 1024: Started, 131072: Downloading, 262144: Staging, 524288: Committing)
     if (!activeApp) {
-      activeApp = detectedApps.find((a) => (a.stateFlags & 256) !== 0) || null
+      activeApp =
+        detectedApps.find(
+          (a) =>
+            (a.stateFlags & (256 | 1024 | 131072 | 262144 | 524288)) !== 0 ||
+            Boolean(logTelemetry.appStates.get(a.appId)?.isRunning)
+        ) || null
     }
 
     // Prioridade 3: Instalação pendente solicitada pelo Ghost
@@ -575,12 +641,36 @@ export class SteamQueueWatcher {
       }
     }
 
-    // Prioridade 4: Primeiro aplicativo não pausado ou primeiro da lista
+    // Prioridade 4: Download parcialmente baixado que foi pausado pelo usuário
     if (!activeApp) {
-      activeApp = detectedApps.find((a) => !a.isPaused) || detectedApps[0]
+      activeApp =
+        detectedApps.find(
+          (a) => a.bytesDownloaded > 0 && ((a.stateFlags & 512) !== 0 || a.isPaused)
+        ) || null
     }
 
-    const queuedApps = detectedApps.filter((a) => a.appId !== activeApp?.appId)
+    // Ordena os jogos da fila exatamente na ordem cronológica de agendamento da Steam:
+    detectedApps.sort((a, b) => {
+      // 1. Se um deles for o activeApp, mantém no topo
+      if (activeApp && a.appId === activeApp.appId) return -1
+      if (activeApp && b.appId === activeApp.appId) return 1
+
+      // 2. Ordena por ScheduledAutoUpdate (ordem cronológica crescente: domingo, segunda, 25 de setembro...)
+      const aTime = a.scheduledAutoUpdate || 0
+      const bTime = b.scheduledAutoUpdate || 0
+      if (aTime > 0 && bTime > 0) {
+        return aTime - bTime
+      }
+      if (aTime > 0) return -1
+      if (bTime > 0) return 1
+
+      // 3. Fallback: alfabético
+      return a.name.localeCompare(b.name)
+    })
+
+    const queuedApps = activeApp
+      ? detectedApps.filter((a) => a.appId !== activeApp.appId)
+      : detectedApps
 
     const scanResult: SteamDownloadScanResult = {
       active: activeApp ? this.mapToDMElement(activeApp, true) : null,
@@ -677,7 +767,10 @@ export class SteamQueueWatcher {
     // 3. Fases e Progresso Real
     const isNetworkPhase = bytesToDownload > 0 && bytesDownloaded < bytesToDownload
     const isStagingPhase = !isNetworkPhase && bytesToStage > 0 && bytesStaged < bytesToStage
-    const isCommitting = !isNetworkPhase && !isStagingPhase && ((app.stateFlags & 524288) !== 0 || bytesToDownload > 0)
+    const isCommitting =
+      !isNetworkPhase &&
+      !isStagingPhase &&
+      ((app.stateFlags & 524288) !== 0 || Boolean(logTelemetry.appStates.get(app.appId)?.isCommitting))
 
     let percent = 0
     if (isCommitting) {
@@ -795,6 +888,9 @@ export class SteamQueueWatcher {
     this.pendingInstalls.delete(appId)
     this.dismissedApps.delete(appId)
     this.userPausedAppIds.delete(appId)
+    this.trackedApps.delete(appId)
+    this.cachedScanResult = { active: null, rawActive: null, queue: [] }
+    this.lastScanTime = Date.now()
 
     const now = Date.now()
     const lastHandled = this.handledFinishedAppIds.get(appId)

@@ -57,10 +57,19 @@ import type { GameOverride, SelectiveDownload } from './legendary'
 import type { GetLogFileArgs } from 'backend/logger/paths'
 import type {
   PluginInfo,
+  DownloadIntegrationsState,
+  DownloadIntegrationAction,
   PluginInstallResult,
   PluginPackResult,
   GhostSearchResult,
-  GhostDownloadSource
+  GhostDownloadSource,
+  ExternalGamesState,
+  ExternalInstallation,
+  ExternalActionResult,
+  ExternalInstallRequest,
+  ExternalGameAction,
+  LocalCandidateGame,
+  SourceSearchResponse
 } from './plugins'
 
 // ts-prune-ignore-next
@@ -488,6 +497,18 @@ interface AsyncIPCFunctions {
   resolveDateVersionOnline: (title: string, dateStr: string) => Promise<DetectedVersionResult>
   setGameVersion: (appName: string, version: string) => Promise<{ success: boolean; version: string }>
   pluginsGetList: () => Promise<PluginInfo[]>
+  externalGamesState: () => Promise<ExternalGamesState>
+  downloadIntegrationsState: () => Promise<DownloadIntegrationsState>
+  downloadIntegrationsAction: (action: DownloadIntegrationAction) => Promise<ExternalActionResult>
+  externalGamesLocalCandidates: () => Promise<LocalCandidateGame[]>
+  externalGamesLink: (appName: string, game: GhostSearchResult) => Promise<ExternalActionResult>
+  pluginsInstallBuiltinSource: (id: string) => Promise<PluginInstallResult>
+  externalGamesSearch: (query: string) => Promise<SourceSearchResponse>
+  externalGamesAddPage: (providerId: string, pageUrl: string, title: string, version?: string) => Promise<GhostSearchResult>
+  externalGamesInstall: (request: ExternalInstallRequest) => Promise<ExternalActionResult>
+  externalGamesAction: (action: ExternalGameAction) => Promise<ExternalActionResult>
+  externalGamesGetOrCreateInstallation: (appName: string, gameInfo?: any) => Promise<ExternalInstallation | null>
+  externalGamesSyncPiratasSaves: (options?: { autoBackup?: boolean }) => Promise<import('common/types/plugins').PiratasSaveSyncResult>
   pluginsToggle: (pluginId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>
   pluginsInstall: (filePath?: string) => Promise<PluginInstallResult>
   pluginsInstallFromBuffer: (fileName: string, bufferBase64: string) => Promise<PluginInstallResult>
@@ -496,8 +517,11 @@ interface AsyncIPCFunctions {
   pluginsPack: (sourceDir?: string, outputDir?: string) => Promise<PluginPackResult>
   pluginsSearchSources: (query: string) => Promise<GhostSearchResult[]>
   pluginsGetDownloadSources: (providerId: string, gameId: string) => Promise<GhostDownloadSource[]>
+  pluginsGetGameDetails: (providerId: string, gameId: string) => Promise<GhostSearchResult | undefined>
   pluginsStartDownload: (source: GhostDownloadSource, gameTitle: string, coverUrl?: string) => Promise<{ success: boolean; error?: string }>
   pluginsGetActiveCSS: () => Promise<Record<string, string>>
+  pluginsGetPortugueseDescription: (canonicalTitle: string, rawEnglishDesc?: string) => Promise<string>
+  pluginsGetGameTrailer: (canonicalTitle: string) => Promise<string | null>
 }
 
 export interface DetectedVersionResult {
@@ -510,6 +534,9 @@ export interface DetectedVersionResult {
 
 interface FrontendMessages {
   'plugins-updated': (plugins: PluginInfo[]) => void
+  'external-games-updated': (state: ExternalGamesState) => void
+  'external-games-assign-piratas': (data: { appName: string }) => void
+  'external-games-piratas-sync-progress': (progress: { current: number; total: number; gameTitle: string; status: string }) => void
   'plugins-css-changed': (cssMap: Record<string, string>) => void
   gameStatusUpdate: (status: GameStatus) => void
   wineVersionsUpdated: () => void

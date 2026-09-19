@@ -22,6 +22,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { PluginInfo, PluginType } from 'common/types/plugins'
 import './index.scss'
+import { Link } from 'react-router-dom'
+import { builtinGameSources } from 'common/builtinGameSources'
+import '../ExternalGames/index.css'
 
 export default function PluginsScreen() {
   const [activeTab, setActiveTab] = useState<'installed' | 'store' | 'dev'>('installed')
@@ -228,18 +231,6 @@ export default function PluginsScreen() {
   // Curated Community Plugins catalog
   const curatedStorePlugins = [
     {
-      id: 'com.ghost.ankergames-source',
-      name: 'AnkerGames Game Source',
-      version: '1.0.0',
-      author: 'Comunidade Ghost / AnkerGames',
-      type: 'game-source' as PluginType,
-      description:
-        'Busca e download de jogos independentes com capas em alta definição, metadados de versão e múltiplas fontes (Download Direto, TorBox Debrid API e Torrent/Magnet).',
-      tier: 1,
-      permissions: ['network', 'game-sources'],
-      allowedDomains: ['*.ankergames.net', 'api.ankergames.net']
-    },
-    {
       id: 'com.ghost.cyber-neon-expanded',
       name: 'Cyber Neon Layout & Customizer',
       version: '1.2.0',
@@ -310,6 +301,7 @@ export default function PluginsScreen() {
         </div>
 
         <div className="ghost-plugins-header-actions">
+          {plugins.some((plugin) => plugin.type === 'game-source' && plugin.isEnabled) && <Link className="button" to="/external-games"><FontAwesomeIcon icon={faSearch} /> Buscar jogos</Link>}
           <button className="ghost-btn-primary" onClick={handleInstallFile}>
             <FontAwesomeIcon icon={faCloudUploadAlt} />
             <span>Instalar Plugin (.ghost)</span>
@@ -325,6 +317,19 @@ export default function PluginsScreen() {
         </div>
       )}
 
+        <details className="externalPanel">
+          <summary>Fontes de jogos disponíveis</summary>
+          <p>Adaptadores experimentais: catálogo público e download pelo site. Instalação ZIP para Windows; fontes de Switch disponíveis para consulta.</p>
+          <div className="externalActions">{builtinGameSources.map((source) => <button key={source.id} className="ghost-btn-primary" disabled={loading || plugins.some((plugin) => plugin.id === source.id && plugin.version === '1.1.0')} onClick={async () => {
+            setLoading(true)
+            try {
+              const result = await window.api.pluginsInstallBuiltinSource(source.id)
+              if (result.success) { showFeedback('success', `${source.name} instalado.`); await loadPlugins() }
+              else showFeedback('error', result.error || 'Não foi possível instalar a fonte.')
+            } catch (error) { showFeedback('error', String(error)) }
+            finally { setLoading(false) }
+          }}>{source.name}{plugins.some((plugin) => plugin.id === source.id && plugin.version === '1.1.0') ? ' · Instalado' : ' · Instalar'}</button>)}</div>
+        </details>
       {/* Navigation Tabs */}
       <div className="ghost-plugins-tabs-bar">
         <button

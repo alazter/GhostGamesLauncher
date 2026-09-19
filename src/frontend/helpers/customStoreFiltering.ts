@@ -15,6 +15,23 @@ export function isGameAssignedToStore(
   if (explicitlyAssignedStore) {
     if (explicitlyAssignedStore === targetIdLower) return true
     if (targetNameLower && explicitlyAssignedStore === targetNameLower) return true
+    if (targetNameLower.includes('pirata') && (explicitlyAssignedStore.includes('pirata') || explicitlyAssignedStore === 'piratas')) return true
+    if (targetNameLower.includes('indie') && (explicitlyAssignedStore.includes('indie') || explicitlyAssignedStore === 'indies')) return true
+    if (targetNameLower.includes('epic') && (explicitlyAssignedStore.includes('epic') || explicitlyAssignedStore === 'legendary')) return true
+    if (targetNameLower.includes('gog') && explicitlyAssignedStore.includes('gog')) return true
+    if (targetNameLower.includes('amazon') && (explicitlyAssignedStore.includes('amazon') || explicitlyAssignedStore === 'nile')) return true
+    if (targetNameLower.includes('steam') && explicitlyAssignedStore.includes('steam')) return true
+    if (targetNameLower.includes('zoom') && explicitlyAssignedStore.includes('zoom')) return true
+    if (targetNameLower.includes('sideload') && (explicitlyAssignedStore.includes('sideload') || explicitlyAssignedStore === 'sideloaded')) return true
+    return false
+  }
+
+  // Custom stores "Piratas" and "Indies" require explicit assignment
+  if (targetIdLower === 'piratas' || targetNameLower.includes('pirata')) {
+    return false
+  }
+  if (targetIdLower === 'indies' || targetNameLower.includes('indie')) {
+    return false
   }
 
   // Epic Games
@@ -72,20 +89,13 @@ export function isGameAssignedToStore(
     }
   }
 
-  // Sideload / Piratas / Indies
+  // Sideload
   if (
     targetIdLower === 'sideload' ||
     targetIdLower === 'sideloaded' ||
-    targetNameLower.includes('sideload') ||
-    targetNameLower.includes('pirata') ||
-    targetNameLower.includes('indie')
+    targetNameLower.includes('sideload')
   ) {
     if (
-      explicitlyAssignedStore === targetIdLower ||
-      explicitlyAssignedStore === 'sideload' ||
-      explicitlyAssignedStore === 'sideloaded' ||
-      explicitlyAssignedStore === 'piratas' ||
-      explicitlyAssignedStore === 'indies' ||
       runnerLower === 'sideload' ||
       runnerLower === 'sideloaded'
     ) {

@@ -1,0 +1,29 @@
+{
+  "id": "com.ghost.steamrip-source",
+  "name": "SteamRIP",
+  "version": "1.2.0",
+  "author": "Ghost Community",
+  "description": "Catálogo público, busca inteligente, detecção de atualizações, backup de saves e instalação automática.",
+  "type": "game-source",
+  "entrypoint": "index.js",
+  "permissions": [
+    "network",
+    "game-sources"
+  ],
+  "tier": 2,
+  "allowedDomains": [
+    "steamrip.com",
+    "fileditchfiles.st",
+    "fileditch.com",
+    "buzzheavier.com",
+    "bzzhr.to",
+    "pixeldrain.com",
+    "datanodes.to",
+    "gofile.io",
+    "1fichier.com",
+    "qiwi.gg",
+    "qiwi.to"
+  ],
+  "homepage": "https://steamrip.com",
+  "minGhostVersion": "0.2.7-beta"
+}

@@ -10,7 +10,8 @@ import {
   faTv,
   faPaintBrush,
   faClock,
-  faPuzzlePiece
+  faPuzzlePiece,
+  faSearch
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { useContext, useState, useEffect } from 'react'
@@ -110,6 +111,7 @@ export default function SidebarLinks() {
       'releases',
       'personalization',
       'plugins',
+      'external-games',
       'login',
       'stores',
       'divider-1',
@@ -134,6 +136,18 @@ export default function SidebarLinks() {
         defaultOrder.forEach(id => {
           if (!orderedList.includes(id)) {
             if (id === 'plugins') {
+              const pIdx = orderedList.indexOf('personalization')
+              if (pIdx !== -1) {
+                orderedList.splice(pIdx + 1, 0, id)
+                return
+              }
+            }
+            if (id === 'external-games') {
+              const plIdx = orderedList.indexOf('plugins')
+              if (plIdx !== -1) {
+                orderedList.splice(plIdx + 1, 0, id)
+                return
+              }
               const pIdx = orderedList.indexOf('personalization')
               if (pIdx !== -1) {
                 orderedList.splice(pIdx + 1, 0, id)
@@ -302,6 +316,17 @@ export default function SidebarLinks() {
             icon={faPuzzlePiece}
             label="Plugins"
             dataTour="sidebar-plugins"
+            {...dragProps}
+          />
+        )
+      case 'external-games':
+        return (
+          <SidebarItem
+            key="external-games"
+            url="/external-games"
+            icon={faSearch}
+            label="Buscar jogos"
+            dataTour="sidebar-external-games"
             {...dragProps}
           />
         )

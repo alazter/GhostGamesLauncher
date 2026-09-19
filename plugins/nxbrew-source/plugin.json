@@ -1,0 +1,19 @@
+{
+  "id": "com.ghost.nxbrew-source",
+  "name": "NXBrew",
+  "version": "1.2.0",
+  "author": "Ghost Community",
+  "description": "Catálogo público, busca inteligente, detecção de atualizações, backup de saves e instalação automática.",
+  "type": "game-source",
+  "entrypoint": "index.js",
+  "permissions": [
+    "network",
+    "game-sources"
+  ],
+  "tier": 2,
+  "allowedDomains": [
+    "nxbrew.net"
+  ],
+  "homepage": "https://nxbrew.net",
+  "minGhostVersion": "0.2.7-beta"
+}

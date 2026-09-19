@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTag, faSpinner, faPen, faCheck, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faTag, faSpinner, faPen, faCheck, faTimes, faBolt, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo } from 'common/types'
 import { DetectedVersionResult } from 'common/types/ipc'
+import { useExternalGames, SourceBadge } from 'frontend/screens/ExternalGames/shared'
 
 interface GameVersionBadgeProps {
   game: GameInfo
@@ -11,6 +12,18 @@ interface GameVersionBadgeProps {
 export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
   const [versionInfo, setVersionInfo] = useState<DetectedVersionResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const { state: extState } = useExternalGames()
+  const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [updating, setUpdating] = useState(false)
+
+  const extInstallation = useMemo(() => {
+    return extState.installations?.find(
+      (i) =>
+        i.appName === game.app_name ||
+        (game.install?.install_path && i.directory === game.install?.install_path)
+    )
+  }, [extState.installations, game.app_name, game.install?.install_path])
+
   const [isResolvingDate, setIsResolvingDate] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
@@ -221,82 +234,188 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
       }\n• Vital para integração de updates com o AnkerGames\n• Clique para editar manualmente`
 
   return (
-    <div
-      onClick={handleStartEdit}
-      title={tooltipTitle}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '4px 12px',
-        borderRadius: '16px',
-        background: isPlaceholder ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 229, 255, 0.08)',
-        border: isPlaceholder
-          ? '1px dashed rgba(255, 255, 255, 0.2)'
-          : '1px solid rgba(0, 229, 255, 0.35)',
-        color: isPlaceholder ? '#888' : '#00ffff',
-        boxShadow: isPlaceholder ? 'none' : '0 0 10px rgba(0, 229, 255, 0.12)',
-        fontSize: '12px',
-        fontWeight: '600',
-        letterSpacing: '0.4px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        userSelect: 'none',
-        maxWidth: '240px',
-        overflow: 'hidden',
-        whiteSpace: 'nowrap',
-        textOverflow: 'ellipsis'
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.background = isPlaceholder
-          ? 'rgba(255, 255, 255, 0.08)'
-          : 'rgba(0, 229, 255, 0.16)'
-        e.currentTarget.style.borderColor = isPlaceholder
-          ? 'rgba(255, 255, 255, 0.4)'
-          : 'rgba(0, 229, 255, 0.7)'
-        e.currentTarget.style.boxShadow = isPlaceholder
-          ? 'none'
-          : '0 0 16px rgba(0, 229, 255, 0.3)'
-        e.currentTarget.style.transform = 'translateY(-1px)'
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.background = isPlaceholder
-          ? 'rgba(255, 255, 255, 0.04)'
-          : 'rgba(0, 229, 255, 0.08)'
-        e.currentTarget.style.borderColor = isPlaceholder
-          ? '1px dashed rgba(255, 255, 255, 0.2)'
-          : '1px solid rgba(0, 229, 255, 0.35)'
-        e.currentTarget.style.boxShadow = isPlaceholder
-          ? 'none'
-          : '0 0 10px rgba(0, 229, 255, 0.12)'
-        e.currentTarget.style.transform = 'translateY(0)'
-      }}
-    >
-      {isResolvingDate ? (
-        <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '11px', color: '#00ffff' }} />
-      ) : (
-        <FontAwesomeIcon
-          icon={faTag}
-          style={{ fontSize: '11px', color: isPlaceholder ? '#888' : '#00ffff' }}
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+      {extInstallation && (
+        <SourceBadge
+          name={extInstallation.game.providerName}
+          icon={extInstallation.game.providerIcon}
         />
       )}
-      <span
+      <div
+        onClick={handleStartEdit}
+        title={tooltipTitle}
         style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 12px',
+          borderRadius: '16px',
+          background: isPlaceholder ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 229, 255, 0.08)',
+          border: isPlaceholder
+            ? '1px dashed rgba(255, 255, 255, 0.2)'
+            : '1px solid rgba(0, 229, 255, 0.35)',
+          color: isPlaceholder ? '#888' : '#00ffff',
+          boxShadow: isPlaceholder ? 'none' : '0 0 10px rgba(0, 229, 255, 0.12)',
+          fontSize: '12px',
+          fontWeight: '600',
+          letterSpacing: '0.4px',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          userSelect: 'none',
+          maxWidth: '220px',
           overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis'
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.background = isPlaceholder
+            ? 'rgba(255, 255, 255, 0.08)'
+            : 'rgba(0, 229, 255, 0.16)'
+          e.currentTarget.style.borderColor = isPlaceholder
+            ? 'rgba(255, 255, 255, 0.4)'
+            : 'rgba(0, 229, 255, 0.7)'
+          e.currentTarget.style.boxShadow = isPlaceholder
+            ? 'none'
+            : '0 0 16px rgba(0, 229, 255, 0.3)'
+          e.currentTarget.style.transform = 'translateY(-1px)'
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.background = isPlaceholder
+            ? 'rgba(255, 255, 255, 0.04)'
+            : 'rgba(0, 229, 255, 0.08)'
+          e.currentTarget.style.borderColor = isPlaceholder
+            ? '1px dashed rgba(255, 255, 255, 0.2)'
+            : '1px solid rgba(0, 229, 255, 0.35)'
+          e.currentTarget.style.boxShadow = isPlaceholder
+            ? 'none'
+            : '0 0 10px rgba(0, 229, 255, 0.12)'
+          e.currentTarget.style.transform = 'translateY(0)'
         }}
       >
-        {currentVer}
-      </span>
-      <FontAwesomeIcon
-        icon={faPen}
-        style={{
-          fontSize: '9px',
-          opacity: 0.5,
-          marginLeft: '2px'
-        }}
-      />
+        {isResolvingDate ? (
+          <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '11px', color: '#00ffff' }} />
+        ) : (
+          <FontAwesomeIcon
+            icon={faTag}
+            style={{ fontSize: '11px', color: isPlaceholder ? '#888' : '#00ffff' }}
+          />
+        )}
+        <span
+          style={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {currentVer}
+        </span>
+        <FontAwesomeIcon
+          icon={faPen}
+          style={{
+            fontSize: '9px',
+            opacity: 0.5,
+            marginLeft: '2px'
+          }}
+        />
+      </div>
+
+      {extInstallation?.availableUpdate && (
+        <button
+          onClick={async (e) => {
+            e.stopPropagation()
+            if (!extInstallation?.availableUpdate || updating) return
+            setUpdating(true)
+            try {
+              await window.api.externalGamesInstall({
+                game: extInstallation.availableUpdate,
+                sourceId: extInstallation.availableUpdate.providerId,
+                replaceInstallationId: extInstallation.id,
+                confirmed: true
+              })
+            } catch (err) {
+              console.error('Falha ao disparar atualização:', err)
+            } finally {
+              setUpdating(false)
+            }
+          }}
+          disabled={updating}
+          title={`Nova versão ${extInstallation.availableUpdate.version || ''} disponível via ${extInstallation.availableUpdate.providerName || extInstallation.game.providerName}!\nClique para baixar e atualizar automaticamente preservando seus saves.`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 12px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(255, 183, 3, 0.22), rgba(255, 107, 0, 0.32))',
+            border: '1px solid #ffb703',
+            boxShadow: '0 0 12px rgba(255, 183, 3, 0.35)',
+            color: '#fff',
+            fontSize: '11px',
+            fontWeight: '700',
+            cursor: updating ? 'wait' : 'pointer',
+            transition: 'all 0.2s ease',
+            userSelect: 'none'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 18px rgba(255, 183, 3, 0.6)'
+            e.currentTarget.style.transform = 'translateY(-1px)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(255, 183, 3, 0.35)'
+            e.currentTarget.style.transform = 'translateY(0)'
+          }}
+        >
+          <FontAwesomeIcon icon={updating ? faSpinner : faBolt} spin={updating} style={{ color: '#ffb703' }} />
+          <span>{updating ? 'Iniciando...' : `Atualizar: v${extInstallation.availableUpdate.version || 'Nova'}`}</span>
+        </button>
+      )}
+
+      {extInstallation && !extInstallation.availableUpdate && (
+        <button
+          onClick={async (e) => {
+            e.stopPropagation()
+            if (checkingUpdate || !extInstallation) return
+            setCheckingUpdate(true)
+            try {
+              await window.api.externalGamesAction({
+                type: 'check-update',
+                installationId: extInstallation.id
+              })
+            } catch (err) {
+              console.error('Falha ao verificar update:', err)
+            } finally {
+              setCheckingUpdate(false)
+            }
+          }}
+          disabled={checkingUpdate}
+          title={`Verificar se há nova versão em ${extInstallation.game.providerName}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '4px 10px',
+            borderRadius: '16px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#94a3b8',
+            fontSize: '11px',
+            fontWeight: '600',
+            cursor: checkingUpdate ? 'wait' : 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.color = '#00ffff'
+            e.currentTarget.style.borderColor = 'rgba(0, 229, 255, 0.4)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.color = '#94a3b8'
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+          }}
+        >
+          <FontAwesomeIcon icon={checkingUpdate ? faSpinner : faSyncAlt} spin={checkingUpdate} style={{ fontSize: '10px' }} />
+          <span>{checkingUpdate ? 'Checando...' : 'Buscar Update'}</span>
+        </button>
+      )}
     </div>
   )
 }

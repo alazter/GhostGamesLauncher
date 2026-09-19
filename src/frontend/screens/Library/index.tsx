@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next'
 import Fuse from 'fuse.js'
 
 import ContextProvider from 'frontend/state/ContextProvider'
-import { syncAutoStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
+import { syncAutoStoreAssignments, assignGameToPiratasStore, syncPiratasStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
 import {
   syncNewGamesTracker,
   isGameNew,
@@ -1740,6 +1740,21 @@ export default memo(function Library(): JSX.Element {
     zoom.library,
     customCategories
   ])
+
+  useEffect(() => {
+    void syncPiratasStoreAssignments()
+    let unsub: (() => void) | undefined
+    if (window.api?.onExternalGamesAssignPiratas) {
+      unsub = window.api.onExternalGamesAssignPiratas((_e, data) => {
+        if (data?.appName) {
+          assignGameToPiratasStore(data.appName)
+        }
+      })
+    }
+    return () => {
+      unsub?.()
+    }
+  }, [])
 
   const { gamesForAlphabetFilter, fullGamesForAlphabetFilter } = useMemo(() => {
     const isSearching = Boolean(filterText && filterText.trim().length > 0)

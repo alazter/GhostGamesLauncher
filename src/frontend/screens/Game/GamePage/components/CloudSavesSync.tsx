@@ -10,6 +10,9 @@ import { syncSaves } from 'frontend/helpers'
 import { Menu, MenuItem, Divider } from '@mui/material'
 import { ToggleSwitch } from 'frontend/components/UI'
 import ContextProvider from 'frontend/state/ContextProvider'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShieldAlt } from '@fortawesome/free-solid-svg-icons'
+import GhostShieldSaveManager from 'frontend/components/UI/GhostShieldSaveManager'
 
 interface Props {
   gameInfo: GameInfo
@@ -28,6 +31,7 @@ const CloudSavesSync = ({ gameInfo }: Props) => {
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [showSaveManager, setShowSaveManager] = useState(false)
   const open = Boolean(anchorEl)
 
   if (!gameSettings) {
@@ -39,7 +43,51 @@ const CloudSavesSync = ({ gameInfo }: Props) => {
   }
 
   if (gameInfo.runner === 'sideload') {
-    return null
+    return (
+      <>
+        <button
+          onClick={() => setShowSaveManager(true)}
+          className="gamePageButton"
+          title="Gerenciar Saves GhostShield (Auto-Backup, Snapshots e Restauração)"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(0, 255, 255, 0.1)',
+            border: '1px solid rgba(0, 255, 255, 0.35)',
+            borderRadius: '8px',
+            padding: '8px 14px',
+            color: '#00ffff',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            outline: 'none',
+            boxShadow: '0 0 12px rgba(0, 255, 255, 0.15)'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.background = 'rgba(0, 255, 255, 0.22)'
+            e.currentTarget.style.borderColor = '#00ffff'
+            e.currentTarget.style.boxShadow = '0 0 18px rgba(0, 255, 255, 0.4)'
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)'
+            e.currentTarget.style.borderColor = 'rgba(0, 255, 255, 0.35)'
+            e.currentTarget.style.boxShadow = '0 0 12px rgba(0, 255, 255, 0.15)'
+          }}
+        >
+          <FontAwesomeIcon icon={faShieldAlt} />
+          <span>GhostShield Saves</span>
+        </button>
+        {showSaveManager && (
+          <GhostShieldSaveManager
+            isOpen={showSaveManager}
+            onClose={() => setShowSaveManager(false)}
+            game={gameInfo}
+          />
+        )}
+      </>
+    )
   }
 
   if (!gameInfo.cloud_save_enabled) {

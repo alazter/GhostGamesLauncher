@@ -932,6 +932,19 @@ addHandler('checkGameUpdates', async (): Promise<string[]> => {
     oldGames = [...oldGames, ...gamesToUpdate]
   }
 
+  // Checagem de atualizações para jogos externos e sideload
+  try {
+    const { ExternalGames } = await import('./plugins/externalGames')
+    const externalInstallations = ExternalGames.getInstance().snapshot().installations
+    for (const inst of externalInstallations) {
+      if (inst.availableUpdate && inst.appName) {
+        oldGames.push(inst.appName)
+      }
+    }
+  } catch (err) {
+    logWarning(['Erro ao checar atualizações de jogos externos:', err], LogPrefix.Backend)
+  }
+
   return oldGames
 })
 

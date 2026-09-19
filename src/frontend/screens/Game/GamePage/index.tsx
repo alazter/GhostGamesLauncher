@@ -1,4 +1,5 @@
 import './index.css'
+import ExternalGameLink from 'frontend/screens/ExternalGames/GameLink'
 
 import React, { useContext, useEffect, useRef, useState } from 'react'
 
@@ -551,6 +552,7 @@ export default React.memo(function GamePage(): JSX.Element | null {
                           <DownloadSizeInfo gameInfo={gameInfo} />
                           <InstalledInfo gameInfo={gameInfo} />
                           <CloudSavesSync gameInfo={gameInfo} />
+                          <ExternalGameLink game={gameInfo} />
                         </TabPanel>
 
                         <TabPanel

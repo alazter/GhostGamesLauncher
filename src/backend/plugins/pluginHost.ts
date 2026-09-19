@@ -9,6 +9,8 @@ import type {
   GhostCardBadge
 } from 'common/types/plugins'
 import { NetworkGuard } from './networkGuard'
+import { websiteSource } from './websiteSource'
+import type { WebsiteSourceConfig } from 'common/types/plugins'
 import { logError, logInfo, logWarning, LogPrefix } from 'backend/logger'
 
 export interface SourceProvider {
@@ -16,6 +18,7 @@ export interface SourceProvider {
   name: string
   search: (query: string) => Promise<GhostSearchResult[]>
   getSources: (gameId: string) => Promise<GhostDownloadSource[]>
+  getDetails?: (gameId: string) => Promise<GhostSearchResult>
 }
 
 export class PluginHost {
@@ -106,6 +109,10 @@ export class PluginHost {
 
     // Prepare GhostShield SDK
     const ghostSdk = {
+      registerWebsiteSource: (config: WebsiteSourceConfig) => {
+        if (!this.manifest.permissions.includes('game-sources')) throw new Error('Permissão game-sources necessária.')
+        this.sourceProvider = websiteSource(this.manifest, config)
+      },
       plugin: {
         id: this.manifest.id,
         name: this.manifest.name,
@@ -186,6 +193,7 @@ export class PluginHost {
         name: string
         search: (query: string) => Promise<GhostSearchResult[]>
         getSources: (gameId: string) => Promise<GhostDownloadSource[]>
+        getDetails?: (gameId: string) => Promise<GhostSearchResult>
       }) => {
         if (!this.manifest.permissions.includes('game-sources')) {
           logError([`[PluginHost:${this.manifest.id}] Cannot register source provider without "game-sources" permission.`], LogPrefix.Backend)
@@ -195,7 +203,8 @@ export class PluginHost {
           id: provider.id || this.manifest.id,
           name: provider.name || this.manifest.name,
           search: provider.search,
-          getSources: provider.getSources
+          getSources: provider.getSources,
+          getDetails: provider.getDetails
         }
       },
 

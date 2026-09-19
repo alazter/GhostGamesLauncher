@@ -584,9 +584,14 @@ const GameCard = ({
           }}
         >
           {haveStatus && <span className="gameCardStatus">{label}</span>}
-          {showUpdateBadge && (
+          {showUpdateBadge && grid && (
+            <div className="cornerRibbonUpdate">
+              {t('badge.update', 'UPDATE')}
+            </div>
+          )}
+          {showUpdateBadge && !grid && (
             <span className="gameCardUpdateBadge">
-              {t('status.hasUpdates')}
+              {t('status.hasUpdates', 'UPDATE')}
             </span>
           )}
           {isNew && grid && (

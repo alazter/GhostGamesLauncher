@@ -15,6 +15,39 @@ import type {
 } from 'common/types/plugins'
 import { PluginPacker } from './pluginPacker'
 import { PluginHost } from './pluginHost'
+import { ExternalGames } from './externalGames'
+import { ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, ankerGameUrl } from './ankerAccount'
+import { NetworkGuard } from './networkGuard'
+import { isNewerRelease } from './externalPolicy'
+import { builtinGameSources } from 'common/builtinGameSources'
+import type { ExternalInstallRequest, ExternalActionResult, SourceSearchResponse } from 'common/types/plugins'
+import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
+import { detectPirateGameVersion } from 'backend/storeManagers/sideload/versionDetector'
+
+const COMMON_GAME_FILE_HOSTS = [
+  'pixeldrain.com',
+  '*.pixeldrain.com',
+  'buzzheavier.com',
+  '*.buzzheavier.com',
+  'gofile.io',
+  '*.gofile.io',
+  'qiwi.gg',
+  '*.qiwi.gg',
+  '1fichier.com',
+  '*.1fichier.com',
+  'mediafire.com',
+  '*.mediafire.com',
+  'megaup.net',
+  '*.megaup.net',
+  'datanodes.to',
+  '*.datanodes.to',
+  'steamrip.com',
+  '*.steamrip.com',
+  'ankergames.net',
+  '*.ankergames.net',
+  'online-fix.me',
+  '*.online-fix.me'
+]
 
 export class PluginManager {
   private static instance: PluginManager
@@ -22,6 +55,176 @@ export class PluginManager {
   private dataRootDir: string
   private stateFilePath: string
   private hosts: Map<string, PluginHost> = new Map()
+  private sourceResults = new Map<string, GhostSearchResult>()
+  private updateMonitor?: ReturnType<typeof setInterval>
+  private checkingUpdates = false
+
+  private async pollExternalUpdates() {
+    if (this.checkingUpdates) return
+    this.checkingUpdates = true
+    try {
+      const service = ExternalGames.getInstance()
+      for (const installation of service.snapshot().installations.filter((item) => item.autoUpdate)) {
+        const result = await this.checkExternalUpdate(installation.id)
+        service.recordUpdate(installation.id, result.update, result.error)
+        if (!result.update) continue
+        const plugin = this.getPlugins().find((item) => item.id === installation.game.providerId && item.isEnabled)
+        const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+        if (!plugin || !provider) continue
+        try {
+          const source = (await this.getDownloadSources(plugin.id, result.update.pageUrl || result.update.id)).find((item) => item.type === 'torbox' || (item.type === 'direct' && item.archive === 'zip'))
+          if (source) await service.enqueue(result.update, source, plugin, installation.id, true)
+          else service.recordUpdate(installation.id, result.update, 'Atualização disponível. Esta fonte exige download pelo site.')
+        } catch (error) { service.recordUpdate(installation.id, result.update, error instanceof Error ? error.message : String(error)) }
+      }
+    } finally { this.checkingUpdates = false }
+  }
+
+  public async installBuiltinSource(id: string): Promise<PluginInstallResult> {
+    const source = builtinGameSources.find((item) => item.id === id)
+    if (!source) return { success: false, error: 'Fonte desconhecida.' }
+    const allowedDomains = Array.from(new Set([
+      source.domain,
+      `*.${source.domain}`,
+      ...COMMON_GAME_FILE_HOSTS
+    ]))
+    const manifest: PluginManifest = { id, name: source.name, version: '1.2.0', author: 'Ghost Community',
+      description: 'Catálogo público experimental e download nativo pelo Ghost. Suporte a ZIP, RAR e 7Z para Windows.',
+      type: 'game-source', entrypoint: 'index.js', permissions: ['network', 'game-sources'], tier: 2,
+      allowedDomains, homepage: `https://${source.domain}`, minGhostVersion: '0.2.7-beta' }
+    const archive = PluginPacker.createZipBuffer([
+      { name: 'plugin.json', content: Buffer.from(JSON.stringify(manifest)) },
+      { name: 'index.js', content: Buffer.from(`ghost.registerWebsiteSource(${JSON.stringify(source.config)})`) }
+    ])
+    return this.installFromBuffer(`${id}.ghost`, archive.toString('base64'))
+  }
+
+  private remember(game: GhostSearchResult, plugin: PluginInfo): GhostSearchResult {
+    const normalized = { ...game, providerId: plugin.id, providerName: plugin.name, providerIcon: plugin.homepage ? new URL('/favicon.ico', plugin.homepage).href : undefined }
+    this.sourceResults.set(JSON.stringify([plugin.id, game.id]), normalized)
+    if (this.sourceResults.size > 2000) this.sourceResults.delete(this.sourceResults.keys().next().value!)
+    return normalized
+  }
+
+  public async searchExternalGames(query: string): Promise<SourceSearchResponse> {
+    const response: SourceSearchResponse = { games: [], errors: [] }
+    if (!query.trim()) return response
+    await Promise.all(this.getPlugins().filter((plugin) => plugin.isEnabled && plugin.type === 'game-source').map(async (plugin) => {
+      const provider = this.hosts.get(plugin.id)?.getSourceProvider()
+      if (!provider) return
+      try {
+        const games = await Promise.race([provider.search(query.trim()), new Promise<never>((_, reject) => { const timer = setTimeout(() => reject(new Error('A fonte demorou demais para responder.')), 25000); timer.unref() })])
+        for (const item of games) response.games.push(this.remember(item, plugin))
+      } catch (error) {
+        response.errors.push({ providerId: plugin.id, providerName: plugin.name, message: error instanceof Error ? error.message : String(error) })
+      }
+    }))
+    return response
+  }
+
+  public addExternalPage(providerId: string, pageUrl: string, title: string, version?: string): GhostSearchResult {
+    const plugin = this.getPlugins().find((item) => item.id === providerId && item.isEnabled && item.type === 'game-source')
+    if (!plugin || !this.hosts.get(providerId)?.getSourceProvider()) throw new Error('Ative a fonte antes de vincular uma página.')
+    const check = NetworkGuard.validateUrl(pageUrl, plugin)
+    if (!check.allowed || !title.trim()) throw new Error(check.reason || 'Informe o nome do jogo.')
+    const platform = /nxbrew|nswgf|romslab/i.test(providerId) ? 'switch' : 'windows'
+    return this.remember({ id: pageUrl, pageUrl, title: title.trim(), version: version?.trim() || undefined, providerId, providerName: plugin.name, platform }, plugin)
+  }
+
+  public async getGameDetails(providerId: string, gameId: string): Promise<GhostSearchResult | undefined> {
+    const plugin = this.getPlugins().find(
+      (item) => (item.id === providerId || item.id.includes(providerId) || providerId.includes(item.id)) && item.isEnabled
+    )
+    const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+    if (!plugin || !provider || !provider.getDetails) return undefined
+    try {
+      const details = await provider.getDetails(gameId)
+      return this.remember(details, plugin)
+    } catch {
+      return undefined
+    }
+  }
+
+  public async installExternalGame(request: ExternalInstallRequest): Promise<ExternalActionResult> {
+    try {
+      const plugin = this.getPlugins().find(
+        (item) => (item.id === request.game.providerId || item.id.includes(request.game.providerId) || request.game.providerId.includes(item.id)) && item.isEnabled
+      )
+      const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+      const game = this.sourceResults.get(JSON.stringify([request.game.providerId, request.game.id])) ||
+        (plugin ? this.remember(request.game, plugin) : request.game)
+      if (!plugin || !provider || !game) throw new Error('Busque o jogo novamente com a fonte habilitada.')
+      const officialAnker = plugin.id === ANKER_SOURCE_ID
+      const options = await this.getDownloadSources(plugin.id, game.pageUrl || game.id)
+      let source = options.find((item) => item.id === request.sourceId)
+      if (!officialAnker && !source && request.sourceId) {
+        source = {
+          id: request.sourceId,
+          name: request.game.title,
+          type: request.sourceId.includes('.torrent') || request.sourceId.startsWith('magnet:') ? 'torrent' : 'direct',
+          url: request.sourceId
+        }
+      }
+      if (!source) throw new Error('Esta opção de download não está mais disponível.')
+      const finalGame = {
+        ...game,
+        coverUrl: request.game.coverUrl || game.coverUrl
+      }
+      return await ExternalGames.getInstance().enqueue(
+        finalGame,
+        source,
+        plugin,
+        request.replaceInstallationId,
+        false,
+        true,
+        request.targetDirectory,
+        Boolean(request.confirmed)
+      )
+    } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+  }
+
+  public async linkExternalGame(appName: string, selected: GhostSearchResult): Promise<ExternalActionResult> {
+    const game = this.sourceResults.get(JSON.stringify([selected.providerId, selected.id]))
+    if (!game || !this.hosts.has(game.providerId)) return { success: false, error: 'Busque o jogo novamente com a fonte habilitada.' }
+    return ExternalGames.getInstance().linkExisting(appName, game)
+  }
+
+  public async checkExternalUpdate(installationId: string): Promise<ExternalActionResult> {
+    try {
+      const installation = ExternalGames.getInstance().snapshot().installations.find((item) => item.id === installationId)
+      if (!installation) throw new Error('Instalação externa não encontrada.')
+      const plugin = this.getPlugins().find((item) => item.id === installation.game.providerId && item.isEnabled)
+      const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+      if (!provider?.getDetails || !plugin) throw new Error('Esta fonte não oferece consulta de versões. Confira a página do jogo.')
+      const details = await provider.getDetails(installation.game.id)
+      if (details.id !== installation.game.id || details.platform !== installation.game.platform || details.edition !== installation.game.edition) throw new Error('A edição da fonte não corresponde à instalação.')
+      
+      // Se a versão atual da instalação não estiver preenchida, resolve dinamicamente pelo detector multi-camadas
+      let currentVersion = installation.game.version
+      if (!currentVersion) {
+        const libGame = libraryStore.get('games', []).find((g) => g.app_name === installation.appName)
+        if (libGame) {
+          const detected = detectPirateGameVersion(libGame)
+          if (detected?.version) {
+            currentVersion = detected.version
+            installation.game.version = detected.version
+          }
+        }
+      }
+
+      const isNewer = currentVersion && details.version
+        ? isNewerRelease(currentVersion, details.version)
+        : Boolean(details.version && !currentVersion)
+
+      const update = isNewer ? this.remember(details, plugin) : undefined
+      const message = update
+        ? `Atualização disponível: ${update.version || 'Nova versão'}`
+        : 'Jogo já está na versão mais recente da fonte.'
+
+      ExternalGames.getInstance().recordUpdate(installation.id, update, message)
+      return { success: true, update }
+    } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+  }
   private pluginStates: Record<string, { enabled: boolean; isDev?: boolean }> = {}
 
   private constructor() {
@@ -38,6 +241,7 @@ export class PluginManager {
   }
 
   public async init(): Promise<void> {
+    ExternalGames.getInstance()
     mkdirSync(this.pluginsDir, { recursive: true })
     mkdirSync(this.dataRootDir, { recursive: true })
     this.loadStates()
@@ -56,6 +260,12 @@ export class PluginManager {
     }
 
     this.broadcastUpdates()
+    if (!this.updateMonitor) {
+      const initialCheck = setTimeout(() => void this.pollExternalUpdates(), 30000)
+      initialCheck.unref()
+      this.updateMonitor = setInterval(() => void this.pollExternalUpdates(), 6 * 60 * 60 * 1000)
+      this.updateMonitor.unref()
+    }
   }
 
   private loadStates(): void {
@@ -394,7 +604,20 @@ export class PluginManager {
   }
 
   public async getDownloadSources(providerId: string, gameId: string): Promise<GhostDownloadSource[]> {
-    const host = this.hosts.get(providerId)
+    if (providerId === ANKER_SOURCE_ID && this.getPlugins().some((plugin) => plugin.id === providerId && plugin.isEnabled)) {
+      return [
+        { id: ANKER_TORRENT_ID, name: 'TorBox · Torrent', type: 'torbox', url: ankerGameUrl(gameId) },
+        { id: ANKER_DIRECT_ID, name: 'Download direto · Confirmar no site', type: 'external', url: ankerGameUrl(gameId) }
+      ]
+    }
+    let host = this.hosts.get(providerId)
+    if (!host) {
+      const match = [...this.hosts.entries()].find(([id]) =>
+        id.toLowerCase().includes(providerId.toLowerCase()) ||
+        providerId.toLowerCase().includes(id.toLowerCase())
+      )
+      if (match) host = match[1]
+    }
     if (!host) {
       logWarning(`[PluginManager] Provider host "${providerId}" not found.`, LogPrefix.Backend)
       return []

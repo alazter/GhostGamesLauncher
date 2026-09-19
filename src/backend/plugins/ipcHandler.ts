@@ -1,8 +1,46 @@
 import { addHandler } from 'backend/ipc'
 import { PluginManager } from './pluginManager'
+import { ExternalGames } from './externalGames'
+import { AnkerAccount } from './ankerAccount'
+import { TorboxClient } from './torboxClient'
+import { resolvePortugueseDescription, resolveYouTubeTrailerId } from './gameMediaResolver'
 
 export function registerPluginsIPC(): void {
   const manager = PluginManager.getInstance()
+  addHandler('downloadIntegrationsState', async () => ({
+    ankerConnected: AnkerAccount.status(), torboxConfigured: await TorboxClient.configured()
+  }))
+  addHandler('downloadIntegrationsAction', async (_event, action) => {
+    try {
+      switch (action.type) {
+        case 'connect-anker': await AnkerAccount.connect(); break
+        case 'disconnect-anker': await AnkerAccount.disconnect(); break
+        case 'save-torbox': await TorboxClient.save(action.apiKey); break
+        case 'disconnect-torbox': await TorboxClient.disconnect(); break
+        case 'test-torbox': await (await TorboxClient.saved()).test(); break
+        default: throw new Error('Ação de integração inválida.')
+      }
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Não foi possível conectar a integração.' }
+    }
+  })
+  addHandler('pluginsInstallBuiltinSource', async (_event, id) => manager.installBuiltinSource(id))
+  addHandler('externalGamesState', async () => ExternalGames.getInstance().snapshot())
+  addHandler('externalGamesLocalCandidates', async () => ExternalGames.getInstance().localCandidates())
+  addHandler('externalGamesLink', async (_event, appName, game) => manager.linkExternalGame(appName, game))
+  addHandler('externalGamesSearch', async (_event, query) => manager.searchExternalGames(query))
+  addHandler('externalGamesAddPage', async (_event, providerId, pageUrl, title, version) => manager.addExternalPage(providerId, pageUrl, title, version))
+  addHandler('externalGamesInstall', async (_event, request) => manager.installExternalGame(request))
+  addHandler('externalGamesAction', async (_event, action) => action.type === 'check-update'
+    ? manager.checkExternalUpdate(action.installationId)
+    : ExternalGames.getInstance().action(action))
+  addHandler('externalGamesGetOrCreateInstallation', async (_event, appName: string, gameInfo?: any) =>
+    ExternalGames.getInstance().getOrCreateInstallation(appName, gameInfo)
+  )
+  addHandler('externalGamesSyncPiratasSaves', async (_event, options?: { autoBackup?: boolean }) =>
+    ExternalGames.getInstance().syncPiratasSaves(options)
+  )
 
   addHandler('pluginsGetList', async () => {
     return manager.getPlugins()
@@ -40,11 +78,23 @@ export function registerPluginsIPC(): void {
     return await manager.getDownloadSources(providerId, gameId)
   })
 
+  addHandler('pluginsGetGameDetails', async (event, providerId: string, gameId: string) => {
+    return await manager.getGameDetails(providerId, gameId)
+  })
+
   addHandler('pluginsStartDownload', async (event, source, gameTitle: string, coverUrl?: string) => {
     return await manager.startDownload(source, gameTitle, coverUrl)
   })
 
   addHandler('pluginsGetActiveCSS', async () => {
     return manager.getActiveCSS()
+  })
+
+  addHandler('pluginsGetPortugueseDescription', async (_event, canonicalTitle: string, rawEnglishDesc?: string) => {
+    return await resolvePortugueseDescription(canonicalTitle, rawEnglishDesc)
+  })
+
+  addHandler('pluginsGetGameTrailer', async (_event, canonicalTitle: string) => {
+    return await resolveYouTubeTrailerId(canonicalTitle)
   })
 }

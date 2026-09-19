@@ -1,21 +1,25 @@
 {
   "id": "com.ghost.ankergames-source",
-  "name": "AnkerGames Game Source",
-  "version": "1.0.0",
-  "description": "Provedor oficial da comunidade para busca de jogos, capas em HD e múltiplas opções de download (Direto, TorBox API e Torrent/Magnet).",
-  "author": "Comunidade Ghost & AnkerGames",
+  "name": "AnkerGames",
+  "version": "1.2.0",
+  "author": "Ghost Community",
+  "description": "Catálogo público, busca inteligente, detecção de atualizações, backup de saves e instalação automática.",
   "type": "game-source",
   "entrypoint": "index.js",
   "permissions": [
     "network",
     "game-sources"
   ],
+  "tier": 2,
   "allowedDomains": [
-    "*.ankergames.net",
     "ankergames.net",
-    "steamcdn-a.akamaihd.net",
-    "shared.cloudflare.steamstatic.com"
+    "datanodes.to",
+    "buzzheavier.com",
+    "bzzhr.to",
+    "pixeldrain.com",
+    "gofile.io",
+    "1fichier.com"
   ],
-  "tier": 1,
-  "homepage": "https://ankergames.net"
+  "homepage": "https://ankergames.net",
+  "minGhostVersion": "0.2.7-beta"
 }

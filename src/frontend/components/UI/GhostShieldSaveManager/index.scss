@@ -1,0 +1,860 @@
+.ghostSaveManagerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  animation: ghostModalFadeIn 0.2s ease-out;
+}
+
+@keyframes ghostModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ghostSaveManagerCard {
+  position: relative;
+  width: 720px;
+  max-width: 94vw;
+  max-height: 90vh;
+  background-color: #131a20 !important;
+  background: #131a20 !important;
+  border: 1.5px solid rgba(0, 255, 255, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.2), 0 24px 60px rgba(0, 0, 0, 0.95);
+  padding: 24px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+}
+
+/* Regra 12: Botão fechar 100% transparente, sem moldura, ilumina glifo com glow ciano */
+.ghostSaveManagerCloseBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent !important;
+  border: none !important;
+  color: #8899a6;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+
+  &:hover {
+    color: #00ffff !important;
+    filter: drop-shadow(0 0 8px #00ffff);
+    transform: scale(1.12);
+  }
+}
+
+.ghostSaveManagerHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+
+  .ghostSaveManagerIconWrapper {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(0, 255, 255, 0.08);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00ffff;
+    font-size: 20px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    flex-shrink: 0;
+  }
+
+  .ghostSaveManagerTitleArea {
+    flex: 1;
+    min-width: 0;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    p {
+      margin: 3px 0 0 0;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+  }
+}
+
+.ghostSaveManagerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
+  padding-right: 4px;
+
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.25);
+    border-radius: 3px;
+    &:hover {
+      background: rgba(0, 255, 255, 0.5);
+    }
+  }
+}
+
+.ghostSavePathSection {
+  background: #0d1217;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .ghostSavePathLabel {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #00ffff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ghostSavePathValueRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+
+    .ghostSavePathText {
+      flex: 1;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-all;
+    }
+
+    .ghostPathNotFound {
+      color: #f87171;
+      font-style: italic;
+    }
+  }
+
+  .ghostSavePathActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+}
+
+.ghostNeonBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  color: #00ffff;
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 255, 255, 0.22);
+    border-color: #00ffff;
+    box-shadow: 0 0 14px rgba(0, 255, 255, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.ghostNeonBtnPrimary {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(0, 200, 255, 0.15));
+    border: 1px solid #00ffff;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.4), rgba(0, 200, 255, 0.25));
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+  }
+
+  &.ghostNeonBtnDanger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+
+    &:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+    }
+  }
+
+  &.ghostNeonBtnSmall {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
+
+.ghostSaveOptionsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  .ghostOptionCard {
+    background: #0d1217;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.2s;
+
+    &:hover {
+      border-color: rgba(0, 255, 255, 0.3);
+    }
+
+    .ghostOptionInfo {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      span.ghostOptionTitle {
+        font-size: 12px;
+        font-weight: 600;
+        color: #f1f5f9;
+      }
+
+      span.ghostOptionDesc {
+        font-size: 11px;
+        color: #64748b;
+      }
+    }
+  }
+}
+
+.ghostSnapshotsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .ghostSnapshotsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    h4 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    span.badgeCount {
+      background: rgba(0, 255, 255, 0.15);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      color: #00ffff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+  }
+
+  .ghostSnapshotsList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  .ghostSnapshotItem {
+    background: #0d1217;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: rgba(0, 255, 255, 0.3);
+      background: #111822;
+      transform: translateX(2px);
+    }
+
+    .ghostSnapshotDetails {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+
+      .ghostSnapshotDate {
+        font-size: 12px;
+        font-weight: 600;
+        color: #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .ghostSnapshotVersionBadge {
+          background: rgba(0, 255, 255, 0.15);
+          color: #00ffff;
+          border: 1px solid rgba(0, 255, 255, 0.3);
+          padding: 1px 6px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-family: monospace;
+        }
+      }
+
+      .ghostSnapshotMeta {
+        font-size: 11px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+    }
+
+    .ghostSnapshotActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .ghostEmptySnapshots {
+    background: #0d1217;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+
+    .emptyIcon {
+      font-size: 28px;
+      color: rgba(0, 255, 255, 0.4);
+    }
+
+    p {
+      margin: 0;
+      font-size: 12px;
+    }
+  }
+}
+
+.ghostToastNotification {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: ghostFadeIn 0.2s ease;
+
+  &.ghostToastSuccess {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid #10b981;
+    color: #6ee7b7;
+  }
+
+  &.ghostToastError {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+  }
+}
+
+@keyframes ghostFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Banner de Destaque da Varredura IA */
+.ghostPiratasSyncBanner {
+  background: linear-gradient(135deg, rgba(13, 18, 23, 0.95), rgba(20, 30, 45, 0.95));
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.08);
+
+  .ghostPiratasSyncBannerText {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .ghostBrainIconPulse {
+      font-size: 20px;
+      color: #00ffff;
+      filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.6));
+      animation: brainPulse 2s infinite ease-in-out;
+    }
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      strong {
+        font-size: 13px;
+        color: #f1f5f9;
+        letter-spacing: 0.3px;
+      }
+
+      span {
+        font-size: 11px;
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .ghostNeonBtnSpecial {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.3), rgba(99, 102, 241, 0.3));
+    border: 1px solid #00ffff;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 0 14px rgba(0, 255, 255, 0.3);
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.45), rgba(99, 102, 241, 0.45));
+      box-shadow: 0 0 22px rgba(0, 255, 255, 0.6);
+      transform: translateY(-1px);
+    }
+  }
+}
+
+@keyframes brainPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.6));
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.9));
+  }
+}
+
+.ghostSavePathHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ghostDetectionBadge {
+  background: rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  color: #00ffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
+}
+
+.ghostSaveMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .ghostSaveMetaBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+
+    &.active {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+
+    &.pending {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #7dd3fc;
+    }
+  }
+}
+
+/* Modal Dedicado da Varredura IA da Loja Piratas */
+.ghostPiratasSyncModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000000;
+  animation: ghostModalFadeIn 0.2s ease-out;
+}
+
+.ghostPiratasSyncModalCard {
+  position: relative;
+  width: 780px;
+  max-width: 95vw;
+  max-height: 88vh;
+  background: #131a20 !important;
+  border: 1.5px solid rgba(0, 255, 255, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 0 45px rgba(0, 255, 255, 0.25), 0 24px 60px rgba(0, 0, 0, 0.95);
+  padding: 24px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.ghostPiratasModalHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.15);
+
+  .ghostPiratasModalIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00ffff;
+    font-size: 22px;
+    box-shadow: 0 0 16px rgba(0, 255, 255, 0.3);
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  p {
+    margin: 3px 0 0 0;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+}
+
+.ghostPiratasProgressArea {
+  background: #0d1217;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .ghostPiratasProgressBarWrapper {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+
+    .ghostPiratasProgressBarFill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ffff, #10b981);
+      box-shadow: 0 0 12px #00ffff;
+      transition: width 0.25s ease;
+    }
+  }
+
+  .ghostPiratasProgressDetails {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+
+    .ghostPiratasProgressCounter {
+      color: #00ffff;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ghostPiratasCurrentTitle {
+      color: #f1f5f9;
+      font-weight: 700;
+    }
+  }
+
+  .ghostPiratasStatusText {
+    font-size: 12px;
+    color: #94a3b8;
+    font-style: italic;
+  }
+}
+
+.ghostPiratasStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  .ghostPiratasStatCard {
+    background: #0d1217;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+
+    .statValue {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .statLabel {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    &.highlightGreen {
+      border-color: rgba(16, 185, 129, 0.4);
+      .statValue { color: #10b981; }
+    }
+
+    &.highlightCyan {
+      border-color: rgba(0, 255, 255, 0.4);
+      .statValue { color: #00ffff; }
+    }
+
+    &.highlightGold {
+      border-color: rgba(234, 179, 8, 0.4);
+      .statValue { color: #eab308; }
+    }
+  }
+}
+
+.ghostPiratasFilterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .ghostPiratasFilterButtons {
+    display: flex;
+    gap: 8px;
+
+    .ghostFilterTab {
+      background: #0d1217;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #fff;
+        border-color: rgba(0, 255, 255, 0.3);
+      }
+
+      &.active {
+        background: rgba(0, 255, 255, 0.15);
+        border-color: #00ffff;
+        color: #00ffff;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .ghostPiratasNotice {
+    font-size: 11px;
+    color: #64748b;
+    font-style: italic;
+  }
+}
+
+.ghostPiratasResultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+
+  .ghostPiratasResultItem {
+    background: #0d1217;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color 0.2s;
+
+    &:hover {
+      border-color: rgba(0, 255, 255, 0.25);
+    }
+
+    .ghostPiratasResultLeft {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+      flex: 1;
+
+      .gameTitleRow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .gameTitle {
+          font-size: 13px;
+          font-weight: 600;
+          color: #f1f5f9;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .detectionTag {
+          background: rgba(0, 255, 255, 0.1);
+          border: 1px solid rgba(0, 255, 255, 0.25);
+          color: #00ffff;
+          font-size: 10px;
+          padding: 1px 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+        }
+      }
+
+      .savePathText {
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-size: 11px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .ghostPiratasResultRight {
+      flex-shrink: 0;
+
+      .statusBadge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+
+        &.success {
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid #10b981;
+          color: #6ee7b7;
+        }
+
+        &.pending {
+          background: rgba(56, 189, 248, 0.15);
+          border: 1px solid #38bdf8;
+          color: #7dd3fc;
+        }
+      }
+    }
+  }
+}
+
+.ghostPiratasModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+

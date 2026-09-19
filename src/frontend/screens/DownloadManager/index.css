@@ -214,3 +214,282 @@
   transform: translateY(-1px);
 }
 
+/* =========================================================
+   ADAPTIVE 4-QUADRANT LAYOUT WITH COLLAPSIBLE BOTTOM ROW
+   ========================================================= */
+
+.downloadManagerAdaptiveContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.dmTopFixedGrid {
+  margin-bottom: 4px;
+}
+
+.dmQueueTop3List {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+  padding-right: 0 !important;
+}
+
+/* Bottom Adaptive Row */
+.downloadManagerBottomAdaptiveRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+  width: 100%;
+  margin-top: 4px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dmBottomSection {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Default: Both open (Exact 1fr 1fr matching the top row!) */
+.dmBothOpen {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Concluídos collapsed -> Compact tab on left, Overflow Queue expands */
+.dmCompletedCollapsed {
+  grid-template-columns: 170px 1fr;
+}
+
+/* Overflow Queue collapsed -> Concluídos expands, Compact tab on right */
+.dmOverflowCollapsed {
+  grid-template-columns: 1fr 170px;
+}
+
+/* Both collapsed -> Two compact tabs */
+.dmBothCollapsed {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Container for open card content */
+.dmBottomCardContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+/* Actions in Section Headers */
+.dmHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dmSmallClearBtn {
+  padding: 4px 12px;
+  font-size: 11px;
+}
+
+.dmCollapseHeaderBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.dmCollapseHeaderBtn:hover {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: #00e5ff;
+  color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Collapsed Tab (Aba Recolhida) */
+.dmCollapsedTab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  align-self: stretch;
+  background: rgba(14, 20, 32, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px dashed rgba(0, 229, 255, 0.35);
+  border-radius: 16px;
+  color: #00f2fe;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 16px;
+  box-sizing: border-box;
+  text-align: center;
+  user-select: none;
+}
+
+.dmCollapsedTab:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: #00ffff;
+  border-style: solid;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.25), inset 0 0 15px rgba(0, 255, 255, 0.05);
+  transform: translateY(-2px);
+}
+
+.dmTabIcon {
+  font-size: 18px;
+  color: #00ffff;
+  margin-bottom: 2px;
+}
+
+.dmTabLabel {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.dmTabHint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Empty Placeholder for Completed section */
+.dmEmptyCompletedCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 180px;
+  background: rgba(14, 20, 32, 0.25);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 24px;
+  box-sizing: border-box;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.dmEmptyCompletedCard:hover {
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+.dmEmptyCompletedIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1.5px solid rgba(0, 229, 255, 0.4);
+  color: #00ffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.2);
+}
+
+.dmEmptyCompletedText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 320px;
+}
+
+.dmEmptyCompletedTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.2px;
+}
+
+.dmEmptyCompletedSub {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.4;
+}
+
+/* Grids for Completed and Overflow Queue */
+.dmGridFullWidth {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  grid-auto-rows: 82px !important;
+  gap: 12px !important;
+  align-content: start !important;
+  align-items: start !important;
+}
+
+.dmGridHalfWidth {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
+}
+
+/* Overflow Queue List (Continuous downward flow matching Concluídos, strictly 12px gap) */
+.dmOverflowQueueList {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex: none !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+  padding-right: 0 !important;
+  justify-content: flex-start !important;
+  align-content: flex-start !important;
+}
+
+.dmOverflowQueueList.dmGridFullWidth {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  grid-auto-rows: 82px !important;
+  gap: 12px !important;
+  align-content: start !important;
+  align-items: start !important;
+}
+
+@media (max-width: 960px) {
+  .downloadManagerBottomAdaptiveRow {
+    flex-direction: column;
+  }
+  .dmCompletedCollapsed .dmBottomCompletedCol,
+  .dmOverflowCollapsed .dmBottomOverflowCol {
+    flex: 0 0 auto;
+    min-width: 100%;
+  }
+  .dmGridFullWidth {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+

@@ -9,6 +9,7 @@ import ArrowCircleLeftIcon from '@mui/icons-material/ArrowCircleLeft'
 import ContextMenu from '../Library/components/ContextMenu'
 import SettingsContext from './SettingsContext'
 import LogSettings from './sections/LogSettings'
+import DownloadIntegrations from './sections/DownloadIntegrations'
 import FooterInfo from './sections/FooterInfo'
 import {
   GeneralSettings,
@@ -124,6 +125,7 @@ function Settings() {
             <h1 className="headerTitle" data-testid="headerTitle">
               {title}
             </h1>
+            <NavLink to="/settings/download-integrations">Integrações de downloads · AnkerGames e TorBox</NavLink>
 
             <div id="general" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><GeneralSettings /></div>
             <div id="games_settings" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><GamesSettings /></div>
@@ -131,6 +133,7 @@ function Settings() {
             <div id="advanced" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><AdvancedSettings /></div>
             <div id="log" style={{ width: '100%', marginBottom: '40px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '30px' }}><LogSettings /></div>
             <div id="systeminfo" style={{ width: '100%', marginBottom: '40px', paddingBottom: '30px' }}><SystemInfo /></div>
+            <DownloadIntegrations />
             <FooterInfo />
           </div>
         </div>

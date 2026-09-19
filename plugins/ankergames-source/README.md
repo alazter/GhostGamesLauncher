@@ -1,15 +1,9 @@
-# 👻 AnkerGames Game Source Plugin
+# AnkerGames
 
-Plugin oficial da comunidade para integração de buscas e fontes de download com o ecossistema AnkerGames no Ghost Games Launcher.
+Plugin de catálogo e fonte de jogos para o Ghost Games Launcher com suporte a:
+- Busca inteligente com detecção de jogos instalados e versões.
+- Identificação de atualizações disponíveis.
+- Download e migração entre lojas com preservação e restauração automática de saves (Auto-Discovery & SHA-256 backup).
+- Instalação e atualização 100% automática pós-download.
 
-## Funcionalidades
-- 🔍 Busca automática de jogos diretamente na barra de pesquisa da Biblioteca.
-- 🖼️ Capas oficiais em alta definição.
-- ⚡ Múltiplas fontes de download:
-  - Download Direto CDN
-  - TorBox Debrid API (Nuvem sem VPN)
-  - Torrent / Magnet P2P
-
-## Permissões Solicitadas
-- `network`: Acesso seguro restrito a `*.ankergames.net`.
-- `game-sources`: Registro de resultados e fontes para o Gerenciador de Downloads do Ghost.
+Documentação: ../../docs/EXTERNAL_GAMES.md

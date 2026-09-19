@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTimes, faGlobe, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import { faTimes, faGlobe, faArrowLeft, faShieldAlt } from '@fortawesome/free-solid-svg-icons'
 import { faSteam, faApple, faLinux, faWindows } from '@fortawesome/free-brands-svg-icons'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import { CircularProgress } from '@mui/material'
@@ -30,7 +30,8 @@ import {
   Visibility as EyeIcon,
   VisibilityOff as EyeOffIcon,
   Terminal as TerminalIcon,
-  Title as TitleIcon
+  Title as TitleIcon,
+  Security as SecurityIcon
 } from '@mui/icons-material'
 
 // Componentes Globais do Heroic
@@ -40,6 +41,8 @@ import EditGameDialog from 'frontend/components/UI/EditGameDialog'
 import UninstallModal from 'frontend/components/UI/UninstallModal'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import GameVersionBadge from './GameVersionBadge'
+import GhostShieldSaveManager from 'frontend/components/UI/GhostShieldSaveManager'
+import ExternalGameLink from 'frontend/screens/ExternalGames/GameLink'
 import { isPirateOrNonOfficialGame } from 'frontend/helpers/customStoreFiltering'
 
 interface Props {
@@ -60,6 +63,7 @@ const DEFAULT_ACTIONS: ActionItem[] = [
   { id: 'shortcut', name: 'Adicionar atalho', iconKey: 'shortcut', isVisible: true },
   { id: 'browse', name: 'Navegar pelos arquivos', iconKey: 'browse', isVisible: true },
   { id: 'categories', name: 'Categorias', iconKey: 'categories', isVisible: true },
+  { id: 'saves', name: 'GhostShield Saves', iconKey: 'saves', isVisible: true },
   { id: 'steam', name: 'Adicionar ao Steam', iconKey: 'steam', isVisible: true },
   { id: 'logs', name: 'Logs detalhados', iconKey: 'logs', isVisible: true },
   { id: 'uninstall', name: 'Desinstalar', iconKey: 'uninstall', isVisible: true }
@@ -343,6 +347,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   const [steamRefresh, setSteamRefresh] = useState<boolean>(false)
   const [hasShortcuts, setHasShortcuts] = useState<boolean>(false)
   const [showUninstallModal, setShowUninstallModal] = useState<boolean>(false)
+  const [showSaveManager, setShowSaveManager] = useState<boolean>(false)
   
   const verboseLogs = settingsContextValues ? settingsContextValues.getSetting('verboseLogs', true) : true
   const setVerboseLogs = (newVal: boolean) => {
@@ -669,6 +674,16 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             icon={<FormatListBulletedIcon />}
             label={t('submenu.categories', 'Categorias')}
             onClick={() => openGameCategoriesModal(game)}
+          />
+        )
+      case 'saves':
+        return (
+          <ActionButton
+            key="saves"
+            icon={<SecurityIcon style={{ color: '#00ffff' }} />}
+            label="GhostShield Saves"
+            onClick={() => setShowSaveManager(true)}
+            steamBrandColor={true}
           />
         )
       case 'steam':
@@ -1183,6 +1198,13 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             onClose={() => setShowUninstallModal(false)}
           />
         )}
+        {showSaveManager && (
+          <GhostShieldSaveManager
+            isOpen={showSaveManager}
+            onClose={() => setShowSaveManager(false)}
+            game={game}
+          />
+        )}
 
         {/* Cabeçalho */}
         <div style={{
@@ -1242,7 +1264,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             >
               <DeleteIcon style={{ fontSize: '18px' }} />
             </button>
-            {isPirateGame && (
+            {(isPirateGame || game.runner === 'sideload') && (
               <div
                 style={{
                   display: 'flex',
@@ -1250,10 +1272,44 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                   justifyContent: 'center',
                   flex: 1,
                   minWidth: 0,
-                  padding: '0 12px'
+                  padding: '0 12px',
+                  gap: '10px'
                 }}
               >
-                <GameVersionBadge game={game} />
+                {isPirateGame && <GameVersionBadge game={game} />}
+                <button
+                  onClick={() => setShowSaveManager(true)}
+                  title="Gerenciar Saves GhostShield (Auto-Backup, Snapshots e Restauração)"
+                  style={{
+                    background: 'rgba(0, 255, 255, 0.1)',
+                    border: '1px solid rgba(0, 255, 255, 0.35)',
+                    borderRadius: '8px',
+                    padding: '4px 12px',
+                    color: '#00ffff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    boxShadow: '0 0 10px rgba(0, 255, 255, 0.15)',
+                    flexShrink: 0
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 255, 255, 0.22)'
+                    e.currentTarget.style.borderColor = '#00ffff'
+                    e.currentTarget.style.boxShadow = '0 0 16px rgba(0, 255, 255, 0.35)'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'rgba(0, 255, 255, 0.1)'
+                    e.currentTarget.style.borderColor = 'rgba(0, 255, 255, 0.35)'
+                    e.currentTarget.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.15)'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faShieldAlt} /> Saves
+                </button>
               </div>
             )}
           </div>

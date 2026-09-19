@@ -26,6 +26,7 @@ import { isLinux, isMac, isWindows } from 'backend/constants/environment'
 import { removeNonSteamGame } from 'backend/shortcuts/nonesteamgame/nonesteamgame'
 
 import type LogWriter from 'backend/logger/log_writer'
+import { ExternalGames } from 'backend/plugins/externalGames'
 
 export default class SideloadGame implements Game {
   private readonly id: string
@@ -78,6 +79,10 @@ export default class SideloadGame implements Game {
     launchArguments?: LaunchOption,
     args: string[] = []
   ): Promise<boolean> {
+    if (!ExternalGames.getInstance().canLaunch(this.id)) {
+      logWriter.logError(['O Ghost está protegendo os saves ou finalizando uma instalação. Aguarde a operação terminar.'])
+      return false
+    }
     return launchGame(this, logWriter, args)
   }
 
