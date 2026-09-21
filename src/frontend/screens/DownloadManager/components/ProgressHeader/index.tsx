@@ -66,6 +66,8 @@ export default function ProgressHeader(props: {
   appName: string
   state: DownloadManagerState
   runner: Runner
+  overrideDownloadSpeed?: number
+  overrideDiskSpeed?: number
 }) {
   const { t } = useTranslation()
   const [progress] = hasProgress(props.appName, props.runner)
@@ -75,19 +77,27 @@ export default function ProgressHeader(props: {
   const diskStrokeRef = useRef<SVGPathElement>(null)
   const diskFillRef = useRef<SVGPathElement>(null)
 
-  const isIdle =
-    props.state === 'idle' ||
-    props.state === 'paused' ||
-    (!props.appName && !progress.downSpeed)
+  const hasOverride = props.overrideDownloadSpeed !== undefined
+
+  const isIdle = hasOverride
+    ? (props.overrideDownloadSpeed === 0 && (!props.overrideDiskSpeed || props.overrideDiskSpeed === 0))
+    : (props.state === 'idle' ||
+       props.state === 'paused' ||
+       (!props.appName && !progress.downSpeed))
 
   const currentDownloadSpeed = isIdle
     ? 0
-    : roundToNearestHundredth(progress.downSpeed) || 0
+    : hasOverride
+      ? roundToNearestHundredth(props.overrideDownloadSpeed)
+      : roundToNearestHundredth(progress.downSpeed) || 0
 
-  let rawDisk = progress.diskSpeed
-  if (isIdle || (!rawDisk && !progress.downSpeed)) {
+  let rawDisk = hasOverride
+    ? (props.overrideDiskSpeed !== undefined ? props.overrideDiskSpeed : (props.overrideDownloadSpeed || 0) * 1.25)
+    : progress.diskSpeed
+
+  if (isIdle || (!rawDisk && !currentDownloadSpeed)) {
     rawDisk = 0
-  } else if (!rawDisk || rawDisk === progress.downSpeed) {
+  } else if (!hasOverride && (!rawDisk || rawDisk === progress.downSpeed)) {
     // Se a loja não informar taxa de disco independente ou clonar a taxa de rede,
     // calcula a taxa de descompressão e escrita real de SSD (~1.25x)
     rawDisk = (progress.downSpeed || 0) * 1.25

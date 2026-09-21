@@ -1,6 +1,18 @@
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlay, faCog, faStop, faDownload, faSpinner, faTimes, faRepeat } from '@fortawesome/free-solid-svg-icons'
+import {
+  faPlay,
+  faCog,
+  faStop,
+  faDownload,
+  faSpinner,
+  faTimes,
+  faRepeat,
+  faStore,
+  faNewspaper,
+  faUsers,
+  faUser
+} from '@fortawesome/free-solid-svg-icons'
 import { GameInfo, Runner } from 'common/types'
 import { useContext, useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +22,8 @@ import { launch, sendKill } from 'frontend/helpers'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
+import ExternalStoreLogo from 'frontend/screens/DownloadManager/components/ExternalStoreLogo'
+import { useExternalGames } from 'frontend/screens/ExternalGames/shared'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import { getImageFormatting } from 'frontend/screens/Library/components/GameCard/constants'
@@ -37,6 +51,52 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   const [panelTitle, setPanelTitle] = useState<string>(
     () => gameOverride?.title || game.overrides?.title || game.title
   )
+
+  const { state: extState } = useExternalGames()
+
+  const externalSource = useMemo(() => {
+    const matchedInst = extState.installations?.find(
+      (i) =>
+        i.appName === game.app_name ||
+        (game.install?.install_path && i.directory === game.install?.install_path)
+    )
+    if (matchedInst?.game?.providerName) {
+      return {
+        name: matchedInst.game.providerName,
+        icon: matchedInst.game.providerIcon,
+        pageUrl: matchedInst.game.pageUrl,
+        homepage: matchedInst.game.pageUrl ? new URL(matchedInst.game.pageUrl).origin : undefined
+      }
+    }
+
+    const fullText = `${game.title || ''} ${game.app_name || ''} ${game.install?.install_path || ''} ${game.store_url || ''}`.toLowerCase()
+    if (fullText.includes('steamrip')) {
+      return {
+        name: 'SteamRIP',
+        icon: undefined,
+        pageUrl: game.store_url?.includes('steamrip') ? game.store_url : 'https://steamrip.com',
+        homepage: 'https://steamrip.com'
+      }
+    }
+    if (fullText.includes('ankergames') || fullText.includes('anker')) {
+      return {
+        name: 'AnkerGames',
+        icon: undefined,
+        pageUrl: game.store_url?.includes('ankergames') ? game.store_url : 'https://ankergames.net',
+        homepage: 'https://ankergames.net'
+      }
+    }
+    if (fullText.includes('online-fix') || fullText.includes('onlinefix')) {
+      return {
+        name: 'Online-Fix',
+        icon: 'https://online-fix.me/favicon.ico',
+        pageUrl: game.store_url?.includes('online-fix') ? game.store_url : 'https://online-fix.me',
+        homepage: 'https://online-fix.me'
+      }
+    }
+
+    return null
+  }, [extState.installations, game.app_name, game.install?.install_path, game.title, game.store_url])
 
   const getEffectiveSquare = () =>
     gameOverride?.art_square !== undefined
@@ -325,67 +385,120 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       )}
 
       {/* Ações primárias (Botoes Redondos do Mockup) */}
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '4px 0' }}>
-        {/* 1. Botão da Loja */}
-        <button
-          onClick={handleStore}
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', justifyContent: 'center', margin: '6px 0' }}>
+        {/* 1. Ícone da Loja (Badge informativo, sem link, sem zoom, tamanho ampliado) */}
+        <div
+          className="heroPanelStaticBadge"
           style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '50%',
-            width: '44px',
-            height: '44px',
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            backgroundImage: 'none',
+            border: 'none',
+            outline: 'none',
+            boxShadow: 'none',
+            borderRadius: '0',
+            width: '42px',
+            height: '42px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            padding: '8px',
-            color: '#fff'
+            cursor: 'default',
+            transition: 'filter 0.2s ease',
+            padding: '0',
+            color: '#fff',
+            transform: 'none'
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+            e.currentTarget.style.filter = 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.45))'
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+            e.currentTarget.style.filter = 'none'
           }}
           title={t('button.store', 'Store')}
         >
-          <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <StoreLogos runner={game.runner} appName={game.app_name} />
           </div>
-        </button>
+        </div>
+
+        {/* 1.1 Ícone da Fonte de Origem Externa (Badge informativo, sem link, sem zoom, tamanho ampliado, luz equilibrada) */}
+        {externalSource && (
+          <div
+            className="heroPanelStaticBadge"
+            style={{
+              background: 'transparent',
+              backgroundColor: 'transparent',
+              backgroundImage: 'none',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              borderRadius: '0',
+              width: '42px',
+              height: '42px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'default',
+              transition: 'filter 0.2s ease',
+              padding: '0',
+              color: '#fff',
+              transform: 'none'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.filter = 'drop-shadow(0 0 6px rgba(0, 229, 255, 0.45))'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.filter = 'none'
+            }}
+            title={`Origem: ${externalSource.name}`}
+          >
+            <ExternalStoreLogo
+              name={externalSource.name}
+              icon={externalSource.icon}
+              size={38}
+            />
+          </div>
+        )}
 
         {/* 2. Botão de Configurações do Jogo */}
-        <button
+        <div
+          role="button"
+          tabIndex={0}
+          className="heroPanelActionIcon"
           onClick={handleSettings}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleSettings()}
           style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            borderRadius: '50%',
-            width: '44px',
-            height: '44px',
+            background: 'transparent',
+            backgroundColor: 'transparent',
+            backgroundImage: 'none',
+            border: 'none',
+            outline: 'none',
+            boxShadow: 'none',
+            borderRadius: '0',
+            width: '36px',
+            height: '36px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#fff',
+            color: 'rgba(255, 255, 255, 0.85)',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'transform 0.2s ease, filter 0.2s ease, color 0.2s ease',
+            padding: '0'
           }}
           onMouseOver={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+            e.currentTarget.style.transform = 'scale(1.2)'
+            e.currentTarget.style.color = '#00e5ff'
+            e.currentTarget.style.filter = 'drop-shadow(0 0 10px rgba(0, 229, 255, 0.9))'
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.85)'
+            e.currentTarget.style.filter = 'none'
           }}
           title={t('submenu.settings', 'Settings')}
         >
-          <FontAwesomeIcon icon={faCog} style={{ fontSize: '18px' }} />
-        </button>
+          <FontAwesomeIcon icon={faCog} style={{ fontSize: '20px' }} />
+        </div>
 
         {/* 3. Botão de Atualizar (quando houver update) */}
         {hasUpdate && (
@@ -486,15 +599,15 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
           {/* Coluna 1 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', borderRight: '1px solid rgba(255, 255, 255, 0.1)', paddingRight: '4px' }}>
-            <HeroLink emoji="🛒" label="Loja" onClick={handleStore} />
-            <HeroLink emoji="📥" label="Downloads" onClick={() => navigate('/download-manager')} />
-            <HeroLink emoji="📰" label="Notícias" onClick={() => {}} />
+            <HeroLink icon={faStore} label="Loja" onClick={handleStore} />
+            <HeroLink icon={faDownload} label="Downloads" onClick={() => navigate('/download-manager')} />
+            <HeroLink icon={faNewspaper} label="Notícias" onClick={() => {}} />
           </div>
           {/* Coluna 2 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '4px' }}>
-            <HeroLink emoji="👥" label="Comunidade" onClick={() => window.api.openExternalUrl('https://discord.gg/heroicgameslauncher')} />
-            <HeroLink emoji="👤" label="Perfil do Usuário" onClick={() => navigate('/login')} />
-            <HeroLink emoji="📰" label="Notícias" onClick={() => {}} />
+            <HeroLink icon={faUsers} label="Comunidade" onClick={() => window.api.openExternalUrl('https://discord.gg/heroicgameslauncher')} />
+            <HeroLink icon={faUser} label="Perfil do Usuário" onClick={() => navigate('/login')} />
+            <HeroLink icon={faNewspaper} label="Notícias" onClick={() => {}} />
           </div>
         </div>
       </div>
@@ -502,7 +615,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   )
 }
 
-function HeroLink({ emoji, label, onClick, center }: { emoji: string, label: string, onClick: () => void, center?: boolean }) {
+function HeroLink({ icon, label, onClick, center }: { icon: any, label: string, onClick: () => void, center?: boolean }) {
   return (
     <button
       onClick={onClick}
@@ -533,7 +646,7 @@ function HeroLink({ emoji, label, onClick, center }: { emoji: string, label: str
       }}
     >
       <div style={{
-        fontSize: '18px',
+        fontSize: '14px',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -541,7 +654,7 @@ function HeroLink({ emoji, label, onClick, center }: { emoji: string, label: str
         height: '24px',
         flexShrink: 0
       }}>
-        {emoji}
+        <FontAwesomeIcon icon={icon} />
       </div>
       <span>{label}</span>
     </button>

@@ -8,7 +8,7 @@ export interface NewGameTrackerEntry {
 
 export type NewGamesMap = Record<string, NewGameTrackerEntry>
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+export const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
 // In-Memory RAM Caches (0ms, Zero Synchronous IPC)
 let newGamesMemoryCache: NewGamesMap | null = null
@@ -109,7 +109,7 @@ export const markGameAsPlayed = (appName: string, runner: Runner) => {
   }
 }
 
-export const isGameNew = (
+export const isGameRecentlyAdded = (
   appName: string,
   runner: Runner,
   tracker?: NewGamesMap
@@ -121,8 +121,25 @@ export const isGameNew = (
   if (!entry) return false
   if (entry.played) return false
   if (entry.addedAt <= 0) return false
+  if (getGamePlaytime(appName) > 0) return false
 
-  return Date.now() - entry.addedAt < SEVEN_DAYS_MS
+  return Date.now() - entry.addedAt < ONE_DAY_MS
+}
+
+export const isGameNew = (
+  appName: string,
+  runner: Runner,
+  tracker?: NewGamesMap
+): boolean => {
+  return isGameRecentlyAdded(appName, runner, tracker)
+}
+
+export const getRecentlyAddedGames = (
+  allGames: GameInfo[],
+  tracker?: NewGamesMap
+): GameInfo[] => {
+  const map = tracker || getNewGamesMap()
+  return allGames.filter((game) => isGameRecentlyAdded(game.app_name, game.runner, map))
 }
 
 export const getGamePlaytime = (appName: string): number => {

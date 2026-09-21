@@ -448,6 +448,7 @@ interface AsyncIPCFunctions {
     appName: string
     targetType: 'cover' | 'square'
   }) => Promise<string>
+  'steamgriddb.getCoverForGame': (title: string) => Promise<string | null>
   'steamgriddb.syncMissingCovers': () => Promise<{ started: boolean }>
   'steamgriddb.batchReplaceAllCovers': (args?: {
     appNames?: string[]
@@ -506,9 +507,12 @@ interface AsyncIPCFunctions {
   externalGamesSearch: (query: string) => Promise<SourceSearchResponse>
   externalGamesAddPage: (providerId: string, pageUrl: string, title: string, version?: string) => Promise<GhostSearchResult>
   externalGamesInstall: (request: ExternalInstallRequest) => Promise<ExternalActionResult>
+  externalGamesInstallLocal: () => Promise<ExternalActionResult>
   externalGamesAction: (action: ExternalGameAction) => Promise<ExternalActionResult>
   externalGamesGetOrCreateInstallation: (appName: string, gameInfo?: any) => Promise<ExternalInstallation | null>
   externalGamesSyncPiratasSaves: (options?: { autoBackup?: boolean }) => Promise<import('common/types/plugins').PiratasSaveSyncResult>
+  externalGamesDeleteGame: (appName: string, deleteFiles: boolean) => Promise<ExternalActionResult>
+  externalGamesCheckPiratasUpdates: (force?: boolean) => Promise<{ success: boolean; message: string }>
   pluginsToggle: (pluginId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>
   pluginsInstall: (filePath?: string) => Promise<PluginInstallResult>
   pluginsInstallFromBuffer: (fileName: string, bufferBase64: string) => Promise<PluginInstallResult>

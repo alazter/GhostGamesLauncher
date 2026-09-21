@@ -21,6 +21,15 @@ asarUnpack:
   - '!build/bin/legendary.LICENSE'
   - build/preload/webviewPreload.js
 
+fileAssociations:
+  - ext:
+      - GhostBackup
+      - Ghost.Backup
+    name: Ghost Backup
+    description: Ghost Games Launcher Backup File
+    icon: build/win_icon.ico
+    role: Editor
+
 protocols:
   - name: heroic
     schemes:

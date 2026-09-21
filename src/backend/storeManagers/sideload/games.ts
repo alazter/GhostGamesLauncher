@@ -7,6 +7,7 @@ import {
 } from 'common/types'
 import { libraryStore } from './electronStores'
 import { GameConfig } from '../../game_config'
+import { GlobalConfig } from 'backend/config'
 import { killPattern, sendGameStatusUpdate, shutdownWine } from '../../utils'
 import { sendFrontendMessage } from '../../ipc'
 import { logInfo, LogPrefix, logWarning } from 'backend/logger'
@@ -92,7 +93,10 @@ export default class SideloadGame implements Game {
 
     if (executable) {
       const gameSettings = await this.getSettings()
-      const target = gameSettings.targetExe || executable
+      const target = game.install.romPlatform === 'switch'
+        ? GlobalConfig.get().getSettings().switchEmulatorPath
+        : gameSettings.targetExe || executable
+      if (!target) return
       const split = target.split(/[/\\]/)
       const exe = split[split.length - 1]
       killPattern(exe)

@@ -23,7 +23,9 @@ export async function evaluateAnkerPage(
 // document loads successfully. Wait for that document, not all subresources.
 export function loadAnkerPage(
   window: BrowserWindow,
-  url: string
+  url: string,
+  origin = 'https://ankergames.net',
+  providerName = 'AnkerGames'
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     let settled = false
@@ -40,7 +42,7 @@ export function loadAnkerPage(
       if (window.isDestroyed()) return
       void window.webContents
         .executeJavaScript(
-          `location.origin === 'https://ankergames.net' && Boolean(document.body) && document.readyState !== 'loading'`
+          `location.origin === ${JSON.stringify(origin)} && Boolean(document.body) && document.readyState !== 'loading'`
         )
         .then((valid: unknown) => {
           if (valid === true) finish()
@@ -48,12 +50,14 @@ export function loadAnkerPage(
         .catch(() => undefined)
     }
     const closed = () =>
-      finish(new Error('A janela do AnkerGames foi fechada. Tente novamente.'))
+      finish(
+        new Error(`A janela do ${providerName} foi fechada. Tente novamente.`)
+      )
     const timer = setTimeout(
       () =>
         finish(
           new Error(
-            'O AnkerGames demorou para carregar a página. Tente novamente; sua sessão foi preservada.'
+            `O ${providerName} demorou para carregar a página. Tente novamente; sua sessão foi preservada.`
           )
         ),
       30000
@@ -76,7 +80,7 @@ export function loadAnkerPage(
         const diagnostic = /^ERR_[A-Z_]{1,64}$/.test(code) ? ` (${code})` : ''
         finish(
           new Error(
-            `Falha ao carregar a página do AnkerGames${diagnostic}. Tente novamente; esse erro não confirma perda do login.`
+            `Falha ao carregar a página do ${providerName}${diagnostic}. Tente novamente; esse erro não confirma perda do login.`
           )
         )
       })

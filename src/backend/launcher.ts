@@ -1728,7 +1728,7 @@ async function callRunner(
     shouldUsePowerShell =
       isWindows && !!(await searchForExecutableOnPath('powershell'))
 
-  if (shouldUsePowerShell) {
+  if (shouldUsePowerShell && !options.directSpawn) {
     const argsAsString = commandParts
       .map((part) => part.replaceAll('\\', '\\\\'))
       .map((part) => `"\`"${part}\`""`)

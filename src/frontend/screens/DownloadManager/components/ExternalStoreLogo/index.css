@@ -1,0 +1,28 @@
+.dmExternalStoreLogo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+}
+
+.dmExternalStoreLogo:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.75));
+}
+
+.dmExternalStoreLogoImg {
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.45));
+  border-radius: 4px;
+}
+
+.dmExternalStoreLogoFallback {
+  color: #00ffff;
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.5));
+}

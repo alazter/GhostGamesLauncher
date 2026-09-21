@@ -6,14 +6,47 @@ import { torrentInfoHash } from './torrentMetadata'
 import { loadAnkerPage, evaluateAnkerPage } from './ankerNavigation'
 import { TRUSTED_GAME_MIRROR_DOMAINS, NetworkGuard } from './networkGuard'
 import type { PluginManifest } from 'common/types/plugins'
+import { romSource, romPageUrl, romManifest } from './romSources'
+import { directDownloadRecovery, type DirectDownloadDiagnostic } from './directDownloadRecovery'
 
 export const ANKER_SOURCE_ID = 'com.ghost.ankergames-source'
 export const ANKER_TORRENT_ID = 'anker-official-torrent'
 export const ANKER_DIRECT_ID = 'anker-browser-direct'
-const directManifest = {
+export const STEAMRIP_SOURCE_ID = 'com.ghost.steamrip-source'
+export const STEAMRIP_DIRECT_ID = 'steamrip-browser-direct'
+export function steamripGameUrl(value: string): string {
+  const url = new URL(value)
+  if (
+    url.protocol !== 'https:' ||
+    !['steamrip.com', 'www.steamrip.com'].includes(url.hostname) ||
+    url.username ||
+    url.password ||
+    url.pathname === '/'
+  )
+    throw new Error('Página de jogo SteamRIP inválida.')
+  url.search = ''
+  url.hash = ''
+  return url.href
+}
+const baseDirectManifest = {
   permissions: ['network'],
-  allowedDomains: ['ankergames.net', ...TRUSTED_GAME_MIRROR_DOMAINS]
+  allowedDomains: [
+    'ankergames.net',
+    'steamrip.com',
+    ...TRUSTED_GAME_MIRROR_DOMAINS
+  ]
 } as PluginManifest
+export function directDownloadManifest(steamrip: boolean): PluginManifest {
+  return {
+    ...baseDirectManifest,
+    // Observed in the user's Download Now navigation on 2026-09-19.
+    // Scope the exact relay host to Anker; do not trust all of dlproxy.uk.
+    allowedDomains: [
+      ...baseDirectManifest.allowedDomains!,
+      ...(steamrip ? [] : ['tunnel5.dlproxy.uk'])
+    ]
+  }
+}
 export function ankerGameUrl(value: string): string {
   const url = new URL(value)
   if (
@@ -31,8 +64,17 @@ export function ankerGameUrl(value: string): string {
 export class AnkerAccount {
   private static busy = false
   private static connected = false
-  private static getSession(direct = false) {
-    const isolated = session.fromPartition('persist:ghost-ankergames')
+  private static families = new WeakMap<BrowserWindow, Set<BrowserWindow>>()
+  private static getSession(
+    direct = false,
+    steamrip = false,
+    onBlocked?: (host: string) => void,
+    romProvider?: string
+  ) {
+    const directManifest = romProvider ? romManifest(romProvider) : directDownloadManifest(steamrip)
+    const isolated = session.fromPartition(
+      romProvider ? `persist:ghost-${romProvider}` : steamrip ? 'persist:ghost-steamrip' : 'persist:ghost-ankergames'
+    )
     isolated.setPermissionRequestHandler((_contents, _permission, callback) =>
       callback(false)
     )
@@ -49,6 +91,8 @@ export class AnkerAccount {
               url.hostname === 'challenges.cloudflare.com' ||
               (direct &&
                 NetworkGuard.validateUrl(url.href, directManifest).allowed)))
+        if (!allowed && details.resourceType === 'mainFrame')
+          onBlocked?.(url.hostname)
         callback({ cancel: !allowed })
       } catch {
         callback({ cancel: true })
@@ -56,15 +100,24 @@ export class AnkerAccount {
     })
     return isolated
   }
-  private static window(show: boolean, direct = false) {
+  private static window(
+    show: boolean,
+    direct = false,
+    steamrip = false,
+    onBlocked?: (host: string) => void,
+    romProvider?: string
+  ) {
+    const directManifest = romProvider ? romManifest(romProvider) : directDownloadManifest(steamrip)
     const window = new BrowserWindow({
       width: 1000,
       height: 760,
       show,
-      title: 'Ghost — Conta AnkerGames',
+      title: romProvider ? `Ghost — Download ${romSource(romProvider)!.name}` : steamrip
+        ? 'Ghost — Download SteamRIP'
+        : 'Ghost — Conta AnkerGames',
       autoHideMenuBar: true,
       webPreferences: {
-        session: this.getSession(direct),
+        session: this.getSession(direct, steamrip, onBlocked, romProvider),
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
@@ -72,15 +125,8 @@ export class AnkerAccount {
         backgroundThrottling: false
       }
     })
-    window.webContents.setWindowOpenHandler(({ url }) => {
-      if (
-        direct &&
-        NetworkGuard.validateUrl(url, directManifest).allowed &&
-        new URL(url).protocol === 'https:'
-      )
-        void window.loadURL(url).catch(() => undefined)
-      return { action: 'deny' }
-    })
+    const family = new Set<BrowserWindow>([window])
+    this.families.set(window, family)
     const guard = (event: Electron.Event, target: string) => {
       try {
         if (
@@ -90,14 +136,55 @@ export class AnkerAccount {
             new URL(target).protocol === 'https:' &&
             NetworkGuard.validateUrl(target, directManifest).allowed
           )
-        )
+        ) {
+          onBlocked?.(new URL(target).hostname)
           event.preventDefault()
+        }
       } catch {
         event.preventDefault()
       }
     }
-    window.webContents.on('will-navigate', guard)
-    window.webContents.on('will-redirect', guard)
+    const configure = (member: BrowserWindow) => {
+      member.webContents.setWindowOpenHandler(({ url }) => {
+        if (
+          direct &&
+          NetworkGuard.validateUrl(url, directManifest).allowed &&
+          new URL(url).protocol === 'https:'
+        ) {
+          // Let Chromium preserve the opener, POST body and referrer. Replacing
+          // this with loadURL in the parent converts the request into a GET.
+          return {
+            action: 'allow',
+            overrideBrowserWindowOptions: {
+              autoHideMenuBar: true,
+              webPreferences: {
+                session: window.webContents.session,
+                sandbox: true,
+                contextIsolation: true,
+                nodeIntegration: false,
+                webviewTag: false,
+                backgroundThrottling: false
+              }
+            }
+          }
+        }
+        if (direct) {
+          try {
+            onBlocked?.(new URL(url).hostname)
+          } catch {
+            /* Remains blocked. */
+          }
+        }
+        return { action: 'deny' }
+      })
+      member.webContents.on('will-navigate', guard)
+      member.webContents.on('will-redirect', guard)
+      member.webContents.on('did-create-window', (child) => {
+        family.add(child)
+        configure(child)
+      })
+    }
+    configure(window)
     return window
   }
   private static async load(window: BrowserWindow, url: string) {
@@ -116,20 +203,30 @@ export class AnkerAccount {
     page: string,
     directory: string,
     signal: AbortSignal,
-    progress: (bytes: number, total: number, archive: string) => void
+    progress: (bytes: number, total: number, archive: string) => void,
+    provider: string = 'anker',
+    diagnostic: (value: DirectDownloadDiagnostic) => void = () => undefined
   ): Promise<string> {
-    const url = ankerGameUrl(page)
+    const rom = romSource(provider)
+    if (!rom && !['anker', 'steamrip'].includes(provider)) throw new Error('Fonte de download inválida.')
+    const directManifest = rom ? romManifest(provider) : directDownloadManifest(provider === 'steamrip')
+    const url =
+      rom ? romPageUrl(provider, page) : provider === 'steamrip' ? steamripGameUrl(page) : ankerGameUrl(page)
     if (this.busy)
-      throw new Error(
-        'Conclua a operação AnkerGames aberta antes de continuar.'
-      )
+      throw new Error('Conclua a janela de download aberta antes de continuar.')
     await mkdir(directory, { recursive: true })
-    const window = this.window(true, true)
+    let blockedHost = ''
+    const window = this.window(true, true, provider === 'steamrip', (host) => {
+      // Keep waiting: rejected popups may be ads, not the chosen file host.
+      if (/^[a-z0-9.-]{1,253}$/i.test(host)) blockedHost = host
+    }, rom ? provider : undefined)
     this.busy = true
     const isolated = window.webContents.session
+    const family = this.families.get(window)!
     let item: DownloadItem | undefined
     let archive: string | undefined
     let completed = false
+    let recovery: ReturnType<typeof directDownloadRecovery> | undefined
     let rejectOperation: (error: Error) => void = () => undefined
     const abort = () =>
       rejectOperation(
@@ -137,15 +234,23 @@ export class AnkerAccount {
           'Download direto interrompido. Use Retomar para abrir o site novamente.'
         )
       )
+    const waitingError = () =>
+      new Error(
+        blockedHost
+          ? `O arquivo não foi recebido. Uma navegação para ${blockedHost} foi bloqueada; ela pode ser uma hospedagem ou publicidade. Informe qual botão de download você escolheu.`
+          : 'A janela foi fechada antes de o Ghost receber um arquivo. Escolha a hospedagem e confirme o download do pacote antes de fechar a janela.'
+      )
     const closed = () => {
-      if (!item) abort()
+      if (!item) rejectOperation(waitingError())
     }
     const timer = setTimeout(
       () =>
         rejectOperation(
-          new Error(
-            'Nenhum arquivo recebido. Use Retomar e confirme o download direto na janela do site.'
-          )
+          blockedHost
+            ? waitingError()
+            : new Error(
+                'Nenhum arquivo recebido em três minutos. Use Retomar e confirme o download na hospedagem.'
+              )
         ),
       180000
     )
@@ -160,11 +265,13 @@ export class AnkerAccount {
         onDownload = (_event, download, contents) => {
           if (
             !contents ||
-            window.isDestroyed() ||
-            contents.id !== window.webContents.id
+            ![...family].some(
+              (member) =>
+                !member.isDestroyed() && contents.id === member.webContents.id
+            )
           )
             return
-          const extension = /\.(zip|rar|7z|tar)$/i
+          const extension = (rom ? /\.(zip|rar|7z|tar|nsp|xci|nsz|xcz)$/i : /\.(zip|rar|7z|tar)$/i)
             .exec(download.getFilename())?.[1]
             ?.toLowerCase()
           const link = download.getURL()
@@ -178,7 +285,7 @@ export class AnkerAccount {
             if (!item)
               reject(
                 new Error(
-                  'Escolha o download direto de um pacote ZIP, RAR, 7Z ou TAR; esta opção não recebe torrents.'
+                  rom ? 'Escolha uma ROM NSP/XCI/NSZ/XCZ ou um pacote ZIP/RAR/7Z/TAR. Torrents não são aceitos nesta opção.' : 'Escolha o download direto de um pacote ZIP, RAR, 7Z ou TAR; esta opção não recebe torrents.'
                 )
               )
             return
@@ -194,16 +301,13 @@ export class AnkerAccount {
               archive!
             )
           report()
+          recovery = directDownloadRecovery(download, reject, diagnostic)
           download.on('updated', (_event, state) => {
             report()
-            if (state === 'interrupted')
-              reject(
-                new Error(
-                  'O servidor interrompeu o download direto. Use Retomar para obter outro link.'
-                )
-              )
+            recovery?.updated(state)
           })
           download.once('done', (_event, state) => {
+            recovery?.done(state)
             if (state === 'completed') {
               completed = true
               report()
@@ -211,11 +315,11 @@ export class AnkerAccount {
             } else
               reject(
                 new Error(
-                  'O download direto foi interrompido. Use Retomar para tentar novamente.'
+                  'A transferência terminou sem concluir e não permite recuperação nesta conexão. Use Retomar para confirmar outro link no site; o download será reiniciado. O navegador não informou a causa.'
                 )
               )
           })
-          window.hide()
+          for (const member of family) if (!member.isDestroyed()) member.hide()
         }
         isolated.on('will-download', onDownload)
         signal.addEventListener('abort', abort, { once: true })
@@ -224,15 +328,22 @@ export class AnkerAccount {
           abort()
           return
         }
-        void this.load(window, url).catch(reject)
+        void loadAnkerPage(
+          window,
+          url,
+          new URL(url).origin,
+          rom?.name || (provider === 'steamrip' ? 'SteamRIP' : 'AnkerGames')
+        ).catch(reject)
       })
     } finally {
+      recovery?.stop()
       clearTimeout(timer)
       isolated.removeListener('will-download', onDownload)
       signal.removeEventListener('abort', abort)
       window.removeListener('closed', closed)
       if (!completed) item?.cancel()
-      if (!window.isDestroyed()) window.destroy()
+      for (const member of family) if (!member.isDestroyed()) member.destroy()
+      this.families.delete(window)
       this.busy = false
       if (!completed && archive)
         await rm(archive, { force: true }).catch(() => undefined)

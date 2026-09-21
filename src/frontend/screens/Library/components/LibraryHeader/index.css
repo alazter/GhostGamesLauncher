@@ -33,3 +33,80 @@
   margin-inline-start: var(--space-sm, 4px);
   border-radius: var(--space-3xs);
 }
+
+.libraryQuickActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid transparent !important;
+  border-radius: 18px !important;
+  outline: none !important;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  user-select: none;
+  line-height: 1;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: none !important;
+}
+
+.libraryQuickActionBtn:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  transform: scale(1.05);
+}
+
+.libraryQuickActionBtn:active {
+  transform: scale(0.97);
+}
+
+.libraryQuickActionBtn--new {
+  color: #ffd700;
+}
+
+.libraryQuickActionBtn--new:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.45) !important;
+}
+
+.libraryQuickActionBtn--new.libraryQuickActionBtn--active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6) !important;
+}
+
+.libraryQuickActionBtn--updates {
+  color: #00e5ff;
+}
+
+.libraryQuickActionBtn--updates:hover {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.45) !important;
+}
+
+.libraryQuickActionBtn--updates.libraryQuickActionBtn--active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.6) !important;
+}
+

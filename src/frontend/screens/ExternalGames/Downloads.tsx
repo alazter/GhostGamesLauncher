@@ -141,10 +141,10 @@ export default function ExternalDownloads({
               {job.transport === 'torbox' && !['completed', 'cancelled'].includes(job.status) && (
                 <p>Pausar ou cancelar interrompe a transferência no Ghost. A tarefa na nuvem permanece na sua conta TorBox.</p>
               )}
-              {job.transport === 'anker-direct' && (
+              {['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && (
                 <p>Download direto pelo Ghost. {job.status === 'downloading' && !job.transferPhase ? 'Confirme Download na janela do site; escolha o pacote, não o torrent.' : 'Ao retomar, confirme novamente no site; a transferência reinicia do começo.'}</p>
               )}
-              {job.status === 'downloading' && job.transferPhase === 'torrent' && <p role="status">Obtendo o torrent oficial do AnkerGames… Se o site precisar de interação, uma janela será aberta. Conclua nela a verificação ou clique em Download Torrent.</p>}
+              {job.status === 'downloading' && job.transferPhase === 'torrent' && <p role="status">Obtendo o torrent de {job.game.providerName}… Na janela do site, entre na conta se necessário e escolha Torrent.</p>}
               {job.status === 'downloading' && job.transferPhase === 'remote' && <>
                 <p role="status">Preparando no TorBox{job.remoteProgress !== undefined ? ` · ${Math.round(job.remoteProgress * 100)}%` : ''}{job.remoteStatus ? ` · ${job.remoteStatus}` : ''}</p>
                 <progress aria-label="Preparação no TorBox" max={1} value={job.remoteProgress} />
@@ -201,7 +201,7 @@ export default function ExternalDownloads({
                     </svg>
                   </button>
                 )}
-                {(job.status === 'paused' || (job.status === 'error' && ['torbox', 'anker-direct'].includes(job.transport || ''))) && (
+                {(job.status === 'paused' || (job.status === 'error' && job.canResume)) && (
                   <button
                     disabled={disabled}
                     onClick={() =>
@@ -235,7 +235,7 @@ export default function ExternalDownloads({
                         })
                       }
                     >
-                      <option value="">Escolha o executável</option>
+                      <option value="">{job.game.platform === 'switch' ? 'Escolha a ROM do jogo base' : 'Escolha o executável'}</option>
                       {job.candidates.map((candidate) => (
                         <option key={candidate}>{candidate}</option>
                       ))}

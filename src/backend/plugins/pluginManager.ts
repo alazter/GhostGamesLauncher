@@ -11,18 +11,24 @@ import type {
   PluginInstallResult,
   PluginPackResult,
   GhostSearchResult,
-  GhostDownloadSource
+  GhostDownloadSource,
+  ExternalInstallRequest,
+  ExternalActionResult,
+  SourceSearchResponse
 } from 'common/types/plugins'
 import { PluginPacker } from './pluginPacker'
 import { PluginHost } from './pluginHost'
 import { ExternalGames } from './externalGames'
-import { ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, ankerGameUrl } from './ankerAccount'
+import { romSource, romPageUrl, ROM_DIRECT_ID } from './romSources'
+import { ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID, steamripGameUrl, ankerGameUrl } from './ankerAccount'
 import { NetworkGuard } from './networkGuard'
+import { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
 import { isNewerRelease } from './externalPolicy'
 import { builtinGameSources } from 'common/builtinGameSources'
-import type { ExternalInstallRequest, ExternalActionResult, SourceSearchResponse } from 'common/types/plugins'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
 import { detectPirateGameVersion } from 'backend/storeManagers/sideload/versionDetector'
+import { GlobalConfig } from 'backend/config'
+import { EXCLUDED_PIRATAS_APP_NAMES } from './piratasSaveKnowledge'
 
 const COMMON_GAME_FILE_HOSTS = [
   'pixeldrain.com',
@@ -59,25 +65,57 @@ export class PluginManager {
   private updateMonitor?: ReturnType<typeof setInterval>
   private checkingUpdates = false
 
-  private async pollExternalUpdates() {
+  private async pollExternalUpdates(force = false) {
     if (this.checkingUpdates) return
+    const settings = GlobalConfig.get().getSettings()
+    if (!force && settings.checkPirataUpdatesDaily === false) {
+      return
+    }
+
+    const service = ExternalGames.getInstance()
+    const lastCheck = service.getLastUpdateCheckTime() || 0
+    const now = Date.now()
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000
+
+    if (!force && now - lastCheck < ONE_DAY_MS) {
+      return
+    }
+
     this.checkingUpdates = true
     try {
-      const service = ExternalGames.getInstance()
-      for (const installation of service.snapshot().installations.filter((item) => item.autoUpdate)) {
-        const result = await this.checkExternalUpdate(installation.id)
-        service.recordUpdate(installation.id, result.update, result.error)
-        if (!result.update) continue
-        const plugin = this.getPlugins().find((item) => item.id === installation.game.providerId && item.isEnabled)
-        const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
-        if (!plugin || !provider) continue
+      logInfo('[PluginManager] Iniciando verificação de updates da Loja Piratas (rotina de 24h)...', LogPrefix.Backend)
+      const installations = service.snapshot().installations.filter((item) => {
+        if (!item.appName || EXCLUDED_PIRATAS_APP_NAMES.has(item.appName)) return false
+        return Boolean(item.game?.providerId) || Boolean(item.game?.pageUrl)
+      })
+
+      let updatesFound = 0
+      for (const installation of installations) {
         try {
-          const source = (await this.getDownloadSources(plugin.id, result.update.pageUrl || result.update.id)).find((item) => item.type === 'torbox' || (item.type === 'direct' && item.archive === 'zip'))
-          if (source) await service.enqueue(result.update, source, plugin, installation.id, true)
-          else service.recordUpdate(installation.id, result.update, 'Atualização disponível. Esta fonte exige download pelo site.')
-        } catch (error) { service.recordUpdate(installation.id, result.update, error instanceof Error ? error.message : String(error)) }
+          const result = await this.checkExternalUpdate(installation.id)
+          if (result?.update) {
+            updatesFound++
+            logInfo(`[PluginManager] Update identificado para "${installation.game?.title}": ${result.update.version || 'Nova versão'}`, LogPrefix.Backend)
+          }
+        } catch {
+          // Falha individual silenciada
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000))
       }
-    } finally { this.checkingUpdates = false }
+
+      service.setLastUpdateCheckTime(now)
+      logInfo(`[PluginManager] Verificação da Loja Piratas concluída. (${updatesFound} atualização(ões) encontrada(s))`, LogPrefix.Backend)
+      sendFrontendMessage('external-games-updated', service.snapshot())
+    } catch (err) {
+      logError(['[PluginManager] Erro na verificação diária de updates:', err], LogPrefix.Backend)
+    } finally {
+      this.checkingUpdates = false
+    }
+  }
+
+  public async checkPiratasUpdates(force = false): Promise<{ success: boolean; message: string }> {
+    await this.pollExternalUpdates(force)
+    return { success: true, message: 'Verificação da Loja Piratas concluída.' }
   }
 
   public async installBuiltinSource(id: string): Promise<PluginInstallResult> {
@@ -157,7 +195,7 @@ export class PluginManager {
       const officialAnker = plugin.id === ANKER_SOURCE_ID
       const options = await this.getDownloadSources(plugin.id, game.pageUrl || game.id)
       let source = options.find((item) => item.id === request.sourceId)
-      if (!officialAnker && !source && request.sourceId) {
+        if (!officialAnker && !romSource(plugin.id) && plugin.id !== STEAMRIP_SOURCE_ID && plugin.id !== ONLINE_FIX_SOURCE_ID && !source && request.sourceId) {
         source = {
           id: request.sourceId,
           name: request.game.title,
@@ -261,9 +299,9 @@ export class PluginManager {
 
     this.broadcastUpdates()
     if (!this.updateMonitor) {
-      const initialCheck = setTimeout(() => void this.pollExternalUpdates(), 30000)
+      const initialCheck = setTimeout(() => void this.pollExternalUpdates(), 20000)
       initialCheck.unref()
-      this.updateMonitor = setInterval(() => void this.pollExternalUpdates(), 6 * 60 * 60 * 1000)
+      this.updateMonitor = setInterval(() => void this.pollExternalUpdates(), 60 * 60 * 1000)
       this.updateMonitor.unref()
     }
   }
@@ -603,7 +641,18 @@ export class PluginManager {
     return combined
   }
 
-  public async getDownloadSources(providerId: string, gameId: string): Promise<GhostDownloadSource[]> {
+    public async getDownloadSources(providerId: string, gameId: string): Promise<GhostDownloadSource[]> {
+      const rom = romSource(providerId)
+      if (rom && this.getPlugins().some(plugin => plugin.id === providerId && plugin.isEnabled)) {
+        return [{ id: ROM_DIRECT_ID, name: `${rom.name} · Download da ROM · Confirmar no site`, type: 'external', url: romPageUrl(providerId, gameId) }]
+      }
+      if (providerId === ONLINE_FIX_SOURCE_ID && this.getPlugins().some(plugin => plugin.id === providerId && plugin.isEnabled)) {
+        const existing = await this.hosts.get(providerId)?.getSourceProvider()?.getSources(gameId).catch(() => []) || []
+        return [{ id: ONLINE_FIX_TORRENT_ID, name: 'Online-Fix · Torrent via TorBox', type: 'torbox', url: onlineFixGameUrl(gameId) }, ...existing.filter(item => item.id !== ONLINE_FIX_TORRENT_ID)]
+      }
+      if (providerId === STEAMRIP_SOURCE_ID && this.getPlugins().some(plugin => plugin.id === providerId && plugin.isEnabled)) {
+        return [{ id: STEAMRIP_DIRECT_ID, name: 'SteamRIP · Download direto', type: 'external', url: steamripGameUrl(gameId) }]
+      }
     if (providerId === ANKER_SOURCE_ID && this.getPlugins().some((plugin) => plugin.id === providerId && plugin.isEnabled)) {
       return [
         { id: ANKER_TORRENT_ID, name: 'TorBox · Torrent', type: 'torbox', url: ankerGameUrl(gameId) },

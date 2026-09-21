@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import LanguageSelector from 'frontend/components/UI/LanguageSelector'
 import { ThemeSelector } from 'frontend/components/UI/ThemeSelector'
+import LocalPackageInstall from '../../components/LocalPackageInstall'
+import SwitchEmulator from '../../components/SwitchEmulator'
 import {
   AutoUpdateGames,
   CheckUpdatesOnStartup,
@@ -15,6 +17,7 @@ import {
   MaxWorkers,
   MinimizeOnGameLaunch,
   MonitorSteamDownloads,
+  CheckPirataUpdatesDaily,
   Shortcuts,
   StartInConsoleMode,
   StartAtLogin,
@@ -55,6 +58,10 @@ export default function GeneralSettings() {
       <DefaultSteamPath />
 
       <MonitorSteamDownloads />
+
+      <CheckPirataUpdatesDaily />
+      <LocalPackageInstall />
+      <SwitchEmulator />
 
       <EgsSettings />
 

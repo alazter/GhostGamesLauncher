@@ -97,7 +97,7 @@ export async function getCloudProviderStatus() {
     return {
       connected: true,
       provider,
-      accountName: tokens.account_name || 'Conta Conectada'
+      accountName: tokens.account_name || ''
     }
   }
   return { connected: false }
@@ -213,7 +213,8 @@ function getAuthUrl(provider: string, state: string): string {
   switch (provider) {
     case 'google': {
       const { clientId } = getGoogleCredentials()
-      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&access_type=offline&prompt=consent&state=${state}`
+      const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile')
+      return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
     }
     case 'dropbox':
       return `https://www.dropbox.com/oauth2/authorize?client_id=${DROPBOX_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&token_access_type=offline&state=${state}`
@@ -270,7 +271,7 @@ async function fetchAccountName(provider: string, accessToken: string): Promise<
       })
       if (res.ok) {
         const info = await res.json()
-        return info.email || info.name || 'Conta Google'
+        return info.email || info.name || ''
       }
     } else if (provider === 'dropbox') {
       const res = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
@@ -279,7 +280,7 @@ async function fetchAccountName(provider: string, accessToken: string): Promise<
       })
       if (res.ok) {
         const info = await res.json()
-        return info.email || info.name?.display_name || 'Conta Dropbox'
+        return info.email || info.name?.display_name || ''
       }
     } else if (provider === 'onedrive') {
       const res = await fetch('https://graph.microsoft.com/v1.0/me', {
@@ -287,13 +288,13 @@ async function fetchAccountName(provider: string, accessToken: string): Promise<
       })
       if (res.ok) {
         const info = await res.json()
-        return info.userPrincipalName || info.displayName || 'Conta OneDrive'
+        return info.userPrincipalName || info.displayName || ''
       }
     }
   } catch (err) {
     logError(`Failed to fetch account name: ${err}`, LogPrefix.Backend)
   }
-  return 'Conta Conectada'
+  return ''
 }
 
 // Refresh access token if expired
@@ -358,45 +359,61 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
   try {
     const accessToken = await getValidAccessToken(provider, tokens)
     const backupJson = JSON.stringify(backupData, null, 2)
-    const fileName = 'Ghost_Backup.ghostbackup'
+    const now = new Date()
+    const dd = String(now.getDate()).padStart(2, '0')
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const yyyy = now.getFullYear()
+    const fileName = `${dd}-${mm}-${yyyy}.GhostBackup`
 
     if (provider === 'google') {
-      // 1. Search if the file already exists
-      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}'&spaces=drive`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+      // 1. Buscar backups existentes do Ghost para deletar após o novo upload
+      let previousFiles: Array<{ id: string; name: string }> = []
+      try {
+        const listRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=(name contains '.GhostBackup' or name contains '.ghostbackup' or name contains '.Ghost.Backup' or name = 'Ghost_Backup.ghostbackup') and trashed = false&fields=files(id, name, createdTime)&spaces=drive`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (listRes.ok) {
+          const listData = await listRes.json()
+          previousFiles = listData.files || []
+        }
+      } catch (err) {
+        logError(`Erro ao listar backups anteriores no Google Drive: ${err}`, LogPrefix.Backend)
+      }
+
+      // 2. Criar novo arquivo via upload multipart
+      const metadata = { name: fileName, mimeType: 'application/octet-stream' }
+      const boundary = `ghost_backup_boundary_${Date.now()}`
+      const multipartBody = 
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+        `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n${backupJson}\r\n` +
+        `--${boundary}--`
+
+      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`
+        },
+        body: multipartBody
       })
-      const searchData = await searchRes.json()
-      const existingFile = searchData.files?.[0]
+      if (!uploadRes.ok) throw new Error(`Google Drive upload failed: ${await uploadRes.text()}`)
+      const uploadedData = await uploadRes.json()
+      const newFileId = uploadedData.id
 
-      if (existingFile) {
-        // Update existing file
-        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: backupJson
-        })
-        if (!res.ok) throw new Error(`Google Drive update failed: ${await res.text()}`)
-      } else {
-        // Create new file (using multipart upload)
-        const metadata = { name: fileName, mimeType: 'application/json' }
-        const boundary = 'foo_bar_boundary'
-        const multipartBody = 
-          `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
-          `--${boundary}\r\nContent-Type: application/json\r\n\r\n${backupJson}\r\n` +
-          `--${boundary}--`
-
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': `multipart/related; boundary=${boundary}`
-          },
-          body: multipartBody
-        })
-        if (!res.ok) throw new Error(`Google Drive upload failed: ${await res.text()}`)
+      // 3. Deletar backups anteriores para liberar espaço e manter apenas o mais recente
+      for (const prev of previousFiles) {
+        if (prev.id && prev.id !== newFileId) {
+          try {
+            await fetch(`https://www.googleapis.com/drive/v3/files/${prev.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${accessToken}` }
+            })
+            logInfo(`Backup anterior do Google Drive excluído com sucesso: ${prev.name} (${prev.id})`, LogPrefix.Backend)
+          } catch (delErr) {
+            logError(`Falha ao excluir backup anterior do Google Drive (${prev.id}): ${delErr}`, LogPrefix.Backend)
+          }
+        }
       }
     } else if (provider === 'dropbox') {
       const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
@@ -425,7 +442,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
       if (!res.ok) throw new Error(`OneDrive upload failed: ${await res.text()}`)
     }
 
-    logInfo(`Backup successfully uploaded to ${provider}`, LogPrefix.Backend)
+    logInfo(`Backup successfully uploaded to ${provider} as ${fileName}`, LogPrefix.Backend)
     const storeAny = configStore as any
     storeAny.set('backup.lastSuccess', Date.now())
     storeAny.delete('backup.lastError')
@@ -447,14 +464,16 @@ export async function downloadBackupFromCloud(): Promise<{ success: boolean; dat
 
   try {
     const accessToken = await getValidAccessToken(provider, tokens)
-    const fileName = 'Ghost_Backup.ghostbackup'
     let content = ''
 
     if (provider === 'google') {
-      // 1. Search for the file ID
-      const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}'&spaces=drive`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      })
+      // 1. Buscar o backup mais recente ordenado por createdTime decrescente
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=(name contains '.GhostBackup' or name contains '.ghostbackup' or name contains '.Ghost.Backup' or name = 'Ghost_Backup.ghostbackup') and trashed = false&orderBy=createdTime desc&fields=files(id, name, createdTime)&spaces=drive`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        }
+      )
       const searchData = await searchRes.json()
       const existingFile = searchData.files?.[0]
 
@@ -462,24 +481,62 @@ export async function downloadBackupFromCloud(): Promise<{ success: boolean; dat
         return { success: false, error: 'Arquivo de backup não encontrado no Google Drive.' }
       }
 
-      // 2. Download the file content
+      // 2. Download do conteúdo do arquivo mais recente
       const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
       if (!res.ok) throw new Error(`Google Drive download failed: ${await res.text()}`)
       content = await res.text()
     } else if (provider === 'dropbox') {
+      // Tenta listar arquivos na pasta raiz e encontrar o .GhostBackup mais recente
+      let path = '/Ghost_Backup.ghostbackup'
+      try {
+        const listRes = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ path: '' })
+        })
+        if (listRes.ok) {
+          const listData = await listRes.json()
+          const ghostFiles = (listData.entries || [])
+            .filter((e: any) => e['.tag'] === 'file' && (e.name.includes('.GhostBackup') || e.name.includes('.ghostbackup') || e.name.includes('.Ghost.Backup')))
+            .sort((a: any, b: any) => (b.server_modified || '').localeCompare(a.server_modified || ''))
+          if (ghostFiles.length > 0) {
+            path = ghostFiles[0].path_display || `/${ghostFiles[0].name}`
+          }
+        }
+      } catch {}
+
       const res = await fetch('https://content.dropboxapi.com/2/files/download', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Dropbox-API-Arg': JSON.stringify({ path: `/${fileName}` })
+          'Dropbox-API-Arg': JSON.stringify({ path })
         }
       })
       if (!res.ok) throw new Error(`Dropbox download failed: ${await res.text()}`)
       content = await res.text()
     } else if (provider === 'onedrive') {
-      const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/GhostBackups/${fileName}:/content`, {
+      let path = '/GhostBackups/Ghost_Backup.ghostbackup'
+      try {
+        const listRes = await fetch('https://graph.microsoft.com/v1.0/me/drive/root:/GhostBackups:/children', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        })
+        if (listRes.ok) {
+          const listData = await listRes.json()
+          const ghostFiles = (listData.value || [])
+            .filter((e: any) => e.file && (e.name.includes('.GhostBackup') || e.name.includes('.ghostbackup') || e.name.includes('.Ghost.Backup')))
+            .sort((a: any, b: any) => (b.lastModifiedDateTime || '').localeCompare(a.lastModifiedDateTime || ''))
+          if (ghostFiles.length > 0) {
+            path = `/GhostBackups/${ghostFiles[0].name}`
+          }
+        }
+      } catch {}
+
+      const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:${path}:/content`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
       if (!res.ok) throw new Error(`OneDrive download failed: ${await res.text()}`)

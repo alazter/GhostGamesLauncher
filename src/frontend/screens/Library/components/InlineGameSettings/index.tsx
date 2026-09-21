@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useContext, useRef, useMemo, useCallback } from 'react'
 import { NavLink } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTimes, faGlobe, faArrowLeft, faShieldAlt } from '@fortawesome/free-solid-svg-icons'
+import {
+  faTimes,
+  faGlobe,
+  faArrowLeft,
+  faShieldAlt,
+  faTrashAlt,
+  faExclamationTriangle,
+  faFolderOpen
+} from '@fortawesome/free-solid-svg-icons'
 import { faSteam, faApple, faLinux, faWindows } from '@fortawesome/free-brands-svg-icons'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import { CircularProgress } from '@mui/material'
@@ -66,7 +74,8 @@ const DEFAULT_ACTIONS: ActionItem[] = [
   { id: 'saves', name: 'GhostShield Saves', iconKey: 'saves', isVisible: true },
   { id: 'steam', name: 'Adicionar ao Steam', iconKey: 'steam', isVisible: true },
   { id: 'logs', name: 'Logs detalhados', iconKey: 'logs', isVisible: true },
-  { id: 'uninstall', name: 'Desinstalar', iconKey: 'uninstall', isVisible: true }
+  { id: 'uninstall', name: 'Desinstalar', iconKey: 'uninstall', isVisible: true },
+  { id: 'delete-game', name: 'Deletar do Computador', iconKey: 'delete-game', isVisible: true }
 ]
 
 const syncFrontendStoreForSideload = (updatedGame: GameInfo) => {
@@ -348,6 +357,61 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   const [hasShortcuts, setHasShortcuts] = useState<boolean>(false)
   const [showUninstallModal, setShowUninstallModal] = useState<boolean>(false)
   const [showSaveManager, setShowSaveManager] = useState<boolean>(false)
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false)
+  const [isDeletingGame, setIsDeletingGame] = useState<boolean>(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const effectiveInstallDirectory = useMemo(() => {
+    if (game.install?.install_path) return game.install.install_path
+    if (game.folder_name) return game.folder_name
+    return ''
+  }, [game.install?.install_path, game.folder_name])
+
+  useEffect(() => {
+    if (!showDeleteModal) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isDeletingGame) {
+        setShowDeleteModal(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showDeleteModal, isDeletingGame])
+
+  const handleDeleteGameConfirmed = async () => {
+    setIsDeletingGame(true)
+    setDeleteError(null)
+    try {
+      const res = await window.api.externalGamesDeleteGame(game.app_name, true)
+      if (!res.success) {
+        setDeleteError(res.error || 'Falha ao deletar o jogo do computador.')
+        setIsDeletingGame(false)
+        return
+      }
+
+      clearAvailabilityCache(game.app_name, game.runner)
+      const games = sideloadLibrary.get('games', [])
+      const filtered = games.filter((g) => g.app_name !== game.app_name)
+      sideloadLibrary.set('games', filtered)
+
+      const overrides = gameOverridesStore.get('overrides', {})
+      delete overrides[game.app_name]
+      gameOverridesStore.set('overrides', overrides)
+
+      ;(configStore as any).set('backup.lastModified', Date.now())
+      window.dispatchEvent(new Event('backupStateChanged'))
+
+      setShowDeleteModal(false)
+      setIsDeletingGame(false)
+      window.dispatchEvent(
+        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+      )
+      onClose()
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Erro inesperado ao deletar os arquivos do jogo.')
+      setIsDeletingGame(false)
+    }
+  }
   
   const verboseLogs = settingsContextValues ? settingsContextValues.getSetting('verboseLogs', true) : true
   const setVerboseLogs = (newVal: boolean) => {
@@ -722,13 +786,23 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             danger
           />
         )
+      case 'delete-game':
+        return (
+          <ActionButton
+            key="delete-game"
+            icon={<FontAwesomeIcon icon={faTrashAlt} />}
+            label="Deletar do Computador"
+            onClick={() => setShowDeleteModal(true)}
+            danger
+          />
+        )
       default:
         return null
     }
   }
 
   const renderCustomizerButton = (act: ActionItem, idx: number) => {
-    const isDanger = act.id === 'uninstall'
+    const isDanger = act.id === 'uninstall' || act.id === 'delete-game'
     let isSteamBrand = false
     if (act.id === 'steam') isSteamBrand = addedToSteam
     else if (act.id === 'logs') isSteamBrand = verboseLogs
@@ -740,9 +814,11 @@ export default function InlineGameSettings({ game, onClose }: Props) {
     else if (act.id === 'shortcut') iconNode = <ShortcutIcon />
     else if (act.id === 'browse') iconNode = <FolderIcon />
     else if (act.id === 'categories') iconNode = <FormatListBulletedIcon />
+    else if (act.id === 'saves') iconNode = <FontAwesomeIcon icon={faShieldAlt} />
     else if (act.id === 'steam') iconNode = <FontAwesomeIcon icon={faSteam} />
     else if (act.id === 'logs') iconNode = <TerminalIcon />
     else if (act.id === 'uninstall') iconNode = <DeleteIcon />
+    else if (act.id === 'delete-game') iconNode = <FontAwesomeIcon icon={faTrashAlt} />
 
     const isHoveredTarget = hoveredIndex === idx && draggedIndex !== idx
 
@@ -1189,6 +1265,11 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             outline-offset: 0 !important;
             box-shadow: none !important;
           }
+
+          @keyframes ghostFadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+          }
         `}} />
         {showUninstallModal && (
           <UninstallModal
@@ -1204,6 +1285,248 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             onClose={() => setShowSaveManager(false)}
             game={game}
           />
+        )}
+        {showDeleteModal && (
+          <div
+            className="ghostDeleteModalOverlay"
+            onClick={() => !isDeletingGame && setShowDeleteModal(false)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(5, 8, 15, 0.82)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 99999,
+              padding: '20px'
+            }}
+          >
+            <div
+              className="ghostDeleteModalCard"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                maxWidth: '560px',
+                background: '#131a20',
+                borderRadius: '16px',
+                border: '1px solid rgba(255, 82, 82, 0.45)',
+                boxShadow: '0 0 35px rgba(255, 82, 82, 0.25)',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '18px',
+                color: '#fff',
+                position: 'relative'
+              }}
+            >
+              {/* Botão Fechar Sem Moldura (Regra 12) */}
+              <button
+                type="button"
+                onClick={() => !isDeletingGame && setShowDeleteModal(false)}
+                title="Fechar (Esc)"
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '4px',
+                  cursor: 'pointer',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontSize: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'color 0.2s ease, filter 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.color = '#ff5252'
+                  e.currentTarget.style.filter = 'drop-shadow(0 0 8px #ff5252)'
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'
+                  e.currentTarget.style.filter = 'none'
+                }}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+
+              {/* Cabeçalho */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 82, 82, 0.12)',
+                    border: '1px solid rgba(255, 82, 82, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ff5252',
+                    fontSize: '20px',
+                    flexShrink: 0
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#fff' }}>
+                    Deletar Jogo do Computador
+                  </h3>
+                  <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', marginTop: '2px' }}>
+                    {currentTitle}
+                  </div>
+                </div>
+              </div>
+
+              {/* Caminho da pasta que será excluída */}
+              {effectiveInstallDirectory && (
+                <div
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '12px',
+                    color: '#cbd5e1',
+                    wordBreak: 'break-all'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faFolderOpen} style={{ color: '#00ffff', flexShrink: 0 }} />
+                  <span>{effectiveInstallDirectory}</span>
+                </div>
+              )}
+
+              {/* Alerta de Exclusão Definitiva */}
+              <div
+                style={{
+                  background: 'rgba(255, 82, 82, 0.08)',
+                  border: '1px solid rgba(255, 82, 82, 0.25)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  fontSize: '13px',
+                  color: '#ffb4b4',
+                  lineHeight: '1.45'
+                }}
+              >
+                <FontAwesomeIcon icon={faExclamationTriangle} style={{ color: '#ff5252', marginTop: '3px', flexShrink: 0 }} />
+                <div>
+                  <strong>Ação permanente e irreversível:</strong> Todos os arquivos desta pasta serão completamente excluídos do disco rígido e o jogo será removido da biblioteca.
+                </div>
+              </div>
+
+              {/* Banner de Proteção GhostShield */}
+              <div
+                style={{
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  fontSize: '13px',
+                  color: '#6ee7b7',
+                  lineHeight: '1.45'
+                }}
+              >
+                <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#10b981', fontSize: '16px', flexShrink: 0 }} />
+                <div>
+                  <strong>Proteção GhostShield Ativa:</strong> Seus saves, perfis e progresso continuarão preservados com segurança no GhostShield.
+                </div>
+              </div>
+
+              {deleteError && (
+                <div style={{ color: '#ff5252', fontSize: '12px', background: 'rgba(255,0,0,0.1)', padding: '8px 12px', borderRadius: '6px' }}>
+                  {deleteError}
+                </div>
+              )}
+
+              {/* Botões do Rodapé */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  disabled={isDeletingGame}
+                  onClick={() => setShowDeleteModal(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    padding: '10px 18px',
+                    color: '#fff',
+                    cursor: isDeletingGame ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    if (!isDeletingGame) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isDeletingGame) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'
+                  }}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isDeletingGame}
+                  onClick={handleDeleteGameConfirmed}
+                  style={{
+                    background: '#ff5252',
+                    border: '1px solid #ff7373',
+                    borderRadius: '8px',
+                    padding: '10px 20px',
+                    color: '#fff',
+                    cursor: isDeletingGame ? 'wait' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 0 15px rgba(255, 82, 82, 0.4)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    if (!isDeletingGame) {
+                      e.currentTarget.style.background = '#ff3838'
+                      e.currentTarget.style.boxShadow = '0 0 22px rgba(255, 82, 82, 0.7)'
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isDeletingGame) {
+                      e.currentTarget.style.background = '#ff5252'
+                      e.currentTarget.style.boxShadow = '0 0 15px rgba(255, 82, 82, 0.4)'
+                    }
+                  }}
+                >
+                  {isDeletingGame ? (
+                    <>
+                      <CircularProgress size={16} style={{ color: '#fff' }} />
+                      <span>Deletando Arquivos...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faTrashAlt} />
+                      <span>Deletar do Computador</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Cabeçalho */}
@@ -1263,6 +1586,38 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               }}
             >
               <DeleteIcon style={{ fontSize: '18px' }} />
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              title="Deletar Jogo do Computador (Exclui arquivos permanentemente do disco)"
+              style={{
+                background: 'rgba(255, 75, 75, 0.08)',
+                border: '1px solid rgba(255, 75, 75, 0.3)',
+                borderRadius: '8px',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ff4444',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                flexShrink: 0
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 75, 75, 0.2)'
+                e.currentTarget.style.borderColor = 'rgba(255, 75, 75, 0.6)'
+                e.currentTarget.style.color = '#ff6666'
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 75, 75, 0.3)'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 75, 75, 0.08)'
+                e.currentTarget.style.borderColor = 'rgba(255, 75, 75, 0.3)'
+                e.currentTarget.style.color = '#ff4444'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <FontAwesomeIcon icon={faTrashAlt} style={{ fontSize: '15px' }} />
             </button>
             {(isPirateGame || game.runner === 'sideload') && (
               <div

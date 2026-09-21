@@ -117,6 +117,7 @@ export const steamgriddb = {
   getGrids: makeHandlerInvoker('steamgriddb.getGrids'),
   getHeroes: makeHandlerInvoker('steamgriddb.getHeroes'),
   downloadCover: makeHandlerInvoker('steamgriddb.downloadCover'),
+  getCoverForGame: makeHandlerInvoker('steamgriddb.getCoverForGame'),
   syncMissingCovers: makeHandlerInvoker('steamgriddb.syncMissingCovers'),
   batchReplaceAllCovers: makeHandlerInvoker('steamgriddb.batchReplaceAllCovers'),
   getCoversBackupInfo: makeHandlerInvoker('steamgriddb.getCoversBackupInfo'),

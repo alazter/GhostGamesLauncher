@@ -1,12 +1,19 @@
 import { createHash } from 'crypto'
 import { torrentInfoHash } from '../torrentMetadata'
 import { TorboxClient } from '../torboxClient'
-import { ankerGameUrl } from '../ankerAccount'
+import { ankerGameUrl, steamripGameUrl } from '../ankerAccount'
 import { TORBOX_DOWNLOAD_DOMAINS } from '../torboxDomains'
 
 jest.mock('electron', () => ({}))
 jest.mock('backend/constants/paths', () => ({ userDataPath: '' }))
 const originalFetch = global.fetch
+
+it('only accepts SteamRIP HTTPS game pages for the browser source', () => {
+  expect(steamripGameUrl('https://steamrip.com/example-game/?tracking=1')).toBe('https://steamrip.com/example-game/')
+  for (const page of ['http://steamrip.com/game/', 'https://steamrip.com.evil.test/game/', 'https://user:pass@steamrip.com/game/', 'https://steamrip.com/']) {
+    expect(() => steamripGameUrl(page)).toThrow()
+  }
+})
 
 it.each(TORBOX_DOWNLOAD_DOMAINS)(
   'accepts the official CDN %s',

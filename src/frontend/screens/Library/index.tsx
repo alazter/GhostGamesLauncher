@@ -22,9 +22,12 @@ import { syncAutoStoreAssignments, assignGameToPiratasStore, syncPiratasStoreAss
 import {
   syncNewGamesTracker,
   isGameNew,
+  isGameRecentlyAdded,
+  getNewGamesMap,
   sortGamesByNewest,
   sortGamesByPlaytime,
-  getNewestGamesPrioritized
+  getNewestGamesPrioritized,
+  NewGamesMap
 } from 'frontend/helpers/newGamesTracker'
 
 import GamesList from './components/GamesList'
@@ -116,7 +119,70 @@ export default memo(function Library(): JSX.Element {
   const [lastSuccessTime, setLastSuccessTime] = useState<number>(0)
   const [lastErrorMsg, setLastErrorMsg] = useState<string>('')
   const [cloudBackupProvider, setCloudBackupProvider] = useState<string>('none')
+  const [cloudAccountName, setCloudAccountName] = useState<string>('')
   const [isHovered, setIsHovered] = useState(false)
+  const [isTimedVisible, setIsTimedVisible] = useState(true)
+
+  const cloudNick = useMemo(() => {
+    if (!cloudAccountName) return ''
+    const nick = cloudAccountName.includes('@') ? cloudAccountName.split('@')[0] : cloudAccountName
+    // Supressão estrita de placeholders genéricos como "Conta Conectada", "Conta Google", etc.
+    if (!nick || nick.toLowerCase().includes('conta') || nick.toLowerCase().includes('connected')) {
+      return ''
+    }
+    return nick
+  }, [cloudAccountName])
+
+  // Ciclo dinâmico do texto de status/data do backup:
+  // 1. Visível por 7s ao carregar a tela
+  // 2. Transição suave periódica (a cada 45s, surge por 6s e depois desaparece)
+  // 3. Permanece visível sempre que o usuário passa o mouse (isHovered) ou durante upload (isUploading)
+  useEffect(() => {
+    setIsTimedVisible(true)
+    let hideTimer = setTimeout(() => {
+      setIsTimedVisible(false)
+    }, 7000)
+
+    const cycleInterval = setInterval(() => {
+      setIsTimedVisible(true)
+      clearTimeout(hideTimer)
+      hideTimer = setTimeout(() => {
+        setIsTimedVisible(false)
+      }, 6000)
+    }, 45000)
+
+    return () => {
+      clearTimeout(hideTimer)
+      clearInterval(cycleInterval)
+    }
+  }, [])
+
+  // Acende o texto por 8s sempre que um novo backup é registrado com sucesso
+  useEffect(() => {
+    if (lastSuccessTime > 0) {
+      setIsTimedVisible(true)
+      const t = setTimeout(() => {
+        setIsTimedVisible(false)
+      }, 8000)
+      return () => {
+        clearTimeout(t)
+      }
+    }
+    return undefined
+  }, [lastSuccessTime])
+
+  const isTextVisible = isHovered || isUploading || isTimedVisible
+
+  const backupDateTimeStr = useMemo(() => {
+    if (!lastSuccessTime) return ''
+    const d = new Date(lastSuccessTime)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = String(d.getFullYear()).slice(-2)
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${day}/${month}/${year} às ${hours}:${minutes}`
+  }, [lastSuccessTime])
 
   const loadBackupStatus = useCallback(() => {
     const settings = (configStore as any).get('settings', {}) as any
@@ -129,6 +195,16 @@ export default memo(function Library(): JSX.Element {
 
     setLastSuccessTime(lastSuccess)
     setLastErrorMsg(lastError)
+
+    if (window.api?.getCloudProviderStatus) {
+      window.api.getCloudProviderStatus().then((status) => {
+        if (status?.connected && status.accountName) {
+          setCloudAccountName(status.accountName)
+        } else {
+          setCloudAccountName('')
+        }
+      }).catch(() => {})
+    }
 
     if (provider === 'none') {
       setBackupState('inactive')
@@ -1265,6 +1341,17 @@ export default memo(function Library(): JSX.Element {
     setSortByNewlyAdded(value)
   }
 
+  const [showNewlyAddedOnly, setShowNewlyAddedOnly] = useState<boolean>(false)
+  const [newGamesMap, setNewGamesMap] = useState<NewGamesMap>(() => getNewGamesMap())
+
+  useEffect(() => {
+    const handleNewGames = (e: CustomEvent<NewGamesMap>) => {
+      if (e.detail) setNewGamesMap(e.detail)
+    }
+    window.addEventListener('heroicNewGamesChanged', handleNewGames as EventListener)
+    return () => window.removeEventListener('heroicNewGamesChanged', handleNewGames as EventListener)
+  }, [])
+
   const backToTopElement = useRef<HTMLButtonElement | null>(null)
   const goToBottomElement = useRef<HTMLButtonElement | null>(null)
 
@@ -1285,6 +1372,7 @@ export default memo(function Library(): JSX.Element {
 
       setActiveStoreFilter(storeFilter)
       activeStoreFilterRef.current = storeFilter
+      setShowNewlyAddedOnly(false)
 
       // Restaura instantaneamente (0ms) todos os filtros e ordenações exclusivos desta aba/loja
       const storeSettings = loadStoreFilterSettings(storeFilter)
@@ -1874,6 +1962,10 @@ export default memo(function Library(): JSX.Element {
         library = library.filter((game) => gameUpdates.includes(game.app_name))
       }
 
+      if (showNewlyAddedOnly) {
+        library = library.filter((game) => isGameRecentlyAdded(game.app_name, game.runner, newGamesMap))
+      }
+
       if (!showNonAvailable) {
         const nonAvailbleGames = storage.getItem('nonAvailableGames') || '[]'
         const nonAvailbleGamesArray = JSON.parse(nonAvailbleGames) as string[]
@@ -1927,6 +2019,8 @@ export default memo(function Library(): JSX.Element {
     showSupportOfflineOnly,
     showThirdPartyManagedOnly,
     showUpdatesOnly,
+    showNewlyAddedOnly,
+    newGamesMap,
     gameUpdates,
     filterByPlatform,
     makeLibrary,
@@ -2071,7 +2165,7 @@ export default memo(function Library(): JSX.Element {
     // Se classificar por adicionados recentemente estiver ativo, separar os novos jogos no topo
     let newGamesPart: GameInfo[] = []
     if (sortByNewlyAdded) {
-      const { newGames, otherGames } = getNewestGamesPrioritized(workingLibrary)
+      const { newGames, otherGames } = getNewestGamesPrioritized(workingLibrary, newGamesMap)
       newGamesPart = newGames
       workingLibrary = otherGames
     }
@@ -2118,6 +2212,7 @@ export default memo(function Library(): JSX.Element {
     sortByRecent,
     sortByMostPlayed,
     sortByNewlyAdded,
+    newGamesMap,
     installing,
     activeStoreFilter,
     assignments,
@@ -2253,6 +2348,8 @@ export default memo(function Library(): JSX.Element {
         setSortByMostPlayed: handleSortByMostPlayed,
         sortByNewlyAdded,
         setSortByNewlyAdded: handleSortByNewlyAdded,
+        showNewlyAddedOnly,
+        setShowNewlyAddedOnly,
         handleAddGameButtonClick: () =>
           openInstallGameModal({ appName: '', runner: 'sideload', gameInfo: null }),
         setShowCategories,
@@ -2680,6 +2777,7 @@ export default memo(function Library(): JSX.Element {
         onClick={handleCloudIconClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        title={cloudTitle}
         style={{
           position: 'fixed',
           bottom: '-3px',
@@ -2716,22 +2814,63 @@ export default memo(function Library(): JSX.Element {
           />
         </div>
         
-        <span
+        <div
           style={{
-            marginLeft: '8px',
-            fontSize: '13px',
-            color: 'rgba(255, 255, 255, 0.8)',
-            opacity: isHovered ? 1 : 0,
-            transform: isHovered ? 'translateX(0)' : 'translateX(-5px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            maxWidth: isTextVisible ? '360px' : '0px',
+            opacity: isTextVisible ? 1 : 0,
+            marginLeft: isTextVisible ? '6px' : '0px',
+            overflow: 'hidden',
             whiteSpace: 'nowrap',
-            transition: 'opacity 0.2s ease, transform 0.2s ease',
-            pointerEvents: 'none',
-            fontWeight: 500,
-            letterSpacing: '0.2px'
+            userSelect: 'none',
+            pointerEvents: isTextVisible ? 'auto' : 'none',
+            transition: 'max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease, margin-left 0.45s ease, transform 0.45s ease',
+            transform: isTextVisible ? 'translateX(0)' : 'translateX(-6px)',
+            fontSize: '12px'
           }}
         >
-          {cloudLabel}
-        </span>
+          {cloudNick ? (
+            <>
+              <span
+                style={{
+                  color: '#00e5ff',
+                  fontWeight: 600,
+                  letterSpacing: '0.2px'
+                }}
+              >
+                {cloudNick}
+              </span>
+              {backupDateTimeStr && (
+                <span style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '11px' }}>·</span>
+              )}
+            </>
+          ) : null}
+          {backupDateTimeStr ? (
+            <span
+              style={{
+                color: 'rgba(255, 255, 255, 0.75)',
+                fontSize: '11.5px',
+                letterSpacing: '0.2px',
+                fontWeight: 500
+              }}
+            >
+              {backupDateTimeStr}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'rgba(255, 255, 255, 0.8)',
+                fontWeight: 500,
+                letterSpacing: '0.2px'
+              }}
+            >
+              {cloudLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       {selectedCommunityGame && (

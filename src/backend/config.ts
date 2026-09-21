@@ -398,6 +398,8 @@ class GlobalConfigV0 extends GlobalConfig {
       steamGridDbDownloadCovers: true,
       disableGOGPresence: false,
       monitorSteamDownloads: true,
+      checkPirataUpdatesDaily: true,
+      enableLocalPackageInstall: false,
       startAtLogin: false
     }
     // @ts-expect-error TODO: We need to settle on *one* place to define settings defaults

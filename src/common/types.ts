@@ -127,6 +127,10 @@ export interface AppSettings extends GameSettings {
   egsLinkedPath: string
   enableUpdates: boolean
   monitorSteamDownloads?: boolean
+  checkPirataUpdatesDaily?: boolean
+  enableLocalPackageInstall?: boolean
+  switchEmulatorPath?: string
+  switchEmulatorArgs?: string
   exitToTray: boolean
   gamepadRepeatDelay: number
   gamepadInitialRepeatDelay: number
@@ -358,6 +362,7 @@ export interface InstalledInfo {
   install_size: string
   is_dlc: boolean
   isDosbox?: boolean
+  romPlatform?: 'switch'
   dosboxConf?: string[]
   version: string
   platform: InstallPlatform
@@ -478,6 +483,8 @@ export interface RpcClient {
 }
 
 export interface CallRunnerOptions {
+  /** Pass arguments directly to the executable, without the PowerShell wrapper. */
+  directSpawn?: boolean
   logMessagePrefix?: string
   logWriters?: LogWriter[]
   logSanitizer?: (line: string) => string

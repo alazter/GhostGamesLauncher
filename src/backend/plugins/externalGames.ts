@@ -82,6 +82,7 @@ interface StoredJob extends ExternalDownloadJob {
 interface StoredState extends Omit<ExternalGamesState, 'jobs'> {
   jobs: StoredJob[]
   torboxReferences?: Record<string, { hash: string; id?: number; recordedAt: number }>
+  lastUpdateCheckTime?: number
 }
 
 async function safeRename(
@@ -1563,6 +1564,159 @@ export class ExternalGames {
       return { success: false, error: message }
     } finally {
       this.locked.delete(lockId)
+    }
+  }
+
+  getLastUpdateCheckTime(): number {
+    return this.state.lastUpdateCheckTime || 0
+  }
+
+  setLastUpdateCheckTime(time: number): void {
+    this.state.lastUpdateCheckTime = time
+    this.save()
+  }
+
+  async deleteInstallationAndFiles(
+    appName: string,
+    deleteFiles: boolean
+  ): Promise<ExternalActionResult> {
+    try {
+      const installation = this.state.installations.find(
+        (item) => item.appName === appName || item.id === appName
+      )
+      const games = libraryStore.get('games', [])
+      const libraryGame = games.find((g) => g.app_name === appName)
+
+      if (deleteFiles) {
+        const candidateDir =
+          installation?.directory ||
+          libraryGame?.install?.install_path ||
+          (installation?.executable ? dirname(installation.executable) : null) ||
+          (libraryGame?.install?.executable ? dirname(libraryGame.install.executable) : null)
+
+        if (candidateDir && existsSync(candidateDir)) {
+          const resolved = resolve(candidateDir)
+          const home = resolve(app.getPath('home'))
+          const rootDir = resolve('/')
+          const windowsDir = process.env.SystemRoot ? resolve(process.env.SystemRoot) : null
+          const progFiles = process.env.ProgramFiles ? resolve(process.env.ProgramFiles) : null
+          const progFilesX86 = process.env['ProgramFiles(x86)'] ? resolve(process.env['ProgramFiles(x86)']) : null
+
+          // Proteção estrita contra exclusão de pastas críticas do sistema
+          if (
+            resolved === home ||
+            resolved === rootDir ||
+            dirname(resolved) === resolved ||
+            (windowsDir && (resolved === windowsDir || inside(windowsDir, resolved))) ||
+            (progFiles && resolved === progFiles) ||
+            (progFilesX86 && resolved === progFilesX86)
+          ) {
+            throw new Error('Diretório crítico ou protegido do sistema não pode ser excluído.')
+          }
+
+          await rm(resolved, { recursive: true, force: true }).catch((err) => {
+            throw new Error(`Falha ao excluir arquivos do disco: ${err instanceof Error ? err.message : String(err)}`)
+          })
+        }
+      }
+
+      // Remover registro da instalação no Ghost
+      this.state.installations = this.state.installations.filter(
+        (item) => item.appName !== appName && item.id !== appName
+      )
+      libraryStore.set(
+        'games',
+        games.filter((g) => g.app_name !== appName)
+      )
+
+      this.save()
+      sendFrontendMessage('external-games-updated', this.snapshot())
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
+  }
+
+  async installLocalPackage(): Promise<ExternalActionResult> {
+    try {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Selecionar pacote do jogo (ZIP, RAR, 7Z, TAR)',
+        properties: ['openFile'],
+        filters: [
+          { name: 'Pacotes Compactados', extensions: ['zip', 'rar', '7z', 'tar'] },
+          { name: 'Todos os Arquivos', extensions: ['*'] }
+        ]
+      })
+      if (canceled || !filePaths.length || !filePaths[0]) {
+        return { success: false, error: 'Seleção cancelada.' }
+      }
+
+      const archivePath = filePaths[0]
+      const pkgName = basename(archivePath).replace(/\.(?:zip|rar|7z|tar)$/i, '')
+      const id = randomUUID()
+      const targetDir = join(this.root, 'games', pkgName)
+      const stage = join(this.root, 'games', `.ghost-stage-${id}`)
+
+      const fileSize = existsSync(archivePath) ? statSync(archivePath).size : 0
+
+      const job: StoredJob = {
+        id,
+        installationId: id,
+        game: {
+          id: `local-${id}`,
+          title: pkgName,
+          platform: 'windows',
+          providerId: 'local',
+          providerName: 'Arquivo Local'
+        },
+        source: {
+          id: 'local-file',
+          name: 'Arquivo Local',
+          type: 'external',
+          url: archivePath
+        },
+        manifest: {
+          id: 'local-package',
+          name: 'Arquivo Local',
+          description: 'Instalação a partir de arquivo compactado local',
+          author: 'Ghost',
+          version: '1.0.0',
+          type: 'game-source',
+          permissions: []
+        },
+        directory: targetDir,
+        stage,
+        archive: archivePath,
+        operation: 'install',
+        status: 'extracting',
+        bytes: fileSize,
+        total: fileSize,
+        speed: 0,
+        createdAt: new Date().toISOString(),
+        candidates: [],
+        transferPhase: 'local'
+      }
+
+      this.state.jobs.push(job)
+      this.save()
+      sendFrontendMessage('external-games-updated', this.snapshot())
+
+      void this.prepare(job, archivePath).catch((err) => {
+        job.status = 'error'
+        job.error = err instanceof Error ? err.message : String(err)
+        this.save()
+        sendFrontendMessage('external-games-updated', this.snapshot())
+      })
+
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
     }
   }
 }

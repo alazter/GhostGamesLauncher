@@ -546,6 +546,17 @@ if (!gotTheLock) {
             appUserModelId: 'com.ghostgameslauncher.ghost'
           })
         }
+
+        // Registrar associação de arquivos .GhostBackup com o ícone oficial do Ghost
+        try {
+          const { exec } = require('child_process')
+          const appExe = process.execPath
+          const cmd1 = `reg add "HKCU\\Software\\Classes\\.GhostBackup" /ve /d "GhostGamesLauncher.Backup" /f`
+          const cmd2 = `reg add "HKCU\\Software\\Classes\\GhostGamesLauncher.Backup" /ve /d "Ghost Games Launcher Backup" /f`
+          const cmd3 = `reg add "HKCU\\Software\\Classes\\GhostGamesLauncher.Backup\\DefaultIcon" /ve /d "${iconToUse},0" /f`
+          const cmd4 = `reg add "HKCU\\Software\\Classes\\GhostGamesLauncher.Backup\\shell\\open\\command" /ve /d "\\"${appExe}\\" \\"%1\\"" /f`
+          exec(`${cmd1} && ${cmd2} && ${cmd3} && ${cmd4}`, () => {})
+        } catch {}
       } catch (err) {
         logError(`Failed to create shortcuts on startup: ${err}`, LogPrefix.Backend)
       }
@@ -1153,10 +1164,21 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
 
 addHandler('exportGhostBackup', async (event, frontendData?: { localStorageData?: Record<string, string> }) => {
   const mainWindow = getMainWindow()
+  const now = new Date()
+  const dd = String(now.getDate()).padStart(2, '0')
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yyyy = now.getFullYear()
+  const defaultBackupName = `${dd}-${mm}-${yyyy}.GhostBackup`
+
   const { filePath, canceled } = await dialog.showSaveDialog(mainWindow!, {
     title: 'Exportar Backup do Ghost Games Launcher',
-    defaultPath: `Ghost_Backup_${new Date().toISOString().slice(0, 10)}.ghostbackup`,
-    filters: [{ name: 'Ghost Backup (*.ghostbackup, *.json)', extensions: ['ghostbackup', 'json'] }]
+    defaultPath: defaultBackupName,
+    filters: [
+      {
+        name: 'Ghost Backup (*.GhostBackup)',
+        extensions: ['GhostBackup', 'Ghost.Backup', 'ghostbackup', 'json']
+      }
+    ]
   })
 
   if (canceled || !filePath) {
@@ -1187,7 +1209,12 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
       const mainWindow = getMainWindow()
       const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow!, {
         title: 'Importar Backup do Ghost Games Launcher',
-        filters: [{ name: 'Ghost Backup (*.ghostbackup, *.json)', extensions: ['ghostbackup', 'json'] }],
+        filters: [
+          {
+            name: 'Ghost Backup (*.GhostBackup, *.json)',
+            extensions: ['GhostBackup', 'Ghost.Backup', 'ghostbackup', 'json']
+          }
+        ],
         properties: ['openFile']
       })
 
@@ -1247,6 +1274,44 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
       Object.entries(backupData.playtimes).forEach(([key, value]) => {
         tsStore.set(key as any, value as any)
       })
+    }
+
+    // Restaurar metadados e snapshots de saves da Loja Piratas
+    if (backupData.externalGames) {
+      try {
+        const { ExternalGames } = await import('./plugins/externalGames')
+        const { userDataPath } = await import('./constants/paths')
+        const { join } = await import('path')
+        const { mkdirSync, writeFileSync } = await import('graceful-fs')
+
+        if (backupData.externalGames.state) {
+          const externalRoot = join(userDataPath, 'external-games')
+          mkdirSync(externalRoot, { recursive: true })
+          const statePath = join(externalRoot, 'state.json')
+          writeFileSync(statePath, JSON.stringify(backupData.externalGames.state, null, 2), 'utf8')
+        }
+
+        if (Array.isArray(backupData.externalGames.snapshots)) {
+          const backupsDir = join(userDataPath, 'external-games', 'backups')
+          for (const pack of backupData.externalGames.snapshots) {
+            if (pack.backupId && Array.isArray(pack.files)) {
+              const targetFolder = join(backupsDir, pack.backupId)
+              mkdirSync(targetFolder, { recursive: true })
+              for (const file of pack.files) {
+                if (file.relativePath && file.contentBase64) {
+                  const targetFile = join(targetFolder, file.relativePath)
+                  const fileDir = join(targetFile, '..')
+                  mkdirSync(fileDir, { recursive: true })
+                  writeFileSync(targetFile, Buffer.from(file.contentBase64, 'base64'))
+                }
+              }
+            }
+          }
+        }
+        sendFrontendMessage('external-games-updated', ExternalGames.getInstance().snapshot())
+      } catch (err) {
+        logWarning(['Failed to restore external games saves from backup:', err], LogPrefix.Backend)
+      }
     }
 
     sendFrontendMessage('refreshLibrary')

@@ -33,7 +33,11 @@ import {
   faChevronLeft,
   faChevronRight,
   faArrowRight,
-  faFolderOpen
+  faFolderOpen,
+  faFolder,
+  faCog,
+  faTrashAlt,
+  faBroom
 } from '@fortawesome/free-solid-svg-icons'
 import { faWindows, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import type {
@@ -1375,6 +1379,7 @@ export default function ExternalGamesScreen() {
     const saved = localStorage.getItem('ghost_external_selected_install_path')
     return saved || 'C:\\Ghost Games'
   })
+  const [showPathsManagerModal, setShowPathsManagerModal] = useState<boolean>(false)
   const [replacementModal, setReplacementModal] = useState<{
     isOpen: boolean
     sourceId: string
@@ -1675,6 +1680,47 @@ export default function ExternalGamesScreen() {
       setSelectedInstallPath(installedDirectory)
     }
   }, [installedDirectory, currentInstStatus.status])
+
+  const handleDeleteSavedPath = (pathToDelete: string) => {
+    const updated = installPaths.filter((p) => p.toLowerCase() !== pathToDelete.toLowerCase())
+    setInstallPaths(updated)
+    localStorage.setItem('ghost_external_install_paths', JSON.stringify(updated))
+
+    if (selectedInstallPath.trim().toLowerCase() === pathToDelete.trim().toLowerCase()) {
+      const fallback =
+        (installedDirectory && installedDirectory.trim()) ||
+        updated[0] ||
+        'C:\\Ghost Games'
+      setSelectedInstallPath(fallback)
+      localStorage.setItem('ghost_external_selected_install_path', fallback)
+    }
+  }
+
+  const handleResetSavedPaths = () => {
+    const defaults = ['C:\\Ghost Games', 'D:\\Jogos']
+    setInstallPaths(defaults)
+    localStorage.setItem('ghost_external_install_paths', JSON.stringify(defaults))
+    if (
+      !defaults.some((p) => p.toLowerCase() === selectedInstallPath.toLowerCase()) &&
+      selectedInstallPath.toLowerCase() !== (installedDirectory || '').toLowerCase()
+    ) {
+      const fallback = installedDirectory || defaults[0]
+      setSelectedInstallPath(fallback)
+      localStorage.setItem('ghost_external_selected_install_path', fallback)
+    }
+  }
+
+  useEffect(() => {
+    if (!showPathsManagerModal) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowPathsManagerModal(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showPathsManagerModal])
+
 
   useEffect(() => {
     if (activeSource) {
@@ -2558,38 +2604,63 @@ export default function ExternalGamesScreen() {
                           </div>
                         )}
 
-                        {/* SELETOR DE PASTAS DE INSTALAÇÃO (PADRÃO STEAM COM BOTÃO +) */}
-                        <div className="installPathSelectorRow">
-                          <span className="installPathLabel">
-                            <FontAwesomeIcon icon={faHardDrive} /> Instalar em:
-                          </span>
-                          <select
-                            className="installPathSelect"
-                            value={selectedInstallPath}
-                            onChange={(e) => handleSelectInstallPath(e.target.value)}
-                          >
-                            {effectiveInstallPaths.map((p) => {
-                              const isInstalledFolder =
-                                Boolean(installedDirectory) &&
-                                p.trim().toLowerCase() ===
-                                  installedDirectory?.trim().toLowerCase()
-                              return (
-                                <option key={p} value={p}>
-                                  {isInstalledFolder
-                                    ? `🎯 ${p} (Pasta Atual do Jogo)`
-                                    : p}
-                                </option>
-                              )
-                            })}
-                          </select>
-                          <button
-                            type="button"
-                            className="addPathBtn"
-                            title="Adicionar nova pasta de instalação estilo Steam"
-                            onClick={handleAddInstallPath}
-                          >
-                            <FontAwesomeIcon icon={faPlus} /> Adicionar Pasta
-                          </button>
+                        {/* SELETOR DE PASTAS DE INSTALAÇÃO (LAYOUT EM 2 LINHAS - 100% LARGURA SUPERIOR E BOTÕES INFERIORES) */}
+                        <div className="installPathSelectorBox">
+                          {/* LINHA 1: Rótulo e Dropdown com 100% de largura livre */}
+                          <div className="installPathTopRow">
+                            <span className="installPathLabel">
+                              <FontAwesomeIcon icon={faHardDrive} /> Instalar em:
+                            </span>
+                            <select
+                              className="installPathSelect"
+                              value={selectedInstallPath}
+                              onChange={(e) => handleSelectInstallPath(e.target.value)}
+                            >
+                              {effectiveInstallPaths.map((p) => {
+                                const isInstalledFolder =
+                                  Boolean(installedDirectory) &&
+                                  p.trim().toLowerCase() ===
+                                    installedDirectory?.trim().toLowerCase()
+                                return (
+                                  <option key={p} value={p}>
+                                    {isInstalledFolder
+                                      ? `${p} (Pasta Atual do Jogo)`
+                                      : p}
+                                  </option>
+                                )
+                              })}
+                            </select>
+                          </div>
+
+                          {/* LINHA 2: Botões de Ação com Espaçamento Amplo (Pular de Linha) */}
+                          <div className="installPathBottomRow">
+                            <div className="installPathSummaryInfo">
+                              <FontAwesomeIcon icon={faFolder} />
+                              <span>
+                                Pastas salvas no launcher: <strong>{installPaths.length}</strong>
+                              </span>
+                            </div>
+
+                            <div className="installPathActionsGroup">
+                              <button
+                                type="button"
+                                className="addPathBtn"
+                                title="Adicionar nova pasta de instalação estilo Steam"
+                                onClick={handleAddInstallPath}
+                              >
+                                <FontAwesomeIcon icon={faPlus} /> Adicionar Pasta
+                              </button>
+                              <button
+                                type="button"
+                                className="managePathsBtn"
+                                title="Gerenciar e excluir pastas salvas de instalação"
+                                onClick={() => setShowPathsManagerModal(true)}
+                              >
+                                <FontAwesomeIcon icon={faCog} /> Gerenciar Pastas
+                                <span className="managePathsBadge">{installPaths.length}</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                         {installedDirectory &&
                           selectedInstallPath.trim().toLowerCase() ===
@@ -2930,6 +3001,142 @@ export default function ExternalGamesScreen() {
                       ? 'Atualizar e Preservar Saves'
                       : 'Reinstalar e Preservar Saves'}
                   </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL CYBER NEON: GERENCIADOR DE PASTAS DE INSTALAÇÃO (REGRAS 12 E 53 - ZERO EMOJIS, 100% SVG) */}
+        {showPathsManagerModal && (
+          <div
+            className="ghostPathsModalOverlay"
+            onClick={() => setShowPathsManagerModal(false)}
+          >
+            <div
+              className="ghostPathsModalCard"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* CABEÇALHO DO MODAL */}
+              <div className="ghostPathsModalHeader">
+                <div className="ghostPathsModalTitleGroup">
+                  <div className="ghostPathsModalIcon">
+                    <FontAwesomeIcon icon={faFolderOpen} />
+                  </div>
+                  <div className="ghostPathsModalTitles">
+                    <h3>Gerenciador de Pastas de Instalação</h3>
+                    <p>Exclua diretórios antigos ou de teste para manter a lista limpa e organizada.</p>
+                  </div>
+                </div>
+                {/* Botão Fechar Regra 12: SVG faTimes sem moldura */}
+                <button
+                  type="button"
+                  className="ghostPathsModalCloseBtn"
+                  onClick={() => setShowPathsManagerModal(false)}
+                  aria-label="Fechar"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+
+              {/* DESTAQUE DA PASTA DO JOGO ATUAL (SE DETECTADA) */}
+              {installedDirectory && (
+                <div className="ghostPathsInstalledDirHighlight">
+                  <div className="ghostPathsInstalledDirLeft">
+                    <span className="installedDirIcon">
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                    </span>
+                    <div className="installedDirTexts">
+                      <div className="installedDirTitle">Pasta Atual do Jogo (Detectada no Disco)</div>
+                      <div className="installedDirPath" title={installedDirectory}>
+                        {installedDirectory}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="installedDirBadge">In-Place</span>
+                </div>
+              )}
+
+              {/* LISTA DE PASTAS SALVAS NO LAUNCHER */}
+              <div className="ghostPathsListSection">
+                <div className="ghostPathsListHeader">
+                  <span className="ghostPathsListTitle">
+                    Pastas Salvas no Histórico
+                    <span className="ghostPathsListCountBadge">{installPaths.length}</span>
+                  </span>
+                  <span className="ghostPathsListHint">Clique no ícone de lixeira para remover</span>
+                </div>
+
+                <div className="ghostPathsListContainer">
+                  {installPaths.length === 0 ? (
+                    <div className="ghostPathsEmptyState">
+                      <FontAwesomeIcon icon={faFolder} />
+                      <p>Nenhuma pasta personalizada cadastrada. O Ghost utilizará o diretório padrão.</p>
+                    </div>
+                  ) : (
+                    installPaths.map((path) => {
+                      const isCurrentSelected =
+                        selectedInstallPath.trim().toLowerCase() === path.trim().toLowerCase()
+                      return (
+                        <div className="ghostPathItemRow" key={path}>
+                          <div className="ghostPathItemInfo">
+                            <span className="ghostPathItemIcon">
+                              <FontAwesomeIcon icon={faFolder} />
+                            </span>
+                            <span className="ghostPathItemText" title={path}>
+                              {path}
+                            </span>
+                            {isCurrentSelected && (
+                              <span className="ghostPathItemActiveBadge">
+                                <FontAwesomeIcon icon={faCheck} /> Ativa
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="ghostPathItemDeleteBtn"
+                            title={`Excluir "${path}" da lista`}
+                            onClick={() => handleDeleteSavedPath(path)}
+                          >
+                            <FontAwesomeIcon icon={faTrashAlt} />
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* RODAPÉ DE AÇÕES */}
+              <div className="ghostPathsModalFooter">
+                <div className="ghostPathsFooterLeftActions">
+                  <button
+                    type="button"
+                    className="ghostPathsAddBtn"
+                    onClick={handleAddInstallPath}
+                  >
+                    <FontAwesomeIcon icon={faPlus} />
+                    <span>Adicionar Nova Pasta</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="ghostPathsResetBtn"
+                    title="Restaurar pastas padrão (C:\Ghost Games e D:\Jogos)"
+                    onClick={handleResetSavedPaths}
+                  >
+                    <FontAwesomeIcon icon={faBroom} />
+                    <span>Restaurar Padrões</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="ghostPathsCloseActionBtn"
+                  onClick={() => setShowPathsManagerModal(false)}
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                  <span>Concluído</span>
                 </button>
               </div>
             </div>

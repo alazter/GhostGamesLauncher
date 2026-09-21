@@ -2,6 +2,10 @@ import { memo, useContext, useMemo, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { GameInfo } from 'common/types'
 import { CustomStore } from 'frontend/types'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faDownload } from '@fortawesome/free-solid-svg-icons'
+import ContextProvider from 'frontend/state/ContextProvider'
+import { isGameRecentlyAdded, getNewGamesMap, NewGamesMap } from 'frontend/helpers/newGamesTracker'
 import LibraryContext from '../../LibraryContext'
 import AlphabetFilter from '../AlphabetFilter'
 import useSetting from 'frontend/hooks/useSetting'
@@ -25,11 +29,39 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     showAlphabetFilter,
     showUnclassifiedOnly,
     sortByNewlyAdded,
+    showNewlyAddedOnly,
+    setShowNewlyAddedOnly,
+    showUpdatesOnly,
+    setShowUpdatesOnly,
     sortByMostPlayed,
     storesFilters,
     filterText,
     showPlaytestsAndDemos
   } = useContext(LibraryContext)
+
+  const { gameUpdates } = useContext(ContextProvider)
+
+  const [newGamesMap, setNewGamesMap] = useState<NewGamesMap>(() => getNewGamesMap())
+  useEffect(() => {
+    const handler = (e: CustomEvent<NewGamesMap>) => {
+      if (e.detail) setNewGamesMap(e.detail)
+    }
+    window.addEventListener('heroicNewGamesChanged', handler as EventListener)
+    return () => window.removeEventListener('heroicNewGamesChanged', handler as EventListener)
+  }, [])
+
+  const candidateGames = fullList || list
+
+  // Jogos adicionados nas últimas 24h e ainda não jogados
+  const recentNewGames = useMemo(() => {
+    return candidateGames.filter((g) => isGameRecentlyAdded(g.app_name, g.runner, newGamesMap))
+  }, [candidateGames, newGamesMap])
+
+  // Jogos instalados com atualização pendente
+  const pendingUpdatesGames = useMemo(() => {
+    if (!gameUpdates || gameUpdates.length === 0) return []
+    return candidateGames.filter((g) => g.is_installed && gameUpdates.includes(g.app_name))
+  }, [candidateGames, gameUpdates])
 
   const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
     () => localStorage.getItem('heroic_active_store_filter')
@@ -293,10 +325,70 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
               lineHeight: 1
             }}
           >
+            {/* BOTÃO DE BRILHO: Novos jogos adicionados recentemente (até 24h e não jogados) */}
+            {recentNewGames.length > 0 && (
+              <div
+                role="button"
+                tabIndex={0}
+                className={`libraryQuickActionBtn libraryQuickActionBtn--new ${showNewlyAddedOnly ? 'libraryQuickActionBtn--active' : ''}`}
+                onClick={() => setShowNewlyAddedOnly?.(!showNewlyAddedOnly)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setShowNewlyAddedOnly?.(!showNewlyAddedOnly)
+                  }
+                }}
+                title={
+                  showNewlyAddedOnly
+                    ? 'Exibindo novos jogos adicionados. Clique para ver todos os jogos.'
+                    : `✨ ${recentNewGames.length} novo(s) jogo(s) adicionado(s) recentemente. Clique para filtrar!`
+                }
+                style={{
+                  background: 'transparent',
+                  backgroundColor: 'transparent',
+                  borderRadius: '18px'
+                }}
+              >
+                <span style={{ fontSize: '15px', lineHeight: 1 }}>✨</span>
+                <span style={{ color: '#ffd700', fontSize: '13px', fontWeight: 700, lineHeight: 1 }}>
+                  {recentNewGames.length}
+                </span>
+              </div>
+            )}
+
+            {/* BOTÃO DE DOWNLOAD: Jogos com atualizações disponíveis */}
+            {pendingUpdatesGames.length > 0 && (
+              <div
+                role="button"
+                tabIndex={0}
+                className={`libraryQuickActionBtn libraryQuickActionBtn--updates ${showUpdatesOnly ? 'libraryQuickActionBtn--active' : ''}`}
+                onClick={() => setShowUpdatesOnly?.(!showUpdatesOnly)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setShowUpdatesOnly?.(!showUpdatesOnly)
+                  }
+                }}
+                title={
+                  showUpdatesOnly
+                    ? 'Exibindo jogos com atualização. Clique para ver todos os jogos.'
+                    : `📥 ${pendingUpdatesGames.length} jogo(s) com atualização disponível. Clique para filtrar!`
+                }
+                style={{
+                  background: 'transparent',
+                  backgroundColor: 'transparent',
+                  borderRadius: '18px'
+                }}
+              >
+                <FontAwesomeIcon icon={faDownload} style={{ fontSize: '13px', color: '#00e5ff' }} />
+                <span style={{ color: '#00e5ff', fontSize: '13px', fontWeight: 700, lineHeight: 1 }}>
+                  {pendingUpdatesGames.length}
+                </span>
+              </div>
+            )}
+
             {showFavourites
               ? t('favourites', 'Favourites')
-              : sortByNewlyAdded
-              ? '✨ Adicionados Recentemente'
               : sortByMostPlayed
               ? '⏱️ Mais Jogados'
               : t('title.allGames', 'All Games')}

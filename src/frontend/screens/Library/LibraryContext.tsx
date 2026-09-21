@@ -50,6 +50,8 @@ const initialContext: LibraryContextType = {
   setShowPlaytestsAndDemos: () => null,
   sortByNewlyAdded: false,
   setSortByNewlyAdded: () => null,
+  showNewlyAddedOnly: false,
+  setShowNewlyAddedOnly: () => null,
   sortByMostPlayed: false,
   setSortByMostPlayed: () => null
 }

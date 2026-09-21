@@ -1,0 +1,133 @@
+.dmExternalBadgesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dmActiveOperationBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dmActiveOperationBadge.switch {
+  color: #ffb703;
+  background: rgba(255, 183, 3, 0.15);
+  border: 1px solid rgba(255, 183, 3, 0.35);
+}
+
+.dmActiveOperationBadge.update {
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.15);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+}
+
+.dmActiveOperationBadge.install {
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.dmMarqueeFill {
+  background: linear-gradient(90deg, #00b4d8 0%, #00ffff 50%, #00b4d8 100%) !important;
+  background-size: 200% 100% !important;
+  animation: dmMarqueeAnim 1.8s infinite linear !important;
+}
+
+@keyframes dmMarqueeAnim {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.dmExternalActionContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dmExternalNoticeText {
+  font-size: 12px;
+  color: #ffb703;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.dmActiveSelectArchiveBtn {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  background: rgba(0, 229, 255, 0.12) !important;
+  border: 1.5px solid #00ffff !important;
+  color: #00ffff !important;
+  padding: 6px 16px !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+}
+
+.dmActiveSelectArchiveBtn:hover {
+  background: rgba(0, 229, 255, 0.22) !important;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.dmExternalReadyContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.dmExternalExecSelect {
+  flex: 1;
+  max-width: 320px;
+  background: rgba(14, 20, 32, 0.85);
+  color: #ffffff;
+  border: 1.5px solid rgba(0, 229, 255, 0.4);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  outline: none;
+}
+
+.dmExternalExecSelect:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.dmFinishInstallBtn {
+  padding: 6px 18px !important;
+  font-size: 12px !important;
+}
+
+.dmActiveErrorRow {
+  font-size: 11px;
+  color: #ff4d6d;
+  margin-top: 2px;
+}
+
+.dmResumeDownloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.dmResumeDownloadBtn .dmNeonBtnSvg {
+  width: 26px;
+  height: 26px;
+}

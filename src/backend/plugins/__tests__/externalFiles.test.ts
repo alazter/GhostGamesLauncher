@@ -8,6 +8,9 @@ import {
 } from '../externalFiles'
 import { archivePathIsSafe, inside, isNewerRelease } from '../externalPolicy'
 import { PluginPacker } from '../pluginPacker'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { resolve7zPath } from '../externalFiles'
 
 let root: string
 beforeEach(async () => {
@@ -46,7 +49,24 @@ it('rejects a traversal ZIP before creating its payload', async () => {
     ])
   )
   await expect(extractGame(zip, join(root, 'extract'))).rejects.toThrow()
+  await expect(extractGame(zip, join(root, 'with-password'), 'online-fix.me')).rejects.toThrow()
   await expect(readFile(join(root, 'escaped.exe'))).rejects.toThrow()
+})
+
+it.each(['zip', '7z'])('extracts a real password-protected %s and rejects an incorrect password', async format => {
+  const sevenZip = await resolve7zPath()
+  if (!sevenZip) throw new Error('Install 7-Zip to run encrypted archive integration tests.')
+  const payload = join(root, 'game.exe')
+  const archive = join(root, `encrypted.${format}`)
+  await writeFile(payload, 'test game payload')
+  await promisify(execFile)(sevenZip, ['a', `-t${format}`, '-ponline-fix.me', ...(format === '7z' ? ['-mhe=on'] : []), archive, payload])
+  const output = join(root, 'unpacked')
+  expect(await extractGame(archive, output, 'online-fix.me')).toEqual([join(output, 'game.exe')])
+  expect(await readFile(join(output, 'game.exe'), 'utf8')).toBe('test game payload')
+  await expect(extractGame(archive, join(root, 'wrong'), 'incorrect')).rejects.toThrow(/senha|Online-Fix/)
+  // 7-Zip may leave an empty staging file after rejecting a ZIP password.
+  // Extraction must fail; this stage must never be promoted to an installation.
+  expect(await readFile(join(root, 'wrong', 'game.exe'), 'utf8').catch(() => '')).not.toBe('test game payload')
 })
 
 it('verifies all snapshot files before restoring any of them', async () => {

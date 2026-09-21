@@ -50,14 +50,47 @@ export async function resolve7zPath(): Promise<string | null> {
   return null
 }
 
-async function extractWith7z(file: string, destination: string): Promise<void> {
+async function extractWith7z(file: string, destination: string, password?: string): Promise<void> {
   const sevenZip = await resolve7zPath()
   if (!sevenZip) {
-    throw new Error('Descompactador 7-Zip não encontrado no sistema para arquivos RAR/7Z.')
+    throw new Error('Instale o 7-Zip para extrair arquivos RAR/7Z ou pacotes protegidos por senha.')
+  }
+  const passwordArgs = password ? [`-p${password}`] : []
+  if (password) {
+    // Inspect encrypted headers before allowing the extractor to write any files.
+    const listing = await new Promise<string>((res, rej) => {
+      execFile(sevenZip, ['l', '-slt', '-ba', '-sccUTF-8', ...passwordArgs, '--', resolve(file)],
+        { maxBuffer: 32 * 1024 * 1024, timeout: 60000 }, (error, stdout) => {
+          if (error) rej(new Error('Não foi possível abrir o pacote com a senha padrão do Online-Fix. O arquivo pode estar incompleto ou usar outra senha.'))
+          else res(stdout)
+        })
+    })
+    const disk = await statfs(dirname(destination))
+    let bytes = 0
+    const seen = new Set<string>()
+    for (const block of listing.trim().split(/\r?\n\r?\n/)) {
+      const fields = Object.fromEntries(block.split(/\r?\n/).map(line => {
+        const separator = line.indexOf(' = ')
+        return [line.slice(0, separator), line.slice(separator + 3)]
+      }))
+      const name = fields.Path?.replace(/\\/g, '/')
+      if (!name || !archivePathIsSafe(name) || !inside(destination, join(destination, name)) ||
+        fields['Symbolic Link'] || fields['Hard Link'] || /(?:^|\s)l[rwx-]{9}/.test(fields.Attributes || ''))
+        throw new Error('O pacote contém caminho inseguro ou link. Extração interrompida.')
+      const key = name.toLowerCase().replace(/\/$/, '')
+      if (seen.has(key)) throw new Error('O pacote contém caminhos duplicados.')
+      seen.add(key)
+      const size = Number(fields.Size || 0)
+      if (!Number.isSafeInteger(size) || size < 0) throw new Error('Tamanho inválido no pacote.')
+      bytes += size
+      if (bytes > disk.bavail * disk.bsize || bytes > 1024 ** 4 || seen.size > 200000)
+        throw new Error('Espaço insuficiente ou limite de extração excedido.')
+    }
   }
   return new Promise((res, rej) => {
-    execFile(sevenZip, ['x', file, `-o${resolve(destination)}`, '-y', '-aoa'], (error, _stdout, stderr) => {
+    execFile(sevenZip, ['x', `-o${resolve(destination)}`, '-y', '-aoa', ...passwordArgs, '--', resolve(file)], (error, _stdout, stderr) => {
       if (error) {
+        if (password) return rej(new Error('Falha ao extrair o pacote Online-Fix. Confira se o arquivo está completo e usa a senha padrão online-fix.me.'))
         return rej(new Error(`Falha na extração com 7-Zip: ${error.message} (${stderr || ''})`))
       }
       res()
@@ -97,12 +130,14 @@ export async function regularFiles(root: string): Promise<string[]> {
 
 export async function extractGame(
   file: string,
-  destination: string
+  destination: string,
+  password?: string,
+  platform: 'windows' | 'switch' = 'windows'
 ): Promise<string[]> {
   const isRarOr7z = /\.(rar|7z|tar|gz|bz2|xz|iso)$/i.test(file)
 
   if (isRarOr7z) {
-    await extractWith7z(file, destination)
+    await extractWith7z(file, destination, password)
   } else {
     // Para .zip, utiliza o motor extract-zip com validação atômica de cada entrada
     try {
@@ -152,8 +187,10 @@ export async function extractGame(
         errMsg.includes('limite')
 
       const sevenZip = await resolve7zPath()
-      if (sevenZip && !isSecurityOrSpaceErr && (errMsg.includes('compression') || errMsg.includes('unsupported') || errMsg.includes('method'))) {
-        await extractWith7z(file, destination)
+      if (password && (errMsg.includes('encrypted') || errMsg.includes('criptografado'))) {
+        await extractWith7z(file, destination, password)
+      } else if (sevenZip && !isSecurityOrSpaceErr && (errMsg.includes('compression') || errMsg.includes('unsupported') || errMsg.includes('method'))) {
+        await extractWith7z(file, destination, password)
       } else {
         throw zipErr
       }
@@ -161,6 +198,7 @@ export async function extractGame(
   }
 
   const files = await regularFiles(destination)
+  if (platform === 'switch') return files.filter(file => /\.(nsp|xci|nsz|xcz)$/i.test(file))
   return files.filter(
     (f) =>
       /\.exe$/i.test(f) &&

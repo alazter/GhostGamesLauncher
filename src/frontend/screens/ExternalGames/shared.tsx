@@ -25,9 +25,10 @@ export function useExternalGames() {
     backups: []
   })
   const [error, setError] = useState('')
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<void> => {
     try {
-      setState(await window.api.externalGamesState())
+      const next = await window.api.externalGamesState()
+      setState(next)
       setError('')
     } catch {
       setError('Não foi possível carregar os jogos externos.')
@@ -53,11 +54,16 @@ export function useExternalGames() {
       setError('')
     })
     void poll()
+    const removeLibrary = window.api.handleRefreshLibrary(() => { void refresh() })
+    const onFocus = () => { void refresh() }
+    window.addEventListener('focus', onFocus)
     return () => {
       mounted = false
       remove()
+      removeLibrary()
+      window.removeEventListener('focus', onFocus)
     }
-  }, [])
+  }, [refresh])
   return { state, error, refresh }
 }
 

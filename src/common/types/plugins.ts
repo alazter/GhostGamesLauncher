@@ -142,6 +142,8 @@ export interface PiratasSaveSyncResult {
 export type ExternalJobStatus = 'queued' | 'downloading' | 'paused' | 'awaiting-file' | 'extracting' | 'ready' | 'installing' | 'completed' | 'cancelled' | 'error'
 
 export interface ExternalDownloadJob {
+  canResume?: boolean
+  directDiagnostic?: { event: string; host: string; bytes: number; total: number; canResume: boolean; attempts: number; at: string }
   id: string
   game: GhostSearchResult
   installationId: string
@@ -153,10 +155,11 @@ export interface ExternalDownloadJob {
   createdAt: string
   error?: string
   candidates: string[]
-  transport?: 'torbox' | 'anker-direct'
+  transport?: 'torbox' | 'anker-direct' | 'steamrip-direct' | 'rom-direct'
   transferPhase?: 'torrent' | 'remote' | 'local'
   remoteProgress?: number
   remoteStatus?: string
+  old?: any
 }
 
 export interface DownloadIntegrationsState {
@@ -189,6 +192,7 @@ export interface ExternalGamesState {
   jobs: ExternalDownloadJob[]
   installations: ExternalInstallation[]
   backups: ExternalSaveBackup[]
+  lastUpdateCheckTime?: number
 }
 
 export type ExternalGameAction =

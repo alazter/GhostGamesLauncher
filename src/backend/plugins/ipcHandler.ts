@@ -3,6 +3,7 @@ import { PluginManager } from './pluginManager'
 import { ExternalGames } from './externalGames'
 import { AnkerAccount } from './ankerAccount'
 import { TorboxClient } from './torboxClient'
+import { GlobalConfig } from 'backend/config'
 import { resolvePortugueseDescription, resolveYouTubeTrailerId } from './gameMediaResolver'
 
 export function registerPluginsIPC(): void {
@@ -32,6 +33,15 @@ export function registerPluginsIPC(): void {
   addHandler('externalGamesSearch', async (_event, query) => manager.searchExternalGames(query))
   addHandler('externalGamesAddPage', async (_event, providerId, pageUrl, title, version) => manager.addExternalPage(providerId, pageUrl, title, version))
   addHandler('externalGamesInstall', async (_event, request) => manager.installExternalGame(request))
+  addHandler('externalGamesInstallLocal', async () => {
+    try {
+      if (!GlobalConfig.get().getSettings().enableLocalPackageInstall)
+        return { success: false, error: 'Ative Instalar por arquivo local nas configurações.' }
+      return await ExternalGames.getInstance().installLocalPackage()
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Não foi possível abrir o pacote local.' }
+    }
+  })
   addHandler('externalGamesAction', async (_event, action) => action.type === 'check-update'
     ? manager.checkExternalUpdate(action.installationId)
     : ExternalGames.getInstance().action(action))
@@ -40,6 +50,12 @@ export function registerPluginsIPC(): void {
   )
   addHandler('externalGamesSyncPiratasSaves', async (_event, options?: { autoBackup?: boolean }) =>
     ExternalGames.getInstance().syncPiratasSaves(options)
+  )
+  addHandler('externalGamesDeleteGame', async (_event, appName: string, deleteFiles: boolean) =>
+    ExternalGames.getInstance().deleteInstallationAndFiles(appName, deleteFiles)
+  )
+  addHandler('externalGamesCheckPiratasUpdates', async (_event, force?: boolean) =>
+    manager.checkPiratasUpdates(Boolean(force))
   )
 
   addHandler('pluginsGetList', async () => {

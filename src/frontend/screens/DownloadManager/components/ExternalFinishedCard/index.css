@@ -1,0 +1,16 @@
+.dmFinishedExternalLink {
+  font-size: 11px;
+  color: rgba(0, 229, 255, 0.75);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dmFinishedExternalLink:hover {
+  color: #00ffff;
+  background: rgba(0, 229, 255, 0.1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

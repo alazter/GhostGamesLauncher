@@ -1,5 +1,7 @@
 import { GameSettings } from 'common/types'
 import { GameConfig } from '../../game_config'
+import { GlobalConfig } from 'backend/config'
+import { prepareRomLaunch } from 'backend/plugins/romLauncher'
 import { logInfo, LogPrefix, logWarning } from 'backend/logger'
 import { basename, dirname } from 'path'
 import { constants as FS_CONSTANTS } from 'graceful-fs'
@@ -159,6 +161,19 @@ export async function launchGame(
   const gameSettings = await getAppSettings(appName)
   const { launcherArgs } = gameSettings
   const extraArgs = [...shlex.split(launcherArgs ?? ''), ...args]
+  if (gameInfo.install.romPlatform === 'switch') {
+    try {
+      const settings = GlobalConfig.get().getSettings()
+      const launch = await prepareRomLaunch(gameInfo.install.executable!, settings.switchEmulatorPath || '', settings.switchEmulatorArgs)
+      executable = launch.executable
+      extraArgs.splice(0, extraArgs.length, ...launch.args, ...args)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Não foi possível abrir a ROM.'
+      logWriter.logError([message])
+      showDialogBoxModalAuto({ title: 'Emulador de Nintendo Switch', message, type: 'ERROR' })
+      return false
+    }
+  }
   const extraArgsJoined = extraArgs.join(' ')
 
   if (executable) {
@@ -245,11 +260,12 @@ export async function launchGame(
           env,
           wrappers,
           logWriters: [logWriter],
-          logMessagePrefix: LogPrefix.Backend
+          logMessagePrefix: LogPrefix.Backend,
+          directSpawn: gameInfo.install.romPlatform === 'switch'
         }
       )
 
-      if (isSteamLaunchWithMonitor) {
+      if (isSteamLaunchWithMonitor && !gameInfo.install.romPlatform) {
         await waitForProcessToExit(gameSettingsOverrides.targetExe, logWriter)
       }
 

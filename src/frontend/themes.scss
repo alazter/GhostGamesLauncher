@@ -715,14 +715,81 @@ body,
 }
 
 /* 1.2 e 1.3: Arredondamento e Efeito Glow (mantemos, ficou ótimo) */
-button:not([aria-label*='close' i]):not([aria-label*='fechar' i]):not([class*='close' i]):not([class*='Close' i]):not(.dialog-close-button):not(.Dialog__CloseButton):not(.Sidebar__quitButton),
+button:not([aria-label*='close' i]):not([aria-label*='fechar' i]):not([class*='close' i]):not([class*='Close' i]):not(.dialog-close-button):not(.Dialog__CloseButton):not(.Sidebar__quitButton):not(.heroPanelActionIcon):not(.heroPanelStaticBadge),
 .btn,
-[role='button']:not([aria-label*='close' i]):not([class*='close' i]):not(.Sidebar__quitButton),
+[role='button']:not([aria-label*='close' i]):not([class*='close' i]):not(.Sidebar__quitButton):not(.heroPanelActionIcon):not(.heroPanelStaticBadge),
 article,
 .GameCard,
 div[data-testid='game-card'] {
   border-radius: 12px !important;
   transition: all 0.3s ease !important;
+}
+
+.heroPanelStaticBadge {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: default !important;
+  transform: none !important;
+
+  .dmExternalStoreLogo,
+  .dmExternalStoreLogo:hover {
+    transform: none !important;
+    cursor: default !important;
+    filter: none !important;
+    pointer-events: none !important;
+  }
+
+  .dmExternalStoreLogoImg {
+    filter: none !important;
+    border-radius: 4px;
+    transform: none !important;
+  }
+
+  &:hover,
+  &:focus,
+  &:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    transform: none !important;
+  }
+}
+
+.heroPanelActionIcon,
+button.heroPanelActionIcon,
+div[role='button'].heroPanelActionIcon {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  &:hover,
+  &:focus,
+  &:focus-visible,
+  &:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 0 !important;
+  }
 }
 
 button:focus,

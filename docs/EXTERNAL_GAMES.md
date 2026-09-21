@@ -79,6 +79,26 @@ A interface envia identificadores ao backend; o backend resolve novamente a font
 
 ## Persistência e segurança de arquivos
 
+### ROMs: NXBrew, NSWGF e RomsLab
+
+As três fontes oferecem **Download da ROM · Confirmar no site** quando habilitadas. A janela usa uma sessão separada por fonte; escolha o jogo base e confirme o download na hospedagem. O Ghost captura o arquivo e mostra a transferência em Downloads. Não exige TorBox. São aceitas ROMs NSP/XCI/NSZ/XCZ e pacotes ZIP/RAR/7Z/TAR contendo esses arquivos. A compatibilidade dos formatos comprimidos depende do emulador selecionado.
+
+O Ghost coloca a ROM em uma pasta gerenciada e registra um jogo na biblioteca, preservando título, fonte e capa. Não executa arquivos Windows que acompanhem o pacote. Com mais de uma ROM no pacote, selecione o jogo base em Downloads antes de concluir; updates/DLCs não são automaticamente aplicados ao emulador. Downloads em múltiplas partes e hospedagens não permitidas ainda exigem tratamento adicional. Retomar o download interativo começa a transferência novamente.
+
+Em **Configurações → Geral → Emulador de Nintendo Switch**, selecione o executável já instalado (Eden, Ryujinx, Citron, Nextendo ou outro). O campo **Argumentos do emulador** usa `{rom}` para inserir o caminho do jogo como um argumento; por padrão apenas esse caminho é enviado. Ajuste os argumentos conforme o emulador. Clique em **Jogar** na biblioteca ou no card concluído para iniciar a ROM. A configuração é global, alterável sem reinstalar jogos. O Ghost não instala/configura firmware, chaves ou dependências do emulador.
+
+O registro persistido aponta para a ROM, não para o executável do emulador, evitando excluir a pasta do emulador ao remover o jogo. Saves de Switch não têm descoberta automática: configurar a pasta de saves é necessário antes de usar backup. Substituição automática de ROMs por outra versão/fonte permanece indisponível.
+
+Validação: 130 testes de plugins passaram, incluindo captura simulada nas três fontes, instalação de ROM avulsa e ZIP, capa na biblioteca, seleção de jogo base e argumentos com espaços. TypeScript passou. Os downloads reais e a execução em cada emulador ainda não foram verificados; consulta pública de NXBrew/NSWGF retornou HTTP 403 durante a investigação. RomsLab apresentou links Datanodes/Filekeeper; somente Filekeeper foi acrescentado à lista já existente, exclusivamente para RomsLab.
+
+### Instalação independente por pacote local
+
+Em **Configurações → Geral → Instalar por arquivo local**, ative o recurso (desativado por padrão) para exibir **Selecionar pacote e instalar**. Escolha um ZIP/RAR/7Z/TAR e depois a pasta de destino. A tarefa usa a fila de Downloads e o instalador existente, sem fonte instalada, busca, conta ou rede. O nome inicial vem do arquivo; a origem é **Arquivo local**. Se o executável não puder ser identificado automaticamente, selecione-o em Downloads para concluir.
+
+O arquivo escolhido permanece no lugar e nunca entra na limpeza de downloads temporários do Ghost. Cada instalação cria uma pasta própria; este fluxo não substitui jogos existentes nem associa automaticamente a uma loja para futuras atualizações. Desativar o recurso oculta o botão e impede novas solicitações pelo backend; tarefas já iniciadas continuam. RAR/7Z exigem 7-Zip. A senha padrão Online-Fix continua restrita às tarefas identificadas como dessa fonte.
+
+Testes cobrem instalação local sem chamada de rede, registro do jogo, preservação do compactado original e cancelamento do seletor sem criar tarefa.
+
 Estado: `<userData>/external-games/state.json`; pacotes temporários: `downloads/<jobId>`; backups: `backups/<backupId>`.
 
 Instalações novas usam `ghost-<installationId>` na pasta escolhida. Extração e rollback ficam na mesma unidade de destino. Um marcador `.ghost-install.json` identifica a pasta gerenciada. Caminhos fora do destino, links, nomes especiais do Windows, arquivos criptografados e caminhos duplicados são rejeitados na extração.
@@ -103,6 +123,14 @@ O teste visual isolado usa dados fictícios e cobre busca → escolha da fonte �
 
 ## Download direto confirmado no navegador
 
+### Recuperação de interrupções
+
+O evento `updated: interrupted` do Electron permite recuperação; o Ghost tenta `resume()` quando `canResume()` é verdadeiro, com até cinco tentativas espaçadas em 2/5/10/20/30 segundos. Não confundir esse evento com `done: interrupted`, que encerra a transferência. A continuidade dos bytes depende do suporte da hospedagem; Chromium pode reiniciar quando não há suporte adequado.
+
+Downloads com erro e sem extração iniciada oferecem **Retomar** no card principal. Essa ação manual abre novamente a fonte e começa uma nova transferência; não recupera o parcial descartado pelo fluxo anterior. Cancelar/pausar encerra as tentativas pendentes. O estado registra somente hostname, bytes, horário, recuperabilidade e tentativas, sem URL assinada ou credenciais. Detalhes ficam disponíveis no card de erro. Não há código de causa de rede no evento DownloadItem; a interface não deve atribuir o erro ao servidor sem evidência.
+
+O progresso direto é publicado em intervalos de 500 ms (e no término), evitando regravar todo o estado a cada evento e reduzindo oscilações artificiais da medição. Isso não constitui medição de melhoria real de velocidade em comparação ao IDM.
+
 Em **Opções de Download**, a fonte AnkerGames oferece **TorBox · Torrent** e **Download direto · Confirmar no site**. O botão principal mantém o fluxo TorBox; a alternativa direta não exige chave TorBox.
 
 A opção direta abre a página do jogo na sessão AnkerGames do Ghost. O usuário escolhe Download e confirma o arquivo no site/hospedagem. O Ghost assume o DownloadItem do Electron, define a pasta temporária, mostra bytes/velocidade em Downloads e passa o pacote concluído ao instalador existente. Não repassa credenciais a plugins nem salva o link temporário.
@@ -110,3 +138,27 @@ A opção direta abre a página do jogo na sessão AnkerGames do Ghost. O usuár
 São aceitos pacotes ZIP/RAR/7Z/TAR em HTTPS nos domínios AnkerGames e mirrors já permitidos. Torrents e executáveis avulsos são recusados. Mirrors com fluxo próprio, downloads em blob ou CDNs ainda não permitidas podem não funcionar. Retomar abre novamente o site e reinicia a transferência; não oferece retomada parcial desse transporte. Fechar a janela antes de selecionar o arquivo cancela a espera. A espera de confirmação tem limite de três minutos.
 
 Validação automatizada: pacote simulado chega à extração com progresso e sem consultar TorBox. O download direto de uma hospedagem real ainda precisa ser validado no aplicativo.
+
+## Escolha de transporte e SteamRIP
+
+O clique principal em Download no AnkerGames agora abre uma escolha explícita: TorBox ou Download direto. A escolha ocorre antes de exigir chave TorBox. Atualizações e substituições continuam usando a confirmação existente, independentemente do transporte escolhido.
+
+SteamRIP oferece download direto com confirmação na janela do site. A sessão persistente é separada da sessão AnkerGames. Depois de escolher uma hospedagem e confirmar o pacote ZIP/RAR/7Z/TAR, o Ghost assume a transferência e usa a fila/extração existentes. O usuário pode pausar/cancelar; Retomar inicia nova confirmação e transfere do começo. Não requer TorBox.
+
+Hospedagens que não constam na lista permitida, fluxos em blob, pacotes com senha e instaladores interativos não têm suporte universal. O teste automatizado cobre recebimento/extracao simulados para os dois provedores; a hospedagem SteamRIP real não foi validada de ponta a ponta nesta alteração.
+
+## Online-Fix: Torrent via TorBox
+
+A fonte Online-Fix habilitada oferece **Online-Fix · Torrent via TorBox** nas opções de download. Usa a chave TorBox já configurada no Ghost. Reinicie o aplicativo com a versão compilada atualizada para carregar a integração.
+
+Escolha a opção, entre na conta se necessário na janela Online-Fix e clique em **Скачать Torrent** (baixar torrent). A sessão do site fica persistida separadamente das outras fontes. O Ghost recebe e valida o arquivo `.torrent` (até 16 MB), consulta torrents existentes pelo hash e encaminha ao TorBox quando necessário. A transferência local aparece no gerenciador de Downloads, com os controles existentes de pausa, retomada e cancelamento. Pausar no Ghost não pausa o torrent na nuvem.
+
+A captura aceita HTTPS do domínio Online-Fix e seus subdomínios, incluindo downloads originados em janelas filhas. A espera pela confirmação tem limite de três minutos. Fechar a janela antes de selecionar o torrent interrompe a espera. Não são armazenadas URLs assinadas do TorBox no estado persistido.
+
+Validação desta alteração: TypeScript, compilação e 113 testes do backend de plugins passaram. Os testes simulam Electron/TorBox, incluindo torrent inválido, captura em janela filha e reutilização de torrent. O fluxo real Online-Fix com a conta do usuário ainda precisa ser validado.
+
+### Senha padrão dos pacotes Online-Fix
+
+O instalador usa automaticamente `online-fix.me`, informada pelo usuário, exclusivamente para a fonte Online-Fix. Aplica a senha também ao pacote interno quando o TorBox entrega um ZIP contendo outro arquivo compactado. ZIPs comuns continuam usando o extrator existente; ZIPs criptografados e arquivos RAR/7Z usam o 7-Zip instalado no computador. Se faltar o 7-Zip ou a senha não abrir o arquivo, o Ghost informa o problema e não conclui a instalação.
+
+Antes da extração com senha, a listagem do 7-Zip é verificada para rejeitar caminhos inseguros, links, nomes duplicados e tamanhos excessivos. Testes locais com ZIP e 7Z realmente criptografados confirmaram a extração com a senha correta e a rejeição da incorreta. A bateria direcionada de extração/fila passou com 39 testes; isso não substitui o teste de um pacote real baixado do site.

@@ -433,7 +433,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Substituídos ícones genéricos na sidebar por vetores oficiais de marcas (`<EpicLogo />`, `<GOGLogo />`, `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />`, `<ZoomLogo />`).
   - Registradas todas as novas diretrizes no `.agents/AGENTS.md`.
 
-# Review das Alterações - 19/09/2026
+# Review das Alterações - 21/09/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -697,6 +697,18 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Normalização Universal de Providers e Vitrine Interativa**: Resolvedor universal `isMatchingProvider` corrigindo o clique nos cards de destaques da Home (AnkerGames, SteamRIP, Online-Fix, Nintendo Switch Collection) com fallback resiliente de download e injeção síncrona em memória.
   - **Atribuição Seletiva Exclusiva à Loja "Piratas"**: Restrição rígida em `autoStoreAssignments.ts` para que apenas jogos de SteamRIP, AnkerGames e Online-Fix sejam atribuídos à loja Piratas, isolando jogos de Switch (NXBrew, NSWGF, RomsLab) em suas respectivas categorias.
   - **Qualidade & Testes**: Suíte de testes unitários Jest automatizados (`src/backend/plugins/__tests__`) com 100% de aprovação e 0 erros no TypeScript (`pnpm exec tsc --noEmit`).
+
+### 38. Indicador Dinâmico de Backup no Rodapé da Biblioteca, Gerenciador de Pastas Cyber Neon e Auto-Backup GhostShield
+* **Problema:** Texto estático no widget de backup, falta de gerenciador de pastas de instalação para executáveis externos com caminhos longos, formato antigo de exportação de backups e ausência de verificação diária de updates para jogos piratas.
+* **Solução:**
+  - **Indicador Dinâmico de Backup em Nuvem**: Supressão absoluta do texto estático "Conta Conectada", gaveta animada ultra suave (`transition: max-width 0.45s cubic-bezier(0.16, 1, 0.3, 1)`), exibição temporizada/cíclica (7s na abertura, 6s a cada 45s, 8s pós-upload) e 38x38px quando recolhido.
+  - **Purificação de Ícones e Badges do HeroPanel**: Remoção total de molduras e backgrounds (`background: transparent !important`, `border: none !important`), badges informativos de origem com 38px (sem zoom e sem links), iluminação neon equalizada e 100% SVG (zero emojis).
+  - **Gerenciador de Pastas de Instalação Cyber Neon**: Layout em 2 linhas no seletor "Instalar em:" (`.installPathSelectorBox`), modal Cyber Neon (`ghostPathsModalOverlay`) em `#131a20` com contorno `#00ffff`, destaque da pasta atual em verde-esmeralda `#10b981` e exclusão atômica no `localStorage` com fallback reativo instantâneo.
+  - **Modernização do Backup Ghost (`.GhostBackup`)**: Payload expandido com metadados e saves da loja Piratas, rotação e deleção de backups antigos no Google Drive, formato `${dd}-${mm}-${yyyy}.GhostBackup` associado ao ícone oficial do Ghost (`win_icon.ico`) no Windows.
+  - **Configurações e Updates da Loja Piratas**: Logo de origem no `HeroPanel` com tooltip da loja, rotina de checagem diária a cada 24h com toggle em Configurações > Geral, modal Cyber Neon de exclusão física do jogo (`#ff5252`) e auto-backup GhostShield ativado por padrão.
+  - **Logo AnkerGames Ultra HD e Resolução de Capas em 3 Níveis**: Transparência suave anti-aliased em 1024x1024 (`ankergames-logo.png`), resolução de capas com 3 níveis (Biblioteca/GameOverrides ➔ SteamGridDB via IPC ➔ Site de origem) e logo exclusivo ampliado sem texto nos cards de downloads.
+  - **Unificação de Downloads Externos no `/download-manager`**: Integrados os cards `ExternalActiveCard` (hero card de 180px com telemetria e ondas no topo), `ExternalFinishedCard` (compacto 82px com `[ ▶ Jogar ]`) e `ExternalQueueCard` (compacto 82px na fila unificada).
+  - **Eliminação Definitiva de Diálogos Nativos Win32**: Modal Cyber Neon de Troca de Fonte / Atualização de Jogos substituindo caixas brancas `dialog.showMessageBox`.
 
 ---
 

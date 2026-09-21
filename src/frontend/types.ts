@@ -300,6 +300,8 @@ export interface LibraryContextType {
   setShowPlaytestsAndDemos?: (value: boolean) => void
   sortByNewlyAdded?: boolean
   setSortByNewlyAdded?: (value: boolean) => void
+  showNewlyAddedOnly?: boolean
+  setShowNewlyAddedOnly?: (value: boolean) => void
   sortByMostPlayed?: boolean
   setSortByMostPlayed?: (value: boolean) => void
 }

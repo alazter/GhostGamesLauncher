@@ -232,6 +232,21 @@ addHandler('steamgriddb.downloadCover', async (event, args) => {
   }
 })
 
+addHandler('steamgriddb.getCoverForGame', async (event, title: string) => {
+  const apiKey = getDecryptedApiKey()
+  if (!apiKey || !title) return null
+  try {
+    const { fetchCoverFromSteamGridDB } = await import(
+      'backend/storeManagers/sideload/steamgridHelper'
+    )
+    const result = await fetchCoverFromSteamGridDB(apiKey, title)
+    return result?.art_square || result?.art_cover || null
+  } catch (err) {
+    logError([`SteamGridDB getCoverForGame failed for "${title}":`, err], LogPrefix.Backend)
+    return null
+  }
+})
+
 addHandler('steamgriddb.syncMissingCovers', async () => {
   // Fire and forget: starts background processing immediately without blocking
   setImmediate(async () => {
