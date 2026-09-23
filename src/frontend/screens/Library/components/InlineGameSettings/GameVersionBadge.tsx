@@ -14,6 +14,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
   const [loading, setLoading] = useState(false)
   const { state: extState } = useExternalGames()
   const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [checkError, setCheckError] = useState('')
   const [updating, setUpdating] = useState(false)
 
   const extInstallation = useMemo(() => {
@@ -36,7 +37,9 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
     async function loadVersion() {
       setLoading(true)
       try {
-        const res = await window.api.detectGameVersion(game)
+        const res: DetectedVersionResult | null = extInstallation
+          ? extInstallation.game.version ? { version: extInstallation.game.version, source: 'manifest', details: `Versão instalada registrada pelo Ghost · ${extInstallation.game.providerName}` } : null
+          : await window.api.detectGameVersion(game)
         if (!isMounted) return
 
         if (res) {
@@ -75,7 +78,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
     return () => {
       isMounted = false
     }
-  }, [game?.app_name, game?.version])
+  }, [game?.app_name, game?.version, extInstallation?.id, extInstallation?.game.version, extInstallation?.installedAt])
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -376,12 +379,15 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
             e.stopPropagation()
             if (checkingUpdate || !extInstallation) return
             setCheckingUpdate(true)
+            setCheckError('')
             try {
-              await window.api.externalGamesAction({
+              const result = await window.api.externalGamesAction({
                 type: 'check-update',
                 installationId: extInstallation.id
               })
+              if (result.error) setCheckError(result.error)
             } catch (err) {
+              setCheckError('Não foi possível consultar a fonte. Tente novamente.')
               console.error('Falha ao verificar update:', err)
             } finally {
               setCheckingUpdate(false)
@@ -416,6 +422,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
           <span>{checkingUpdate ? 'Checando...' : 'Buscar Update'}</span>
         </button>
       )}
+      {(checkError || extInstallation?.updateMessage) && <span role="status" style={{ fontSize: '11px', maxWidth: '320px' }}>{checkError || extInstallation?.updateMessage}</span>}
     </div>
   )
 }

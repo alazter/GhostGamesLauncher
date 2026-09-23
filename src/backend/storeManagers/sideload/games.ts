@@ -138,6 +138,9 @@ export default class SideloadGame implements Game {
       } catch {}
     }
     libraryStore.set('games', current)
+    try {
+      ExternalGames.getInstance().removeInstallation(this.id)
+    } catch {}
     sendFrontendMessage('refreshLibrary', 'sideload')
 
     if (deleteFiles && executable !== undefined && existsSync(executable)) {

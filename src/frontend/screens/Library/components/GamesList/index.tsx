@@ -17,6 +17,7 @@ import CachedImage from 'frontend/components/UI/CachedImage'
 import fallBackImage from 'frontend/assets/heroic_card.jpg'
 import { getStoreName } from 'frontend/helpers'
 import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
+import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
 
 interface Props {
   library: GameInfo[]
@@ -381,13 +382,17 @@ const GamesList = ({
       `Deseja remover também as configurações e logs dos jogos selecionados?`
     )
 
+    const appsToUninstall = selectedGames.map((g) => ({
+      appName: g.app_name,
+      runner: g.runner
+    }))
+
+    appsToUninstall.forEach(({ appName }) => {
+      useRemovingGamesStore.getState().startRemoval(appName, 'removing')
+    })
+
     try {
       window.api.logInfo(`handleBulkUninstall: Iniciando desinstalação de ${selectedGames.length} jogo(s)`)
-      
-      const appsToUninstall = selectedGames.map((g) => ({
-        appName: g.app_name,
-        runner: g.runner
-      }))
 
       await window.api.bulkUninstall(
         appsToUninstall,
@@ -429,6 +434,12 @@ const GamesList = ({
       )
     } catch (err) {
       window.api.logError(`Error during bulk uninstall: ${String(err)}`)
+    } finally {
+      setTimeout(() => {
+        appsToUninstall.forEach(({ appName }) => {
+          useRemovingGamesStore.getState().finishRemoval(appName)
+        })
+      }, 500)
     }
   }
 

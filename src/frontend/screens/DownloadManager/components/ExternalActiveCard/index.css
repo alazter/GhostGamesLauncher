@@ -131,3 +131,25 @@
   width: 26px;
   height: 26px;
 }
+
+
+.dmExternalSpacePlan {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid rgba(0, 255, 255, .4);
+  border-radius: 12px;
+  background: #131a20;
+  color: #eefaff;
+  overflow-wrap: anywhere;
+}
+.dmExternalSpacePlan p { margin: 10px 0; line-height: 1.5; }
+.dmExternalSpacePlan button {
+  margin: 6px 8px 0 0;
+  padding: 8px 12px;
+  border: 1px solid #00dddd;
+  border-radius: 8px;
+  background: #152d35;
+  color: #eefaff;
+  cursor: pointer;
+}
+.dmExternalSpacePlan button:disabled { opacity: .5; cursor: default; }

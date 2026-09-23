@@ -19,6 +19,7 @@ import { removeShortcuts as removeShortcutsUtil } from 'backend/shortcuts/shortc
 import { removeNonSteamGame } from 'backend/shortcuts/nonesteamgame/nonesteamgame'
 import { removeRecentGame } from 'backend/recent_games/recent_games'
 import { sendFrontendMessage } from 'backend/ipc'
+import { ExternalGames } from 'backend/plugins/externalGames'
 
 
 export const removePrefix = async (appName: string, runner: Runner) => {
@@ -175,6 +176,9 @@ export const bulkUninstallCallback = async (
         removeShortcutsUtil(sideloadGame)
         removeRecentGame(app.appName)
         removeNonSteamGame(sideloadGame)
+        try {
+          ExternalGames.getInstance().removeInstallation(app.appName)
+        } catch {}
 
         sendGameStatusUpdate({
           appName: app.appName,

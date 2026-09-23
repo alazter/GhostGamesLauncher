@@ -138,6 +138,9 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
 }
 
 .downloadManagerQueueList {
@@ -227,6 +230,36 @@
 
 .dmTopFixedGrid {
   margin-bottom: 4px;
+  align-items: start;
+}
+
+/* Multi-Active Downloads Layout (>2 active processes) */
+.dmMultiActiveTopSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.dmActiveCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .dmActiveCardsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dmQueueRightStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
 }
 
 .dmQueueTop3List {

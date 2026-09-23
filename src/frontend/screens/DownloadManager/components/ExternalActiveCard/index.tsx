@@ -147,6 +147,26 @@ export default function ExternalActiveCard({
               )}
             </div>
 
+            {job.oldRemoved && job.status !== 'completed' && (
+              <p role="status">A instalação antiga foi removida. O jogo ficará indisponível até concluir a reinstalação. O backup dos saves está preservado.</p>
+            )}
+            {job.spacePlan && (
+              <section className="dmExternalSpacePlan" aria-label="Espaço para reinstalação">
+                <h3>Espaço necessário para reinstalar</h3>
+                <p>Destino: <strong>{job.spacePlan.destination}</strong></p>
+                <p>{job.spacePlan.packageReady ? 'Pacote já baixado' : `Pacote: ${bytes(job.spacePlan.packageBytes)}`} · Jogo instalado: {bytes(job.spacePlan.installedBytes)}{job.spacePlan.estimated ? ' (estimativa; o tamanho real pode ser maior)' : ''}.</p>
+                <p>Para baixar e extrair no disco original, mantenha {bytes(job.spacePlan.requiredOriginal)} livres, incluindo margem de segurança. Faltam {bytes(job.spacePlan.missingOriginal)}.</p>
+                {job.spacePlan.missingDestination > 0 ? (
+                  <p>Libere pelo menos {bytes(job.spacePlan.missingDestination)} no destino para comportar o jogo instalado. Outro disco para o pacote não resolve essa falta de espaço.</p>
+                ) : job.spacePlan.temporaryDirectory ? (
+                  <p>O pacote será baixado temporariamente em <strong>{job.spacePlan.temporaryDirectory}</strong> porque o disco original não comporta o pacote e o jogo juntos. Se houver uma transferência parcial, ela será reiniciada no novo local. Após instalar e restaurar os saves, essa pasta será removida.</p>
+                ) : <p>Nenhum outro disco com espaço suficiente foi encontrado. Libere espaço e verifique novamente.</p>}
+                <button type="button" disabled={busy || !job.spacePlan.temporaryDirectory || job.spacePlan.missingDestination > 0} onClick={() => void handleAction({ type: 'space-proceed', jobId: job.id })}>Prosseguir</button>
+                <button type="button" disabled={busy} onClick={() => void handleAction({ type: 'space-recheck', jobId: job.id })}>Verificar novamente após liberar espaço</button>
+                <button type="button" disabled={busy} onClick={() => void handleAction({ type: 'cancel', jobId: job.id })}>Cancelar</button>
+              </section>
+            )}
+
             {/* Downloading State */}
             {job.status === 'downloading' && job.directDiagnostic && ['interrupted', 'retry-scheduled', 'resuming'].includes(job.directDiagnostic.event) && (
               <p role="status">Conexão interrompida. Tentando continuar o download automaticamente ({job.directDiagnostic.attempts}/5)…</p>
@@ -294,7 +314,7 @@ export default function ExternalActiveCard({
               </button>
             )}
 
-            {(job.status === 'paused' || (job.status === 'error' && job.canResume)) && (
+            {!job.spacePlan && (job.status === 'paused' || (['error', 'cancelled'].includes(job.status) && job.canResume)) && (
               <button
                 type="button"
                 className="dmActiveSelectArchiveBtn dmResumeDownloadBtn"

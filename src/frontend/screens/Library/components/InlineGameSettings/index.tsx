@@ -26,6 +26,8 @@ import EnvVariablesTable from 'frontend/screens/Settings/components/EnvVariables
 import AlternativeExe from 'frontend/screens/Settings/components/AlternativeExe'
 import { sideloadLibrary, gameOverridesStore, configStore } from 'frontend/helpers/electronStores'
 import { clearAvailabilityCache } from 'frontend/hooks/constants'
+import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
+import { notify } from 'frontend/helpers'
 
 // Material Icons para as Ações do Jogo e Visibilidade
 import {
@@ -379,37 +381,48 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   }, [showDeleteModal, isDeletingGame])
 
   const handleDeleteGameConfirmed = async () => {
-    setIsDeletingGame(true)
-    setDeleteError(null)
+    const appNameToDelete = game.app_name
+    const runnerToDelete = game.runner
+
+    setShowDeleteModal(false)
+    onClose()
+    window.dispatchEvent(
+      new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+    )
+
+    useRemovingGamesStore.getState().startRemoval(appNameToDelete, 'deleting')
+
     try {
-      const res = await window.api.externalGamesDeleteGame(game.app_name, true)
+      const res = await window.api.externalGamesDeleteGame(appNameToDelete, true)
       if (!res.success) {
-        setDeleteError(res.error || 'Falha ao deletar o jogo do computador.')
-        setIsDeletingGame(false)
+        notify({
+          title: 'Erro ao Deletar',
+          body: res.error || 'Falha ao deletar o jogo do computador.'
+        })
+        useRemovingGamesStore.getState().finishRemoval(appNameToDelete)
         return
       }
 
-      clearAvailabilityCache(game.app_name, game.runner)
+      clearAvailabilityCache(appNameToDelete, runnerToDelete)
       const games = sideloadLibrary.get('games', [])
-      const filtered = games.filter((g) => g.app_name !== game.app_name)
+      const filtered = games.filter((g) => g.app_name !== appNameToDelete)
       sideloadLibrary.set('games', filtered)
 
       const overrides = gameOverridesStore.get('overrides', {})
-      delete overrides[game.app_name]
+      delete overrides[appNameToDelete]
       gameOverridesStore.set('overrides', overrides)
 
       ;(configStore as any).set('backup.lastModified', Date.now())
       window.dispatchEvent(new Event('backupStateChanged'))
-
-      setShowDeleteModal(false)
-      setIsDeletingGame(false)
-      window.dispatchEvent(
-        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
-      )
-      onClose()
     } catch (err: any) {
-      setDeleteError(err?.message || 'Erro inesperado ao deletar os arquivos do jogo.')
-      setIsDeletingGame(false)
+      notify({
+        title: 'Erro ao Deletar',
+        body: err?.message || 'Erro inesperado ao deletar os arquivos do jogo.'
+      })
+    } finally {
+      setTimeout(() => {
+        useRemovingGamesStore.getState().finishRemoval(appNameToDelete)
+      }, 500)
     }
   }
   

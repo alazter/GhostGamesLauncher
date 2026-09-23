@@ -3,7 +3,8 @@ import './index.css'
 import { useContext, CSSProperties, useMemo, useState, useEffect, memo } from 'react'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faRepeat, faBan } from '@fortawesome/free-solid-svg-icons'
+import { faRepeat, faBan, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
 
 import DownIcon from 'frontend/assets/down-icon.svg?react'
 import { FavouriteGame, GameInfo, HiddenGame, Runner } from 'common/types'
@@ -247,6 +248,11 @@ const GameCard = ({
     isUpdating,
     haveStatus
   } = getCardStatus(status, isInstalled, layout)
+
+  const removalType = useRemovingGamesStore((s) => s.removingGames[appName])
+  const isDeletingFromDisk = removalType === 'deleting'
+  const isRemovingFromLibrary = removalType === 'removing' || isUninstalling
+  const isBeingRemoved = Boolean(removalType || isUninstalling)
 
   const installingGrayscale = isInstalling
     ? `${125 - getProgress(progress)}%`
@@ -529,7 +535,9 @@ const GameCard = ({
     gamepad: Boolean(activeController),
     justPlayed: justPlayed,
     selectedInline: isSelectedInline,
-    hasFallbackCover: isFallbackCover
+    hasFallbackCover: isFallbackCover,
+    gameCardDeleting: isDeletingFromDisk,
+    gameCardRemoving: isRemovingFromLibrary && !isDeletingFromDisk
   })
 
   const imgClasses = classNames('gameImg', { installed: isInstalled })
@@ -568,6 +576,10 @@ const GameCard = ({
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+              if (isBeingRemoved) {
+                e.preventDefault()
+                return
+              }
               const active = localStorage.getItem('heroic_use_inline_panel') !== 'false'
               if (active) {
                 e.preventDefault()
@@ -600,6 +612,41 @@ const GameCard = ({
             </div>
           )}
 
+          {isBeingRemoved && (
+            <div className={`gameCardRemovalOverlay ${isDeletingFromDisk ? 'deleting' : 'removing'}`}>
+              <div className="removalHeader">
+                <span className="removalBadge">
+                  {isDeletingFromDisk ? 'DELETANDO' : 'REMOVENDO'}
+                </span>
+              </div>
+
+              <div className="removalCenter">
+                <div className="removalSpinnerWrapper">
+                  <svg className="removalSpinnerSvg" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" className="spinnerTrack" />
+                    <circle cx="50" cy="50" r="40" className="spinnerFill" />
+                  </svg>
+                  <FontAwesomeIcon
+                    icon={isDeletingFromDisk ? faTrashAlt : faBan}
+                    className="removalCenterIcon"
+                  />
+                </div>
+                <span className="removalTitle">
+                  {isDeletingFromDisk ? 'Deletando...' : 'Removendo...'}
+                </span>
+                <span className="removalSubtext">
+                  {isDeletingFromDisk ? 'Excluindo arquivos' : 'Desvinculando'}
+                </span>
+              </div>
+
+              <div className="removalFooter">
+                <div className="removalPulseTrack">
+                  <div className="removalPulseBar" />
+                </div>
+              </div>
+            </div>
+          )}
+
           <Link
             to={`/gamepage/${runner}/${appName}`}
             state={{ gameInfo }}
@@ -609,6 +656,10 @@ const GameCard = ({
               { '--installing-effect': installingGrayscale } as CSSProperties
             }
             onClick={(e) => {
+              if (isBeingRemoved) {
+                e.preventDefault()
+                return
+              }
               const active = localStorage.getItem('heroic_use_inline_panel') !== 'false'
               if (active) {
                 e.preventDefault()
@@ -682,7 +733,7 @@ const GameCard = ({
           {/* ========================================================= */}
           {/* LÓGICA DE EXIBIÇÃO DINÂMICA LIGADA ÀS CONFIGURAÇÕES       */}
           {/* ========================================================= */}
-          {shouldShowIcons && (
+          {shouldShowIcons && !isBeingRemoved && (
             <span
               className="icons"
               data-sn-focusable="false"

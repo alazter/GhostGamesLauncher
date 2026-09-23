@@ -80,6 +80,7 @@ export interface GhostDownloadSource {
 }
 
 export interface ExternalInstallRequest {
+  chooseDirectory?: boolean
   game: GhostSearchResult
   sourceId: string
   replaceInstallationId?: string
@@ -88,6 +89,8 @@ export interface ExternalInstallRequest {
 }
 
 export interface ExternalInstallation {
+  /** New installations use the package root directly, without a UUID wrapper. */
+  packageRootLayout?: boolean
   id: string
   appName: string
   game: GhostSearchResult
@@ -141,7 +144,21 @@ export interface PiratasSaveSyncResult {
 
 export type ExternalJobStatus = 'queued' | 'downloading' | 'paused' | 'awaiting-file' | 'extracting' | 'ready' | 'installing' | 'completed' | 'cancelled' | 'error'
 
+export interface ExternalSpacePlan {
+  packageReady?: boolean
+  destination: string
+  temporaryDirectory?: string
+  packageBytes: number
+  installedBytes: number
+  requiredOriginal: number
+  missingOriginal: number
+  missingDestination: number
+  estimated: boolean
+}
+
 export interface ExternalDownloadJob {
+  oldRemoved?: boolean
+  spacePlan?: ExternalSpacePlan
   canResume?: boolean
   directDiagnostic?: { event: string; host: string; bytes: number; total: number; canResume: boolean; attempts: number; at: string }
   id: string
@@ -196,6 +213,7 @@ export interface ExternalGamesState {
 }
 
 export type ExternalGameAction =
+  | { type: 'space-proceed' | 'space-recheck'; jobId: string }
   | { type: 'dismiss'; jobId: string }
   | { type: 'pause' | 'resume' | 'cancel' | 'import-archive'; jobId: string }
   | { type: 'finish'; jobId: string; executable: string }

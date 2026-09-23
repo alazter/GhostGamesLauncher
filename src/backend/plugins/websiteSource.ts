@@ -76,12 +76,90 @@ export function extractVersionFromText(text: string): string | undefined {
   return undefined
 }
 
+export function normalizeAcronyms(str: string): string {
+  return str
+    .replace(/([a-zA-Z0-9])\.(?=[a-zA-Z0-9])/g, '$1')
+    .replace(/\.([a-zA-Z0-9])/g, '$1')
+    .replace(/([a-zA-Z0-9])\.(?=\s|$)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export const KNOWN_GAME_ACRONYMS: Record<string, string> = {
+  stalker: 's.t.a.l.k.e.r.',
+  fear: 'f.e.a.r.',
+  hawx: 'h.a.w.x.',
+  tmnt: 't.m.n.t.',
+  cod: 'call of duty',
+  gta: 'grand theft auto',
+  rdr: 'red dead redemption',
+  nfs: 'need for speed',
+  kof: 'the king of fighters',
+  re: 'resident evil'
+}
+
+export const REVERSE_GAME_ACRONYMS: Record<string, string> = Object.fromEntries(
+  Object.entries(KNOWN_GAME_ACRONYMS).map(([k, v]) => [v, k])
+)
+
+export function generateSearchQueryVariants(query: string): string[] {
+  const variants = new Set<string>()
+  const trimmed = query.trim()
+  if (!trimmed) return []
+
+  variants.add(trimmed)
+
+  // 1. Dotted to undotted (ex: s.t.a.l.k.e.r. 2 -> stalker 2)
+  const undotted = normalizeAcronyms(trimmed)
+  if (undotted && undotted.toLowerCase() !== trimmed.toLowerCase()) {
+    variants.add(undotted)
+  }
+
+  // 2. Known acronyms expansion (ex: stalker 2 -> s.t.a.l.k.e.r. 2)
+  for (const [shortForm, longForm] of Object.entries(KNOWN_GAME_ACRONYMS)) {
+    const wordRegex = new RegExp(`\\b${shortForm}\\b`, 'gi')
+    if (wordRegex.test(trimmed)) {
+      variants.add(trimmed.replace(wordRegex, longForm))
+      variants.add(trimmed.replace(wordRegex, longForm.replace(/\.$/, '')))
+    }
+  }
+
+  // 3. Reverse known acronyms
+  for (const [longForm, shortForm] of Object.entries(REVERSE_GAME_ACRONYMS)) {
+    const escaped = longForm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(escaped, 'gi')
+    if (regex.test(trimmed)) {
+      variants.add(trimmed.replace(regex, shortForm))
+    }
+  }
+
+  // 4. Roman numerals <-> numbers for sequels (ex: stalker ii <-> stalker 2)
+  const romanToArab: Record<string, string> = { ' i': ' 1', ' ii': ' 2', ' iii': ' 3', ' iv': ' 4', ' v': ' 5', ' vi': ' 6', ' vii': ' 7', ' viii': ' 8' }
+  const arabToRoman: Record<string, string> = { ' 1': ' i', ' 2': ' ii', ' 3': ' iii', ' 4': ' iv', ' 5': ' v', ' 6': ' vi', ' 7': ' vii', ' 8': ' viii' }
+
+  for (const v of Array.from(variants)) {
+    for (const [r, a] of Object.entries(romanToArab)) {
+      const rx = new RegExp(`${r}\\b`, 'gi')
+      if (rx.test(v)) variants.add(v.replace(rx, a))
+    }
+    for (const [a, r] of Object.entries(arabToRoman)) {
+      const rx = new RegExp(`${a}\\b`, 'gi')
+      if (rx.test(v)) variants.add(v.replace(rx, r))
+    }
+  }
+
+  return Array.from(variants)
+}
+
 export function matchesQuery(title: string, query: string): boolean {
   if (!query || !query.trim()) return true
   if (!title || !title.trim()) return false
 
-  const cleanT = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim()
-  const cleanQ = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim()
+  const normT = normalizeAcronyms(title)
+  const normQ = normalizeAcronyms(query)
+
+  const cleanT = normT.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim()
+  const cleanQ = normQ.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim()
 
   if (!cleanT || cleanT.length < 2) return false
   if (!cleanQ) return true
@@ -675,37 +753,61 @@ export function websiteSource(
     id: manifest.id,
     name: manifest.name,
     async search(query) {
-      // Tenta pesquisa direta no site primeiro se suportado, depois fallback para o catálogo geral
-      const searchTargets: string[] = []
-      if (/ankergames\.net/i.test(base)) {
-        searchTargets.push(new URL(`/search/${encodeURIComponent(query)}`, base).href)
-        searchTargets.push(new URL(`/games-list?q=${encodeURIComponent(query)}`, base).href)
-      } else if (/online-fix\.me/i.test(base)) {
-        searchTargets.push(new URL(`/index.php?do=search&subaction=search&story=${encodeURIComponent(query)}`, base).href)
-      } else if (/steamrip\.com|nxbrew\.net|nswgf\.com|romslab\.com/i.test(base)) {
-        searchTargets.push(new URL(`/?s=${encodeURIComponent(query)}`, base).href)
-      }
-      searchTargets.push(new URL(config.catalogPath, base).href)
+      // 1. Gera variantes inteligentes da consulta (ex: stalker 2 -> stalker 2, s.t.a.l.k.e.r. 2, stalker ii)
+      const variants = generateSearchQueryVariants(query).slice(0, 4)
+      const gamesMap = new Map<string, GhostSearchResult>()
 
-      let games: GhostSearchResult[] = []
-      for (const target of searchTargets) {
-        try {
-          const html = await page(target)
-          const parsed = parseWebsiteGames(html, base, config, manifest)
-          if (parsed.length) {
-            games = parsed
-            break
+      for (const v of variants) {
+        const searchTargets: string[] = []
+        if (/ankergames\.net/i.test(base)) {
+          searchTargets.push(new URL(`/search/${encodeURIComponent(v)}`, base).href)
+          searchTargets.push(new URL(`/games-list?q=${encodeURIComponent(v)}`, base).href)
+        } else if (/online-fix\.me/i.test(base)) {
+          searchTargets.push(new URL(`/index.php?do=search&subaction=search&story=${encodeURIComponent(v)}`, base).href)
+        } else if (/steamrip\.com|nxbrew\.net|nswgf\.com|romslab\.com/i.test(base)) {
+          searchTargets.push(new URL(`/?s=${encodeURIComponent(v)}`, base).href)
+        }
+
+        for (const target of searchTargets) {
+          try {
+            const html = await page(target)
+            const parsed = parseWebsiteGames(html, base, config, manifest)
+            if (parsed.length) {
+              for (const g of parsed) {
+                if (!gamesMap.has(g.id)) {
+                  gamesMap.set(g.id, g)
+                }
+              }
+              break
+            }
+          } catch {
+            // Continua para o próximo alvo
           }
-        } catch {
-          // Continua para o próximo alvo
         }
       }
 
-      if (!games.length)
+      // Se nenhum alvo de busca encontrou jogos, tenta o catálogo geral como fallback
+      if (gamesMap.size === 0) {
+        try {
+          const html = await page(new URL(config.catalogPath, base).href)
+          const parsed = parseWebsiteGames(html, base, config, manifest)
+          for (const g of parsed) {
+            if (!gamesMap.has(g.id)) {
+              gamesMap.set(g.id, g)
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (gamesMap.size === 0)
         throw new Error(
           'Não foi possível ler o catálogo desta fonte. Abra o site e vincule a página do jogo.'
         )
-      return games
+
+      const allFound = Array.from(gamesMap.values())
+      return allFound
         .filter((game) => matchesQuery(game.title, query))
         .slice(0, 100)
     },

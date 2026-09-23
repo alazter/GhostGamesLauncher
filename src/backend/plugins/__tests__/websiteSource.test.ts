@@ -3,7 +3,9 @@ import {
   cleanGameTitle,
   extractGameMetadataFromHtml,
   extractVersionFromText,
+  generateSearchQueryVariants,
   matchesQuery,
+  normalizeAcronyms,
   parseWebsiteGames,
   websiteSource
 } from '../websiteSource'
@@ -89,6 +91,31 @@ describe('cleanGameTitle and matchesQuery', () => {
     expect(matchesQuery('Palworld', 'tokon')).toBe(false)
     expect(matchesQuery('\uFFFD\uFFFD\uFFFD', 'tokon')).toBe(false)
     expect(matchesQuery('', 'tokon')).toBe(false)
+  })
+
+  it('matches titles with dotted acronyms like S.T.A.L.K.E.R. when searching without dots', () => {
+    expect(matchesQuery('S.T.A.L.K.E.R. 2: Heart of Chornobyl', 'stalker 2')).toBe(true)
+    expect(matchesQuery('S.T.A.L.K.E.R 2 Heart of Chornobyl', 'stalker 2')).toBe(true)
+    expect(matchesQuery('S.T.A.L.K.E.R.: Shadow of Chernobyl', 'stalker')).toBe(true)
+    expect(matchesQuery('stalker 2', 's.t.a.l.k.e.r. 2')).toBe(true)
+    expect(matchesQuery('F.E.A.R. 3', 'fear 3')).toBe(true)
+    expect(matchesQuery('H.A.W.X. 2', 'hawx 2')).toBe(true)
+  })
+
+  it('normalizes acronyms and expands search query variants', () => {
+    expect(normalizeAcronyms('S.T.A.L.K.E.R. 2')).toBe('STALKER 2')
+    expect(normalizeAcronyms('s.t.a.l.k.e.r. 2')).toBe('stalker 2')
+    expect(normalizeAcronyms('F.E.A.R. 3')).toBe('FEAR 3')
+
+    const stalkerVariants = generateSearchQueryVariants('stalker 2')
+    expect(stalkerVariants).toContain('s.t.a.l.k.e.r. 2')
+    expect(stalkerVariants).toContain('stalker 2')
+
+    const reverseVariants = generateSearchQueryVariants('s.t.a.l.k.e.r. 2')
+    expect(reverseVariants).toContain('stalker 2')
+
+    const fearVariants = generateSearchQueryVariants('fear 3')
+    expect(fearVariants).toContain('f.e.a.r. 3')
   })
 })
 

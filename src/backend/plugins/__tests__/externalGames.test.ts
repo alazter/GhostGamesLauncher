@@ -1,11 +1,16 @@
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'fs/promises'
+const fsPromises = jest.requireActual<typeof import('fs/promises')>('fs/promises')
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { dialog } from 'electron'
 import { ExternalGames } from '../externalGames'
+import * as installSpace from '../installSpace'
+import * as archiveMetadata from '../archiveSize'
+import * as externalFiles from '../externalFiles'
 import { PluginPacker } from '../pluginPacker'
 import { NetworkGuard } from '../networkGuard'
 import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID } from '../ankerAccount'
+import { OnlineFixAccount, ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID } from '../onlineFixAccount'
 import { TorboxClient } from '../torboxClient'
 import { torrentInfoHash } from '../torrentMetadata'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
@@ -35,6 +40,7 @@ jest.mock('backend/constants/paths', () => {
 jest.mock('backend/storeManagers/sideload/electronStores', () => ({
   libraryStore: { get: jest.fn(), set: jest.fn() }
 }))
+jest.mock('backend/game_overrides/electronStores', () => ({ gameOverridesStore: { get: jest.fn(() => ({})), set: jest.fn() } }))
 jest.mock('backend/ipc', () => ({ sendFrontendMessage: jest.fn() }))
 
 let root: string
@@ -142,6 +148,52 @@ async function waitForJob(predicate: () => boolean) {
   for (let i = 0; i < 500 && !predicate(); i++) await new Promise((resolve) => setTimeout(resolve, 10))
   expect(predicate()).toBe(true)
 }
+
+it('drops the last removed library registration and allows a fresh installation', async () => {
+  const old = await install()
+  games = []
+  expect(service.snapshot().installations).toHaveLength(0)
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, root)
+  const job = service.snapshot().jobs.find(item => item.id === result.jobId)!
+  expect(job.operation).toBe('install')
+  expect(job.installationId).not.toBe(old.id)
+})
+
+it('ignores deleted game files and preserves remaining saves during a fresh install', async () => {
+  const old = await install()
+  await rm(old.executable)
+  expect(service.snapshot().installations).toHaveLength(0)
+  expect(service.localCandidates()).toHaveLength(0)
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, root)
+  const job = service.snapshot().jobs.find(item => item.id === result.jobId)!
+  expect(job.operation).toBe('install')
+  expect(job.installationId).not.toBe(old.id)
+  expect(await readFile(join(old.savePath!, 'slot.dat'), 'utf8')).toBe('my progress')
+})
+
+it('installs a package root without a UUID wrapper and retains the layout on update', async () => {
+  async function nested(version: string, replaceId?: string) {
+    jest.mocked(dialog.showMessageBox).mockResolvedValue({ response: 1, checkboxChecked: false })
+    const result = await service.enqueue({ ...game, version }, source, manifest, replaceId, false, false, replaceId ? undefined : root)
+    const archive = join(root, `nested-${version}.zip`)
+    await writeFile(archive, PluginPacker.createZipBuffer([{ name: 'Game-Root/Inner/game.exe', content: Buffer.from(version) }]))
+    jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [archive] })
+    expect(await service.action({ type: 'import-archive', jobId: result.jobId! })).toEqual({ success: true })
+    expect(await service.action({ type: 'finish', jobId: result.jobId!, executable: join('Inner', 'game.exe') })).toEqual({ success: true })
+    return service.snapshot().installations[0]
+  }
+  const first = await nested('1.0')
+  expect(first.directory).toBe(join(root, 'Game-Root'))
+  const saves = join(first.directory, 'saves')
+  await mkdir(saves)
+  await writeFile(join(saves, 'slot'), 'progress')
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [saves] })
+  await service.action({ type: 'configure-saves', installationId: first.id })
+  const second = await nested('2.0', first.id)
+  expect(second.executable).toBe(join(root, 'Game-Root', 'Inner', 'game.exe'))
+  expect(await readFile(second.executable, 'utf8')).toBe('2.0')
+  expect(await readFile(join(saves, 'slot'), 'utf8')).toBe('progress')
+})
 
 function torboxFixture() {
   const torrent = Buffer.from('d4:infod6:lengthi1e4:name8:game.zipee')
@@ -679,4 +731,250 @@ test('deve executar syncPiratasSaves em lote e mapear múltiplos jogos', async (
   const actionRes = await service.action({ type: 'sync-piratas-saves', autoBackup: false })
   expect(actionRes.success).toBe(true)
   expect(actionRes.piratasSyncResult).toBeDefined()
+})
+
+
+it('backs up before confirmed removal and restores saves after a clean replacement', async () => {
+  const old = await install()
+  const result = await service.enqueue({ ...game, version: '2.0' }, source, manifest, old.id, false, false, undefined, true)
+  const job = service.snapshot().jobs.find(item => item.id === result.jobId)!
+  expect(job.oldRemoved).toBe(true)
+  expect(service.canLaunch(old.appName)).toBe(false)
+  await expect(readFile(old.executable)).rejects.toThrow()
+  expect(service.snapshot().backups).toHaveLength(1)
+  const archive = join(root, 'replacement.zip')
+  await writeFile(archive, PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('2.0') }]))
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [archive] })
+  expect(await service.action({ type: 'import-archive', jobId: job.id })).toEqual({ success: true })
+  expect(await service.action({ type: 'finish', jobId: job.id, executable: 'game.exe' })).toEqual({ success: true })
+  expect(await readFile(old.executable, 'utf8')).toBe('2.0')
+  expect(await readFile(join(old.savePath!, 'slot.dat'), 'utf8')).toBe('my progress')
+  expect(service.canLaunch(old.appName)).toBe(true)
+  await expect(readFile(join(root, `.ghost-download-${job.id}`, '.ghost-download.json'))).rejects.toThrow()
+})
+
+it('does not delete a confirmed replacement when saves cannot be backed up', async () => {
+  const old = await install()
+  await rm(join(old.savePath!, 'slot.dat'))
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('error')
+  expect(await readFile(old.executable, 'utf8')).toBe('1.0')
+})
+
+it('preserves the verified backup when cancelled after deletion', async () => {
+  const old = await install()
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  expect(await service.action({ type: 'cancel', jobId: result.jobId! })).toEqual({ success: true })
+  expect(service.snapshot().backups).toHaveLength(1)
+  expect(service.canLaunch(old.appName)).toBe(false)
+  await expect(readFile(old.executable)).rejects.toThrow()
+  const { userDataPath } = await import('backend/constants/paths')
+  expect(await readFile(join(userDataPath, 'external-games', 'backups', service.snapshot().backups[0].id, 'slot.dat'), 'utf8')).toBe('my progress')
+})
+
+it('keeps the removed state and backup across a launcher restart', async () => {
+  const old = await install()
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance()
+  expect(restarted.snapshot().jobs.find(item => item.id === result.jobId)?.oldRemoved).toBe(true)
+  expect(restarted.canLaunch(old.appName)).toBe(false)
+  expect(restarted.snapshot().backups).toHaveLength(1)
+})
+
+
+it('waits for consent before using an alternative temporary directory', async () => {
+  const old = await install()
+  const alternative = await mkdtemp(join(root, 'other-disk-'))
+  const spy = jest.spyOn(installSpace, 'planInstallSpace').mockImplementation(async (destination, id) => ({
+    destination, temporaryDirectory: join(alternative, `.ghost-download-${id}`),
+    packageBytes: 100, installedBytes: 100, requiredOriginal: 512 * 1024 ** 2 + 200,
+    missingOriginal: 100, missingDestination: 0, estimated: false
+  }))
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  const job = service.snapshot().jobs.find(item => item.id === result.jobId)!
+  expect(job.status).toBe('paused')
+  expect(job.spacePlan?.missingOriginal).toBe(100)
+  await expect(readFile(join(job.spacePlan!.temporaryDirectory!, '.ghost-download.json'))).rejects.toThrow()
+  expect(await service.action({ type: 'space-proceed', jobId: job.id })).toEqual({ success: true })
+  expect(service.snapshot().jobs.find(item => item.id === job.id)?.spacePlan).toBeUndefined()
+  expect(await readFile(join(alternative, `.ghost-download-${job.id}`, '.ghost-download.json'), 'utf8')).toContain(job.id)
+  spy.mockRestore()
+  await service.action({ type: 'cancel', jobId: job.id })
+})
+
+it('rechecks disk space without permitting an undersized installation destination', async () => {
+  const old = await install()
+  const spy = jest.spyOn(installSpace, 'planInstallSpace').mockImplementation(async destination => ({
+    destination, packageBytes: 100, installedBytes: 200, requiredOriginal: 300,
+    missingOriginal: 200, missingDestination: 100, estimated: false
+  }))
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  await service.action({ type: 'space-proceed', jobId: result.jobId! })
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('paused')
+  spy.mockRestore()
+  await service.action({ type: 'space-recheck', jobId: result.jobId! })
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('awaiting-file')
+  await service.action({ type: 'cancel', jobId: result.jobId! })
+})
+
+it('blocks deletion when the saved snapshot fails checksum verification', async () => {
+  const old = await install()
+  jest.spyOn(externalFiles, 'hashFile').mockResolvedValue('invalid-checksum')
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('error')
+  expect(await readFile(old.executable, 'utf8')).toBe('1.0')
+})
+
+
+it('recovers an interrupted removal without repeating or losing the backup', async () => {
+  const old = await install()
+  const realRm = fsPromises.rm
+  const failure = jest.spyOn(fsPromises, 'rm').mockImplementation(async (path, options) => {
+    if (String(path).includes('.ghost-remove-')) throw new Error('Disk temporarily unavailable')
+    return realRm(path, options)
+  })
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('error')
+  expect(service.canLaunch(old.appName)).toBe(false)
+  failure.mockRestore()
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance()
+  expect(await restarted.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  for (let i = 0; i < 100 && restarted.snapshot().jobs.find(item => item.id === result.jobId)?.status !== 'awaiting-file'; i++)
+    await new Promise(resolve => setTimeout(resolve, 10))
+  expect(restarted.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('awaiting-file')
+  expect(restarted.snapshot().backups).toHaveLength(1)
+  expect(restarted.canLaunch(old.appName)).toBe(false)
+  await restarted.action({ type: 'cancel', jobId: result.jobId! })
+})
+
+
+it('keeps the downloaded package when its extracted size requires more disk space', async () => {
+  const old = await install()
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  const archive = join(root, 'retained.zip')
+  await writeFile(archive, PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('2.0') }]))
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [archive] })
+  const metadata = jest.spyOn(archiveMetadata, 'archiveSize').mockResolvedValue(Number.MAX_SAFE_INTEGER)
+  await service.action({ type: 'import-archive', jobId: result.jobId! })
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.spacePlan?.packageReady).toBe(true)
+  expect((await readFile(archive)).length).toBeGreaterThan(0)
+  metadata.mockRestore()
+  await service.action({ type: 'space-recheck', jobId: result.jobId! })
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('ready')
+  await service.action({ type: 'finish', jobId: result.jobId!, executable: 'game.exe' })
+  expect(await readFile(join(old.savePath!, 'slot.dat'), 'utf8')).toBe('my progress')
+})
+
+
+it('can resume a cancelled replacement using its preserved save backup', async () => {
+  const old = await install()
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  await service.action({ type: 'cancel', jobId: result.jobId! })
+  expect(await service.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  for (let i = 0; i < 100 && service.snapshot().jobs.find(item => item.id === result.jobId)?.status !== 'awaiting-file'; i++)
+    await new Promise(resolve => setTimeout(resolve, 10))
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('awaiting-file')
+  expect(service.snapshot().backups).toHaveLength(1)
+  const archive = join(root, 'after-cancel.zip')
+  await writeFile(archive, PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('2.0') }]))
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [archive] })
+  await service.action({ type: 'import-archive', jobId: result.jobId! })
+  expect(await service.action({ type: 'finish', jobId: result.jobId!, executable: 'game.exe' })).toEqual({ success: true })
+  expect(await readFile(join(old.savePath!, 'slot.dat'), 'utf8')).toBe('my progress')
+})
+
+
+it('keeps manual version corrections in the same record used for update checks', async () => {
+  const installed = await install()
+  service.recordUpdate(installed.id, { ...game, version: '2.0' }, 'update')
+  service.setInstalledVersion(installed.appName, 'v0.10.4')
+  const current = service.snapshot().installations.find(item => item.id === installed.id)!
+  expect(current.game.version).toBe('v0.10.4')
+  expect(current.availableUpdate).toBeUndefined()
+  expect(libraryStore.get('games', []).find(item => item.app_name === installed.appName)?.version).toBe('v0.10.4')
+})
+
+
+it('captures Online-Fix torrents using its own session and reuses them after cancellation', async () => {
+  const { client, remote } = torboxFixture()
+  client.list.mockResolvedValue([remote])
+  const capture = jest.spyOn(OnlineFixAccount, 'torrent').mockResolvedValue(Buffer.from('d4:infod6:lengthi1e4:name8:game.zipee'))
+  const enqueue = () => service.enqueue(
+    { ...game, providerId: ONLINE_FIX_SOURCE_ID, id: 'https://online-fix.me/games/test/123-test.html' },
+    { id: ONLINE_FIX_TORRENT_ID, name: 'Torrent', type: 'torbox', url: 'https://online-fix.me/games/test/123-test.html' },
+    { ...manifest, id: ONLINE_FIX_SOURCE_ID }, undefined, false, false, root)
+  const first = await enqueue()
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'ready')
+  expect(capture).toHaveBeenCalledTimes(1)
+  expect(AnkerAccount.torrent).not.toHaveBeenCalled()
+  await service.action({ type: 'cancel', jobId: first.jobId! })
+  await enqueue()
+  await waitForJob(() => service.snapshot().jobs[1]?.status === 'ready')
+  expect(capture).toHaveBeenCalledTimes(1)
+  expect(client.create).not.toHaveBeenCalled()
+})
+
+it('restores a failed TorBox job after restarting without requesting or uploading the torrent again', async () => {
+  const { client, remote, enqueue } = torboxFixture()
+  client.list.mockResolvedValue([remote])
+  jest.mocked(NetworkGuard.fetchResponse).mockRejectedValue(new Error('local transfer unavailable'))
+  const result = await enqueue()
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  expect(service.snapshot().jobs[0].canResume).toBe(true)
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance()
+  jest.mocked(NetworkGuard.fetchResponse).mockResolvedValue(new Response(new Uint8Array(PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('resumed') }]))))
+  await restarted.action({ type: 'resume', jobId: result.jobId! })
+  await waitForJob(() => restarted.snapshot().jobs[0]?.status === 'ready')
+  expect(AnkerAccount.torrent).toHaveBeenCalledTimes(1)
+  expect(client.create).not.toHaveBeenCalled()
+  expect(client.link).toHaveBeenCalledTimes(2)
+})
+
+it('refreshes the TorBox file link after a temporary network failure without resubmitting', async () => {
+  const { client, remote, enqueue } = torboxFixture()
+  client.list.mockResolvedValue([remote])
+  jest.mocked(NetworkGuard.fetchResponse).mockRejectedValueOnce(new TypeError('fetch failed'))
+  await enqueue()
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'ready')
+  expect(client.link).toHaveBeenCalledTimes(2)
+  expect(client.create).not.toHaveBeenCalled()
+  expect(AnkerAccount.torrent).toHaveBeenCalledTimes(1)
+})
+
+it('asks for the destination even when a default folder is saved and cancels before queueing', async () => {
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: true, filePaths: [] })
+  const result = await service.enqueue(game, source, manifest, undefined, false, false, root, false, true)
+  expect(result.success).toBe(false)
+  expect(service.snapshot().jobs).toHaveLength(0)
+  expect(dialog.showOpenDialog).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: root, title: 'Onde deseja baixar e instalar o jogo?' }))
+})
+
+
+it('reports persistent TorBox file connection failures safely and keeps Resume available', async () => {
+  const { client, remote, enqueue } = torboxFixture()
+  client.list.mockResolvedValue([remote])
+  jest.mocked(NetworkGuard.fetchResponse).mockRejectedValue(Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET', message: 'https://cdn.torbox.app/?token=secret' } }))
+  await enqueue()
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  const failed = service.snapshot().jobs[0]
+  expect(failed.canResume).toBe(true)
+  expect(failed.error).toContain('ECONNRESET')
+  expect(failed.error).toContain('Retomar')
+  expect(failed.error).not.toContain('secret')
+  expect(client.link).toHaveBeenCalledTimes(3)
+  expect(AnkerAccount.torrent).toHaveBeenCalledTimes(1)
+  expect(client.create).not.toHaveBeenCalled()
+}, 15000)
+
+it('uses the newly selected destination instead of the saved default', async () => {
+  const destination = join(root, 'chosen')
+  await mkdir(destination)
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [destination] })
+  const result = await service.enqueue(game, source, manifest, undefined, false, false, root, false, true)
+  const { userDataPath } = await import('backend/constants/paths')
+  const persisted = JSON.parse(await readFile(join(userDataPath, 'external-games', 'state.json'), 'utf8'))
+  expect(persisted.jobs.find((item: { id: string }) => item.id === result.jobId).directory).toBe(join(destination, 'Example'))
 })

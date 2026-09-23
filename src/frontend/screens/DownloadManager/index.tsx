@@ -188,59 +188,68 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
 
   const { state: externalState, refresh: refreshExternal } = useExternalGames()
 
-  const activeExternalJob = React.useMemo(() => {
-    const jobs = externalState.jobs
-    if (!jobs.length) return undefined
+  const activeExternalJobs = React.useMemo(() => {
+    return externalState.jobs.filter((j) => {
+      if (
+        [
+          'downloading',
+          'extracting',
+          'installing',
+          'ready',
+          'awaiting-file',
+          'paused',
+          'error'
+        ].includes(j.status)
+      ) {
+        return true
+      }
+      if (j.status === 'cancelled' && j.oldRemoved) {
+        return true
+      }
+      return false
+    })
+  }, [externalState.jobs])
 
-    // 1. Actively downloading
-    const downloading = jobs.find((j) => j.status === 'downloading')
-    if (downloading) return downloading
-
-    // 2. Extracting or Installing
-    const working = jobs.find(
-      (j) => j.status === 'extracting' || j.status === 'installing'
-    )
-    if (working) return working
-
-    // 3. Ready (waiting for executable selection)
-    const ready = jobs.find((j) => j.status === 'ready')
-    if (ready) return ready
-
-    // 4. Awaiting manual file import
-    const awaiting = jobs.find((j) => j.status === 'awaiting-file')
-    if (awaiting) return awaiting
-
-    // 5. Paused
-    const paused = jobs.find((j) => j.status === 'paused')
-    if (paused) return paused
-
-    // 6. Error requiring attention / retry (if no official download is running)
-    const errJob = jobs.find((j) => j.status === 'error')
-    if (errJob && !currentElement) return errJob
-
-    return undefined
-  }, [externalState.jobs, currentElement])
+  const activeExternalJobIds = React.useMemo(() => {
+    return new Set(activeExternalJobs.map((j) => j.id))
+  }, [activeExternalJobs])
 
   const queuedExternalJobs = React.useMemo(() => {
     return externalState.jobs.filter(
-      (j) => j.status === 'queued' && j.id !== activeExternalJob?.id
+      (j) => j.status === 'queued' && !activeExternalJobIds.has(j.id)
     )
-  }, [externalState.jobs, activeExternalJob?.id])
+  }, [externalState.jobs, activeExternalJobIds])
 
   const completedExternalJobs = React.useMemo(() => {
     return externalState.jobs.filter((j) => j.status === 'completed')
   }, [externalState.jobs])
 
-  const externalSpeedMB = activeExternalJob?.speed
-    ? Math.round((activeExternalJob.speed / (1024 * 1024)) * 100) / 100
-    : undefined
+  const primaryActiveExternal =
+    activeExternalJobs.find((j) => j.status === 'downloading') ||
+    activeExternalJobs.find(
+      (j) => j.status === 'extracting' || j.status === 'installing'
+    ) ||
+    activeExternalJobs[0]
 
-  const externalDiskSpeedMB = activeExternalJob
-    ? activeExternalJob.status === 'extracting' || activeExternalJob.status === 'installing'
-      ? 85
-      : externalSpeedMB !== undefined
-      ? Math.round(externalSpeedMB * 1.25 * 100) / 100
+  const totalExternalSpeed = activeExternalJobs.reduce(
+    (acc, j) => acc + (j.speed || 0),
+    0
+  )
+  const externalSpeedMB =
+    totalExternalSpeed > 0
+      ? Math.round((totalExternalSpeed / (1024 * 1024)) * 100) / 100
+      : activeExternalJobs.some((j) => j.status === 'downloading')
+      ? 0.01
       : undefined
+
+  const hasExtractingOrInstalling = activeExternalJobs.some(
+    (j) => j.status === 'extracting' || j.status === 'installing'
+  )
+
+  const externalDiskSpeedMB = hasExtractingOrInstalling
+    ? 85
+    : externalSpeedMB !== undefined
+    ? Math.round(externalSpeedMB * 1.25 * 100) / 100
     : undefined
 
   const doneElements =
@@ -308,7 +317,74 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
       ? t('queue.label.finished_single', 'CONCLUÍDO')
       : t('queue.label.finished_plural', 'CONCLUÍDOS')
 
-  const hasActiveDownload = Boolean(activeExternalJob || currentElement)
+  type UnifiedActiveItem =
+    | { type: 'official'; id: string; el: DMQueueElement }
+    | { type: 'external'; id: string; job: ExternalDownloadJob }
+
+  const unifiedActiveItems: UnifiedActiveItem[] = React.useMemo(() => {
+    const items: UnifiedActiveItem[] = []
+
+    if (currentElement) {
+      items.push({
+        type: 'official',
+        id: `official-${currentElement.params.appName}`,
+        el: currentElement
+      })
+    }
+
+    const statusPriority: Record<string, number> = {
+      downloading: 1,
+      extracting: 2,
+      installing: 2,
+      ready: 3,
+      'awaiting-file': 4,
+      paused: 5,
+      error: 6,
+      cancelled: 7
+    }
+
+    const sortedJobs = [...activeExternalJobs].sort((a, b) => {
+      const pA = statusPriority[a.status] || 99
+      const pB = statusPriority[b.status] || 99
+      if (pA !== pB) return pA - pB
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+
+    for (const job of sortedJobs) {
+      items.push({
+        type: 'external',
+        id: `external-${job.id}`,
+        job
+      })
+    }
+
+    return items
+  }, [currentElement, activeExternalJobs])
+
+  const isMultiActiveLayout = unifiedActiveItems.length > 2
+
+  const headerAppName = React.useMemo(() => {
+    if (unifiedActiveItems.length === 0) return ''
+    if (unifiedActiveItems.length === 1) {
+      const it = unifiedActiveItems[0]
+      return it.type === 'official' ? it.el.params.appName : it.job.game.title
+    }
+    const first = unifiedActiveItems[0]
+    const firstTitle =
+      first.type === 'official' ? first.el.params.appName : first.job.game.title
+    return `${firstTitle} (+${unifiedActiveItems.length - 1})`
+  }, [unifiedActiveItems])
+
+  const hasActiveRunning =
+    activeExternalJobs.some((j) =>
+      ['downloading', 'extracting', 'installing', 'ready'].includes(j.status)
+    ) ||
+    Boolean(currentElement && state !== 'paused' && state !== 'idle')
+
+  const hasActivePaused =
+    activeExternalJobs.length > 0 &&
+    activeExternalJobs.every((j) => j.status === 'paused') &&
+    (!currentElement || state === 'paused')
 
   const handleClearAllFinished = async () => {
     handleClearList()
@@ -328,26 +404,30 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
     await refreshExternal()
   }
 
-  const renderActiveCard = () => {
-    if (activeExternalJob) {
+  const renderActiveCards = () => {
+    if (unifiedActiveItems.length === 0) {
+      return <DownloadManagerItem current={true} />
+    }
+    return unifiedActiveItems.map((item) => {
+      if (item.type === 'official') {
+        return (
+          <DownloadManagerItem
+            key={item.id}
+            element={item.el}
+            current={true}
+            state={state}
+            onOpenCoverPicker={(game) => setSgdbGame(game)}
+          />
+        )
+      }
       return (
         <ExternalActiveCard
-          job={activeExternalJob}
+          key={item.id}
+          job={item.job}
           onRefresh={refreshExternal}
         />
       )
-    }
-    if (currentElement) {
-      return (
-        <DownloadManagerItem
-          element={currentElement}
-          current={true}
-          state={state}
-          onOpenCoverPicker={(game) => setSgdbGame(game)}
-        />
-      )
-    }
-    return <DownloadManagerItem current={true} />
+    })
   }
 
   const renderQueueItem = (item: UnifiedQueueItem) => {
@@ -435,19 +515,11 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
 
       <ProgressHeader
         state={
-          activeExternalJob
-            ? activeExternalJob.status === 'paused'
-              ? 'paused'
-              : 'running'
-            : state
+          hasActiveRunning ? 'running' : hasActivePaused ? 'paused' : state
         }
-        appName={
-          activeExternalJob
-            ? activeExternalJob.game.title
-            : currentElement?.params?.appName ?? ''
-        }
+        appName={headerAppName}
         runner={
-          activeExternalJob
+          primaryActiveExternal
             ? 'sideload'
             : currentElement?.params?.runner ?? 'legendary'
         }
@@ -455,7 +527,170 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
         overrideDiskSpeed={externalDiskSpeedMB}
       />
 
-      {isAdaptive4Quad ? (
+      {isMultiActiveLayout ? (
+        /* MODO MULTI-ATIVO: Mais de 2 processos ativos em Baixando Agora */
+        <div className="downloadManagerAdaptiveContainer">
+          {/* Topo em Largura Total: Baixando Agora (> 2 ativos em grid de 2 colunas) */}
+          <div className="dmMultiActiveTopSection">
+            <div className="downloadManagerSectionHeader">
+              <h5 className="downloadManagerSectionTitle">
+                {t('queue.label.downloading_now', 'BAIXANDO AGORA')} ({unifiedActiveItems.length})
+              </h5>
+            </div>
+            <div className="dmActiveCardsGrid">
+              {renderActiveCards()}
+            </div>
+          </div>
+
+          {/* Linha Inferior: Concluídos na Esquerda em paralelo com Na Fila + Restante da Fila na Direita */}
+          <div
+            className={`downloadManagerBottomAdaptiveRow ${
+              isCompletedCollapsed && isOverflowQueueCollapsed
+                ? 'dmBothCollapsed'
+                : isCompletedCollapsed
+                ? 'dmCompletedCollapsed'
+                : isOverflowQueueCollapsed
+                ? 'dmOverflowCollapsed'
+                : 'dmBothOpen'
+            }`}
+          >
+            {/* Bloco Inferior Esquerdo: Concluídos */}
+            <div className="dmBottomSection dmBottomCompletedCol">
+              {isCompletedCollapsed ? (
+                <button
+                  type="button"
+                  className="dmCollapsedTab"
+                  onClick={toggleCompletedCollapse}
+                  title={t('queue.label.expand_completed', 'Expandir Concluídos')}
+                >
+                  <FontAwesomeIcon icon={faChevronRight} className="dmTabIcon" />
+                  <span className="dmTabLabel">{finishedTitle} ({unifiedFinishedItems.length})</span>
+                  <span className="dmTabHint">{t('queue.label.click_to_expand', 'Clique para expandir')}</span>
+                </button>
+              ) : (
+                <div className="dmBottomCardContainer">
+                  <div className="downloadManagerSectionHeader">
+                    <h5 className="downloadManagerSectionTitle">
+                      {finishedTitle} ({unifiedFinishedItems.length})
+                    </h5>
+                    <div className="dmHeaderActions">
+                      {!!unifiedFinishedItems.length && (
+                        <button
+                          type="button"
+                          className="downloadManagerClearButton dmSmallClearBtn"
+                          onClick={() => void handleClearAllFinished()}
+                          title={t('queue.label.clear', 'Limpar Histórico')}
+                        >
+                          <span>{t('queue.label.clear', 'Limpar')}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="dmCollapseHeaderBtn"
+                        onClick={toggleCompletedCollapse}
+                        title={t('queue.label.collapse', 'Recolher')}
+                      >
+                        <FontAwesomeIcon icon={faChevronDown} />
+                        <span>Recolher</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {unifiedFinishedItems.length > 0 ? (
+                    <div
+                      className={`downloadManagerFinishedGrid ${
+                        isOverflowQueueCollapsed ? 'dmGridFullWidth' : 'dmGridHalfWidth'
+                      }`}
+                    >
+                      {unifiedFinishedItems.map(renderFinishedItem)}
+                    </div>
+                  ) : (
+                    <div className="dmEmptyCompletedCard">
+                      <div className="dmEmptyCompletedIcon">
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                      </div>
+                      <div className="dmEmptyCompletedText">
+                        <span className="dmEmptyCompletedTitle">
+                          {t('queue.empty.finished_title', 'Nenhum download concluído ainda')}
+                        </span>
+                        <span className="dmEmptyCompletedSub">
+                          {t(
+                            'queue.empty.finished_sub',
+                            'Os jogos finalizados aparecerão aqui com acesso rápido para jogar.'
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bloco Inferior Direito: Na Fila + Restante da Fila abaixo */}
+            <div className="dmBottomSection dmBottomOverflowCol">
+              {isOverflowQueueCollapsed ? (
+                <button
+                  type="button"
+                  className="dmCollapsedTab"
+                  onClick={toggleOverflowQueueCollapse}
+                  title={t('queue.label.expand_queue', 'Expandir Fila')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} className="dmTabIcon" />
+                  <span className="dmTabLabel">
+                    {t('queue.label.queued', 'NA FILA')} ({unifiedQueueItems.length})
+                  </span>
+                  <span className="dmTabHint">{t('queue.label.click_to_expand', 'Clique para expandir')}</span>
+                </button>
+              ) : (
+                <div className="dmBottomCardContainer dmQueueRightStack">
+                  {/* Sub-bloco 1: Na Fila */}
+                  <div className="downloadManagerColumn" style={{ width: '100%' }}>
+                    <div className="downloadManagerSectionHeader">
+                      <h5 className="downloadManagerSectionTitle">
+                        {t('queue.label.queued', 'NA FILA')} ({isAdaptive4Quad ? `3/${unifiedQueueItems.length}` : unifiedQueueItems.length})
+                      </h5>
+                    </div>
+                    <div className="downloadManagerQueueList dmQueueTop3List">
+                      {(isAdaptive4Quad ? topQueueItems : unifiedQueueItems).length > 0 ? (
+                        (isAdaptive4Quad ? topQueueItems : unifiedQueueItems).map(renderQueueItem)
+                      ) : (
+                        <DownloadManagerItem current={false} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sub-bloco 2: Restante da Fila posicionado logo abaixo de Na Fila */}
+                  {isAdaptive4Quad && overflowQueueItems.length > 0 && (
+                    <div className="downloadManagerColumn" style={{ width: '100%', marginTop: '14px' }}>
+                      <div className="downloadManagerSectionHeader">
+                        <h5 className="downloadManagerSectionTitle">
+                          {t('queue.label.remaining_queue', 'RESTANTE DA FILA')} ({overflowQueueItems.length})
+                        </h5>
+                        <button
+                          type="button"
+                          className="dmCollapseHeaderBtn"
+                          onClick={toggleOverflowQueueCollapse}
+                          title={t('queue.label.collapse', 'Recolher')}
+                        >
+                          <FontAwesomeIcon icon={faChevronDown} />
+                          <span>Recolher</span>
+                        </button>
+                      </div>
+                      <div
+                        className={`downloadManagerQueueList dmOverflowQueueList ${
+                          isCompletedCollapsed ? 'dmGridFullWidth' : 'dmGridHalfWidth'
+                        }`}
+                      >
+                        {overflowQueueItems.map(renderQueueItem)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : isAdaptive4Quad ? (
         <div className="downloadManagerAdaptiveContainer">
           {/* Top Row: Fixo e Intocável */}
           <div className="downloadManagerSplitGrid dmTopFixedGrid">
@@ -463,11 +698,11 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
             <div className="downloadManagerColumn">
               <div className="downloadManagerSectionHeader">
                 <h5 className="downloadManagerSectionTitle">
-                  {t('queue.label.downloading_now', 'BAIXANDO AGORA')} ({hasActiveDownload ? 1 : 0})
+                  {t('queue.label.downloading_now', 'BAIXANDO AGORA')} ({unifiedActiveItems.length})
                 </h5>
               </div>
               <div className="downloadManagerActiveWrapper">
-                {renderActiveCard()}
+                {renderActiveCards()}
               </div>
             </div>
 
@@ -619,11 +854,11 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
             <div className="downloadManagerColumn">
               <div className="downloadManagerSectionHeader">
                 <h5 className="downloadManagerSectionTitle">
-                  {t('queue.label.downloading_now', 'BAIXANDO AGORA')} ({hasActiveDownload ? 1 : 0})
+                  {t('queue.label.downloading_now', 'BAIXANDO AGORA')} ({unifiedActiveItems.length})
                 </h5>
               </div>
               <div className="downloadManagerActiveWrapper">
-                {renderActiveCard()}
+                {renderActiveCards()}
               </div>
             </div>
 

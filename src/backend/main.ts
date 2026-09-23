@@ -1372,6 +1372,9 @@ addHandler('downloadBackupFromCloud', async () => {
 })
 
 addHandler('detectGameVersion', async (_event, game) => {
+  const { ExternalGames } = await import('./plugins/externalGames')
+  const installed = ExternalGames.getInstance().snapshot().installations.find(item => item.appName === game.app_name)
+  if (installed) return installed.game.version ? { version: installed.game.version, source: 'manifest' as const, details: `Versão instalada registrada pelo Ghost · ${installed.game.providerName}` } : null
   return detectPirateGameVersion(game)
 })
 
@@ -1380,6 +1383,8 @@ addHandler('resolveDateVersionOnline', async (_event, title, dateStr) => {
 })
 
 addHandler('setGameVersion', async (_event, appName, version) => {
+  const { ExternalGames } = await import('./plugins/externalGames')
+  ExternalGames.getInstance().setInstalledVersion(appName, version)
   return setGameVersion(appName, version)
 })
 

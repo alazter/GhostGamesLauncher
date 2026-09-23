@@ -510,6 +510,52 @@
   transition: color 0.2s ease;
 }
 
+.externalSearchIconBtn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.externalSearchIconBtn:hover {
+  color: #00ffff !important;
+  filter: drop-shadow(0 0 6px rgba(0, 255, 255, 0.8));
+  transform: scale(1.1);
+}
+
+.externalSearchClearBtn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.externalSearchClearBtn:hover {
+  color: #ff5252 !important;
+  filter: drop-shadow(0 0 6px rgba(255, 82, 82, 0.8));
+  transform: scale(1.1);
+}
+
 .externalUnifiedSearchRow:focus-within .externalSearchInputWrapper svg {
   color: #00ffff;
 }
@@ -1491,13 +1537,25 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  background: rgba(13, 18, 26, 0.95);
+  background: rgba(13, 18, 26, 0.96);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  border: 1px solid rgba(0, 229, 255, 0.35);
   border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 229, 255, 0.15);
   overflow: hidden;
   z-index: 200;
+  animation: suggestionsFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes suggestionsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .suggestionHeader {
@@ -1519,18 +1577,59 @@
   justify-content: space-between;
   padding: 12px 18px;
   cursor: pointer;
-  transition: background 0.15s ease;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.15s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
 }
 
 .suggestionItem:hover {
-  background: rgba(0, 229, 255, 0.12);
+  background: rgba(0, 229, 255, 0.15);
+  padding-left: 22px;
+}
+
+.suggestionItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.suggestionGameIcon {
+  font-size: 14px;
+  color: #00ffff;
+  opacity: 0.75;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.suggestionItem:hover .suggestionGameIcon {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px #00ffff);
+  transform: scale(1.15);
 }
 
 .suggestionTitle {
   font-size: 14.5px;
   font-weight: 600;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestionSearchIcon {
+  font-size: 13px;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.suggestionItem:hover .suggestionSearchIcon {
+  color: #00ffff;
+  transform: translateX(3px);
 }
 
 /* ========================================================================== */
@@ -2921,4 +3020,513 @@
   box-shadow: 0 0 20px rgba(0, 255, 255, 0.55);
 }
 
+/* ==========================================================================
+   CONFIGURAÇÕES DE BUSCAR JOGOS: BOTÃO DE ENGRENAGEM & MODAL MULTI-ABAS
+   ========================================================================== */
+.externalSettingsPillBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: #00ffff;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.15);
+  margin-left: 6px;
+  flex-shrink: 0;
+}
 
+.externalSettingsPillBtn:hover {
+  background: rgba(0, 255, 255, 0.18);
+  border-color: #00ffff;
+  color: #fff;
+  transform: scale(1.08);
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.5);
+}
+
+.externalManageInstalledFooterBtn {
+  background: rgba(19, 26, 32, 0.85);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 12px;
+  color: #00ffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.12);
+}
+
+.externalManageInstalledFooterBtn:hover {
+  background: rgba(0, 255, 255, 0.15);
+  border-color: #00ffff;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.ghostSettingsModalExpandedCard {
+  max-width: 740px !important;
+  max-height: 85vh;
+}
+
+.ghostSettingsTabsNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: auto;
+}
+
+.ghostSettingsTabBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.ghostSettingsTabBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ghostSettingsTabBtn.active {
+  background: rgba(0, 255, 255, 0.12);
+  border-color: rgba(0, 255, 255, 0.4);
+  color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+}
+
+.ghostSettingsTabContent {
+  overflow-y: auto;
+  max-height: calc(85vh - 170px);
+}
+
+.ghostSettingsTabPane {
+  padding: 20px 24px;
+}
+
+.ghostSettingsSectionHeader {
+  margin-bottom: 18px;
+}
+
+.ghostSettingsSectionHeader h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ghostSettingsSectionHeader p {
+  margin: 4px 0 0 0;
+  font-size: 12.5px;
+  color: #94a3b8;
+  line-height: 1.45;
+}
+
+.ghostSettingsCardBox {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.ghostSettingsLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #00ffff;
+  margin-bottom: 10px;
+}
+
+.ghostSettingsSelect {
+  width: 100%;
+  background: #080c10;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ghostSettingsSelect:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+}
+
+.ghostSettingsSuccessBadge {
+  margin-top: 10px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: ghostModalFadeIn 0.2s ease-out;
+}
+
+.ghostSettingsSyncHeader {
+  margin-bottom: 12px;
+}
+
+.ghostSettingsSyncTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ghostSettingsSyncHeader p {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ghostSettingsActionBtn {
+  background: rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  color: #00ffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.ghostSettingsActionBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 255, 0.25);
+  border-color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.ghostSettingsActionBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ghostSettingsActionBtn.secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+}
+
+.ghostSettingsActionBtn.secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  box-shadow: none;
+}
+
+.ghostSettingsNotice {
+  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: #00ffff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.ghostIntegrationHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ghostIntegrationTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ghostStatusPill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ghostStatusPill.connected {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.ghostStatusPill.disconnected {
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+}
+
+.ghostIntegrationActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ghostTorboxInputGroup {
+  margin-top: 10px;
+}
+
+.ghostTorboxFieldWrapper {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.ghostTorboxInput {
+  width: 100%;
+  background: #080c10;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  padding: 10px 42px 10px 14px;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.ghostTorboxInput:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+}
+
+.ghostTorboxToggleBtn {
+  position: absolute;
+  right: 12px;
+  background: transparent !important;
+  border: none !important;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.ghostTorboxToggleBtn:hover {
+  color: #00ffff;
+}
+
+/* JOGOS INSTALADOS LIST */
+.ghostInstListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ghostInstItemCard {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 18px;
+  transition: all 0.2s ease;
+}
+
+.ghostInstItemCard:hover {
+  border-color: rgba(0, 255, 255, 0.25);
+  background: rgba(0, 255, 255, 0.02);
+}
+
+.ghostInstCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ghostInstInfoLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ghostInstProviderIcon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ghostInstTitles h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ghostInstBadges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ghostInstBadgeStore {
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: #00ffff;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ghostInstBadgeVer {
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #cbd5e1;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ghostInstBadgeShield {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ghostInstDeleteBtn {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.ghostInstDeleteBtn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.ghostInstPathsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.ghostInstPathRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.ghostInstPathRow .pathLabel {
+  color: #64748b;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ghostInstPathRow .pathValue {
+  color: #94a3b8;
+  font-family: 'Consolas', 'Courier New', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ghostInstActionsBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ghostInstActionBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 11.5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.ghostInstActionBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 255, 0.12);
+  border-color: rgba(0, 255, 255, 0.35);
+  color: #00ffff;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+.ghostInstActionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
+
+.ghostTransportChoices { display: flex; flex-direction: column; gap: 14px; margin: 24px 0; }
+.ghostTransportChoices button { width: 100%; justify-content: flex-start; text-align: left; }

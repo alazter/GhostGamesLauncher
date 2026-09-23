@@ -99,6 +99,8 @@ export function syncAutoStoreAssignments(
   }
 }
 
+export const DEFAULT_DOWNLOAD_STORE_KEY = 'ghost_default_download_store_id'
+
 export function findPiratasStoreId(): string {
   try {
     const rawCustomStores = localStorage.getItem('heroic_custom_stores') || '[]'
@@ -108,16 +110,36 @@ export function findPiratasStoreId(): string {
       const idLower = (s.id || '').toLowerCase()
       return nameLower.includes('pirata') || idLower === 'piratas'
     })
-    return found ? found.id : 'piratas'
+    return found ? found.id : (customStores[0]?.id || 'piratas')
   } catch {
     return 'piratas'
   }
 }
 
-export function assignGameToPiratasStore(appName: string): boolean {
+export function getDefaultDownloadStoreId(): string {
+  try {
+    const saved = localStorage.getItem(DEFAULT_DOWNLOAD_STORE_KEY)
+    if (saved) return saved
+    return findPiratasStoreId()
+  } catch {
+    return findPiratasStoreId()
+  }
+}
+
+export function setDefaultDownloadStoreId(storeId: string): void {
+  try {
+    localStorage.setItem(DEFAULT_DOWNLOAD_STORE_KEY, storeId)
+    window.dispatchEvent(new Event('defaultDownloadStoreChanged'))
+    window.dispatchEvent(new Event('gameAssignmentsChanged'))
+  } catch (e) {
+    console.error('Error setting default download store id:', e)
+  }
+}
+
+export function assignGameToDefaultStore(appName: string): boolean {
   if (!appName) return false
   try {
-    const piratasStoreId = findPiratasStoreId()
+    const targetStoreId = getDefaultDownloadStoreId()
     const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
     let currentAssignments: Record<string, string> = {}
     try {
@@ -126,16 +148,20 @@ export function assignGameToPiratasStore(appName: string): boolean {
       currentAssignments = {}
     }
 
-    if (currentAssignments[appName] !== piratasStoreId) {
-      currentAssignments[appName] = piratasStoreId
+    if (currentAssignments[appName] !== targetStoreId) {
+      currentAssignments[appName] = targetStoreId
       localStorage.setItem('heroic_game_assignments', JSON.stringify(currentAssignments))
       window.dispatchEvent(new Event('gameAssignmentsChanged'))
       return true
     }
   } catch (e) {
-    console.error('Error assigning game to Piratas store:', e)
+    console.error('Error assigning game to default store:', e)
   }
   return false
+}
+
+export function assignGameToPiratasStore(appName: string): boolean {
+  return assignGameToDefaultStore(appName)
 }
 
 export async function syncPiratasStoreAssignments(): Promise<void> {
@@ -144,9 +170,9 @@ export async function syncPiratasStoreAssignments(): Promise<void> {
     const state = await window.api.externalGamesState()
     if (!state?.installations?.length) return
 
-    // Exclusive sources allowed for Piratas store
+    // Exclusive sources allowed for default external games store
     const piratasSources = ['anker', 'steamrip', 'online-fix', 'ankergames']
-    const piratasStoreId = findPiratasStoreId()
+    const targetStoreId = getDefaultDownloadStoreId()
     const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
     let currentAssignments: Record<string, string> = {}
     try {
@@ -162,8 +188,8 @@ export async function syncPiratasStoreAssignments(): Promise<void> {
           (inst.game?.providerId || '').toLowerCase().includes(s) ||
           (inst.game?.providerName || '').toLowerCase().includes(s)
       )
-      if (isEligible && inst.appName && currentAssignments[inst.appName] !== piratasStoreId) {
-        currentAssignments[inst.appName] = piratasStoreId
+      if (isEligible && inst.appName && currentAssignments[inst.appName] !== targetStoreId) {
+        currentAssignments[inst.appName] = targetStoreId
         hasChanges = true
       }
     }
@@ -173,7 +199,7 @@ export async function syncPiratasStoreAssignments(): Promise<void> {
       window.dispatchEvent(new Event('gameAssignmentsChanged'))
     }
   } catch (e) {
-    console.error('Error syncing Piratas store assignments:', e)
+    console.error('Error syncing default store assignments:', e)
   }
 }
 

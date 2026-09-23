@@ -121,7 +121,7 @@ export class NetworkGuard {
       ...headers
     }
     let requestHeaders = browserHeaders
-    this.dispatcher ??= new Agent({ connect: { lookup: (hostname, options, callback) => {
+    this.dispatcher ??= new Agent({ connect: { autoSelectFamily: true, autoSelectFamilyAttemptTimeout: 250, lookup: (hostname, options, callback) => {
       lookup(hostname, { all: true }, (error, addresses) => {
         if (error) { callback(error, '', 4); return }
         if (!addresses.length || addresses.some((entry) => !isPublicDownloadAddress(entry.address))) {

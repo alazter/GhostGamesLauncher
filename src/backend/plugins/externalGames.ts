@@ -21,6 +21,10 @@ import {
   writeFile
 } from 'fs/promises'
 import { randomUUID } from 'crypto'
+import { synchronizeExternalVersion } from './externalVersion'
+import { archiveSize } from './archiveSize'
+import { planInstallSpace, sizeBytes, spaceReserve } from './installSpace'
+import { gameDirectoryName, prepareNewInstallDirectory } from './installDirectory'
 import type { GameInfo } from 'common/types'
 import { basename, dirname, join, relative, resolve } from 'path'
 import { Readable, Transform } from 'stream'
@@ -45,6 +49,7 @@ import type {
 } from 'common/types/plugins'
 import { NetworkGuard } from './networkGuard'
 import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, ankerGameUrl } from './ankerAccount'
+import { OnlineFixAccount, ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
 import { TorboxClient, TorboxRejectedError } from './torboxClient'
 import { TORBOX_DOWNLOAD_DOMAINS } from './torboxDomains'
 import { torrentInfoHash } from './torrentMetadata'
@@ -63,6 +68,12 @@ import {
 } from './piratasSaveKnowledge'
 
 interface StoredJob extends ExternalDownloadJob {
+  pendingArchive?: string
+  replacementPrepared?: boolean
+  removalStarted?: boolean
+  temporaryDirectory?: string
+  packageEstimate?: number
+  installedEstimate?: number
   torboxId?: number
   torrentHash?: string
   torboxSubmissionPending?: boolean
@@ -144,15 +155,21 @@ export class ExternalGames {
         readFileSync(this.statePath, 'utf8')
       ) as StoredState
     for (const job of this.state.jobs) {
-      if (job.commitStarted) {
+      if (job.removalStarted) {
+        job.status = 'error'
+        job.error = 'A remoção foi interrompida. Retome para concluir a reinstalação; o backup foi preservado.'
+      } else if (job.commitStarted) {
         this.recover(job)
       } else if (['downloading', 'queued'].includes(job.status))
         job.status = 'paused'
       else if (['extracting', 'installing'].includes(job.status)) {
         job.status = 'error'
         job.error =
-          'Operação interrompida. O jogo anterior e os backups foram preservados.'
+          job.oldRemoved ? 'Reinstalação interrompida. O jogo está indisponível; o backup foi preservado.' : 'Operação interrompida. O jogo anterior e os backups foram preservados.'
       }
+    }
+    for (const installation of this.state.installations) {
+      if (installation.game.version && existsSync(installation.executable)) synchronizeExternalVersion(installation.appName, installation.game.version)
     }
     backendEvents.on('gameStatusUpdate', ({ runner, appName, status }) => {
       if (runner !== 'sideload') return
@@ -218,7 +235,7 @@ export class ExternalGames {
         }
         renameSync(rollback, job.old?.directory || job.directory)
       } else if (
-        !job.old &&
+        (!job.old || job.oldRemoved) &&
         existsSync(job.directory) &&
         !existsSync(job.stage)
       ) {
@@ -242,7 +259,7 @@ export class ExternalGames {
       job.commitStarted = false
       job.status = existsSync(job.stage) ? 'ready' : 'error'
       job.error =
-        'Operação interrompida. A instalação anterior foi recuperada; os backups foram preservados.'
+        job.oldRemoved ? 'Reinstalação interrompida. O jogo está indisponível; o backup foi preservado.' : 'Operação interrompida. A instalação anterior foi recuperada; os backups foram preservados.'
     } catch {
       job.status = 'error'
       job.error =
@@ -251,6 +268,7 @@ export class ExternalGames {
   }
 
   canLaunch(appName: string): boolean {
+    if (this.state.jobs.some(job => job.old?.appName === appName && (job.removalStarted || job.oldRemoved) && job.status !== 'completed')) return false
     const installation = this.state.installations.find(
       (item) => item.appName === appName
     )
@@ -261,6 +279,19 @@ export class ExternalGames {
           (job) => job.installationId === installation.id && job.commitStarted
         ))
     )
+  }
+
+  setInstalledVersion(appName: string, version: string): void {
+    const installation = this.state.installations.find(item => item.appName === appName)
+    if (!installation) return
+    if (this.locked.has(installation.id) || this.finishing.has(installation.id) ||
+        this.state.jobs.some(job => job.installationId === installation.id && !['completed', 'cancelled', 'error'].includes(job.status)))
+      throw new Error('Aguarde a instalação terminar antes de editar a versão.')
+    installation.game = { ...installation.game, version: version.trim() || undefined }
+    installation.availableUpdate = undefined
+    installation.updateMessage = undefined
+    synchronizeExternalVersion(appName, installation.game.version)
+    this.save()
   }
 
   recordUpdate(id: string, update?: GhostSearchResult, message?: string) {
@@ -457,6 +488,8 @@ export class ExternalGames {
     installationId: string,
     backupId: string
   ): Promise<ExternalActionResult> {
+    if (this.state.jobs.some(job => job.backupId === backupId && job.status !== 'completed'))
+      return { success: false, error: 'Este backup protege uma reinstalação pendente.' }
     const backupIndex = this.state.backups.findIndex(
       (b) => b.id === backupId && b.installationId === installationId
     )
@@ -527,6 +560,45 @@ export class ExternalGames {
   }
 
   snapshot(): ExternalGamesState {
+    const games = libraryStore.get('games', [])
+    let stateChanged = false
+
+    // Auto-prune installations that were removed or uninstalled from the Ghost library
+    {
+      const beforeCount = this.state.installations.length
+      this.state.installations = this.state.installations.filter((inst) => {
+        if (!inst.appName) return true
+        if (this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted)) return true
+        return games.some((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
+      })
+      if (this.state.installations.length !== beforeCount) {
+        stateChanged = true
+      }
+    }
+
+    for (const inst of this.state.installations) {
+      const libGame = games.find((g: any) => g.app_name === inst.appName)
+      if (libGame) {
+        const libExecutable = libGame.install?.executable || ''
+        const libDir =
+          libGame.install?.install_path ||
+          libGame.folder_name ||
+          (libExecutable ? dirname(libExecutable) : '')
+        if (libDir && libDir !== inst.directory) {
+          inst.directory = libDir
+          stateChanged = true
+        }
+        if (libExecutable && libExecutable !== inst.executable) {
+          inst.executable = libExecutable
+          stateChanged = true
+        }
+      }
+    }
+
+    if (stateChanged) {
+      this.save()
+    }
+
     return {
       jobs: this.state.jobs.map((job) => ({
         id: job.id,
@@ -543,11 +615,30 @@ export class ExternalGames {
         transferPhase: job.transferPhase,
         remoteProgress: job.remoteProgress,
         remoteStatus: job.remoteStatus,
+        oldRemoved: job.oldRemoved || job.removalStarted,
+        spacePlan: job.spacePlan,
+        canResume: !job.commitStarted && !existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')),
         candidates: job.candidates
       })),
-      installations: this.state.installations,
+      installations: this.state.installations.filter(inst =>
+        this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted) ||
+        (!!inst.executable && existsSync(inst.executable))
+      ),
       backups: this.state.backups
     }
+  }
+
+  removeInstallation(idOrAppName: string): boolean {
+    const before = this.state.installations.length
+    this.state.installations = this.state.installations.filter(
+      (item) => item.id !== idOrAppName && item.appName !== idOrAppName
+    )
+    if (this.state.installations.length !== before) {
+      this.save()
+      sendFrontendMessage('external-games-updated', this.snapshot())
+      return true
+    }
+    return false
   }
 
   private installation(id: string) {
@@ -556,15 +647,22 @@ export class ExternalGames {
     const game = libraryStore
       .get('games', [])
       .find((item) => item.app_name === installation.appName)
-    if (
-      !game ||
-      game.runner !== 'sideload' ||
-      resolve(game.install.executable || '') !==
-        resolve(installation.executable)
-    ) {
+    if (!game || game.runner !== 'sideload') {
       throw new Error(
         'O vínculo com a instalação externa mudou. Nenhum arquivo foi alterado.'
       )
+    }
+    // Sincroniza dinamicamente se o executável ou diretório foi alterado na biblioteca
+    if (
+      game.install?.executable &&
+      resolve(game.install.executable) !== resolve(installation.executable)
+    ) {
+      installation.executable = game.install.executable
+      installation.directory =
+        game.install.install_path ||
+        game.folder_name ||
+        dirname(game.install.executable)
+      this.save()
     }
     if (this.playing.has(installation.appName))
       throw new Error('Feche o jogo antes de continuar.')
@@ -580,7 +678,7 @@ export class ExternalGames {
           game.runner === 'sideload' &&
           game.is_installed &&
           game.install?.platform === 'Windows' &&
-          (game.install?.executable || game.install?.install_path) &&
+          !!game.install?.executable && existsSync(game.install.executable) &&
           !registered.has(game.app_name)
       )
       .map((game) => {
@@ -742,16 +840,23 @@ export class ExternalGames {
     automatic = false,
     autoFinish = automatic,
     targetDirectory?: string,
-    confirmed = false
+    confirmed = false,
+    chooseDirectory = false
   ): Promise<ExternalActionResult> {
+    const previous = replaceId ? this.state.installations.find(item => item.id === replaceId) : undefined
+    if (previous && !existsSync(previous.executable) && !this.playing.has(previous.appName) &&
+      !this.state.jobs.some(job => job.installationId === previous.id && job.commitStarted)) {
+      if (targetDirectory && resolve(targetDirectory) === resolve(previous.directory)) targetDirectory = dirname(previous.directory)
+      replaceId = undefined
+    }
+    // A removed registration must not turn a fresh download into a replacement.
+    if (replaceId && !previous) replaceId = undefined
     const old = replaceId ? this.installation(replaceId) : undefined
     const viaTorbox = source.type === 'torbox'
     const viaBrowser = manifest.id === ANKER_SOURCE_ID && source.id === ANKER_DIRECT_ID
     if (viaBrowser) ankerGameUrl(source.url)
     if (viaTorbox) {
-      if (manifest.id !== ANKER_SOURCE_ID || source.id !== ANKER_TORRENT_ID)
-        throw new Error('Fonte TorBox não reconhecida.')
-      ankerGameUrl(source.url)
+      this.torrentProvider(manifest.id, source.id, source.url)
       await TorboxClient.saved()
     }
     if (game.platform !== 'windows')
@@ -808,6 +913,15 @@ export class ExternalGames {
       if (answer.response !== 1) return { success: false }
     }
 
+    if (!old && chooseDirectory) {
+      const selection = await dialog.showOpenDialog({
+        title: 'Onde deseja baixar e instalar o jogo?',
+        defaultPath: targetDirectory,
+        properties: ['openDirectory', 'createDirectory']
+      })
+      if (selection.canceled || !selection.filePaths[0]) return { success: false }
+      targetDirectory = selection.filePaths[0]
+    }
     const installationId = old?.id || randomUUID()
     let parent: string
     let finalDirectory: string
@@ -821,7 +935,7 @@ export class ExternalGames {
       }
     } else if (targetDirectory && existsSync(targetDirectory)) {
       parent = targetDirectory
-      finalDirectory = join(parent, `ghost-${installationId}`)
+      finalDirectory = join(parent, gameDirectoryName(game.title))
     } else {
       const selection = await dialog.showOpenDialog({
         title: 'Escolha onde instalar o jogo',
@@ -831,7 +945,7 @@ export class ExternalGames {
         return { success: false }
       }
       parent = selection.filePaths[0]
-      finalDirectory = join(parent, `ghost-${installationId}`)
+      finalDirectory = join(parent, gameDirectoryName(game.title))
     }
 
     const id = randomUUID()
@@ -858,6 +972,19 @@ export class ExternalGames {
       autoFinish: Boolean(autoFinish || automatic)
     }
     this.state.jobs.push(job)
+    if (old && confirmed) {
+      this.locked.add(installationId)
+      job.status = 'paused'
+      this.save()
+      try {
+        await this.prepareReplacement(job)
+        if (await this.checkReplacementSpace(job))
+          job.status = isDirectArchive || viaTorbox || viaBrowser ? 'queued' : 'awaiting-file'
+      } catch (error) {
+        job.status = 'error'
+        job.error = `${error instanceof Error ? error.message : String(error)}${job.oldRemoved || job.removalStarted ? ' O jogo está indisponível até concluir a reinstalação. O backup foi preservado.' : ''}`
+      } finally { this.locked.delete(installationId) }
+    }
     this.save()
     if (job.status === 'awaiting-file') {
       const url = new URL(source.url)
@@ -867,6 +994,113 @@ export class ExternalGames {
     }
     void this.pump()
     return { success: true, jobId: id }
+  }
+
+  private async prepareReplacement(job: StoredJob) {
+    if (job.replacementPrepared) return
+    const old = job.old!
+    if (this.playing.has(old.appName)) throw new Error('Feche o jogo antes de reinstalar.')
+    const directory = resolve(old.directory)
+    if (directory === dirname(directory) || directory.toLowerCase() === resolve(this.root).toLowerCase() || inside(directory, this.root) || inside(this.root, directory) ||
+        inside(directory, dirname(job.directory)) ||
+        libraryStore.get('games', []).some(game => game.app_name !== old.appName && game.install?.install_path &&
+          (resolve(game.install.install_path) === directory || inside(directory, game.install.install_path))) ||
+        this.state.installations.some(item => item.id !== old.id &&
+          (resolve(item.directory) === directory || inside(directory, item.directory))))
+      throw new Error('A pasta contém outros dados gerenciados e não pode ser apagada.')
+    if (existsSync(directory)) {
+      if (resolve(await realpath(directory)).toLowerCase() !== directory.toLowerCase())
+        throw new Error('A pasta da instalação foi redirecionada.')
+      const marker = JSON.parse(await readFile(join(directory, '.ghost-install.json'), 'utf8')) as { id: string }
+      if (marker.id !== old.id) throw new Error('Marcador da instalação inválido.')
+      const files = await regularFiles(directory)
+      if (!job.installedEstimate) {
+        let footprint = 0
+        for (const file of files) footprint += (await stat(file)).size
+        job.packageEstimate = sizeBytes(job.source.size) || sizeBytes(job.game.size) || footprint
+        job.installedEstimate = sizeBytes(job.game.installedSize) || Math.max(footprint, job.packageEstimate * 3)
+      }
+    }
+    if (!job.backupId) {
+      if (!old.savePath || !(await regularFiles(old.savePath)).length)
+        throw new Error('Nenhum save encontrado. Configure a pasta correta antes de substituir o jogo.')
+      job.backupId = (await this.backup(old)).id
+    }
+    // Verify every persisted backup byte again before any destructive operation.
+    const backupPath = join(this.root, 'backups', job.backupId)
+    const snapshot = JSON.parse(await readFile(join(backupPath, '.ghost-save-manifest.json'), 'utf8')) as { files: Array<{ path: string; sha256: string }> }
+    if (!snapshot.files.length) throw new Error('O backup está vazio.')
+    for (const file of snapshot.files) {
+      const path = resolve(backupPath, file.path)
+      if (!inside(backupPath, path) || await hashFile(path) !== file.sha256)
+        throw new Error('O backup não passou na verificação. A exclusão foi bloqueada.')
+    }
+    const removal = join(dirname(directory), `.ghost-remove-${job.id}`)
+    if (existsSync(removal) && (!job.removalStarted || existsSync(directory)))
+      throw new Error('A pasta de remoção já existe. Nenhuma pasta adicional foi apagada.')
+    if (!job.removalStarted) job.installedEstimate = (job.installedEstimate || 0) + (this.state.backups.find(item => item.id === job.backupId)?.bytes || 0)
+    job.removalStarted = true
+    this.save()
+    if (existsSync(directory)) await safeRename(directory, removal)
+    if (existsSync(removal)) {
+      if (resolve(await realpath(removal)).toLowerCase() !== resolve(removal).toLowerCase())
+        throw new Error('A pasta de remoção foi redirecionada.')
+      await rm(removal, { recursive: true, force: true })
+    }
+    job.oldRemoved = true
+    job.removalStarted = false
+    job.replacementPrepared = true
+    libraryStore.set('games', libraryStore.get('games', []).map(game =>
+      game.app_name === old.appName ? { ...game, is_installed: false } : game))
+    this.save()
+    sendFrontendMessage('refreshLibrary', 'sideload')
+  }
+
+  private async checkReplacementSpace(job: StoredJob, acceptAlternative = false): Promise<boolean> {
+    const plan = await planInstallSpace(dirname(job.directory), job.id,
+      job.packageEstimate || 0, job.installedEstimate || 0,
+      !sizeBytes(job.game.installedSize) || !(sizeBytes(job.source.size) || sizeBytes(job.game.size)))
+    if (job.temporaryDirectory) {
+      const disk = await statfs(job.temporaryDirectory)
+      const sameDisk = (await stat(job.temporaryDirectory)).dev === (await stat(dirname(job.directory))).dev
+      const required = Math.max(0, plan.packageBytes - job.bytes) + spaceReserve + (sameDisk ? plan.installedBytes : 0)
+      if (!plan.missingDestination && disk.bavail * disk.bsize >= required) {
+        job.spacePlan = undefined
+        return true
+      }
+      if (acceptAlternative && plan.temporaryDirectory && plan.temporaryDirectory !== job.temporaryDirectory && !plan.missingDestination) {
+        await this.cleanTemporaryPackage(job)
+        job.temporaryDirectory = undefined
+        job.bytes = 0
+        job.etag = undefined
+      }
+    }
+    if (!job.temporaryDirectory && (!plan.missingOriginal || (acceptAlternative && plan.temporaryDirectory && !plan.missingDestination))) {
+      const folder = plan.missingOriginal ? plan.temporaryDirectory! : join(dirname(job.directory), `.ghost-download-${job.id}`)
+      // Only a freshly created, marked folder can become a cleanup target.
+      await mkdir(folder)
+      await writeFile(join(folder, '.ghost-download.json'), JSON.stringify({ id: job.id }))
+      job.temporaryDirectory = folder
+      job.archive = join(folder, basename(job.archive))
+      job.spacePlan = undefined
+      this.save()
+      return true
+    }
+    job.spacePlan = plan
+    job.status = 'paused'
+    this.save()
+    return false
+  }
+
+  private async cleanTemporaryPackage(job: StoredJob) {
+    const folder = job.temporaryDirectory!
+    if (!existsSync(folder)) return
+    if (basename(folder) !== `.ghost-download-${job.id}` ||
+        resolve(await realpath(folder)).toLowerCase() !== resolve(folder).toLowerCase())
+      throw new Error('Pasta temporária redirecionada ou inválida.')
+    const marker = JSON.parse(await readFile(join(folder, '.ghost-download.json'), 'utf8')) as { id: string }
+    if (marker.id !== job.id) throw new Error('Pasta temporária não pertence a esta tarefa.')
+    await rm(folder, { recursive: true, force: true })
   }
 
   private async pump() {
@@ -879,13 +1113,21 @@ export class ExternalGames {
         job = this.state.jobs.find((item) => item.status === 'queued')
       ) {
         try {
+          if (job.removalStarted) await this.prepareReplacement(job)
+          if (job.oldRemoved && !(await this.checkReplacementSpace(job))) continue
+          if (job.oldRemoved && job.source.type === 'external' && !job.transport) {
+            job.status = 'awaiting-file'
+            this.save()
+            await shell.openExternal(job.source.url)
+            continue
+          }
           if (job.transport === 'torbox') await this.downloadTorbox(job)
           else if (job.transport === 'anker-direct') await this.downloadAnkerDirect(job)
           else await this.download(job)
         } catch (error) {
           if (!['paused', 'cancelled'].includes(job.status)) {
             job.status = 'error'
-            job.error = error instanceof Error ? error.message : String(error)
+            job.error = (error instanceof Error ? error.message : String(error)) + (job.oldRemoved ? ' O jogo está indisponível até concluir a reinstalação; o backup foi preservado.' : '')
           }
         } finally {
           if (job.status === 'cancelled')
@@ -911,7 +1153,7 @@ export class ExternalGames {
     job.total = undefined
     this.save()
     let lastTime = Date.now(), lastBytes = 0
-    const archive = await AnkerAccount.direct(job.source.url, join(this.root, 'downloads', job.id), controller.signal, (bytes, total, path) => {
+    const archive = await AnkerAccount.direct(job.source.url, dirname(job.archive), controller.signal, (bytes, total, path) => {
       const now = Date.now()
       job.speed = now > lastTime ? Math.max(0, (bytes - lastBytes) * 1000 / (now - lastTime)) : 0
       lastTime = now
@@ -926,16 +1168,26 @@ export class ExternalGames {
     await this.prepare(job, archive)
   }
 
+  private torrentProvider(providerId: string, sourceId: string, url: string) {
+    if (providerId === ANKER_SOURCE_ID && sourceId === ANKER_TORRENT_ID)
+      return { page: ankerGameUrl(url), torrent: AnkerAccount.torrent.bind(AnkerAccount) }
+    if (providerId === ONLINE_FIX_SOURCE_ID && sourceId === ONLINE_FIX_TORRENT_ID)
+      return { page: onlineFixGameUrl(url), torrent: OnlineFixAccount.torrent.bind(OnlineFixAccount) }
+    throw new Error('Fonte TorBox não reconhecida.')
+  }
+
   private async downloadTorbox(job: StoredJob) {
     job.status = 'downloading'
     const controller = new AbortController()
     this.controllers.set(job.id, controller)
     const signal = controller.signal
     const client = await TorboxClient.saved()
-    const referenceKey = (item: StoredJob) => JSON.stringify([
-      item.game.providerId, ankerGameUrl(item.source.url), item.game.version || '', item.game.edition || ''
-    ])
-    const key = referenceKey(job)
+    const provider = this.torrentProvider(job.manifest.id, job.source.id, job.source.url)
+    const referenceKey = (item: StoredJob) => {
+      try { return JSON.stringify([item.game.providerId, this.torrentProvider(item.manifest.id, item.source.id, item.source.url).page, item.game.version || '', item.game.edition || '']) }
+      catch { return undefined }
+    }
+    const key = referenceKey(job)!
     this.state.torboxReferences ??= {}
     if (job.torboxId === undefined) {
       const previous = [...this.state.jobs].reverse().find(item =>
@@ -956,13 +1208,13 @@ export class ExternalGames {
         if (match) job.torboxId = match.id
       }
     }
-    const torrentPath = join(this.root, 'downloads', job.id, 'source.torrent')
+    const torrentPath = join(dirname(job.archive), 'source.torrent')
     if (job.torboxId === undefined) {
       job.transferPhase = 'torrent'
       this.save()
       let torrent: Buffer
       if (existsSync(torrentPath)) torrent = await readFile(torrentPath)
-      else torrent = await AnkerAccount.torrent(job.source.url, torrentPath, signal)
+      else torrent = await provider.torrent(provider.page, torrentPath, signal)
       job.torrentHash = torrentInfoHash(torrent)
       this.state.torboxReferences[key] = { hash: job.torrentHash, recordedAt: Date.now() }
       this.save()
@@ -1016,13 +1268,33 @@ export class ExternalGames {
         // A loose directory or multipart package is transferred as a TorBox ZIP.
         job.torboxWrapped = !format
         const extension = format || 'zip'
-        job.archive = join(this.root, 'downloads', job.id, `package.${extension}`)
-        const url = await client.link(job.torboxId!, signal, format ? single?.id : undefined)
+        job.archive = join(dirname(job.archive), `package.${extension}`)
         job.transferPhase = 'local'
         job.remoteProgress = 1
         this.save()
         const manifest = { ...job.manifest, permissions: ['network'] as PluginManifest['permissions'], allowedDomains: [...TORBOX_DOWNLOAD_DOMAINS] }
-        await this.download(job, { url, manifest }, controller)
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const url = await client.link(job.torboxId!, signal, format ? single?.id : undefined)
+            await this.download(job, { url, manifest }, controller)
+            return
+          } catch (error) {
+            signal.throwIfAborted()
+            const cause = error as { message?: string; cause?: { code?: string; errors?: Array<{ code?: string }> } }
+            if (cause.message === 'fetch failed' || cause.cause?.code || cause.cause?.errors) {
+              if (attempt < 2) {
+                job.remoteStatus = `Reconectando ao servidor de arquivos do TorBox (${attempt + 1}/2)`
+                this.save()
+                await waitForRemote(1000 * (attempt + 1), undefined, { signal })
+                continue
+              }
+              const codes = [cause.cause?.code, ...(cause.cause?.errors?.map(item => item.code) || [])]
+              const code = codes.find(value => value && /^(?:E(?:CONNRESET|CONNREFUSED|NETUNREACH|HOSTUNREACH|TIMEDOUT|NOTFOUND|AI_AGAIN)|UND_ERR_(?:CONNECT_TIMEOUT|SOCKET)|CERT_HAS_EXPIRED|UNABLE_TO_VERIFY_LEAF_SIGNATURE)$/.test(value))
+              throw new Error(`Falha na conexão com o servidor de arquivos do TorBox${code ? ` (${code})` : ''}. O torrent continua registrado. Use Retomar para obter um novo link, sem baixar nem reenviar o torrent.`)
+            }
+            throw error
+          }
+        }
         return
       }
       if (/error|missingfiles/i.test(remote.download_state || ''))
@@ -1098,6 +1370,13 @@ export class ExternalGames {
         throw new Error('Espaço insuficiente para baixar o pacote.')
     }
     job.bytes = offset
+    if (job.oldRemoved && job.total) {
+      job.packageEstimate = job.total
+      if (!(await this.checkReplacementSpace(job))) {
+        await response.body.cancel()
+        return
+      }
+    }
     let tick = Date.now(),
       lastBytes = offset
     const emitProgress = () => {
@@ -1137,6 +1416,21 @@ export class ExternalGames {
   }
 
   private async prepare(job: StoredJob, archive: string) {
+    const password = /online[- ]?fix/i.test(job.game.providerId + ' ' + job.game.providerName) ? 'online-fix.me' : undefined
+    if (job.oldRemoved) {
+      const unpackedBytes = await archiveSize(archive, password)
+      const saveBytes = this.state.backups.find(item => item.id === job.backupId)?.bytes || 0
+      job.installedEstimate = unpackedBytes + saveBytes
+      const disk = await statfs(dirname(job.directory))
+      if (disk.bavail * disk.bsize < job.installedEstimate + spaceReserve) {
+        job.pendingArchive = archive
+        job.spacePlan = { ...await planInstallSpace(dirname(job.directory), job.id, 0, job.installedEstimate, false), packageReady: true }
+        job.status = 'paused'
+        this.save()
+        return
+      }
+      job.pendingArchive = undefined
+    }
     job.status = 'extracting'
     this.save()
     // Each extraction uses a fresh, job-owned directory; existing games are untouched.
@@ -1144,7 +1438,7 @@ export class ExternalGames {
       throw new Error(
         'Uma extração anterior já existe. Cancele esta operação e inicie outra.'
       )
-    let candidates = await extractGame(archive, job.stage)
+    let candidates = await extractGame(archive, job.stage, password)
     if (!candidates.length && job.torboxWrapped) {
       const files = await regularFiles(job.stage)
       const packages = files.filter((file) => /\.(zip|rar|7z|tar)$/i.test(file) && !/\.part(?!0*1\.)\d+\.rar$/i.test(file))
@@ -1153,11 +1447,17 @@ export class ExternalGames {
       // Keep multipart siblings together for the extractor, with output in a new child.
       const unpacked = join(job.stage, '.ghost-content')
       if (existsSync(unpacked)) throw new Error('O pacote contém uma pasta reservada pelo instalador.')
-      candidates = await extractGame(packages[0], unpacked)
+      candidates = await extractGame(packages[0], unpacked, password)
       if (candidates.length) {
         // These are verified regular files in this job's staging folder, not installed data.
         for (const file of files) await rm(file)
       }
+    }
+    if ((!job.old || job.old.packageRootLayout) && candidates.length) {
+      const prepared = await prepareNewInstallDirectory(job.stage, dirname(job.directory), job.game.title, candidates,
+        this.state.jobs.filter(item => item.id !== job.id && !['cancelled', 'error', 'completed'].includes(item.status)).map(item => item.directory))
+      if (!job.old) job.directory = prepared.directory
+      candidates = prepared.candidates
     }
     job.candidates = candidates.map((file) => relative(job.stage, file))
     if (!job.candidates.length)
@@ -1216,12 +1516,12 @@ export class ExternalGames {
       !inside(job.stage, join(job.stage, executable))
     )
       throw new Error('Selecione um executável da instalação preparada.')
-    const old = job.old ? this.installation(job.installationId) : undefined
+    const old = job.oldRemoved ? job.old : job.old ? this.installation(job.installationId) : undefined
     if (old && resolve(old.directory) !== resolve(job.directory) && existsSync(job.directory))
       throw new Error('A pasta de destino já existe. Escolha uma pasta vazia para a nova instalação.')
     const restoredSavePath = old?.savePath && inside(old.directory, old.savePath)
       ? join(job.directory, relative(old.directory, old.savePath)) : old?.savePath
-    if (old) {
+    if (old && !job.oldRemoved) {
       await this.owned(old.directory, old.id)
       if (!old.savePath || !(await regularFiles(old.savePath)).length)
         throw new Error('Nenhum save foi encontrado na pasta configurada. Confira a pasta antes de substituir o jogo.')
@@ -1244,7 +1544,7 @@ export class ExternalGames {
         join(job.stage, '.ghost-install.json'),
         JSON.stringify({ id: job.installationId })
       )
-      if (old) {
+      if (old && !job.oldRemoved) {
         await safeRename(old.directory, rollback)
         movedOld = true
       } else if (existsSync(job.directory))
@@ -1253,7 +1553,7 @@ export class ExternalGames {
       movedNew = true
       if (
         old?.savePath &&
-        inside(old.directory, old.savePath) &&
+        (job.oldRemoved || inside(old.directory, old.savePath)) &&
         job.backupId
       ) {
         await restoreSaveSnapshot(
@@ -1262,6 +1562,7 @@ export class ExternalGames {
         )
       }
       const installed: ExternalInstallation = {
+        packageRootLayout: job.old ? Boolean(job.old.packageRootLayout) : true,
         id: job.installationId,
         appName: old?.appName || `external-${job.installationId}`,
         game: job.game,
@@ -1323,6 +1624,7 @@ export class ExternalGames {
         ...this.state.installations.filter((item) => item.id !== installed.id),
         installed
       ]
+      synchronizeExternalVersion(installed.appName, installed.game.version)
       job.status = 'completed'
       job.commitStarted = false
       this.save()
@@ -1369,6 +1671,7 @@ export class ExternalGames {
           'Instalação concluída. A cópia anterior ainda ocupa espaço em disco.'
       })
     }
+    if (job.temporaryDirectory) await this.cleanTemporaryPackage(job).catch(() => { job.error = 'Instalação concluída. Não foi possível remover a pasta temporária: ' + job.temporaryDirectory; this.save() })
     if (inside(join(this.root, 'downloads'), dirname(job.archive)))
       await rm(dirname(job.archive), { recursive: true, force: true }).catch(
         () => {}
@@ -1376,7 +1679,7 @@ export class ExternalGames {
   }
 
   private async cleanupJob(job: StoredJob) {
-    if (job.commitStarted)
+    if (job.commitStarted || job.removalStarted)
       throw new Error('A instalação precisa ser recuperada antes da limpeza.')
     if (
       basename(job.stage) !== `.ghost-stage-${job.id}` ||
@@ -1389,13 +1692,22 @@ export class ExternalGames {
     )
       throw new Error('A pasta temporária foi redirecionada.')
     await rm(job.stage, { recursive: true, force: true })
+    if (job.temporaryDirectory) await this.cleanTemporaryPackage(job)
     const downloadFolder = join(this.root, 'downloads', job.id)
     if (
       !inside(join(this.root, 'downloads'), downloadFolder) ||
-      dirname(job.archive) !== downloadFolder
+      (!job.temporaryDirectory && dirname(job.archive) !== downloadFolder)
     )
       throw new Error('Pasta de download inválida.')
     await rm(downloadFolder, { recursive: true, force: true })
+    if (job.oldRemoved && job.status === 'cancelled') {
+      job.temporaryDirectory = undefined
+      job.archive = join(downloadFolder, basename(job.archive))
+      job.spacePlan = undefined
+      job.pendingArchive = undefined
+      job.bytes = 0
+      job.etag = undefined
+    }
   }
 
   async action(action: ExternalGameAction): Promise<ExternalActionResult> {
@@ -1417,22 +1729,35 @@ export class ExternalGames {
     try {
       if ('jobId' in action) {
         const job = this.state.jobs.find((item) => item.id === action.jobId)!
-        if (
+        if (job.removalStarted && action.type === 'import-archive') throw new Error('Retome a tarefa para concluir a remoção interrompida primeiro.')
+        if (action.type === 'space-proceed' || action.type === 'space-recheck') {
+          if (!job.spacePlan || job.status !== 'paused') throw new Error('A verificação de espaço não está pendente.')
+          if (job.pendingArchive) {
+            await this.prepare(job, job.pendingArchive)
+            if (job.status !== 'paused') job.spacePlan = undefined
+          } else if (await this.checkReplacementSpace(job, action.type === 'space-proceed')) {
+            job.status = job.source.type === 'external' && !job.transport ? 'awaiting-file' : 'queued'
+            if (job.status === 'awaiting-file') await shell.openExternal(job.source.url)
+            job.error = undefined
+            void this.pump()
+          }
+        } else if (
           action.type === 'pause' &&
           ['downloading', 'queued'].includes(job.status)
         ) {
           job.status = 'paused'
           this.controllers.get(job.id)?.abort()
-        } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'error' && ['torbox', 'anker-direct'].includes(job.transport || '') && !existsSync(job.stage)))) {
+        } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'cancelled' && job.oldRemoved) || (job.status === 'error' && (job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')) && !existsSync(job.stage)))) {
           if (this.controllers.has(job.id))
             throw new Error('Aguarde a pausa terminar.')
+          if (job.spacePlan) throw new Error('Use as opções de espaço disponíveis nesta tarefa.')
           job.status = 'queued'
           job.error = undefined
           void this.pump()
         } else if (
           action.type === 'cancel' &&
           !['extracting', 'installing', 'completed'].includes(job.status) &&
-          !job.commitStarted
+          !job.commitStarted && !job.removalStarted
         ) {
           job.status = 'cancelled'
           this.controllers.get(job.id)?.abort()
@@ -1472,6 +1797,7 @@ export class ExternalGames {
           piratasSyncResult: syncResult
         }
       } else {
+        if (action.type === 'delete-backup' && this.state.jobs.some(job => job.backupId === action.backupId && job.status !== 'completed')) throw new Error('Este backup protege uma reinstalação pendente.')
         const installation = this.installation(action.installationId)
         if (action.type === 'configure-saves') {
           const directory = await dialog.showOpenDialog({

@@ -1,3 +1,4 @@
+import { refreshExternalRelease } from './externalVersion'
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from 'graceful-fs'
 import { join } from 'path'
 import { app, dialog, shell } from 'electron'
@@ -25,8 +26,6 @@ import { NetworkGuard } from './networkGuard'
 import { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
 import { isNewerRelease } from './externalPolicy'
 import { builtinGameSources } from 'common/builtinGameSources'
-import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
-import { detectPirateGameVersion } from 'backend/storeManagers/sideload/versionDetector'
 import { GlobalConfig } from 'backend/config'
 import { EXCLUDED_PIRATAS_APP_NAMES } from './piratasSaveKnowledge'
 
@@ -189,9 +188,12 @@ export class PluginManager {
         (item) => (item.id === request.game.providerId || item.id.includes(request.game.providerId) || request.game.providerId.includes(item.id)) && item.isEnabled
       )
       const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
-      const game = this.sourceResults.get(JSON.stringify([request.game.providerId, request.game.id])) ||
+      let game = this.sourceResults.get(JSON.stringify([request.game.providerId, request.game.id])) ||
         (plugin ? this.remember(request.game, plugin) : request.game)
       if (!plugin || !provider || !game) throw new Error('Busque o jogo novamente com a fonte habilitada.')
+      if (provider.getDetails) {
+        game = this.remember(await refreshExternalRelease(game, id => provider.getDetails!(id)), plugin)
+      }
       const officialAnker = plugin.id === ANKER_SOURCE_ID
       const options = await this.getDownloadSources(plugin.id, game.pageUrl || game.id)
       let source = options.find((item) => item.id === request.sourceId)
@@ -216,7 +218,8 @@ export class PluginManager {
         false,
         true,
         request.targetDirectory,
-        Boolean(request.confirmed)
+        Boolean(request.confirmed),
+        Boolean(request.chooseDirectory)
       )
     } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
   }
@@ -237,23 +240,22 @@ export class PluginManager {
       const details = await provider.getDetails(installation.game.id)
       if (details.id !== installation.game.id || details.platform !== installation.game.platform || details.edition !== installation.game.edition) throw new Error('A edição da fonte não corresponde à instalação.')
       
-      // Se a versão atual da instalação não estiver preenchida, resolve dinamicamente pelo detector multi-camadas
-      let currentVersion = installation.game.version
-      if (!currentVersion) {
-        const libGame = libraryStore.get('games', []).find((g) => g.app_name === installation.appName)
-        if (libGame) {
-          const detected = detectPirateGameVersion(libGame)
-          if (detected?.version) {
-            currentVersion = detected.version
-            installation.game.version = detected.version
-          }
-        }
+      const currentVersion = installation.game.version
+      if (!currentVersion || !details.version) {
+        const message = !currentVersion
+          ? 'A versão instalada não foi identificada. Informe a versão instalada para comparar updates.'
+          : 'A fonte não informou a versão disponível. Não foi possível confirmar se há atualização.'
+        ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
+        return { success: false, error: message }
       }
+      const isNewer = isNewerRelease(currentVersion, details.version)
 
-      const isNewer = currentVersion && details.version
-        ? isNewerRelease(currentVersion, details.version)
-        : Boolean(details.version && !currentVersion)
-
+      const normalized = (value: string) => value.trim().toLowerCase().replace(/^v(?:ersion|er)?[ ._-]*/, '')
+      if (!isNewer && !isNewerRelease(details.version, currentVersion) && normalized(currentVersion) !== normalized(details.version)) {
+        const message = 'As versões instalada e disponível usam formatos diferentes. Confira a versão na página da fonte.'
+        ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
+        return { success: false, error: message }
+      }
       const update = isNewer ? this.remember(details, plugin) : undefined
       const message = update
         ? `Atualização disponível: ${update.version || 'Nova versão'}`
@@ -709,6 +711,65 @@ export class PluginManager {
       logError(['[PluginManager] startDownload failed:', err], LogPrefix.Backend)
       return { success: false, error: err.message || String(err) }
     }
+  }
+
+  private suggestionsCache = new Map<string, { timestamp: number; items: string[] }>()
+
+  public async getGameSuggestions(query: string): Promise<string[]> {
+    const trimmed = query.trim()
+    if (!trimmed || trimmed.length < 2) return []
+
+    const cacheKey = trimmed.toLowerCase()
+    const cached = this.suggestionsCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < 1000 * 60 * 60) {
+      return cached.items
+    }
+
+    const suggestions = new Set<string>()
+
+    // 1. Catálogo local rápido se contiver acrônimos ou correspondência direta
+    try {
+      const { normalizeAcronyms } = await import('./websiteSource')
+      const normQ = normalizeAcronyms(trimmed).toLowerCase()
+      for (const item of this.sourceResults.values()) {
+        const normT = normalizeAcronyms(item.title).toLowerCase()
+        if (normT.includes(normQ) || item.title.toLowerCase().includes(cacheKey)) {
+          suggestions.add(item.title)
+          if (suggestions.size >= 8) break
+        }
+      }
+    } catch {}
+
+    // 2. Consulta de autocomplete da loja Steam (pública, sem necessidade de API key, rápida e com títulos canônicos)
+    try {
+      const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(trimmed)}&l=portuguese&cc=BR`
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 2500)
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+      })
+      clearTimeout(timer)
+      if (res.ok) {
+        const data: any = await res.json()
+        if (Array.isArray(data?.items)) {
+          for (const item of data.items) {
+            if (item.name && typeof item.name === 'string' && item.name.length < 70) {
+              suggestions.add(item.name)
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignora falha de rede
+    }
+
+    const result = Array.from(suggestions).slice(0, 8)
+    this.suggestionsCache.set(cacheKey, { timestamp: Date.now(), items: result })
+    if (this.suggestionsCache.size > 500) {
+      this.suggestionsCache.delete(this.suggestionsCache.keys().next().value!)
+    }
+    return result
   }
 
   public broadcastUpdates(): void {

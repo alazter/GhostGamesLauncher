@@ -599,3 +599,195 @@
   background-color: rgba(0, 255, 255, 0.05) !important;
 }
 
+/* ========================================================= */
+/* ESTILOS DO INDICADOR LOCAL DE REMOÇÃO / DELEÇÃO DO CARD   */
+/* Regra Canônica 62: Zero alteração no tamanho das capas   */
+/* ========================================================= */
+.gameCard.gameCardDeleting {
+  animation: pulseCardDeleting 1.8s infinite ease-in-out !important;
+  pointer-events: none !important;
+}
+
+.gameCard.gameCardRemoving {
+  animation: pulseCardRemoving 1.8s infinite ease-in-out !important;
+  pointer-events: none !important;
+}
+
+.gameListItem.gameCardDeleting,
+.gameListItem.gameCardRemoving {
+  pointer-events: none !important;
+}
+
+@keyframes pulseCardDeleting {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+    outline: 2px solid rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.75);
+    outline: 2px solid #ff5252;
+  }
+}
+
+@keyframes pulseCardRemoving {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+    outline: 2px solid rgba(245, 158, 11, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.75);
+    outline: 2px solid #fbbf24;
+  }
+}
+
+.gameCardRemovalOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  z-index: 25;
+  background: rgba(10, 15, 23, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 8px;
+  box-sizing: border-box;
+  pointer-events: none;
+  animation: fade-in 0.2s ease;
+  user-select: none;
+}
+
+.gameCardRemovalOverlay.deleting {
+  --theme-color: #ef4444;
+  --theme-glow: rgba(239, 68, 68, 0.8);
+}
+
+.gameCardRemovalOverlay.removing {
+  --theme-color: #f59e0b;
+  --theme-glow: rgba(245, 158, 11, 0.8);
+}
+
+.gameCardRemovalOverlay .removalHeader {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.gameCardRemovalOverlay .removalBadge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--theme-color);
+  border: 1px solid var(--theme-color);
+  box-shadow: 0 0 8px var(--theme-glow);
+}
+
+.gameCardRemovalOverlay .removalCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.gameCardRemovalOverlay .removalSpinnerWrapper {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.gameCardRemovalOverlay .removalSpinnerSvg {
+  width: 100%;
+  height: 100%;
+  animation: spinSmooth 1.3s linear infinite;
+}
+
+@keyframes spinSmooth {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.gameCardRemovalOverlay .spinnerTrack {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 6;
+}
+
+.gameCardRemovalOverlay .spinnerFill {
+  fill: none;
+  stroke: var(--theme-color);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 140 120;
+  filter: drop-shadow(0 0 6px var(--theme-glow));
+}
+
+.gameCardRemovalOverlay .removalCenterIcon {
+  position: absolute;
+  font-size: 14px;
+  color: var(--theme-color);
+  filter: drop-shadow(0 0 4px var(--theme-glow));
+  animation: pulseIcon 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.gameCardRemovalOverlay .removalTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.gameCardRemovalOverlay .removalSubtext {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--theme-color);
+  opacity: 0.9;
+}
+
+.gameCardRemovalOverlay .removalFooter {
+  width: 100%;
+}
+
+.gameCardRemovalOverlay .removalPulseTrack {
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.gameCardRemovalOverlay .removalPulseBar {
+  width: 100%;
+  height: 100%;
+  background: var(--theme-color);
+  box-shadow: 0 0 6px var(--theme-glow);
+  animation: pulseBar 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseBar {
+  0%, 100% { opacity: 0.3; transform: scaleX(0.7); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+
+

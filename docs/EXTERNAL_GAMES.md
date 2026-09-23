@@ -101,7 +101,7 @@ Testes cobrem instalação local sem chamada de rede, registro do jogo, preserva
 
 Estado: `<userData>/external-games/state.json`; pacotes temporários: `downloads/<jobId>`; backups: `backups/<backupId>`.
 
-Instalações novas usam `ghost-<installationId>` na pasta escolhida. Extração e rollback ficam na mesma unidade de destino. Um marcador `.ghost-install.json` identifica a pasta gerenciada. Caminhos fora do destino, links, nomes especiais do Windows, arquivos criptografados e caminhos duplicados são rejeitados na extração.
+Instalações novas usam a pasta principal do pacote ou o título do jogo na pasta escolhida, conforme a seção Nome da pasta de instalação. Extração e rollback ficam na mesma unidade de destino. Um marcador `.ghost-install.json` identifica a pasta gerenciada. Caminhos fora do destino, links, nomes especiais do Windows, arquivos criptografados e caminhos duplicados são rejeitados na extração.
 
 Antes da troca: verificar jogo fechado → copiar e verificar saves → registrar transação → renomear pasta anterior → promover pasta preparada → restaurar saves internos → registrar biblioteca e origem → remover cópia anterior. Falhas de registro restauram arquivos e metadados anteriores.
 
@@ -162,3 +162,56 @@ Validação desta alteração: TypeScript, compilação e 113 testes do backend 
 O instalador usa automaticamente `online-fix.me`, informada pelo usuário, exclusivamente para a fonte Online-Fix. Aplica a senha também ao pacote interno quando o TorBox entrega um ZIP contendo outro arquivo compactado. ZIPs comuns continuam usando o extrator existente; ZIPs criptografados e arquivos RAR/7Z usam o 7-Zip instalado no computador. Se faltar o 7-Zip ou a senha não abrir o arquivo, o Ghost informa o problema e não conclui a instalação.
 
 Antes da extração com senha, a listagem do 7-Zip é verificada para rejeitar caminhos inseguros, links, nomes duplicados e tamanhos excessivos. Testes locais com ZIP e 7Z realmente criptografados confirmaram a extração com a senha correta e a rejeição da incorreta. A bateria direcionada de extração/fila passou com 39 testes; isso não substitui o teste de um pacote real baixado do site.
+
+## Reinstalação após exclusão
+
+A busca considera a biblioteca atual e a existência do executável para exibir Jogar. Jogos removidos, inclusive quando a biblioteca fica vazia, voltam ao fluxo de instalação limpa. A busca e os botões atualizam os registros antes de decidir entre jogar, atualizar e instalar. A falta de pageUrl nos dois registros não representa uma correspondência entre jogos.
+
+A reinstalação cria uma nova pasta gerenciada; arquivos de saves que restarem na pasta anterior não são removidos por esse fluxo. Os testes cobrem exclusão do executável, remoção do último registro e preservação de saves. A conferência visual do fluxo no aplicativo ainda depende de teste real.
+
+## Nome da pasta de instalação
+
+Novas instalações usam a pasta principal do pacote diretamente no destino escolhido, sem a camada ghost-UUID. Exemplo: Jogos/Assassins-Creed-Black-Flag-Resynced/Assassins Creed Black Flag Resynced/ACBlackFlag.exe. Pacotes com arquivos soltos usam o título do jogo como pasta. Nomes incompatíveis com Windows são ajustados; destinos existentes recebem sufixo (2), (3), etc., sem sobrescrita.
+
+A preparação continua em .ghost-stage-ID, preservando rollback e o marcador de propriedade. O campo packageRootLayout mantém a mesma organização em updates; instalações antigas não são movidas e conservam o layout anterior. Testes cobrem estrutura aninhada, nomes repetidos, conflitos de destino e atualização com preservação de saves.
+
+
+## Reinstalação confirmada com economia de espaço
+
+A confirmação de atualização/migração em Buscar Jogos avisa que a instalação antiga será removida depois do backup verificado. Cancelar ou falhar depois desse ponto deixa o jogo indisponível. A exclusão é restrita à pasta registrada, com marcador válido, sem redirecionamentos, sem outras instalações dentro dela. Uma pasta de remoção por tarefa e o estado persistido permitem retomar exclusões interrompidas.
+
+O backup é conferido arquivo por arquivo (SHA-256) antes da remoção. Downloads pendentes preservam esse backup e impedem sua exclusão pela API. O jogo fica marcado como não instalado; os saves são restaurados ao concluir a nova instalação.
+
+Downloads mostra a pasta de destino, o espaço total necessário, o déficit e a pasta temporária proposta em outro disco. Oferece **Prosseguir**, **Verificar novamente após liberar espaço** e **Cancelar**. Outro disco só é oferecido quando o destino comporta o jogo instalado. A pasta temporária tem marcador próprio e só é removida após validar sua identidade. Arquivos importados pelo usuário não são apagados.
+
+Tamanhos ausentes usam estimativas sinalizadas, baseadas na instalação anterior e no tamanho do pacote, com margem de 512 MiB. O tamanho recebido pelo download direto HTTP é reavaliado; antes da extração, o tamanho descompactado é lido do ZIP ou pelo 7-Zip. Se faltar espaço nessa etapa, o pacote é mantido para nova verificação, sem repetir o download. Pacotes cuja listagem não pode ser lida interrompem a operação com erro.
+
+O modo destrutivo exige `confirmed: true` do modal com aviso. Jobs antigos e atualizações automáticas sem essa confirmação mantêm o fluxo anterior que preserva a instalação até a conclusão.
+
+Validação: testes locais com pacotes sintéticos cobrem remoção após backup, backup inválido, restauração, cancelamento, reinício, remoção interrompida, oferta de disco alternativo e nova verificação de espaço. Não foi feita reinstalação de um jogo real nesta alteração.
+
+Reinstalações canceladas após a remoção permanecem em Downloads com Retomar, reutilizando o backup e criando novamente a pasta temporária. A validação direcionada final passou com 42 testes.
+
+
+## Versão instalada e consulta de updates
+
+O registro da instalação externa concluída é a referência para a etiqueta da biblioteca e a consulta de updates. Ao iniciar, o Ghost corrige metadados divergentes de jogos existentes; ao concluir uma instalação, elimina overrides antigos de versão, mantendo capas, títulos e outras personalizações. Editar a versão manualmente atualiza também o registro externo e invalida a consulta anterior.
+
+Antes de iniciar outro download, o launcher atualiza os detalhes da fonte e verifica identidade, plataforma e edição. Consultar uma versão mais recente nunca altera por si só a versão instalada. Se faltar versão ou os formatos forem incompatíveis, a interface informa que não é possível confirmar o estado de atualização. A versão registrada é a informada pela fonte para o pacote instalado, não uma verificação universal dos binários de cada jogo.
+
+Validação local: 42 testes direcionados e TypeScript passaram, incluindo a divergência v0.9.0/v0.10.4 relatada no inZOI. O teste visual após reiniciar ainda depende de validação no aplicativo.
+
+
+## Retomar TorBox e escolher destino
+
+Tarefas TorBox com erro na transferência local apresentam Retomar mesmo em instalações iniciais. O launcher mantém o ID/hash do torrent, consulta a conta e pede um link de arquivo atualizado; não precisa capturar/enviar novamente o torrent já associado. Cancelar uma tarefa não exclui o torrent da nuvem nem sua referência local. A associação continua limitada à mesma fonte, página, versão e edição.
+
+Falhas transitórias da transferência local têm até duas reconexões com novo link; persistindo a falha, o erro orienta usar Retomar e inclui apenas códigos seguros de diagnóstico. Ausência de ETag válido ou servidor sem suporte a retomada pode exigir reiniciar a transferência do pacote local; isso não reenvia o torrent para a nuvem.
+
+Online-Fix agora é aceito explicitamente pelo caminho de TorBox no backend e utiliza sua própria sessão de captura. Novas instalações iniciadas pela busca abrem o seletor de destino usando a pasta salva como sugestão. Cancelar essa escolha não inicia download.
+
+Validação: 86 testes direcionados passaram, com serviços de rede simulados. Ainda é necessário conferir a transferência real do servidor TorBox que falhou anteriormente.
+
+
+### Correção de preferência: escolha de transporte
+Baixar e instalar abre a escolha do transporte disponível na fonte (TorBox — Torrent / Download direto — Confirmar no site). Utiliza a pasta já selecionada, sem solicitar escolha de pasta a cada download. A exigência de conta TorBox ocorre apenas ao selecionar a opção TorBox. Esta preferência substitui o comportamento de seleção de destino descrito acima.

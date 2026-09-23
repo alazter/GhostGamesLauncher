@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { sameExternalGameIdentity } from 'common/externalGameIdentity'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faSearch,
@@ -37,10 +38,16 @@ import {
   faFolder,
   faCog,
   faTrashAlt,
-  faBroom
+  faBroom,
+  faStore,
+  faKey,
+  faEye,
+  faEyeSlash
 } from '@fortawesome/free-solid-svg-icons'
 import { faWindows, faYoutube } from '@fortawesome/free-brands-svg-icons'
 import type {
+  DownloadIntegrationAction,
+  DownloadIntegrationsState,
   ExternalGameAction,
   ExternalInstallation,
   GhostDownloadSource,
@@ -50,6 +57,11 @@ import type {
   SourceSearchResponse
 } from 'common/types/plugins'
 import { isNewerRelease } from 'common/utils'
+import {
+  getDefaultDownloadStoreId,
+  setDefaultDownloadStoreId,
+  syncPiratasStoreAssignments
+} from 'frontend/helpers/autoStoreAssignments'
 import { useExternalGames } from './shared'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import ankerLogo from 'frontend/assets/ankergames-logo.png'
@@ -57,8 +69,15 @@ import steamripLogo from 'frontend/assets/steamrip-logo.png'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import './index.css'
 
-export function cleanTitle(title: string): string {
+export function normalizeAcronymTitle(title: string): string {
   return title
+    .replace(/([a-zA-Z0-9])\.(?=[a-zA-Z0-9])/g, '$1')
+    .replace(/\.([a-zA-Z0-9])/g, '$1')
+    .replace(/([a-zA-Z0-9])\.(?=\s|$)/g, '$1')
+}
+
+export function cleanTitle(title: string): string {
+  return normalizeAcronymTitle(title)
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -1164,7 +1183,7 @@ export function getGameInstallationStatus(
   const cleanSearch = cleanTitle(searchGame.title)
 
   let match = installations.find((inst) => {
-    if (inst.game.id === searchGame.id || inst.game.pageUrl === searchGame.pageUrl) {
+    if (sameExternalGameIdentity(inst.game, searchGame)) {
       return true
     }
     if (inst.game.platform === searchGame.platform) {
@@ -1360,6 +1379,7 @@ export default function ExternalGamesScreen() {
   const [selected, setSelected] = useState<GhostSearchResult>()
   const [selectedGroupKey, setSelectedGroupKey] = useState('')
   const [showDownloadOptions, setShowDownloadOptions] = useState(false)
+  const [showTransportChoice, setShowTransportChoice] = useState(false)
   const [sources, setSources] = useState<GhostDownloadSource[]>([])
   const [localGames, setLocalGames] = useState<LocalCandidateGame[]>([])
   const [replacement, setReplacement] = useState(
@@ -1379,7 +1399,16 @@ export default function ExternalGamesScreen() {
     const saved = localStorage.getItem('ghost_external_selected_install_path')
     return saved || 'C:\\Ghost Games'
   })
-  const [showPathsManagerModal, setShowPathsManagerModal] = useState<boolean>(false)
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false)
+  const [settingsActiveTab, setSettingsActiveTab] = useState<'pastas' | 'loja' | 'integracoes' | 'instalados'>('pastas')
+  const [customStoresList, setCustomStoresList] = useState<Array<{ id: string; name: string }>>([])
+  const [selectedDefaultStore, setSelectedDefaultStore] = useState<string>(() => getDefaultDownloadStoreId())
+  const [storeSaveSuccess, setStoreSaveSuccess] = useState<boolean>(false)
+  const [integrationsState, setIntegrationsState] = useState<DownloadIntegrationsState>()
+  const [torboxKey, setTorboxKey] = useState('')
+  const [showTorboxKey, setShowTorboxKey] = useState(false)
+  const [integrationsBusy, setIntegrationsBusy] = useState(false)
+  const [integrationsNotice, setIntegrationsNotice] = useState('')
   const [replacementModal, setReplacementModal] = useState<{
     isOpen: boolean
     sourceId: string
@@ -1404,6 +1433,7 @@ export default function ExternalGamesScreen() {
   const [youtubeLoading, setYoutubeLoading] = useState(false)
   const [portugueseDescriptions, setPortugueseDescriptions] = useState<Record<string, string>>({})
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [apiSuggestions, setApiSuggestions] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [spotlightIndex, setSpotlightIndex] = useState(0)
   const requestNumber = useRef(0)
@@ -1471,11 +1501,96 @@ export default function ExternalGamesScreen() {
     }
   }
 
-  useEffect(() => {
+  const refreshLocalGames = () => {
     window.api
-      .externalGamesLocalCandidates()
+      ?.externalGamesLocalCandidates()
       .then(setLocalGames)
-      .catch(() => setMessage('Falha ao listar jogos locais.'))
+      .catch(() => {})
+  }
+
+  const loadCustomStores = () => {
+    try {
+      const raw = localStorage.getItem('heroic_custom_stores') || '[]'
+      const parsed: Array<{ id: string; name: string }> = JSON.parse(raw)
+      setCustomStoresList(parsed)
+      setSelectedDefaultStore(getDefaultDownloadStoreId())
+    } catch {
+      setCustomStoresList([])
+    }
+  }
+
+  const loadIntegrations = async () => {
+    try {
+      if (window.api?.downloadIntegrationsState) {
+        const data = await window.api.downloadIntegrationsState()
+        setIntegrationsState(data)
+      }
+    } catch (e) {
+      console.error('Error loading integrations:', e)
+    }
+  }
+
+  const handleOpenSettingsModal = (
+    tab: 'pastas' | 'loja' | 'integracoes' | 'instalados' = 'pastas'
+  ) => {
+    setSettingsActiveTab(tab)
+    loadCustomStores()
+    void loadIntegrations()
+    setShowSettingsModal(true)
+  }
+
+  const handleSelectDefaultStore = (newStoreId: string) => {
+    setSelectedDefaultStore(newStoreId)
+    setDefaultDownloadStoreId(newStoreId)
+    setStoreSaveSuccess(true)
+    setTimeout(() => setStoreSaveSuccess(false), 3000)
+  }
+
+  const handleIntegrationsAct = async (action: DownloadIntegrationAction) => {
+    setIntegrationsBusy(true)
+    setIntegrationsNotice(
+      action.type === 'connect-anker'
+        ? 'Entre na conta pela janela oficial do AnkerGames.'
+        : ''
+    )
+    try {
+      const result = await window.api.downloadIntegrationsAction(action)
+      if (result.success) {
+        if (action.type === 'save-torbox') setTorboxKey('')
+        setIntegrationsNotice('Operação concluída com sucesso.')
+      } else {
+        setIntegrationsNotice(result.error || 'Operação cancelada.')
+      }
+      const updated = await window.api.downloadIntegrationsState()
+      setIntegrationsState(updated)
+    } catch {
+      setIntegrationsNotice('Não foi possível concluir a operação.')
+    } finally {
+      setIntegrationsBusy(false)
+    }
+  }
+
+  const handleRemoveInstallation = async (instId: string, gameTitle: string) => {
+    try {
+      const ok = await window.api.externalGamesRemoveInstallation(instId)
+      if (ok) {
+        setMessage(`"${gameTitle}" foi removido da lista de jogos instalados.`)
+        refreshLocalGames()
+        void refresh()
+      } else {
+        setMessage(`Não foi possível remover "${gameTitle}".`)
+      }
+    } catch (e) {
+      console.error('Error removing external game:', e)
+      setMessage(`Erro ao remover "${gameTitle}".`)
+    }
+  }
+
+  useEffect(() => {
+    refreshLocalGames()
+    loadCustomStores()
+    void loadIntegrations()
+
     const update = (items: PluginInfo[]) =>
       setPlugins(
         items.filter((item) => item.type === 'game-source' && item.isEnabled)
@@ -1491,22 +1606,46 @@ export default function ExternalGamesScreen() {
       setSources([])
       setBusy(false)
     })
+
+    const onFocus = () => {
+      refreshLocalGames()
+      void refresh()
+      loadCustomStores()
+      void loadIntegrations()
+    }
+    const removeLibrary = window.api?.handleRefreshLibrary
+      ? window.api.handleRefreshLibrary(() => {
+          refreshLocalGames()
+          void refresh()
+        })
+      : () => {}
+    const handleStoreEvent = () => loadCustomStores()
+
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('storage', handleStoreEvent)
+    window.addEventListener('defaultDownloadStoreChanged', handleStoreEvent)
+
     return () => {
       requestNumber.current++
       remove()
+      removeLibrary()
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('storage', handleStoreEvent)
+      window.removeEventListener('defaultDownloadStoreChanged', handleStoreEvent)
     }
-  }, [])
+  }, [refresh])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (showSettingsModal) setShowSettingsModal(false)
         if (replacementModal) setReplacementModal(null)
         if (youtubeModalOpen) setYoutubeModalOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [replacementModal, youtubeModalOpen])
+  }, [showSettingsModal, replacementModal, youtubeModalOpen])
 
   async function run(work: () => Promise<void>) {
     setBusy(true)
@@ -1671,15 +1810,10 @@ export default function ExternalGamesScreen() {
   }, [installedDirectory, installPaths])
 
   useEffect(() => {
-    if (
-      installedDirectory &&
-      (currentInstStatus.status === 'migrate_available' ||
-        currentInstStatus.status === 'update_available' ||
-        currentInstStatus.status === 'installed_up_to_date')
-    ) {
-      setSelectedInstallPath(installedDirectory)
+    if (installedDirectory && installedDirectory.trim()) {
+      setSelectedInstallPath(installedDirectory.trim())
     }
-  }, [installedDirectory, currentInstStatus.status])
+  }, [installedDirectory])
 
   const handleDeleteSavedPath = (pathToDelete: string) => {
     const updated = installPaths.filter((p) => p.toLowerCase() !== pathToDelete.toLowerCase())
@@ -1709,17 +1843,6 @@ export default function ExternalGamesScreen() {
       localStorage.setItem('ghost_external_selected_install_path', fallback)
     }
   }
-
-  useEffect(() => {
-    if (!showPathsManagerModal) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowPathsManagerModal(false)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showPathsManagerModal])
 
 
   useEffect(() => {
@@ -1785,7 +1908,12 @@ export default function ExternalGamesScreen() {
     if (!trimmed) return
     const current = ++requestNumber.current
     void run(async () => {
-      const results = await window.api.externalGamesSearch(trimmed)
+      const [results, local] = await Promise.all([
+        window.api.externalGamesSearch(trimmed),
+        window.api.externalGamesLocalCandidates(),
+        refresh()
+      ])
+      setLocalGames(local)
       if (current === requestNumber.current) {
         setSearch(results)
         setSearched(true)
@@ -1798,14 +1926,25 @@ export default function ExternalGamesScreen() {
 
   useEffect(() => {
     const trimmed = query.trim()
-    if (trimmed.length < 3) return
+    if (trimmed.length < 2) {
+      setApiSuggestions([])
+      return
+    }
     const timer = setTimeout(() => {
-      executeSearch(trimmed)
-    }, 600)
+      window.api?.pluginsGetGameSuggestions?.(trimmed)
+        .then((items) => {
+          if (Array.isArray(items)) {
+            setApiSuggestions(items)
+          }
+        })
+        .catch(() => {})
+    }, 250)
     return () => clearTimeout(timer)
   }, [query])
 
   const popularGameSuggestions = [
+    'S.T.A.L.K.E.R. 2: Heart of Chornobyl',
+    'S.T.A.L.K.E.R.: Shadow of Chernobyl',
     'Marvel Tokon: Fighting Souls',
     'inZOI',
     'Black Myth: Wukong',
@@ -1818,20 +1957,71 @@ export default function ExternalGamesScreen() {
     'Silent Hill 2',
     'God of War Ragnarök',
     'Red Dead Redemption 2',
-    'Hogwarts Legacy'
+    'Hogwarts Legacy',
+    'F.E.A.R. 3',
+    'Resident Evil 4',
+    'Call of Duty: Modern Warfare'
   ]
 
-  const suggestions = query.trim().length >= 1
-    ? Array.from(new Set([
-        ...popularGameSuggestions.filter(s => s.toLowerCase().includes(query.trim().toLowerCase())),
-        ...search.games.map(g => getCanonicalGameTitle(g.title)).filter(t => t.toLowerCase().includes(query.trim().toLowerCase())),
-        ...localGames.map(g => g.title).filter(t => t.toLowerCase().includes(query.trim().toLowerCase()))
-      ])).slice(0, 6)
-    : []
+  const suggestions = useMemo(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 1) return []
+
+    const normQ = normalizeAcronymTitle(trimmed).toLowerCase()
+    const rawLowerQ = trimmed.toLowerCase()
+
+    const matchesTerm = (title: string) => {
+      const lower = title.toLowerCase()
+      if (lower.includes(rawLowerQ)) return true
+      const normT = normalizeAcronymTitle(title).toLowerCase()
+      if (normT.includes(normQ)) return true
+      return false
+    }
+
+    const set = new Set<string>()
+
+    // Prioridade 1: Sugestões retornadas pelo autocomplete da Steam
+    for (const item of apiSuggestions) {
+      if (matchesTerm(item)) set.add(item)
+    }
+
+    // Prioridade 2: Jogos populares / destaques locais
+    for (const item of popularGameSuggestions) {
+      if (matchesTerm(item)) set.add(item)
+    }
+
+    // Prioridade 3: Jogos da biblioteca local do usuário
+    for (const g of localGames) {
+      if (g.title && matchesTerm(g.title)) set.add(g.title)
+    }
+
+    // Prioridade 4: Jogos da busca anterior se houver
+    for (const g of search.games) {
+      const canonical = getCanonicalGameTitle(g.title)
+      if (canonical && matchesTerm(canonical)) set.add(canonical)
+    }
+
+    return Array.from(set).slice(0, 7)
+  }, [query, apiSuggestions, localGames, search.games])
+
+  async function freshInstallationStatus(game: GhostSearchResult) {
+    try {
+      const [next, local] = await Promise.all([window.api.externalGamesState(), window.api.externalGamesLocalCandidates()])
+      setLocalGames(local)
+      await refresh()
+      return getGameInstallationStatus(game, next.installations, local)
+    } catch {
+      setMessage('Não foi possível verificar a instalação. Atualize a busca e tente novamente.')
+      return undefined
+    }
+  }
+
+  useEffect(() => { setShowTransportChoice(false) }, [activeSource?.id, activeSource?.providerId])
 
   const handlePrimaryAction = async () => {
     if (!activeSource) return
-    const instStatus = currentInstStatus
+    const instStatus = await freshInstallationStatus(activeSource)
+    if (!instStatus) return
 
     if (instStatus.status === 'installed_up_to_date' && instStatus.installedGame?.appName) {
       try {
@@ -1849,81 +2039,18 @@ export default function ExternalGamesScreen() {
     }
 
     await run(async () => {
-      if (!(await checkDownloadConnection())) return
-      let sourceId = sources[0]?.id
-      if (!sourceId) {
-        const fetched = await window.api.pluginsGetDownloadSources(
-          activeSource.providerId,
-          activeSource.id
-        )
-        sourceId = fetched[0]?.id
-        setSources(fetched)
-      }
-
-      if (!sourceId) {
-        setMessage('A fonte não disponibilizou link direto ou pacote de download.')
+      const options = sources.length ? sources : await window.api.pluginsGetDownloadSources(activeSource.providerId, activeSource.pageUrl || activeSource.id)
+      setSources(options)
+      if (!options.length) {
+        setMessage('A fonte não disponibilizou opções de download.')
         return
       }
-
-      let replaceId = instStatus.installedGame?.id || replacement || undefined
-      if (
-        instStatus.installedGame?.appName &&
-        !state.installations.some((i) => i.id === replaceId)
-      ) {
-        try {
-          const synced = await window.api.externalGamesGetOrCreateInstallation(
-            instStatus.installedGame.appName
-          )
-          if (synced?.id) {
-            replaceId = synced.id
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      if (replaceId && instStatus.installedGame) {
-        const op = instStatus.status === 'update_available' ? 'update' : 'replace'
-        setReplacementModal({
-          isOpen: true,
-          sourceId,
-          replaceId,
-          oldGame: {
-            title: instStatus.installedGame.game?.title || activeSource.title,
-            providerName: instStatus.installedGame.game?.providerName || 'Sideload / Piratas',
-            directory: instStatus.installedGame.directory,
-            version: instStatus.installedGame.game?.version,
-            savePath: instStatus.installedGame.savePath
-          },
-          newGame: {
-            title: activeSource.title,
-            providerName: activeSource.providerName,
-            version: activeSource.version
-          },
-          operation: op,
-          targetDirectory: selectedInstallPath || undefined
-        })
-        return
-      }
-
-      const result = await window.api.externalGamesInstall({
-        game: activeSource,
-        sourceId,
-        replaceInstallationId: replaceId,
-        targetDirectory: selectedInstallPath || undefined
-      })
-
-      if (result.success) {
-        navigate('/download-manager')
-      } else if (result.error) {
-        throw new Error(result.error)
-      }
+      setShowTransportChoice(true)
     })
   }
 
   async function checkDownloadConnection(sourceId?: string): Promise<boolean> {
-    if (sourceId === 'anker-browser-direct') return true
-    if (!activeSource?.providerId.toLowerCase().includes('anker')) return true
+    if (sources.find(source => source.id === sourceId)?.type !== 'torbox') return true
     const integrations = await window.api.downloadIntegrationsState()
     if (integrations.torboxConfigured) return true
     setMessage('O download ainda não começou: conecte o TorBox em Integrações de downloads e clique em Salvar e testar. Depois volte ao jogo e clique em Download.')
@@ -1932,10 +2059,11 @@ export default function ExternalGamesScreen() {
 
   const handleInstallFromSource = async (sourceId: string) => {
     if (!activeSource) return
-    const instStatus = currentInstStatus
+    const instStatus = await freshInstallationStatus(activeSource)
+    if (!instStatus) return
     await run(async () => {
       if (!(await checkDownloadConnection(sourceId))) return
-      let replaceId = instStatus.installedGame?.id || replacement || undefined
+      let replaceId = instStatus.installedGame?.id
       if (
         instStatus.installedGame?.appName &&
         !state.installations.some((i) => i.id === replaceId)
@@ -1948,7 +2076,7 @@ export default function ExternalGamesScreen() {
             replaceId = synced.id
           }
         } catch {
-          // ignore
+          throw new Error('Não foi possível validar o registro da instalação anterior. Atualize a busca e tente novamente.')
         }
       }
 
@@ -2026,7 +2154,20 @@ export default function ExternalGamesScreen() {
               <FontAwesomeIcon icon={faHome} />
             </button>
             <div className="externalSearchInputWrapper">
-              <FontAwesomeIcon icon={faSearch} />
+              <button
+                type="button"
+                className="externalSearchIconBtn"
+                onClick={() => {
+                  if (query.trim()) {
+                    setShowSuggestions(false)
+                    executeSearch(query)
+                  }
+                }}
+                title="Pesquisar"
+                aria-label="Pesquisar"
+              >
+                <FontAwesomeIcon icon={faSearch} />
+              </button>
               <input
                 type="text"
                 className="externalSearchInput"
@@ -2045,6 +2186,20 @@ export default function ExternalGamesScreen() {
                 }}
                 placeholder="Buscar Jogos (Ex: Marvel Tokon, inZOI, Dragon Ball, Elden Ring...)"
               />
+              {query && (
+                <button
+                  type="button"
+                  className="externalSearchClearBtn"
+                  onClick={() => {
+                    setQuery('')
+                    setShowSuggestions(false)
+                  }}
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              )}
             </div>
             <div
               className="externalFilterPills"
@@ -2068,26 +2223,50 @@ export default function ExternalGamesScreen() {
               {plugins.map((plugin) => {
                 const storeCount = search.games.filter((g) => isMatchingProvider(g.providerId, plugin.id)).length
                 const isActive = provider === plugin.id || isMatchingProvider(provider, plugin.id)
+                const isSteamRip = plugin.id.toLowerCase().includes('steamrip') || plugin.name.toLowerCase().includes('steamrip')
                 return (
-                  <button
-                    type="button"
-                    key={plugin.id}
-                    className={`externalPill ${isActive ? 'active' : ''}`}
-                    onClick={() => setProvider(isActive ? '' : plugin.id)}
-                  >
-                    {renderProviderIcon(
-                      plugin.id,
-                      plugin.name,
-                      plugin.homepage ? `${plugin.homepage}/favicon.ico` : undefined,
-                      13
+                  <Fragment key={plugin.id}>
+                    <button
+                      type="button"
+                      className={`externalPill ${isActive ? 'active' : ''}`}
+                      onClick={() => setProvider(isActive ? '' : plugin.id)}
+                    >
+                      {renderProviderIcon(
+                        plugin.id,
+                        plugin.name,
+                        plugin.homepage ? `${plugin.homepage}/favicon.ico` : undefined,
+                        13
+                      )}
+                      <span>{plugin.name}</span>
+                      {searched && storeCount > 0 && (
+                        <span className="pillCountBadge">{storeCount}</span>
+                      )}
+                    </button>
+                    {isSteamRip && (
+                      <button
+                        type="button"
+                        className="externalSettingsPillBtn"
+                        onClick={() => handleOpenSettingsModal('pastas')}
+                        title="Configurações de Buscar Jogos"
+                        aria-label="Configurações de Buscar Jogos"
+                      >
+                        <FontAwesomeIcon icon={faCog} />
+                      </button>
                     )}
-                    <span>{plugin.name}</span>
-                    {searched && storeCount > 0 && (
-                      <span className="pillCountBadge">{storeCount}</span>
-                    )}
-                  </button>
+                  </Fragment>
                 )
               })}
+              {!plugins.some((p) => p.id.toLowerCase().includes('steamrip') || p.name.toLowerCase().includes('steamrip')) && (
+                <button
+                  type="button"
+                  className="externalSettingsPillBtn"
+                  onClick={() => handleOpenSettingsModal('pastas')}
+                  title="Configurações de Buscar Jogos"
+                  aria-label="Configurações de Buscar Jogos"
+                >
+                  <FontAwesomeIcon icon={faCog} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -2096,7 +2275,7 @@ export default function ExternalGamesScreen() {
             <div className="searchSuggestionsDropdown">
               <div className="suggestionHeader">
                 <FontAwesomeIcon icon={faLightbulb} style={{ color: '#00ffff' }} />
-                <span>Sugestões Rápidas</span>
+                <span>Sugestões Rápidas (Pressione Enter ou clique para buscar)</span>
               </div>
               {suggestions.map((item) => (
                 <div
@@ -2108,8 +2287,11 @@ export default function ExternalGamesScreen() {
                     executeSearch(item)
                   }}
                 >
-                  <span className="suggestionTitle">{item}</span>
-                  <FontAwesomeIcon icon={faSearch} style={{ fontSize: '12px', color: '#64748b' }} />
+                  <div className="suggestionItemLeft">
+                    <FontAwesomeIcon icon={faGamepad} className="suggestionGameIcon" />
+                    <span className="suggestionTitle">{item}</span>
+                  </div>
+                  <FontAwesomeIcon icon={faSearch} className="suggestionSearchIcon" />
                 </div>
               ))}
             </div>
@@ -2654,7 +2836,7 @@ export default function ExternalGamesScreen() {
                                 type="button"
                                 className="managePathsBtn"
                                 title="Gerenciar e excluir pastas salvas de instalação"
-                                onClick={() => setShowPathsManagerModal(true)}
+                                onClick={() => handleOpenSettingsModal('pastas')}
                               >
                                 <FontAwesomeIcon icon={faCog} /> Gerenciar Pastas
                                 <span className="managePathsBadge">{installPaths.length}</span>
@@ -2758,73 +2940,15 @@ export default function ExternalGamesScreen() {
             {/* GERENCIAMENTO DE JOGOS INSTALADOS (SE HOUVER) */}
             {!!state.installations.length && (
               <div className="externalAdvancedFooter">
-                <details className="externalAdvancedDetails">
-                  <summary>Gerenciar jogos externos instalados ({state.installations.length})</summary>
-                  <div className="externalAdvancedBody">
-                    <label style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      Jogo
-                      <select
-                        value={replacement}
-                        onChange={(event) => {
-                          setReplacement(event.target.value)
-                          setSelected(undefined)
-                        }}
-                      >
-                        <option value="">Selecione um jogo</option>
-                        {state.installations.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.game.title} · {item.game.providerName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {installation && (
-                      <div style={{ marginTop: '14px' }}>
-                        <p>
-                          Fonte principal: {installation.game.providerName} · {installation.game.version || 'Versão não identificada'}
-                        </p>
-                        <p className="externalPath">
-                          Saves: {installation.savePath || 'Pasta ainda não configurada'}
-                        </p>
-                        <div className="externalActions" style={{ marginTop: '12px' }}>
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              void action({
-                                type: 'check-update',
-                                installationId: installation.id
-                              })
-                            }
-                          >
-                            Verificar atualização na fonte
-                          </button>
-                          <button
-                            disabled={busy}
-                            onClick={() =>
-                              void action({
-                                type: 'configure-saves',
-                                installationId: installation.id
-                              })
-                            }
-                          >
-                            Escolher pasta de saves
-                          </button>
-                          <button
-                            disabled={busy || !installation.savePath}
-                            onClick={() =>
-                              void action({
-                                type: 'backup',
-                                installationId: installation.id
-                              })
-                            }
-                          >
-                            Fazer backup
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </details>
+                <button
+                  type="button"
+                  className="externalManageInstalledFooterBtn"
+                  onClick={() => handleOpenSettingsModal('instalados')}
+                >
+                  <FontAwesomeIcon icon={faGamepad} />
+                  <span>Gerenciar jogos externos instalados ({state.installations.length})</span>
+                  <FontAwesomeIcon icon={faChevronRight} style={{ fontSize: '12px', opacity: 0.8 }} />
+                </button>
               </div>
             )}
           </>
@@ -2902,6 +3026,32 @@ export default function ExternalGamesScreen() {
         )}
 
         {/* MODAL CYBER NEON: TROCA DE FONTE / ATUALIZAÇÃO (REGRA 12 FECHAMENTO) */}
+        {showTransportChoice && activeSource && (
+          <div className="ghostReplacementModalOverlay" onClick={() => setShowTransportChoice(false)}>
+            <div className="ghostReplacementModalCard" role="dialog" aria-modal="true" aria-labelledby="downloadTransportTitle" onClick={event => event.stopPropagation()}>
+              <div className="ghostPathsModalHeader">
+                <h2 id="downloadTransportTitle">Escolha como baixar</h2>
+                <button type="button" className="ghostPathsModalCloseBtn" aria-label="Fechar" onClick={() => setShowTransportChoice(false)}><FontAwesomeIcon icon={faTimes} /></button>
+              </div>
+              <p>{activeSource.title} · {activeSource.providerName}</p>
+              <div className="ghostTransportChoices">
+                {sources.map(source => (
+                  <button key={source.id} type="button" className="ghostReplacementBtnConfirm" disabled={busy} onClick={() => {
+                    setShowTransportChoice(false)
+                    void handleInstallFromSource(source.id)
+                  }}>
+                    <FontAwesomeIcon icon={faDownload} />
+                    <span>{source.type === 'torbox' ? 'TorBox — Torrent' : source.type === 'external' ? 'Download direto — Confirmar no site' : source.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="ghostReplacementModalFooter">
+                <button type="button" className="ghostReplacementBtnCancel" onClick={() => setShowTransportChoice(false)}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {replacementModal && replacementModal.isOpen && (
           <div
             className="ghostReplacementModalOverlay"
@@ -2968,7 +3118,7 @@ export default function ExternalGamesScreen() {
                 <div className="shieldContent">
                   <strong>🛡️ Proteção de Saves GhostShield Ativa</strong>
                   <p>
-                    Confirme que se trata do mesmo jogo e de uma edição compatível. A reinstalação será limpa: mods e configurações não serão migrados. <strong>Os saves terão backup automático</strong>; a compatibilidade entre fontes depende do jogo.
+                    Ao confirmar, o Ghost fará e verificará o backup dos saves e apagará a instalação antiga para liberar espaço antes de baixar o pacote. Se você cancelar depois da exclusão ou ocorrer uma falha, o jogo ficará indisponível até concluir a reinstalação. Mods e configurações não serão migrados. Confirme que se trata do mesmo jogo e de uma edição compatível. <strong>Os saves terão backup automático</strong>; a compatibilidade entre fontes depende do jogo.
                   </p>
                 </div>
               </div>
@@ -3007,133 +3157,458 @@ export default function ExternalGamesScreen() {
           </div>
         )}
 
-        {/* MODAL CYBER NEON: GERENCIADOR DE PASTAS DE INSTALAÇÃO (REGRAS 12 E 53 - ZERO EMOJIS, 100% SVG) */}
-        {showPathsManagerModal && (
+        {/* MODAL CYBER NEON: CONFIGURAÇÕES DE BUSCAR JOGOS (4 ABAS: PASTAS, LOJA, INTEGRAÇÕES E JOGOS INSTALADOS) */}
+        {showSettingsModal && (
           <div
             className="ghostPathsModalOverlay"
-            onClick={() => setShowPathsManagerModal(false)}
+            onClick={() => setShowSettingsModal(false)}
           >
             <div
-              className="ghostPathsModalCard"
+              className="ghostPathsModalCard ghostSettingsModalExpandedCard"
               onClick={(e) => e.stopPropagation()}
             >
               {/* CABEÇALHO DO MODAL */}
               <div className="ghostPathsModalHeader">
                 <div className="ghostPathsModalTitleGroup">
                   <div className="ghostPathsModalIcon">
-                    <FontAwesomeIcon icon={faFolderOpen} />
+                    <FontAwesomeIcon icon={faCog} />
                   </div>
                   <div className="ghostPathsModalTitles">
-                    <h3>Gerenciador de Pastas de Instalação</h3>
-                    <p>Exclua diretórios antigos ou de teste para manter a lista limpa e organizada.</p>
+                    <h3>Configurações de Buscar Jogos</h3>
+                    <p>Gerencie pastas de instalação, loja de destino, integrações e jogos instalados.</p>
                   </div>
                 </div>
                 {/* Botão Fechar Regra 12: SVG faTimes sem moldura */}
                 <button
                   type="button"
                   className="ghostPathsModalCloseBtn"
-                  onClick={() => setShowPathsManagerModal(false)}
+                  onClick={() => setShowSettingsModal(false)}
                   aria-label="Fechar"
                 >
                   <FontAwesomeIcon icon={faTimes} />
                 </button>
               </div>
 
-              {/* DESTAQUE DA PASTA DO JOGO ATUAL (SE DETECTADA) */}
-              {installedDirectory && (
-                <div className="ghostPathsInstalledDirHighlight">
-                  <div className="ghostPathsInstalledDirLeft">
-                    <span className="installedDirIcon">
-                      <FontAwesomeIcon icon={faCheckCircle} />
-                    </span>
-                    <div className="installedDirTexts">
-                      <div className="installedDirTitle">Pasta Atual do Jogo (Detectada no Disco)</div>
-                      <div className="installedDirPath" title={installedDirectory}>
-                        {installedDirectory}
+              {/* BARRA DE NAVEGAÇÃO DAS 4 ABAS */}
+              <div className="ghostSettingsTabsNav">
+                <button
+                  type="button"
+                  className={`ghostSettingsTabBtn ${settingsActiveTab === 'pastas' ? 'active' : ''}`}
+                  onClick={() => setSettingsActiveTab('pastas')}
+                >
+                  <FontAwesomeIcon icon={faFolder} />
+                  <span>Pastas de Instalação</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ghostSettingsTabBtn ${settingsActiveTab === 'loja' ? 'active' : ''}`}
+                  onClick={() => setSettingsActiveTab('loja')}
+                >
+                  <FontAwesomeIcon icon={faStore} />
+                  <span>Loja de Destino</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ghostSettingsTabBtn ${settingsActiveTab === 'integracoes' ? 'active' : ''}`}
+                  onClick={() => setSettingsActiveTab('integracoes')}
+                >
+                  <FontAwesomeIcon icon={faBolt} />
+                  <span>TorBox & AnkerGames</span>
+                </button>
+                <button
+                  type="button"
+                  className={`ghostSettingsTabBtn ${settingsActiveTab === 'instalados' ? 'active' : ''}`}
+                  onClick={() => setSettingsActiveTab('instalados')}
+                >
+                  <FontAwesomeIcon icon={faGamepad} />
+                  <span>Jogos Instalados ({state.installations.length})</span>
+                </button>
+              </div>
+
+              {/* CORPO DA ABA SELECIONADA */}
+              <div className="ghostSettingsTabContent">
+                {/* ABA 1: PASTAS DE INSTALAÇÃO */}
+                {settingsActiveTab === 'pastas' && (
+                  <div className="ghostSettingsTabPane">
+                    {installedDirectory && (
+                      <div className="ghostPathsInstalledDirHighlight">
+                        <div className="ghostPathsInstalledDirLeft">
+                          <span className="installedDirIcon">
+                            <FontAwesomeIcon icon={faCheckCircle} />
+                          </span>
+                          <div className="installedDirTexts">
+                            <div className="installedDirTitle">Pasta Atual do Jogo (Detectada no Disco)</div>
+                            <div className="installedDirPath" title={installedDirectory}>
+                              {installedDirectory}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="installedDirBadge">In-Place</span>
+                      </div>
+                    )}
+
+                    <div className="ghostPathsListSection">
+                      <div className="ghostPathsListHeader">
+                        <span className="ghostPathsListTitle">
+                          Pastas Salvas no Histórico
+                          <span className="ghostPathsListCountBadge">{installPaths.length}</span>
+                        </span>
+                        <span className="ghostPathsListHint">Clique na lixeira para remover</span>
+                      </div>
+
+                      <div className="ghostPathsListContainer">
+                        {installPaths.length === 0 ? (
+                          <div className="ghostPathsEmptyState">
+                            <FontAwesomeIcon icon={faFolder} />
+                            <p>Nenhuma pasta personalizada cadastrada. O Ghost utilizará o diretório padrão.</p>
+                          </div>
+                        ) : (
+                          installPaths.map((path) => {
+                            const isCurrentSelected =
+                              selectedInstallPath.trim().toLowerCase() === path.trim().toLowerCase()
+                            return (
+                              <div className="ghostPathItemRow" key={path}>
+                                <div className="ghostPathItemInfo">
+                                  <span className="ghostPathItemIcon">
+                                    <FontAwesomeIcon icon={faFolder} />
+                                  </span>
+                                  <span className="ghostPathItemText" title={path}>
+                                    {path}
+                                  </span>
+                                  {isCurrentSelected && (
+                                    <span className="ghostPathItemActiveBadge">
+                                      <FontAwesomeIcon icon={faCheck} /> Ativa
+                                    </span>
+                                  )}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  className="ghostPathItemDeleteBtn"
+                                  title={`Excluir "${path}" da lista`}
+                                  onClick={() => handleDeleteSavedPath(path)}
+                                >
+                                  <FontAwesomeIcon icon={faTrashAlt} />
+                                </button>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="ghostPathsModalFooter" style={{ borderTop: 'none', padding: '16px 0 0 0' }}>
+                      <div className="ghostPathsFooterLeftActions">
+                        <button
+                          type="button"
+                          className="ghostPathsAddBtn"
+                          onClick={handleAddInstallPath}
+                        >
+                          <FontAwesomeIcon icon={faPlus} />
+                          <span>Adicionar Nova Pasta</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="ghostPathsResetBtn"
+                          title="Restaurar pastas padrão (C:\Ghost Games e D:\Jogos)"
+                          onClick={handleResetSavedPaths}
+                        >
+                          <FontAwesomeIcon icon={faBroom} />
+                          <span>Restaurar Padrões</span>
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <span className="installedDirBadge">In-Place</span>
-                </div>
-              )}
+                )}
 
-              {/* LISTA DE PASTAS SALVAS NO LAUNCHER */}
-              <div className="ghostPathsListSection">
-                <div className="ghostPathsListHeader">
-                  <span className="ghostPathsListTitle">
-                    Pastas Salvas no Histórico
-                    <span className="ghostPathsListCountBadge">{installPaths.length}</span>
-                  </span>
-                  <span className="ghostPathsListHint">Clique no ícone de lixeira para remover</span>
-                </div>
-
-                <div className="ghostPathsListContainer">
-                  {installPaths.length === 0 ? (
-                    <div className="ghostPathsEmptyState">
-                      <FontAwesomeIcon icon={faFolder} />
-                      <p>Nenhuma pasta personalizada cadastrada. O Ghost utilizará o diretório padrão.</p>
+                {/* ABA 2: LOJA DE DESTINO */}
+                {settingsActiveTab === 'loja' && (
+                  <div className="ghostSettingsTabPane">
+                    <div className="ghostSettingsSectionHeader">
+                      <h4>Loja Padrão para Jogos Baixados</h4>
+                      <p>
+                        Selecione a loja da sua biblioteca onde todo jogo baixado ou instalado através do Buscar Jogos será automaticamente adicionado.
+                      </p>
                     </div>
-                  ) : (
-                    installPaths.map((path) => {
-                      const isCurrentSelected =
-                        selectedInstallPath.trim().toLowerCase() === path.trim().toLowerCase()
-                      return (
-                        <div className="ghostPathItemRow" key={path}>
-                          <div className="ghostPathItemInfo">
-                            <span className="ghostPathItemIcon">
-                              <FontAwesomeIcon icon={faFolder} />
-                            </span>
-                            <span className="ghostPathItemText" title={path}>
-                              {path}
-                            </span>
-                            {isCurrentSelected && (
-                              <span className="ghostPathItemActiveBadge">
-                                <FontAwesomeIcon icon={faCheck} /> Ativa
-                              </span>
-                            )}
-                          </div>
 
+                    <div className="ghostSettingsCardBox">
+                      <label className="ghostSettingsLabel">
+                        <FontAwesomeIcon icon={faStore} /> Salvar jogos baixados automaticamente na loja:
+                      </label>
+                      <select
+                        className="ghostSettingsSelect"
+                        value={selectedDefaultStore}
+                        onChange={(e) => handleSelectDefaultStore(e.target.value)}
+                      >
+                        {customStoresList.length > 0 ? (
+                          customStoresList.map((st) => (
+                            <option key={st.id} value={st.id}>
+                              {st.name} {st.id.toLowerCase().includes('pirata') ? '★ (Padrão Recomendado)' : ''}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="piratas">Piratas ★ (Padrão)</option>
+                        )}
+                      </select>
+
+                      {storeSaveSuccess && (
+                        <div className="ghostSettingsSuccessBadge">
+                          <FontAwesomeIcon icon={faCheck} /> Loja padrão configurada com sucesso! Novos downloads irão para esta loja.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="ghostSettingsCardBox" style={{ marginTop: '16px' }}>
+                      <div className="ghostSettingsSyncHeader">
+                        <span className="ghostSettingsSyncTitle">
+                          <FontAwesomeIcon icon={faSyncAlt} /> Sincronização de Jogos Existentes
+                        </span>
+                        <p>
+                          Atribuir retroativamente todos os jogos já instalados de fontes externas para a loja selecionada acima.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="ghostSettingsActionBtn"
+                        onClick={() => {
+                          void syncPiratasStoreAssignments()
+                          setStoreSaveSuccess(true)
+                          setTimeout(() => setStoreSaveSuccess(false), 3000)
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faSyncAlt} />
+                        <span>Sincronizar Jogos Instalados com esta Loja Agora</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ABA 3: TORBOX & ANKERGAMES */}
+                {settingsActiveTab === 'integracoes' && (
+                  <div className="ghostSettingsTabPane">
+                    <div className="ghostSettingsSectionHeader">
+                      <h4>Integrações de Download de Alta Velocidade</h4>
+                      <p>
+                        Configure sua conta oficial AnkerGames e a chave de API do TorBox Debrid. Estas opções sincronizam diretamente com as Configurações gerais do Ghost.
+                      </p>
+                    </div>
+
+                    {integrationsNotice && (
+                      <div className="ghostSettingsNotice">
+                        {integrationsNotice}
+                      </div>
+                    )}
+
+                    {/* CARD ANKERGAMES */}
+                    <div className="ghostSettingsCardBox">
+                      <div className="ghostIntegrationHeader">
+                        <div className="ghostIntegrationTitle">
+                          <img src={ankerLogo} alt="AnkerGames" style={{ width: '22px', height: '22px', objectFit: 'contain' }} />
+                          <span style={{ fontWeight: 700, fontSize: '15px' }}>AnkerGames</span>
+                        </div>
+                        <span className={`ghostStatusPill ${integrationsState?.ankerConnected ? 'connected' : 'disconnected'}`}>
+                          <FontAwesomeIcon icon={integrationsState?.ankerConnected ? faCheckCircle : faTimes} />
+                          <span>{integrationsState?.ankerConnected ? 'Conectado' : 'Desconectado'}</span>
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0 14px 0' }}>
+                        {integrationsState?.ankerConnected
+                          ? 'Conta conectada nesta sessão. O launcher acessa os torrents oficiais de alta velocidade.'
+                          : 'Conecte sua conta pela janela oficial do AnkerGames para baixar torrents e links diretos.'}
+                      </p>
+                      <div className="ghostIntegrationActions">
+                        <button
+                          type="button"
+                          className="ghostSettingsActionBtn"
+                          disabled={integrationsBusy}
+                          onClick={() => void handleIntegrationsAct({ type: 'connect-anker' })}
+                        >
+                          Conectar Conta AnkerGames
+                        </button>
+                        <button
+                          type="button"
+                          className="ghostSettingsActionBtn secondary"
+                          disabled={integrationsBusy || !integrationsState?.ankerConnected}
+                          onClick={() => void handleIntegrationsAct({ type: 'disconnect-anker' })}
+                        >
+                          Desconectar
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* CARD TORBOX */}
+                    <div className="ghostSettingsCardBox" style={{ marginTop: '16px' }}>
+                      <div className="ghostIntegrationHeader">
+                        <div className="ghostIntegrationTitle">
+                          <FontAwesomeIcon icon={faBolt} style={{ color: '#00ffff', fontSize: '18px' }} />
+                          <span style={{ fontWeight: 700, fontSize: '15px' }}>TorBox Debrid</span>
+                        </div>
+                        <span className={`ghostStatusPill ${integrationsState?.torboxConfigured ? 'connected' : 'disconnected'}`}>
+                          <FontAwesomeIcon icon={integrationsState?.torboxConfigured ? faCheckCircle : faTimes} />
+                          <span>{integrationsState?.torboxConfigured ? 'Configurado' : 'Não Configurado'}</span>
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#94a3b8', margin: '8px 0 14px 0' }}>
+                        {integrationsState?.torboxConfigured
+                          ? 'Chave salva com proteção do sistema. Torrents e magnets são convertidos em downloads diretos de altíssima velocidade.'
+                          : 'Informe sua chave de API pessoal do TorBox para desbloquear downloads ultra rápidos sem necessidade de seeders locais.'}
+                      </p>
+
+                      <div className="ghostTorboxInputGroup">
+                        <div className="ghostTorboxFieldWrapper">
+                          <input
+                            type={showTorboxKey ? 'text' : 'password'}
+                            id="torbox-api-key-modal"
+                            autoComplete="off"
+                            placeholder="Insira sua chave de API do TorBox..."
+                            value={torboxKey}
+                            disabled={integrationsBusy}
+                            onChange={(e) => setTorboxKey(e.target.value)}
+                            className="ghostTorboxInput"
+                          />
                           <button
                             type="button"
-                            className="ghostPathItemDeleteBtn"
-                            title={`Excluir "${path}" da lista`}
-                            onClick={() => handleDeleteSavedPath(path)}
+                            className="ghostTorboxToggleBtn"
+                            onClick={() => setShowTorboxKey(!showTorboxKey)}
+                            title={showTorboxKey ? 'Ocultar chave' : 'Mostrar chave'}
                           >
-                            <FontAwesomeIcon icon={faTrashAlt} />
+                            <FontAwesomeIcon icon={showTorboxKey ? faEyeSlash : faEye} />
                           </button>
                         </div>
-                      )
-                    })
-                  )}
-                </div>
+
+                        <div className="ghostIntegrationActions">
+                          <button
+                            type="button"
+                            className="ghostSettingsActionBtn"
+                            disabled={integrationsBusy || !torboxKey.trim()}
+                            onClick={() => void handleIntegrationsAct({ type: 'save-torbox', apiKey: torboxKey })}
+                          >
+                            Salvar e Testar
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostSettingsActionBtn secondary"
+                            disabled={integrationsBusy || !integrationsState?.torboxConfigured}
+                            onClick={() => void handleIntegrationsAct({ type: 'test-torbox' })}
+                          >
+                            Testar Conexão
+                          </button>
+                          <button
+                            type="button"
+                            className="ghostSettingsActionBtn secondary"
+                            disabled={integrationsBusy || !integrationsState?.torboxConfigured}
+                            onClick={() => void handleIntegrationsAct({ type: 'disconnect-torbox' })}
+                          >
+                            Desconectar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ABA 4: JOGOS INSTALADOS */}
+                {settingsActiveTab === 'instalados' && (
+                  <div className="ghostSettingsTabPane">
+                    <div className="ghostSettingsSectionHeader">
+                      <h4>Jogos Externos Instalados ({state.installations.length})</h4>
+                      <p>
+                        Monitore suas instalações externas ativas. Você pode remover jogos desta lista individualmente a qualquer momento através do botão de lixeira.
+                      </p>
+                    </div>
+
+                    <div className="ghostInstListContainer">
+                      {state.installations.length === 0 ? (
+                        <div className="ghostPathsEmptyState">
+                          <FontAwesomeIcon icon={faGamepad} />
+                          <p>Nenhum jogo externo instalado encontrado na lista.</p>
+                        </div>
+                      ) : (
+                        state.installations.map((inst) => (
+                          <div className="ghostInstItemCard" key={inst.id}>
+                            <div className="ghostInstCardHeader">
+                              <div className="ghostInstInfoLeft">
+                                <span className="ghostInstProviderIcon">
+                                  {renderProviderIcon(inst.game.providerId, inst.game.providerName, undefined, 20)}
+                                </span>
+                                <div className="ghostInstTitles">
+                                  <h4>{inst.game.title}</h4>
+                                  <div className="ghostInstBadges">
+                                    <span className="ghostInstBadgeStore">{inst.game.providerName}</span>
+                                    {inst.game.version && (
+                                      <span className="ghostInstBadgeVer">v{inst.game.version}</span>
+                                    )}
+                                    <span className="ghostInstBadgeShield">
+                                      <FontAwesomeIcon icon={faShieldAlt} /> GhostShield
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="ghostInstDeleteBtn"
+                                title="Remover este jogo da lista de jogos instalados"
+                                onClick={() => handleRemoveInstallation(inst.id, inst.game.title)}
+                              >
+                                <FontAwesomeIcon icon={faTrashAlt} />
+                                <span>Remover da Lista</span>
+                              </button>
+                            </div>
+
+                            <div className="ghostInstPathsGrid">
+                              <div className="ghostInstPathRow">
+                                <span className="pathLabel"><FontAwesomeIcon icon={faFolder} /> Pasta de Instalação:</span>
+                                <span className="pathValue" title={inst.directory}>{inst.directory || 'Não identificada'}</span>
+                              </div>
+                              <div className="ghostInstPathRow">
+                                <span className="pathLabel"><FontAwesomeIcon icon={faShieldAlt} /> Saves Protegidos:</span>
+                                <span className="pathValue" title={inst.savePath}>{inst.savePath || 'Automático GhostShield'}</span>
+                              </div>
+                            </div>
+
+                            <div className="ghostInstActionsBar">
+                              <button
+                                type="button"
+                                className="ghostInstActionBtn"
+                                disabled={busy}
+                                onClick={() => void action({ type: 'check-update', installationId: inst.id })}
+                              >
+                                <FontAwesomeIcon icon={faSyncAlt} /> Verificar Atualização
+                              </button>
+                              <button
+                                type="button"
+                                className="ghostInstActionBtn"
+                                disabled={busy}
+                                onClick={() => void action({ type: 'configure-saves', installationId: inst.id })}
+                              >
+                                <FontAwesomeIcon icon={faFolderOpen} /> Configurar Saves
+                              </button>
+                              <button
+                                type="button"
+                                className="ghostInstActionBtn"
+                                disabled={busy || !inst.savePath}
+                                onClick={() => void action({ type: 'backup', installationId: inst.id })}
+                              >
+                                <FontAwesomeIcon icon={faDownload} /> Fazer Backup
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* RODAPÉ DE AÇÕES */}
+              {/* RODAPÉ DO MODAL */}
               <div className="ghostPathsModalFooter">
-                <div className="ghostPathsFooterLeftActions">
-                  <button
-                    type="button"
-                    className="ghostPathsAddBtn"
-                    onClick={handleAddInstallPath}
-                  >
-                    <FontAwesomeIcon icon={faPlus} />
-                    <span>Adicionar Nova Pasta</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="ghostPathsResetBtn"
-                    title="Restaurar pastas padrão (C:\Ghost Games e D:\Jogos)"
-                    onClick={handleResetSavedPaths}
-                  >
-                    <FontAwesomeIcon icon={faBroom} />
-                    <span>Restaurar Padrões</span>
-                  </button>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  Ghost Games Launcher · Configurações Globais de Downloads
                 </div>
-
                 <button
                   type="button"
                   className="ghostPathsCloseActionBtn"
-                  onClick={() => setShowPathsManagerModal(false)}
+                  onClick={() => setShowSettingsModal(false)}
                 >
                   <FontAwesomeIcon icon={faCheck} />
                   <span>Concluído</span>

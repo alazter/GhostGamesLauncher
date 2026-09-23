@@ -433,7 +433,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Substituídos ícones genéricos na sidebar por vetores oficiais de marcas (`<EpicLogo />`, `<GOGLogo />`, `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />`, `<ZoomLogo />`).
   - Registradas todas as novas diretrizes no `.agents/AGENTS.md`.
 
-# Review das Alterações - 21/09/2026
+# Review das Alterações - 23/09/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -709,6 +709,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Logo AnkerGames Ultra HD e Resolução de Capas em 3 Níveis**: Transparência suave anti-aliased em 1024x1024 (`ankergames-logo.png`), resolução de capas com 3 níveis (Biblioteca/GameOverrides ➔ SteamGridDB via IPC ➔ Site de origem) e logo exclusivo ampliado sem texto nos cards de downloads.
   - **Unificação de Downloads Externos no `/download-manager`**: Integrados os cards `ExternalActiveCard` (hero card de 180px com telemetria e ondas no topo), `ExternalFinishedCard` (compacto 82px com `[ ▶ Jogar ]`) e `ExternalQueueCard` (compacto 82px na fila unificada).
   - **Eliminação Definitiva de Diálogos Nativos Win32**: Modal Cyber Neon de Troca de Fonte / Atualização de Jogos substituindo caixas brancas `dialog.showMessageBox`.
+
+### 39. Hub de Configurações Cyber Neon, Auto-Resolução de Acrônimos, Suporte Multi-Card Ativo em Downloads e Feedback Visual de Deleção
+* **Problema:** Falta de hub central de configurações na busca de jogos, necessidade de digitar pontos em acrônimos (S.T.A.L.K.E.R.), limitação a 1 card ativo no gerenciador de downloads e falta de feedback visual em tempo real nos cards da biblioteca durante deleção/remoção sem travar o aplicativo.
+* **Solução:**
+  - **Hub de Configurações Cyber Neon de Buscar Jogos**: Engrenagem `.externalSettingsPillBtn` com modal Glassmorphism em 4 abas (`ghostSettingsModalExpandedCard`) para gestão de pastas, loja personalizada padrão de downloads, credenciais TorBox/AnkerGames e grade de jogos instalados com botão de lixeira rápida (`.ghostInstDeleteBtn`).
+  - **Busca Inteligente com Auto-Resolução de Acrônimos**: Fim do debounce automático na digitação. Motor de acrônimos pontuados (`KNOWN_GAME_ACRONYMS` e `generateSearchQueryVariants`) permitindo que buscar `stalker 2` encontre `S.T.A.L.K.E.R. 2: Heart of Chornobyl`. Dropdown suspenso de sugestões em tempo real (`.searchSuggestionsDropdown`) sem trocar a página.
+  - **Suporte a Múltiplos Cards Ativos no Gerenciador de Downloads (Conquista 96/Regra 64)**: Suporte a N downloads ativos em paralelo na área `BAIXANDO AGORA` com telemetria agregada e reorganização de layout automática (quando `> 2` processos ativos, a seção `BAIXANDO AGORA` assume a largura total no topo com grid de 2 colunas e a seção `NA FILA` desce para a linha inferior ao lado de `CONCLUÍDOS`).
+  - **Indicador Local de Remoção/Deleção no GameCard (Conquista 94/Regras 61 e 62)**: Store reativo não-bloqueante (`removingGamesStore.ts`) acionado em 0ms. Overlay interno ao card (`.gameCardRemovalOverlay`) com blur, bordas pulsantes neon e spinner sem alterar o tamanho, largura, altura ou proporção `aspect-ratio: 173/275` do card (Regra 62), permitindo navegar pela biblioteca enquanto a remoção roda em background (Regra 61).
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros no TypeScript (`tsc --noEmit`) e 160/160 testes unitários Jest aprovados.
 
 ---
 

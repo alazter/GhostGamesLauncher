@@ -512,6 +512,7 @@ interface AsyncIPCFunctions {
   externalGamesGetOrCreateInstallation: (appName: string, gameInfo?: any) => Promise<ExternalInstallation | null>
   externalGamesSyncPiratasSaves: (options?: { autoBackup?: boolean }) => Promise<import('common/types/plugins').PiratasSaveSyncResult>
   externalGamesDeleteGame: (appName: string, deleteFiles: boolean) => Promise<ExternalActionResult>
+  externalGamesRemoveInstallation: (installationId: string) => Promise<boolean>
   externalGamesCheckPiratasUpdates: (force?: boolean) => Promise<{ success: boolean; message: string }>
   pluginsToggle: (pluginId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>
   pluginsInstall: (filePath?: string) => Promise<PluginInstallResult>
@@ -526,6 +527,7 @@ interface AsyncIPCFunctions {
   pluginsGetActiveCSS: () => Promise<Record<string, string>>
   pluginsGetPortugueseDescription: (canonicalTitle: string, rawEnglishDesc?: string) => Promise<string>
   pluginsGetGameTrailer: (canonicalTitle: string) => Promise<string | null>
+  pluginsGetGameSuggestions: (query: string) => Promise<string[]>
 }
 
 export interface DetectedVersionResult {

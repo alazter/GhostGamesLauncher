@@ -11,6 +11,7 @@ import { Runner } from 'common/types'
 import ToggleSwitch from '../ToggleSwitch'
 import { useNavigate, useLocation } from 'react-router-dom'
 import ContextProvider from 'frontend/state/ContextProvider'
+import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
 
 interface UninstallModalProps {
   appName: string
@@ -89,35 +90,42 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
   const storage: Storage = window.localStorage
   const uninstallGame = async () => {
     onClose()
+    useRemovingGamesStore.getState().startRemoval(appName, 'removing')
 
-    if (runner !== 'sideload') {
-      // For any store game (Steam, Epic, GOG, Nile, Zoom), removing it hides it from the Ghost library
-      hiddenGames.add(appName, gameTitle || appName)
-      if (isInstalled) {
+    try {
+      if (runner !== 'sideload') {
+        // For any store game (Steam, Epic, GOG, Nile, Zoom), removing it hides it from the Ghost library
+        hiddenGames.add(appName, gameTitle || appName)
+        if (isInstalled) {
+          await window.api.uninstall(
+            appName,
+            runner,
+            deletePrefixChecked,
+            deleteSettingsChecked
+          )
+        }
+      } else {
+        // Sideload / Manual game: removes from sideload database and deletes files if checked
         await window.api.uninstall(
           appName,
           runner,
           deletePrefixChecked,
           deleteSettingsChecked
         )
+        if (location.pathname.match(/gamepage/)) {
+          navigate('/#library')
+        }
       }
-    } else {
-      // Sideload / Manual game: removes from sideload database and deletes files if checked
-      await window.api.uninstall(
-        appName,
-        runner,
-        deletePrefixChecked,
-        deleteSettingsChecked
-      )
-      if (location.pathname.match(/gamepage/)) {
-        navigate('/#library')
-      }
-    }
 
-    window.dispatchEvent(
-      new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
-    )
-    storage.removeItem(appName)
+      window.dispatchEvent(
+        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+      )
+      storage.removeItem(appName)
+    } finally {
+      setTimeout(() => {
+        useRemovingGamesStore.getState().finishRemoval(appName)
+      }, 500)
+    }
   }
 
   const showWineCheckbox = !isNative && !isDlc && isInstalled

@@ -54,6 +54,9 @@ export function registerPluginsIPC(): void {
   addHandler('externalGamesDeleteGame', async (_event, appName: string, deleteFiles: boolean) =>
     ExternalGames.getInstance().deleteInstallationAndFiles(appName, deleteFiles)
   )
+  addHandler('externalGamesRemoveInstallation', async (_event, installationId: string) =>
+    ExternalGames.getInstance().removeInstallation(installationId)
+  )
   addHandler('externalGamesCheckPiratasUpdates', async (_event, force?: boolean) =>
     manager.checkPiratasUpdates(Boolean(force))
   )
@@ -112,5 +115,9 @@ export function registerPluginsIPC(): void {
 
   addHandler('pluginsGetGameTrailer', async (_event, canonicalTitle: string) => {
     return await resolveYouTubeTrailerId(canonicalTitle)
+  })
+
+  addHandler('pluginsGetGameSuggestions', async (_event, query: string) => {
+    return await manager.getGameSuggestions(query)
   })
 }
