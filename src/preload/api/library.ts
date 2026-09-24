@@ -1,6 +1,13 @@
 import { makeListenerCaller, makeHandlerInvoker, frontendListenerSlot } from '../ipc'
 
 export const removeFolder = makeListenerCaller('removeFolder')
+export const getConnectedAccounts = makeHandlerInvoker('getConnectedAccounts')
+export const connectAccount = makeHandlerInvoker('connectAccount')
+export const syncAccount = makeHandlerInvoker('syncAccount')
+export const disconnectAccount = makeHandlerInvoker('disconnectAccount')
+export const getXboxClientId = makeHandlerInvoker('getXboxClientId')
+export const setXboxClientId = makeHandlerInvoker('setXboxClientId')
+export const openAccountGame = makeHandlerInvoker('openAccountGame')
 export const openDialog = makeHandlerInvoker('openDialog')
 export const uninstall = makeHandlerInvoker('uninstall')
 export const bulkUninstall = makeHandlerInvoker('bulkUninstall')

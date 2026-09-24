@@ -37,6 +37,7 @@ const AlternativeExe = () => {
       placeholder={targetExe || t('box.select.exe', 'Select EXE...')}
       label={label}
       htmlId="setinstallpath"
+      openFolderOnClick
     />
   )
 }

@@ -48,6 +48,7 @@ async function install({
   branch,
   showDialogModal
 }: InstallArgs) {
+  if (gameInfo.accountProvider) return window.api.openAccountGame(gameInfo.app_name)
   if (!installPath) {
     return
   }
@@ -158,6 +159,11 @@ const launch = async ({
   args,
   notPlayableOffline
 }: LaunchOptions): Promise<{ status: 'done' | 'error' | 'abort' }> => {
+  const accountGame = runner === 'sideload' ? await getGameInfo(appName, runner) : undefined
+  if (accountGame?.accountProvider) {
+    try { await window.api.openAccountGame(appName); return { status: 'done' } }
+    catch { return { status: 'error' } }
+  }
   markGameAsPlayed(appName, runner)
   const proceedToLaunch = async () => {
     // First handle update dialog if needed
@@ -485,12 +491,14 @@ export const normalizeTitleForDuplicateCheck = (rawTitle: string): string => {
 
 export const isOfficialStoreGame = (game: any): boolean => {
   if (!game) return false
+  if (game.accountProvider) return true
   const runner = (game.runner || '').toLowerCase()
   return runner !== 'sideload' && runner !== 'sideloaded'
 }
 
 export const isManualSideloadGame = (game: any): boolean => {
   if (!game) return false
+  if (game.accountProvider) return false
   const runner = (game.runner || '').toLowerCase()
   return runner === 'sideload' || runner === 'sideloaded'
 }
@@ -531,7 +539,7 @@ export const getDuplicateGameIds = (allGames: any[]): Set<string> => {
     const norm = normalizeTitleForDuplicateCheck(rawTitle)
     if (!norm) return
 
-    const isOfficial = runner !== 'sideload' && runner !== 'sideloaded'
+    const isOfficial = isOfficialStoreGame(game)
     const isManual = !isOfficial
 
     if (!map.has(norm)) {

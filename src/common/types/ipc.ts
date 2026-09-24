@@ -1,4 +1,5 @@
 import type { OpenDialogOptions, TitleBarOverlay } from 'electron'
+import type { AccountProvider, AccountResult, ConnectedAccountStatus } from './connectedAccounts'
 
 import type { SystemInformation } from 'backend/utils/systeminfo'
 
@@ -192,6 +193,13 @@ export interface StorageDrive {
 
 // ts-prune-ignore-next
 interface AsyncIPCFunctions {
+  getConnectedAccounts: () => Promise<ConnectedAccountStatus[]>
+  connectAccount: (provider: AccountProvider) => Promise<AccountResult>
+  syncAccount: (provider: AccountProvider) => Promise<AccountResult>
+  disconnectAccount: (provider: AccountProvider) => Promise<AccountResult>
+  getXboxClientId: () => Promise<string>
+  setXboxClientId: (clientId: string) => Promise<void>
+  openAccountGame: (appName: string) => Promise<void>
   kill: (appName: string, runner: Runner) => Promise<void>
   checkDiskSpace: (folder: string) => Promise<DiskSpaceData>
   getAvailableStorageDrives: (runner?: Runner) => Promise<StorageDrive[]>

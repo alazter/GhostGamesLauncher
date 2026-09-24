@@ -1,3 +1,4 @@
+import * as wrappedPackages from '../wrappedPackage'
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'fs/promises'
 const fsPromises = jest.requireActual<typeof import('fs/promises')>('fs/promises')
 import { tmpdir } from 'os'
@@ -977,4 +978,50 @@ it('uses the newly selected destination instead of the saved default', async () 
   const { userDataPath } = await import('backend/constants/paths')
   const persisted = JSON.parse(await readFile(join(userDataPath, 'external-games', 'state.json'), 'utf8'))
   expect(persisted.jobs.find((item: { id: string }) => item.id === result.jobId).directory).toBe(join(destination, 'Example'))
+})
+
+it('dismisses already cancelled job when cancel or dismiss is called, expunging it from state.jobs', async () => {
+  const old = await install()
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
+  // Primeiro cancel: cancela e marca como 'cancelled' mantendo backup
+  expect(await service.action({ type: 'cancel', jobId: result.jobId! })).toEqual({ success: true })
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('cancelled')
+  // Segundo cancel (ou clique no X em job já cancelado): remove completamente da lista de jobs
+  expect(await service.action({ type: 'cancel', jobId: result.jobId! })).toEqual({ success: true })
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)).toBeUndefined()
+})
+
+
+
+it('retries an existing Online-Fix wrapper with a repair archive using the local download after restart', async () => {
+  const { client, remote } = torboxFixture()
+  client.list.mockResolvedValue([{ ...remote, files: [{ id: 7, name: 'Game.rar', size: 100 }, { id: 8, name: 'Fix Repair/repair.rar', size: 10 }] }])
+  const capture = jest.spyOn(OnlineFixAccount, 'torrent').mockResolvedValue(Buffer.from('d4:infod6:lengthi1e4:name8:game.zipee'))
+  const main = PluginPacker.createZipBuffer([{ name: 'Stonewards/game.exe', content: Buffer.from('game') }])
+  const repair = PluginPacker.createZipBuffer([{ name: 'patch.txt', content: Buffer.from('optional repair') }])
+  const wrapper = PluginPacker.createZipBuffer([{ name: 'Stonewards/Stonewards.v0.1.5-OFME.zip', content: main }, { name: 'Stonewards/Fix Repair/Stonewards_Fix_Repair.zip', content: repair }])
+  jest.mocked(NetworkGuard.fetchResponse).mockResolvedValue(new Response(new Uint8Array(wrapper), { headers: { 'content-length': String(wrapper.length) } }))
+  const rejectLegacy = jest.spyOn(wrappedPackages, 'selectWrappedPackage').mockImplementationOnce(() => { throw new Error('Legacy multiple archives error') })
+  const result = await service.enqueue(
+    { ...game, providerId: ONLINE_FIX_SOURCE_ID, id: 'https://online-fix.me/games/test/123-test.html' },
+    { id: ONLINE_FIX_TORRENT_ID, name: 'Torrent', type: 'torbox', url: 'https://online-fix.me/games/test/123-test.html' },
+    { ...manifest, id: ONLINE_FIX_SOURCE_ID }, undefined, false, false, root)
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  rejectLegacy.mockRestore()
+  const { userDataPath } = await import('backend/constants/paths')
+  const statePath = join(userDataPath, 'external-games', 'state.json')
+  const persisted = JSON.parse(await readFile(statePath, 'utf8'))
+  delete persisted.jobs[0].packageDownloaded
+  await writeFile(statePath, JSON.stringify(persisted))
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance()
+  expect(restarted.snapshot().jobs[0].canResume).toBe(true)
+  expect(await restarted.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  expect(restarted.snapshot().jobs[0].status).toBe('ready')
+  expect(restarted.snapshot().jobs[0].candidates).toContain('game.exe')
+  expect(NetworkGuard.fetchResponse).toHaveBeenCalledTimes(1)
+  expect(capture).toHaveBeenCalledTimes(1)
+  expect(client.link).toHaveBeenCalledTimes(1)
+  expect(client.create).not.toHaveBeenCalled()
 })

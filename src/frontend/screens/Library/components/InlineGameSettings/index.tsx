@@ -28,6 +28,7 @@ import { sideloadLibrary, gameOverridesStore, configStore } from 'frontend/helpe
 import { clearAvailabilityCache } from 'frontend/hooks/constants'
 import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
 import { notify } from 'frontend/helpers'
+import { openGameFolder } from 'frontend/utils/pathUtils'
 
 // Material Icons para as Ações do Jogo e Visibilidade
 import {
@@ -579,9 +580,13 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   }
 
   const onBrowseFiles = () => {
-    const path = game.install?.install_path || game.folder_name
-    if (path) {
-      window.api.openFolder(path)
+    const target =
+      game.install?.install_path ||
+      sideloadExe ||
+      game.install?.executable ||
+      game.folder_name
+    if (target) {
+      openGameFolder(target, Boolean(sideloadExe || game.install?.executable))
     }
   }
 
@@ -1570,78 +1575,13 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             }}>
               {currentTitle} (Configurações)
             </h2>
-            <button
-              onClick={() => setShowUninstallModal(true)}
-              title={game.runner === 'sideload' || !game.is_installed ? t('button.remove', 'Remover Jogo da Biblioteca') : t('button.uninstall', 'Desinstalar Jogo')}
-              style={{
-                background: 'rgba(255, 75, 75, 0.05)',
-                border: '1px solid rgba(255, 75, 75, 0.2)',
-                borderRadius: '8px',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ff5252',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 75, 75, 0.15)'
-                e.currentTarget.style.borderColor = 'rgba(255, 75, 75, 0.4)'
-                e.currentTarget.style.color = '#ff6e6e'
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 75, 75, 0.05)'
-                e.currentTarget.style.borderColor = 'rgba(255, 75, 75, 0.2)'
-                e.currentTarget.style.color = '#ff5252'
-              }}
-            >
-              <DeleteIcon style={{ fontSize: '18px' }} />
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              title="Deletar Jogo do Computador (Exclui arquivos permanentemente do disco)"
-              style={{
-                background: 'rgba(255, 75, 75, 0.08)',
-                border: '1px solid rgba(255, 75, 75, 0.3)',
-                borderRadius: '8px',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ff4444',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 75, 75, 0.2)'
-                e.currentTarget.style.borderColor = 'rgba(255, 75, 75, 0.6)'
-                e.currentTarget.style.color = '#ff6666'
-                e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 75, 75, 0.3)'
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 75, 75, 0.08)'
-                e.currentTarget.style.borderColor = 'rgba(255, 75, 75, 0.3)'
-                e.currentTarget.style.color = '#ff4444'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-            >
-              <FontAwesomeIcon icon={faTrashAlt} style={{ fontSize: '15px' }} />
-            </button>
             {(isPirateGame || game.runner === 'sideload') && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 1,
-                  minWidth: 0,
-                  padding: '0 12px',
-                  gap: '10px'
+                  gap: '10px',
+                  flexShrink: 0
                 }}
               >
                 {isPirateGame && <GameVersionBadge game={game} />}
@@ -1906,6 +1846,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                       pathDialogDefaultPath={sideloadExe || game.install?.executable || game.install?.install_path || ''}
                       htmlId="sideload-exe-inline"
                       noDeleteButton
+                      openFolderOnClick
                     />
                   </div>
                 </div>

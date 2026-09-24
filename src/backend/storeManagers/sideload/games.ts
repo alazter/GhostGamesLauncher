@@ -62,6 +62,7 @@ export default class SideloadGame implements Game {
   }
 
   async isGameAvailable(): Promise<boolean> {
+    if (this.getGameInfo().accountProvider) return true
     const { install } = this.getGameInfo()
 
     if (install && install.platform === 'Browser') {

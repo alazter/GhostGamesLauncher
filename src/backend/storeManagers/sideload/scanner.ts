@@ -1423,6 +1423,7 @@ export function sanitizeExistingSideloadLibrary(): void {
 
   let updated = false
   for (const game of games) {
+    if (game.accountProvider) continue
     if (!game.title) continue
     const cleaned = cleanScannedGameTitle(game.title)
     if (cleaned !== game.title && cleaned.length > 0) {

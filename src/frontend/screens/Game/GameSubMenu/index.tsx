@@ -15,6 +15,7 @@ import GameContext from '../GameContext'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import useGlobalState from 'frontend/state/GlobalStateV2'
 import EditGameDialog from 'frontend/components/UI/EditGameDialog'
+import { openGameFolder } from 'frontend/utils/pathUtils'
 
 import {
   ArrowUpward as ArrowUpwardIcon,
@@ -270,10 +271,13 @@ export default function GamesSubmenu({
     !is.win && !is.native && gameSettings?.wineVersion.type !== 'crossover'
 
   const onBrowseFiles = useCallback(() => {
-    const path = gameInfo.install.install_path || gameInfo.folder_name
+    const target =
+      gameInfo.install?.install_path ||
+      gameInfo.install?.executable ||
+      gameInfo.folder_name
 
-    if (path) {
-      window.api.openFolder(path)
+    if (target) {
+      openGameFolder(target, Boolean(gameInfo.install?.executable))
     }
   }, [gameInfo])
 

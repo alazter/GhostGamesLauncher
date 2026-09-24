@@ -202,6 +202,8 @@ export type GameAchievement = GOGAchievement
 
 export interface GameInfo {
   runner: Runner
+  accountProvider?: import('./types/connectedAccounts').AccountProvider
+  accountGameId?: string
   store_url?: string
   app_name: string
   art_cover: string

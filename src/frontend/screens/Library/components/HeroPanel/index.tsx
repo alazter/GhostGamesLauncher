@@ -14,6 +14,7 @@ import {
   faUser
 } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo, Runner } from 'common/types'
+import { accountProviderNames } from 'common/types/connectedAccounts'
 import { useContext, useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextProvider from 'frontend/state/ContextProvider'
@@ -23,11 +24,16 @@ import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
 import ExternalStoreLogo from 'frontend/screens/DownloadManager/components/ExternalStoreLogo'
+import ankerLogo from 'frontend/assets/ankergames-logo.png'
+import steamripLogo from 'frontend/assets/steamrip-logo.png'
+import onlineFixLogo from 'frontend/assets/onlinefix-logo.png'
 import { useExternalGames } from 'frontend/screens/ExternalGames/shared'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import { getImageFormatting } from 'frontend/screens/Library/components/GameCard/constants'
 import useGlobalState from 'frontend/state/GlobalStateV2'
+import { isPirateOrNonOfficialGame } from 'frontend/helpers/customStoreFiltering'
+import { getDefaultDownloadStoreId, findPiratasStoreId } from 'frontend/helpers/autoStoreAssignments'
 
 interface Props {
   game: GameInfo
@@ -54,26 +60,71 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
 
   const { state: extState } = useExternalGames()
 
+  const matchedInstallation = useMemo(() => {
+    const gameAppName = String(game.app_name || '').toLowerCase()
+    const gameTitle = String(game.title || '').trim().toLowerCase()
+    const gameFolder = String(game.folder_name || game.install?.install_path || '').trim().toLowerCase()
+    const gameExe = String(game.install?.executable || '').trim().toLowerCase()
+
+    return extState.installations?.find((i) => {
+      if (!i) return false
+      const instAppName = String(i.appName || '').toLowerCase()
+      const instId = String(i.id || '').toLowerCase()
+
+      // 1. Direct AppName or ID match
+      if (gameAppName && (instAppName === gameAppName || instId === gameAppName)) return true
+      if (gameAppName && instAppName && (gameAppName.includes(instId) || instAppName.includes(gameAppName))) return true
+
+      // 2. Folder / Directory match (critical for sideload/piratas where install_path is in folder_name)
+      const instDir = String(i.directory || '').trim().toLowerCase()
+      if (gameFolder && instDir && (gameFolder === instDir || gameFolder.replace(/[/\\]+$/, '') === instDir.replace(/[/\\]+$/, ''))) return true
+
+      // 3. Executable match
+      const instExe = String(i.executable || '').trim().toLowerCase()
+      if (gameExe && instExe && gameExe === instExe) return true
+
+      // 4. Title match
+      const instTitle = String(i.game?.title || '').trim().toLowerCase()
+      if (gameTitle && instTitle && gameTitle === instTitle) return true
+
+      return false
+    })
+  }, [extState.installations, game.app_name, game.folder_name, game.install?.install_path, game.install?.executable, game.title])
+
   const externalSource = useMemo(() => {
-    const matchedInst = extState.installations?.find(
-      (i) =>
-        i.appName === game.app_name ||
-        (game.install?.install_path && i.directory === game.install?.install_path)
-    )
-    if (matchedInst?.game?.providerName) {
+    if (matchedInstallation?.game) {
+      const pName = matchedInstallation.game.providerName || ''
+      const pId = matchedInstallation.game.providerId || ''
+      const isOnlineFix =
+        pId.includes('online') ||
+        pName.toLowerCase().includes('online') ||
+        matchedInstallation.game.id?.includes('online-fix') ||
+        matchedInstallation.game.pageUrl?.includes('online-fix')
+      const isAnker =
+        pId.includes('anker') ||
+        pName.toLowerCase().includes('anker') ||
+        matchedInstallation.game.pageUrl?.includes('anker')
+      const isSteamrip =
+        pId.includes('steamrip') ||
+        pName.toLowerCase().includes('steamrip') ||
+        matchedInstallation.game.pageUrl?.includes('steamrip')
+
+      const resolvedName = isOnlineFix ? 'Online-Fix' : isAnker ? 'AnkerGames' : isSteamrip ? 'SteamRIP' : pName || 'Fonte Externa'
+      const resolvedIcon = isOnlineFix ? onlineFixLogo : isAnker ? ankerLogo : isSteamrip ? steamripLogo : (matchedInstallation.game.providerIcon || undefined)
+
       return {
-        name: matchedInst.game.providerName,
-        icon: matchedInst.game.providerIcon,
-        pageUrl: matchedInst.game.pageUrl,
-        homepage: matchedInst.game.pageUrl ? new URL(matchedInst.game.pageUrl).origin : undefined
+        name: resolvedName,
+        icon: resolvedIcon,
+        pageUrl: matchedInstallation.game.pageUrl,
+        homepage: matchedInstallation.game.pageUrl ? new URL(matchedInstallation.game.pageUrl).origin : undefined
       }
     }
 
-    const fullText = `${game.title || ''} ${game.app_name || ''} ${game.install?.install_path || ''} ${game.store_url || ''}`.toLowerCase()
+    const fullText = `${game.title || ''} ${game.app_name || ''} ${game.folder_name || ''} ${game.install?.install_path || ''} ${game.install?.executable || ''} ${game.store_url || ''}`.toLowerCase()
     if (fullText.includes('steamrip')) {
       return {
         name: 'SteamRIP',
-        icon: undefined,
+        icon: steamripLogo,
         pageUrl: game.store_url?.includes('steamrip') ? game.store_url : 'https://steamrip.com',
         homepage: 'https://steamrip.com'
       }
@@ -81,22 +132,22 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     if (fullText.includes('ankergames') || fullText.includes('anker')) {
       return {
         name: 'AnkerGames',
-        icon: undefined,
+        icon: ankerLogo,
         pageUrl: game.store_url?.includes('ankergames') ? game.store_url : 'https://ankergames.net',
         homepage: 'https://ankergames.net'
       }
     }
-    if (fullText.includes('online-fix') || fullText.includes('onlinefix')) {
+    if (fullText.includes('online-fix') || fullText.includes('onlinefix') || (fullText.includes('online') && fullText.includes('fix'))) {
       return {
         name: 'Online-Fix',
-        icon: 'https://online-fix.me/favicon.ico',
+        icon: onlineFixLogo,
         pageUrl: game.store_url?.includes('online-fix') ? game.store_url : 'https://online-fix.me',
         homepage: 'https://online-fix.me'
       }
     }
 
     return null
-  }, [extState.installations, game.app_name, game.install?.install_path, game.title, game.store_url])
+  }, [matchedInstallation, game.app_name, game.folder_name, game.install?.install_path, game.install?.executable, game.title, game.store_url])
 
   const getEffectiveSquare = () =>
     gameOverride?.art_square !== undefined
@@ -208,6 +259,11 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   }, [status, game.app_name])
 
   const handlePlay = async () => {
+    if (game.accountProvider) {
+      try { await window.api.openAccountGame(game.app_name) }
+      catch { showDialogModal({ title: 'Não foi possível abrir a loja', message: 'Verifique sua conexão e tente novamente.', buttons: [{ text: 'OK', onClick: () => {} }] }) }
+      return
+    }
     if (status !== 'playing' && isLaunching) return
 
     const appName = game.app_name
@@ -261,7 +317,81 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     }
   }
 
+  const isPiratasOrExternalStore = useMemo(() => {
+    if (game.accountProvider) return false
+    // 1. Possui correspondência em instalações externas registradas
+    if (matchedInstallation) return true
+
+    // 2. Detectada fonte comunitária/externa (SteamRIP, AnkerGames, Online-Fix, etc.)
+    if (externalSource) return true
+
+    // 3. Jogo marcado como pirata ou não-oficial (sem DRM de lojas oficiais)
+    if (isPirateOrNonOfficialGame(game)) return true
+
+    // 4. Runner sideload (todos os sideloads são jogos externos/comunitários no Ghost)
+    if (game.runner === 'sideload') return true
+
+    // 5. Atribuído explicitamente à loja padrão de downloads / Piratas
+    try {
+      const rawAssignments = localStorage.getItem('heroic_game_assignments')
+      if (rawAssignments) {
+        const assignments = JSON.parse(rawAssignments)
+        const assigned = (assignments[game.app_name] || '').toLowerCase()
+        const defaultStore = getDefaultDownloadStoreId().toLowerCase()
+        const piratasStore = findPiratasStoreId().toLowerCase()
+        if (
+          assigned === 'piratas' ||
+          assigned.includes('pirata') ||
+          assigned === defaultStore ||
+          assigned === piratasStore
+        ) {
+          return true
+        }
+      }
+    } catch {}
+
+    // 6. Visualizando a biblioteca pela loja padrão dos jogos vindos da página buscar jogos ("Piratas")
+    try {
+      const activeFilter = localStorage.getItem('heroic_active_store_filter')
+      if (activeFilter) {
+        const filterLower = activeFilter.toLowerCase()
+        const defaultStore = getDefaultDownloadStoreId().toLowerCase()
+        const piratasStore = findPiratasStoreId().toLowerCase()
+        if (
+          filterLower === 'piratas' ||
+          filterLower.includes('pirata') ||
+          filterLower === defaultStore ||
+          filterLower === piratasStore
+        ) {
+          return true
+        }
+      }
+    } catch {}
+
+    return false
+  }, [matchedInstallation, externalSource, game])
+
   const handleStore = () => {
+    if (game.accountProvider) {
+      void handlePlay()
+      return
+    }
+    if (isPiratasOrExternalStore) {
+      const targetTitle =
+        matchedInstallation?.game?.title ||
+        gameOverride?.title ||
+        game.overrides?.title ||
+        game.title ||
+        game.app_name
+
+      const instParam = matchedInstallation?.id
+        ? `&installation=${encodeURIComponent(matchedInstallation.id)}`
+        : ''
+
+      navigate(`/external-games?q=${encodeURIComponent(targetTitle)}${instParam}`)
+      return
+    }
+
     let storeParam = 'epic'
     if (game.runner === 'gog') storeParam = 'gog'
     if (game.runner === 'nile') storeParam = 'amazon'
@@ -274,15 +404,17 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   }
 
   const playButtonTitle = useMemo(() => {
+    if (game.accountProvider) return t('accounts.openStore', 'Abrir {{store}}', { store: accountProviderNames[game.accountProvider] })
     if (status === 'playing') return t('label.playing.stop', 'Stop Game')
     if (isLaunching) return t('label.launching', 'Launching...')
     if (status === 'installing' || status === 'updating') return t('button.cancel', 'Cancel')
     if (status === 'queued') return t('button.queue.remove', 'Remove from Queue')
     if (!game.is_installed && game.runner !== 'sideload') return t('button.install', 'Install')
     return t('label.playing.start', 'Play')
-  }, [status, isLaunching, game.is_installed, game.runner, t])
+  }, [status, isLaunching, game.is_installed, game.runner, game.accountProvider, t])
 
   const renderPlayIcon = () => {
+    if (game.accountProvider) return <FontAwesomeIcon icon={faStore} />
     if (status === 'playing') {
       return <FontAwesomeIcon icon={faStop} style={{ fontSize: '16px' }} />
     }
@@ -599,7 +731,12 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
           {/* Coluna 1 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', borderRight: '1px solid rgba(255, 255, 255, 0.1)', paddingRight: '4px' }}>
-            <HeroLink icon={faStore} label="Loja" onClick={handleStore} />
+            <HeroLink
+              icon={faStore}
+              label="Loja"
+              onClick={handleStore}
+              title={isPiratasOrExternalStore ? `Abrir página de ${panelTitle || game.title || 'jogo'} em Buscar Jogos` : 'Abrir Loja'}
+            />
             <HeroLink icon={faDownload} label="Downloads" onClick={() => navigate('/download-manager')} />
             <HeroLink icon={faNewspaper} label="Notícias" onClick={() => {}} />
           </div>
@@ -615,10 +752,11 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
   )
 }
 
-function HeroLink({ icon, label, onClick, center }: { icon: any, label: string, onClick: () => void, center?: boolean }) {
+function HeroLink({ icon, label, onClick, center, title }: { icon: any, label: string, onClick: () => void, center?: boolean, title?: string }) {
   return (
     <button
       onClick={onClick}
+      title={title}
       style={{
         background: 'transparent',
         border: 'none',

@@ -215,3 +215,9 @@ Validação: 86 testes direcionados passaram, com serviços de rede simulados. A
 
 ### Correção de preferência: escolha de transporte
 Baixar e instalar abre a escolha do transporte disponível na fonte (TorBox — Torrent / Download direto — Confirmar no site). Utiliza a pasta já selecionada, sem solicitar escolha de pasta a cada download. A exigência de conta TorBox ocorre apenas ao selecionar a opção TorBox. Esta preferência substitui o comportamento de seleção de destino descrito acima.
+
+
+## Pacotes Online-Fix com Fix Repair
+O ZIP entregue pelo TorBox pode conter o pacote principal e um arquivo separado de reparo. O Ghost identifica a convenção Fix Repair somente no Online-Fix e instala o único pacote principal, sem aplicar reparos automaticamente. Se houver múltiplos pacotes principais, a instalação continua bloqueada em vez de escolher por tamanho.
+
+Em falhas de extração, Retomar reutiliza o pacote TorBox completo já salvo, inclusive em tarefas anteriores à correção, sem repetir a transferência. Os caminhos temporários são validados antes de limpar o staging e o arquivo baixado permanece preservado para a nova extração. Validação com 53 testes locais; pacote real do usuário apenas inspecionado, não instalado.

@@ -189,6 +189,7 @@ const GameCard = ({
   const isNew = isGameNew(appName, runner)
 
   const onInstall = () => {
+    if (gameInfo.accountProvider) return void handlePlay(runner)
     if (runner === 'steam') {
       return window.api.openExternalUrl(`steam://install/${appName}`)
     }
@@ -263,6 +264,13 @@ const GameCard = ({
   }
 
   const renderIcon = () => {
+    if (gameInfo.accountProvider) {
+      return <NonFocusableButton className="playIcon" activeController={activeController}
+        title={t('accounts.openOfficialStore', 'Abrir página oficial')}
+        onClick={(event: React.MouseEvent) => { event.stopPropagation(); void handlePlay(runner) }}>
+        <OpenInNew />
+      </NonFocusableButton>
+    }
     if (!isInstallable) {
       return (
         <FontAwesomeIcon
@@ -427,9 +435,9 @@ const GameCard = ({
       icon: <Cancel />
     },
     {
-      label: t('label.playing.start'),
+      label: gameInfo.accountProvider ? t('accounts.openOfficialStore', 'Abrir página oficial') : t('label.playing.start'),
       onclick: () => void handlePlay(runner),
-      show: isInstalled && !isPlaying && !isUpdating && !isQueued,
+      show: Boolean(gameInfo.accountProvider) || (isInstalled && !isPlaying && !isUpdating && !isQueued),
       icon: <PlayArrow />
     },
     {
@@ -826,6 +834,11 @@ const GameCard = ({
   )
 
   async function handlePlay(runner: Runner) {
+    if (gameInfo.accountProvider) {
+      try { await window.api.openAccountGame(appName) }
+      catch { showDialogModal({ title: 'Não foi possível abrir a loja', message: 'Verifique sua conexão e tente novamente.', buttons: [{ text: 'OK', onClick: () => {} }] }) }
+      return
+    }
     if (!isInstalled && !isQueued && gameInfo.runner !== 'sideload') {
       if (gameInfo.runner === 'steam') {
         return window.api.openExternalUrl(`steam://install/${appName}`)

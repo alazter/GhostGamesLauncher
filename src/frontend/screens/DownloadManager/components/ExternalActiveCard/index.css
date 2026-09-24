@@ -13,12 +13,36 @@
   letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
+  box-sizing: border-box;
+}
+
+button.dmActiveOperationBadge,
+.dmActiveOperationBadge.is-clickable {
+  cursor: pointer;
+  background: none;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  user-select: none;
+}
+
+button.dmActiveOperationBadge:hover,
+.dmActiveOperationBadge.is-clickable:hover {
+  transform: translateY(-1px);
 }
 
 .dmActiveOperationBadge.switch {
   color: #ffb703;
   background: rgba(255, 183, 3, 0.15);
   border: 1px solid rgba(255, 183, 3, 0.35);
+}
+
+button.dmActiveOperationBadge.switch:hover,
+.dmActiveOperationBadge.switch.is-clickable:hover {
+  background: rgba(255, 183, 3, 0.28);
+  border-color: #ffb703;
+  box-shadow: 0 0 12px rgba(255, 183, 3, 0.45);
+  color: #ffffff;
 }
 
 .dmActiveOperationBadge.update {
@@ -28,10 +52,59 @@
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
 }
 
+button.dmActiveOperationBadge.update:hover,
+.dmActiveOperationBadge.update.is-clickable:hover {
+  background: rgba(0, 255, 255, 0.28);
+  border-color: #00ffff;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.5);
+  color: #ffffff;
+}
+
 .dmActiveOperationBadge.install {
   color: #cbd5e1;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+button.dmActiveOperationBadge.install:hover,
+.dmActiveOperationBadge.install.is-clickable:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+button.dmActiveOperationBadge:active,
+.dmActiveOperationBadge.is-clickable:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.dmExternalStoreLogoClickable {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+
+.dmExternalStoreLogoClickable:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
+}
+
+.dmActiveMigrateLinkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted rgba(255, 183, 3, 0.6);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.dmActiveMigrateLinkBtn:hover {
+  color: #ffb703;
+  text-decoration: underline solid #ffb703;
 }
 
 .dmMarqueeFill {
@@ -47,6 +120,218 @@
   100% {
     background-position: -100% 0;
   }
+}
+
+/* Card Content Container Tuning (Strictly Preserves 180px Card Size) */
+.dmExternalActiveCard .dmActiveContent {
+  padding: 12px 22px 12px 20px;
+}
+
+.dmExternalActiveCard .dmActiveTitle {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+/* Bottom Row & Progress Column Tuning for Standard Downloads */
+.dmExternalActiveCard .dmActiveBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  margin-top: auto;
+}
+
+.dmExternalActiveCard .dmActiveProgressCol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dmExternalActiveCard .dmActiveStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+}
+
+.dmExternalActiveCard .dmActiveStatusText {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dmExternalActiveCard .dmActiveProgressPercent {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00ffff;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Universal Notice Banner for Active Downloads (Compact, Non-Clipping, 2-line Max) */
+.dmExternalNoticeBanner {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 11px !important;
+  line-height: 1.32 !important;
+  color: rgba(203, 213, 225, 0.9) !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: break-word !important;
+}
+
+.dmExternalNoticeBanner strong,
+.dmExternalNoticeBanner .dmHighlightText {
+  color: #00ffff;
+  font-weight: 600;
+}
+
+.dmExternalActiveCard .dmProgressBarTrack {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  position: relative;
+  margin: 1px 0 0 0;
+}
+
+.dmExternalActiveCard .dmActiveEtaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dmExternalActiveCard .dmActiveControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.dmExternalActiveCard .dmNeonCircleBtn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+/* Attention / Error Layout: Reordered for Full-Width Text & Unified Actions */
+.dmActiveAttentionBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.dmActiveAttentionTextCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+}
+
+.dmActiveAttentionBody .dmActiveStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.dmActiveAttentionBody .dmActiveStatusText {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.dmActiveStatusHighlight {
+  color: #ffb703;
+  font-weight: 700;
+}
+
+.dmActiveAttentionBody .dmExternalNoticeText {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #ffb703;
+  font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dmActiveActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+}
+
+.dmActiveActionsLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.dmActiveAttentionBody .dmActiveControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.dmActiveAttentionBody .dmActiveSelectArchiveBtn {
+  align-self: auto;
+  margin: 0;
+  padding: 5px 14px !important;
+  font-size: 11.5px !important;
+}
+
+.dmActiveAttentionBody .dmResumeDownloadBtn {
+  padding: 5px 14px !important;
+  font-size: 11.5px !important;
+}
+
+.dmActiveAttentionBody .dmNeonCancelBtn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
 }
 
 .dmExternalActionContainer {
@@ -77,6 +362,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+  white-space: nowrap;
 }
 
 .dmActiveSelectArchiveBtn:hover {

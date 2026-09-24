@@ -103,6 +103,10 @@ export default function GhostShieldSaveManager({
         const state: ExternalGamesState = await window.api.externalGamesState()
         if (state) {
           const matched = state.installations?.find((i) => i.appName === game.app_name) || inst
+          if (matched) {
+            if (matched.autoBackup === undefined) matched.autoBackup = true
+            if (matched.autoUpdate === undefined) matched.autoUpdate = true
+          }
           setInstallation(matched || null)
           if (matched) {
             const list = (state.backups || [])
@@ -252,7 +256,8 @@ export default function GhostShieldSaveManager({
 
   const handleToggleAutoBackup = async () => {
     if (!installation?.id) return
-    const nextVal = !installation.autoBackup
+    const currentVal = installation.autoBackup !== false
+    const nextVal = !currentVal
     try {
       await window.api.externalGamesAction({
         type: 'auto-backup',
@@ -273,11 +278,12 @@ export default function GhostShieldSaveManager({
 
   const handleToggleAutoUpdate = async () => {
     if (!installation?.id) return
-    if (!installation.savePath && !installation.autoUpdate) {
+    const currentVal = installation.autoUpdate !== false
+    if (!installation.savePath && !currentVal) {
       showToast('Configure a pasta de saves antes de habilitar auto-updates.', 'error')
       return
     }
-    const nextVal = !installation.autoUpdate
+    const nextVal = !currentVal
     try {
       await window.api.externalGamesAction({
         type: 'auto-update',
@@ -514,7 +520,7 @@ export default function GhostShieldSaveManager({
                   <ToggleSwitch
                     htmlId="ghost-auto-backup"
                     title="Auto-Backup ao Fechar"
-                    value={Boolean(installation?.autoBackup)}
+                    value={Boolean(installation ? installation.autoBackup !== false : true)}
                     handleChange={handleToggleAutoBackup}
                     disabled={!installation?.savePath}
                   />
@@ -530,7 +536,7 @@ export default function GhostShieldSaveManager({
                   <ToggleSwitch
                     htmlId="ghost-auto-update"
                     title="Proteção de Updates"
-                    value={Boolean(installation?.autoUpdate)}
+                    value={Boolean(installation ? installation.autoUpdate !== false : true)}
                     handleChange={handleToggleAutoUpdate}
                     disabled={!installation?.savePath}
                   />

@@ -1,9 +1,13 @@
 import TextInputWithIconField from '../TextInputWithIconField'
+import TextInputField from '../TextInputField'
 import Backspace from '@mui/icons-material/Backspace'
 import Folder from '@mui/icons-material/Folder'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faFolder, faFolderOpen, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { ReactNode, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FileFilter } from 'electron'
+import { openGameFolder } from 'frontend/utils/pathUtils'
 
 interface Props {
   htmlId: string
@@ -28,6 +32,9 @@ interface Props {
   label?: string
   afterInput?: ReactNode
   disabled?: boolean
+  // Abre o diretório do jogo no Explorador de Arquivos ao clicar no ícone de pasta
+  openFolderOnClick?: boolean
+  onFolderClick?: (path: string) => void
 }
 
 const PathSelectionBox = ({
@@ -43,7 +50,9 @@ const PathSelectionBox = ({
   htmlId,
   label,
   afterInput,
-  disabled = false
+  disabled = false,
+  openFolderOnClick = false,
+  onFolderClick
 }: Props) => {
   const { t } = useTranslation()
   // We only send `onPathChange` updates when the user is done editing, so we
@@ -51,6 +60,41 @@ const PathSelectionBox = ({
   const [tmpPath, setTmpPath] = useState(path)
 
   useEffect(() => setTmpPath(path), [path])
+
+  const handleOpenFolder = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const targetPath = tmpPath || path
+    if (onFolderClick) {
+      onFolderClick(targetPath)
+    } else {
+      openGameFolder(targetPath, type === 'file')
+    }
+  }
+
+  const handleBrowse = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    const effectiveDefaultPath =
+      tmpPath || path || pathDialogDefaultPath || undefined
+
+    window.api
+      .openDialog({
+        buttonLabel: t('box.choose'),
+        properties: type === 'directory' ? ['openDirectory'] : ['openFile'],
+        title: pathDialogTitle,
+        filters: pathDialogFilters,
+        defaultPath: effectiveDefaultPath
+      })
+      .then((selectedPath) => {
+        if (selectedPath) {
+          onPathChange(selectedPath)
+          setTmpPath(selectedPath)
+        }
+      })
+  }
 
   function handleIconClick() {
     if (!noDeleteButton && path) {
@@ -79,6 +123,177 @@ const PathSelectionBox = ({
           setTmpPath(selectedPath)
         }
       })
+  }
+
+  // Modo aprimorado Cyber Neon com suporte a abrir diretório diretamente
+  if (openFolderOnClick || onFolderClick) {
+    const hasPath = Boolean(tmpPath || path)
+
+    return (
+      <TextInputField
+        value={tmpPath}
+        onChange={(newVal) => setTmpPath(newVal)}
+        onBlur={(e) => onPathChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            onPathChange(tmpPath)
+          }
+        }}
+        placeholder={placeholder}
+        disabled={!canEditPath || disabled}
+        htmlId={htmlId}
+        label={label}
+        afterInput={afterInput}
+        style={{
+          paddingRight: hasPath ? (!noDeleteButton ? '112px' : '82px') : '48px'
+        }}
+        inputIcon={
+          <div
+            className="pathSelectionIcons"
+            style={{
+              gridArea: 'input',
+              alignSelf: 'center',
+              justifySelf: 'flex-end',
+              marginInlineEnd: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              zIndex: 2
+            }}
+          >
+            {/* Botão Abrir Diretório no Explorador de Arquivos */}
+            {hasPath && (
+              <button
+                type="button"
+                className="pathBoxBtn openFolderBtn"
+                title={t(
+                  'box.open_folder',
+                  'Abrir diretório da pasta do jogo no Explorador de Arquivos'
+                )}
+                aria-label={t(
+                  'box.open_folder',
+                  'Abrir diretório da pasta do jogo no Explorador de Arquivos'
+                )}
+                onClick={handleOpenFolder}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  color: '#00ffff',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  filter: 'drop-shadow(0 0 4px rgba(0, 255, 255, 0.45))'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.18)'
+                  e.currentTarget.style.filter =
+                    'drop-shadow(0 0 8px rgba(0, 255, 255, 0.85))'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)'
+                  e.currentTarget.style.filter =
+                    'drop-shadow(0 0 4px rgba(0, 255, 255, 0.45))'
+                }}
+              >
+                <FontAwesomeIcon icon={faFolder} style={{ fontSize: '16px' }} />
+              </button>
+            )}
+
+            {/* Botão Selecionar/Procurar Executável */}
+            <button
+              type="button"
+              className="pathBoxBtn browseBtn"
+              title={
+                pathDialogTitle || t('box.choose', 'Selecionar outro executável...')
+              }
+              aria-label={
+                pathDialogTitle || t('box.choose', 'Selecionar outro executável...')
+              }
+              onClick={handleBrowse}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                boxShadow: 'none',
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer',
+                padding: '2px 4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#00ffff'
+                e.currentTarget.style.transform = 'scale(1.18)'
+                e.currentTarget.style.filter =
+                  'drop-shadow(0 0 8px rgba(0, 255, 255, 0.85))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.filter = 'none'
+              }}
+            >
+              <FontAwesomeIcon
+                icon={faFolderOpen}
+                style={{ fontSize: '16px' }}
+              />
+            </button>
+
+            {/* Botão Limpar (caso noDeleteButton seja falso e exista caminho) */}
+            {!noDeleteButton && hasPath && (
+              <button
+                type="button"
+                className="pathBoxBtn clearBtn"
+                title={t('box.clear', 'Limpar')}
+                aria-label={t('box.clear', 'Limpar')}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onPathChange('')
+                  setTmpPath('')
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  color: 'rgba(255, 23, 68, 0.8)',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ff1744'
+                  e.currentTarget.style.transform = 'scale(1.18)'
+                  e.currentTarget.style.filter =
+                    'drop-shadow(0 0 8px rgba(255, 23, 68, 0.85))'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255, 23, 68, 0.8)'
+                  e.currentTarget.style.transform = 'scale(1)'
+                  e.currentTarget.style.filter = 'none'
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={faTrashAlt}
+                  style={{ fontSize: '15px' }}
+                />
+              </button>
+            )}
+          </div>
+        }
+      />
+    )
   }
 
   return (

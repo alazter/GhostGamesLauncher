@@ -15,7 +15,6 @@ import {
   faServer,
   faSyncAlt,
   faUsers,
-  faTools,
   faGamepad,
   faUser,
   faCalendarAlt,
@@ -66,6 +65,7 @@ import { useExternalGames } from './shared'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import ankerLogo from 'frontend/assets/ankergames-logo.png'
 import steamripLogo from 'frontend/assets/steamrip-logo.png'
+import onlineFixLogo from 'frontend/assets/onlinefix-logo.png'
 import CachedImage from 'frontend/components/UI/CachedImage'
 import './index.css'
 
@@ -1019,7 +1019,21 @@ export function renderProviderIcon(providerId: string, providerName: string, ico
     )
   }
   if (id.includes('onlinefix') || id.includes('online-fix')) {
-    return <FontAwesomeIcon icon={faTools} style={{ color: '#00e5ff', fontSize: `${Math.max(12, size - 2)}px` }} />
+    return (
+      <img
+        src={onlineFixLogo}
+        alt="Online-Fix"
+        style={{
+          width: `${size + 2}px`,
+          height: `${size + 2}px`,
+          borderRadius: '4px',
+          objectFit: 'contain',
+          display: 'inline-block',
+          verticalAlign: 'middle',
+          filter: 'drop-shadow(0 0 4px rgba(0, 229, 255, 0.5))'
+        }}
+      />
+    )
   }
   if (id.includes('nxbrew') || id.includes('nswgf')) {
     return <FontAwesomeIcon icon={faGamepad} style={{ color: '#e52521', fontSize: `${size}px` }} />
@@ -1244,8 +1258,8 @@ export function getGameInstallationStatus(
           version: localMatch.version || '1.0.0',
           platform: searchGame.platform || 'windows'
         },
-        autoBackup: false,
-        autoUpdate: false,
+        autoBackup: true,
+        autoUpdate: true,
         linkedExisting: true,
         history: []
       }
@@ -1367,7 +1381,7 @@ export default function ExternalGamesScreen() {
   const [params] = useSearchParams()
   const { state, error, refresh } = useExternalGames()
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => params.get('q') || params.get('search') || '')
   const [provider, setProvider] = useState('')
   const [search, setSearch] = useState<SourceSearchResponse>({
     games: [],
@@ -1449,6 +1463,9 @@ export default function ExternalGamesScreen() {
     setProvider('')
     setSources([])
     setShowDownloadOptions(false)
+    if (params.get('q') || params.get('search') || params.get('installation')) {
+      navigate('/external-games', { replace: true })
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -1777,8 +1794,22 @@ export default function ExternalGamesScreen() {
       if (found) return found
       return groupGamesByTitle([selected])[0]
     }
+    const instParam = params.get('installation')
+    if (instParam) {
+      const targetInst = state.installations?.find((i) => i.id === instParam)
+      if (targetInst?.game?.title) {
+        const cleanInstTitle = cleanTitle(targetInst.game.title)
+        const found = groupedGames.find((g) => g.key === cleanInstTitle)
+        if (found) return found
+      }
+    }
+    if (query.trim()) {
+      const cleanQ = cleanTitle(query.trim())
+      const exactMatch = groupedGames.find((g) => g.key === cleanQ)
+      if (exactMatch) return exactMatch
+    }
     return groupedGames[0]
-  }, [searched, selected, selectedGroupKey, groupedGames])
+  }, [searched, selected, selectedGroupKey, groupedGames, query, params, state.installations])
 
   const activeSource = useMemo(() => {
     if (!activeGroup) return undefined
@@ -1915,7 +1946,27 @@ export default function ExternalGamesScreen() {
       ])
       setLocalGames(local)
       if (current === requestNumber.current) {
-        setSearch(results)
+        let finalResults = results
+        if ((!results.games || results.games.length === 0) && trimmed) {
+          const cleanQ = cleanTitle(trimmed)
+          const allKnown: GhostSearchResult[] = [
+            ...DEFAULT_RECENT_RELEASES,
+            ...HOME_SPOTLIGHT_GAMES.map((s) => s.game),
+            ...STORE_HIGHLIGHT_SHELVES.flatMap((s) => s.games),
+            ...(state.installations || []).map((i) => i.game).filter(Boolean) as GhostSearchResult[]
+          ]
+          const matched = allKnown.filter((g) => {
+            const cleanG = cleanTitle(g.title)
+            return cleanG === cleanQ || cleanG.includes(cleanQ) || cleanQ.includes(cleanG)
+          })
+          if (matched.length > 0) {
+            finalResults = {
+              games: matched,
+              errors: results.errors || []
+            }
+          }
+        }
+        setSearch(finalResults)
         setSearched(true)
         setSelected(undefined)
         setSelectedGroupKey('')
@@ -1923,6 +1974,34 @@ export default function ExternalGamesScreen() {
       }
     })
   }
+
+  const lastProcessedUrlQueryRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const qParam = params.get('q') || params.get('search')
+    if (qParam && qParam.trim()) {
+      const term = qParam.trim()
+      if (term !== lastProcessedUrlQueryRef.current) {
+        lastProcessedUrlQueryRef.current = term
+        setQuery(term)
+        executeSearch(term)
+        return
+      }
+    }
+
+    const instParam = params.get('installation')
+    if (instParam && !qParam) {
+      if (instParam !== lastProcessedUrlQueryRef.current) {
+        const found = state.installations.find((i) => i.id === instParam)
+        if (found?.game?.title) {
+          const term = found.game.title.trim()
+          lastProcessedUrlQueryRef.current = instParam
+          setQuery(term)
+          executeSearch(term)
+        }
+      }
+    }
+  }, [params, state.installations])
 
   useEffect(() => {
     const trimmed = query.trim()
@@ -2411,7 +2490,7 @@ export default function ExternalGamesScreen() {
                             ) : shelf.id === 'steamrip' ? (
                               <img src={steamripLogo} alt="SteamRIP" style={{ width: '18px', height: '18px', borderRadius: '50%' }} />
                             ) : shelf.id === 'onlinefix' ? (
-                              <FontAwesomeIcon icon={faTools} style={{ color: '#00e5ff', fontSize: '15px' }} />
+                              <img src={onlineFixLogo} alt="Online-Fix" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                             ) : (
                               <FontAwesomeIcon icon={faGamepad} style={{ color: '#e52521', fontSize: '16px' }} />
                             )}

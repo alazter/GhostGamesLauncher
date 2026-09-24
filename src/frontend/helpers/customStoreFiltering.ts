@@ -12,6 +12,12 @@ export function isGameAssignedToStore(
   const targetNameLower = (targetStore.name || '').toLowerCase()
   const runnerLower = (game.runner || '').toLowerCase()
 
+  if (game.accountProvider) {
+    const aliases = { xbox: ['xbox'], ea: ['ea', 'ea app', 'ea games', 'origin'],
+      ubisoft: ['ubisoft', 'ubisoft connect', 'uplay'], battlenet: ['battlenet', 'battle.net', 'blizzard'] }
+    return aliases[game.accountProvider].some((alias) => alias === targetIdLower || alias === targetNameLower)
+  }
+
   if (explicitlyAssignedStore) {
     if (explicitlyAssignedStore === targetIdLower) return true
     if (targetNameLower && explicitlyAssignedStore === targetNameLower) return true
@@ -170,6 +176,7 @@ export function isGameVisibleInAllGames(
   }
 
   // Fallback check by runner if not matched to any custom store
+  if (game.accountProvider) return storesFilters[game.accountProvider] !== false
   const runner = (game.runner || '').toLowerCase()
   if (
     (runner === 'legendary' || runner === 'epic') &&
@@ -271,6 +278,7 @@ export function isPirateOrNonOfficialGame(
 ): boolean {
   if (!game) return false
   const runner = (game.runner || '').toLowerCase()
+  if (game.accountProvider) return false
 
   // Se pertencer a lojas oficiais, NUNCA é jogo pirata
   if (

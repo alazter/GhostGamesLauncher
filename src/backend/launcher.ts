@@ -114,6 +114,14 @@ const launchEventCallback: (args: LaunchParams) => StatusPromise = async ({
   const game = libraryManagerMap[runner].getGame(appName)
   const gameInfo = game.getGameInfo()
 
+  if (gameInfo.accountProvider) {
+    try {
+      const { openAccountGame } = await import('./storeManagers/connectedAccounts/service')
+      await openAccountGame(appName)
+      return { status: 'done' }
+    } catch { return { status: 'error' } }
+  }
+
   if (
     gameInfo.install.install_path &&
     !existsSync(gameInfo.install.install_path)

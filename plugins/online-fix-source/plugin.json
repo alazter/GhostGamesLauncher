@@ -15,5 +15,6 @@
     "online-fix.me"
   ],
   "homepage": "https://online-fix.me",
+  "icon": "icon.png",
   "minGhostVersion": "0.2.7-beta"
 }

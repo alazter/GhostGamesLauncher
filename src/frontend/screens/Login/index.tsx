@@ -15,6 +15,7 @@ import { LanguageSelector, UpdateComponent } from '../../components/UI'
 import { FlagPosition } from '../../components/UI/LanguageSelector'
 import SIDLogin from './components/SIDLogin'
 import SteamConfigModal from './components/SteamConfigModal'
+import ConnectedAccounts from './components/ConnectedAccounts'
 import ContextProvider from '../../state/ContextProvider'
 import { useAwaited } from '../../hooks/useAwaited'
 import { hasHelp } from 'frontend/hooks/hasHelp'
@@ -200,6 +201,7 @@ export default React.memo(function NewLogin() {
               logoutAction={steam.logout}
               disabled={oldMac}
             />
+            <ConnectedAccounts />
           </div>
         </div>
         <button

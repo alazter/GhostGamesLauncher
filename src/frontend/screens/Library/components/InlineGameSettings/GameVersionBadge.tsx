@@ -18,12 +18,35 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
   const [updating, setUpdating] = useState(false)
 
   const extInstallation = useMemo(() => {
-    return extState.installations?.find(
-      (i) =>
-        i.appName === game.app_name ||
-        (game.install?.install_path && i.directory === game.install?.install_path)
-    )
-  }, [extState.installations, game.app_name, game.install?.install_path])
+    const gameAppName = String(game.app_name || '').toLowerCase()
+    const gameTitle = String(game.title || '').trim().toLowerCase()
+    const gameFolder = String(game.folder_name || game.install?.install_path || '').trim().toLowerCase()
+    const gameExe = String(game.install?.executable || '').trim().toLowerCase()
+
+    return extState.installations?.find((i) => {
+      if (!i) return false
+      const instAppName = String(i.appName || '').toLowerCase()
+      const instId = String(i.id || '').toLowerCase()
+
+      // 1. Direct AppName or ID match
+      if (gameAppName && (instAppName === gameAppName || instId === gameAppName)) return true
+      if (gameAppName && instAppName && (gameAppName.includes(instId) || instAppName.includes(gameAppName))) return true
+
+      // 2. Folder / Directory match (critical for sideload/piratas where install_path is in folder_name)
+      const instDir = String(i.directory || '').trim().toLowerCase()
+      if (gameFolder && instDir && (gameFolder === instDir || gameFolder.replace(/[/\\]+$/, '') === instDir.replace(/[/\\]+$/, ''))) return true
+
+      // 3. Executable match
+      const instExe = String(i.executable || '').trim().toLowerCase()
+      if (gameExe && instExe && gameExe === instExe) return true
+
+      // 4. Title match
+      const instTitle = String(i.game?.title || '').trim().toLowerCase()
+      if (gameTitle && instTitle && gameTitle === instTitle) return true
+
+      return false
+    })
+  }, [extState.installations, game.app_name, game.folder_name, game.install?.install_path, game.install?.executable, game.title])
 
   const [isResolvingDate, setIsResolvingDate] = useState(false)
   const [editing, setEditing] = useState(false)

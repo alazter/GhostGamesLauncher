@@ -1042,7 +1042,7 @@ class GlobalState extends PureComponent<Props> {
     }
 
     try {
-      syncAutoStoreAssignments(epicLibrary, gogLibrary, amazonLibrary, zoomLibrary, steamLibrary)
+      syncAutoStoreAssignments(epicLibrary, gogLibrary, amazonLibrary, zoomLibrary, steamLibrary, updatedSideload)
     } catch (e) {
       console.error('Error syncing auto store assignments:', e)
     }

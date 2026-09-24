@@ -433,7 +433,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - Substituídos ícones genéricos na sidebar por vetores oficiais de marcas (`<EpicLogo />`, `<GOGLogo />`, `<FontAwesomeIcon icon={faSteam} />`, `<FontAwesomeIcon icon={faAmazon} />`, `<ZoomLogo />`).
   - Registradas todas as novas diretrizes no `.agents/AGENTS.md`.
 
-# Review das Alterações - 23/09/2026
+# Review das Alterações - 24/09/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -718,6 +718,16 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Suporte a Múltiplos Cards Ativos no Gerenciador de Downloads (Conquista 96/Regra 64)**: Suporte a N downloads ativos em paralelo na área `BAIXANDO AGORA` com telemetria agregada e reorganização de layout automática (quando `> 2` processos ativos, a seção `BAIXANDO AGORA` assume a largura total no topo com grid de 2 colunas e a seção `NA FILA` desce para a linha inferior ao lado de `CONCLUÍDOS`).
   - **Indicador Local de Remoção/Deleção no GameCard (Conquista 94/Regras 61 e 62)**: Store reativo não-bloqueante (`removingGamesStore.ts`) acionado em 0ms. Overlay interno ao card (`.gameCardRemovalOverlay`) com blur, bordas pulsantes neon e spinner sem alterar o tamanho, largura, altura ou proporção `aspect-ratio: 173/275` do card (Regra 62), permitindo navegar pela biblioteca enquanto a remoção roda em background (Regra 61).
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros no TypeScript (`tsc --noEmit`) e 160/160 testes unitários Jest aprovados.
+
+### 40. Otimização Vertical de Downloads (180px Fixos), Botão de Abrir Diretório no PathSelectionBox, Redirecionamento Contextual de Lojas e Logotipo HD Online-Fix
+* **Problema:** Mensagens informativas quebrando a layout do card ativo de 180px no Gerenciador de Downloads, falta de botão rápido para abrir o diretório do jogo no Explorador de Arquivos a partir de campos de caminho, redirecionamento genérico no botão "Loja" para jogos comunitários/piratas, e dependência remota frágil para favicon do Online-Fix.
+* **Solução:**
+  - **Otimização de Layout Vertical no Card Ativo (Conquista 108/Regra 76)**: Mantida a altura fixa em 180px (`height: 180px; max-height: 180px; overflow: hidden`) e capa 125px. Banner de mensagens `.dmExternalNoticeBanner` compacto de 11px/line-height 1.32, linha de status com justificativa `space-between` (status à esquerda e porcentagem ciano neon à direita), e folga vertical garantida de mais de 40px.
+  - **Abertura do Diretório da Pasta do Jogo em Endereços de Executável (Conquista 106/Regra 74)**: Criado utilitário universal `pathUtils.ts` (`openGameFolder`). Botão de pasta transparente com `<FontAwesomeIcon icon={faFolder} />` em ciano neon no `PathSelectionBox` acionando `window.api.openFolder()` para abrir diretamente no Windows Explorer.
+  - **Redirecionamento Contextual do Botão "Loja" para Buscar Jogos (Conquistas 105 e 107/Regra 75)**: Botão "Loja" no `HeroPanel` e badges clicáveis no card de downloads redirecionam jogos não-oficiais/comunitários ("Piratas", repacks, AnkerGames, SteamRIP, Online-Fix) diretamente para a página rica do jogo em Buscar Jogos (`/external-games?q=...&installation=...`).
+  - **Logotipo Oficial HD Bundled do Online-Fix (Conquistas 100 e 101/Regras 68 e 69)**: Asset local HD 180x180 transparente (`onlinefix-logo.png`) empacotado, eliminando requisições remotas sujeitas a bloqueios de CORS/Cloudflare, com renderização instantânea em 0ms e cache síncrono de módulo (`cachedExternalGamesState`).
+  - **Remoção de Botões Redundantes de Lixeira (Conquista 103/Regra 71)**: Exclusão das lixeiras do cabeçalho de `InlineGameSettings` e alinhamento elegante das tags à esquerda de `{currentTitle} (Configurações)`.
+  - **Exclusividade da Biblioteca (Conquista 104/Regra 72)**: Expurgo completo do bloco de fontes da comunidade da tela da Biblioteca, mantendo-as exclusivas na tela Buscar Jogos.
 
 ---
 

@@ -334,27 +334,18 @@ async function getQueueInformation(): Promise<DMQueue> {
     SteamQueueWatcher.startWatcherIfNeeded()
     const steamState = await SteamQueueWatcher.getSteamDownloadState()
 
-    // 0. Coleta de downloads de fontes comunitárias / ExternalGames
-    let externalActive: DMQueueElement | null = null
-    const externalQueueCandidates: DMQueueElement[] = []
+    // 0. Detecção de downloads ativos de fontes comunitárias / ExternalGames
+    let hasExternalActive = false
     try {
       const extJobs = ExternalGames.getInstance().snapshot().jobs
-      for (const job of extJobs) {
-        if (['downloading', 'extracting', 'installing'].includes(job.status)) {
-          if (!externalActive) {
-            externalActive = externalJobToDMElement(job)
-          } else {
-            externalQueueCandidates.push(externalJobToDMElement(job))
-          }
-        } else if (job.status === 'queued') {
-          externalQueueCandidates.push(externalJobToDMElement(job))
-        }
-      }
+      hasExternalActive = extJobs.some((job) =>
+        ['downloading', 'extracting', 'installing'].includes(job.status)
+      )
     } catch {
       // ignora erro ao ler ExternalGames
     }
 
-    // 1. Determine active element
+    // 1. Determine active element (apenas downloads oficiais Heroic e Steam)
     let activeElement: DMQueueElement | null = null
 
     const isSteamActiveRunning = Boolean(
@@ -366,8 +357,6 @@ async function getQueueInformation(): Promise<DMQueue> {
 
     if (currentElement && queueState !== 'idle' && currentElement.params.runner !== 'steam') {
       activeElement = currentElement
-    } else if (externalActive) {
-      activeElement = externalActive
     } else if (
       steamState.active &&
       !SteamQueueWatcher.isDismissed(steamState.active.params.appName) &&
@@ -393,7 +382,7 @@ async function getQueueInformation(): Promise<DMQueue> {
     const effectiveState: DownloadManagerState =
       queueState === 'paused' || isSteamPaused
         ? 'paused'
-        : activeElement
+        : activeElement || hasExternalActive
         ? 'running'
         : 'idle'
 
@@ -432,7 +421,7 @@ async function getQueueInformation(): Promise<DMQueue> {
       seenAppNames.add(activeAppName)
     }
 
-    for (const item of [...heroicQueueCandidates, ...externalQueueCandidates, ...steamQueueCandidates]) {
+    for (const item of [...heroicQueueCandidates, ...steamQueueCandidates]) {
       const id = item.params.appName
       if (!seenAppNames.has(id)) {
         seenAppNames.add(id)

@@ -1,9 +1,14 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faFolderOpen,
   faCheckCircle,
-  faPlay
+  faPlay,
+  faDownload,
+  faBolt,
+  faExchangeAlt,
+  faShieldAlt
 } from '@fortawesome/free-solid-svg-icons'
 import type {
   ExternalDownloadJob,
@@ -39,11 +44,27 @@ export default function ExternalActiveCard({
   job,
   onRefresh
 }: ExternalActiveCardProps) {
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [executable, setExecutable] = useState(
     job.candidates.length === 1 ? job.candidates[0] : ''
   )
   const [errorMessage, setErrorMessage] = useState('')
+
+  const handleGoToSearch = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    const targetTitle = job.game?.title || ''
+    if (!targetTitle) return
+    const params = new URLSearchParams()
+    params.set('q', targetTitle)
+    if (job.installationId) {
+      params.set('installation', job.installationId)
+    }
+    navigate(`/external-games?${params.toString()}`)
+  }
 
   const { coverUrl } = useExternalGameCover(
     job.game.title,
@@ -74,12 +95,19 @@ export default function ExternalActiveCard({
     }
   }
 
+  const operationIcon =
+    job.operation === 'switch-source'
+      ? faExchangeAlt
+      : job.operation === 'update'
+      ? faBolt
+      : faDownload
+
   const operationLabel =
     job.operation === 'switch-source'
-      ? '🔄 Troca de Loja'
+      ? 'Troca de Loja'
       : job.operation === 'update'
-      ? '⚡ Atualização'
-      : '📥 Instalação Inicial'
+      ? 'Atualização'
+      : 'Instalação Inicial'
 
   const operationClass =
     job.operation === 'switch-source'
@@ -87,6 +115,13 @@ export default function ExternalActiveCard({
       : job.operation === 'update'
       ? 'update'
       : 'install'
+
+  const isAttentionState =
+    !job.spacePlan &&
+    (job.status === 'awaiting-file' ||
+      job.status === 'error' ||
+      (Boolean(job.error) &&
+        !['downloading', 'extracting', 'installing', 'ready'].includes(job.status)))
 
   return (
     <div className="dmActiveCard dmExternalActiveCard">
@@ -118,114 +153,114 @@ export default function ExternalActiveCard({
             {job.game.title}
           </span>
           <div className="dmExternalBadgesRow">
-            <ExternalStoreLogo
-              icon={job.game.providerIcon}
-              name={job.game.providerName}
-              size={34}
-            />
-            <span className={`dmActiveOperationBadge ${operationClass}`}>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={handleGoToSearch}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleGoToSearch()
+                }
+              }}
+              className="dmExternalStoreLogoClickable"
+              title={`Ver opções de "${job.game.title}" em Buscar Jogos`}
+              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+            >
+              <ExternalStoreLogo
+                icon={job.game.providerIcon}
+                name={job.game.providerName}
+                size={34}
+              />
+            </div>
+            <button
+              type="button"
+              className={`dmActiveOperationBadge ${operationClass} is-clickable`}
+              onClick={handleGoToSearch}
+              title={
+                job.operation === 'switch-source'
+                  ? `Trocar de loja: Ver "${job.game.title}" em Buscar Jogos`
+                  : `Ver "${job.game.title}" em Buscar Jogos`
+              }
+              aria-label={
+                job.operation === 'switch-source'
+                  ? `Trocar de loja: Ver ${job.game.title} em Buscar Jogos`
+                  : `Ver ${job.game.title} em Buscar Jogos`
+              }
+            >
+              <FontAwesomeIcon icon={operationIcon} style={{ marginRight: '6px', fontSize: '10px' }} />
               {operationLabel}
-            </span>
+            </button>
           </div>
         </div>
 
-        <div className="dmActiveBottomRow">
-          <div className="dmActiveProgressCol">
-            {/* Status Line */}
-            <div className="dmActiveStatusRow">
-              <span className="dmActiveStatusText">
-                {job.operation === 'switch-source'
-                  ? `Migrando para ${job.game.providerName}`
-                  : job.operation === 'update'
-                  ? `Atualizando via ${job.game.providerName}`
-                  : `Fonte: ${job.game.providerName}`}{' '}
-                · {job.transport === 'torbox' ? 'via TorBox · ' : ''}
-                {statusLabels[job.status] || job.status}
+        {isAttentionState ? (
+          <div className="dmActiveAttentionBody">
+            <div className="dmActiveAttentionTextCol">
+              {/* Status Line */}
+              <div className="dmActiveStatusRow">
+                <span className="dmActiveStatusText">
+                  {job.operation === 'switch-source' ? (
+                    <button
+                      type="button"
+                      className="dmActiveMigrateLinkBtn"
+                      onClick={handleGoToSearch}
+                      title={`Trocar de loja: Ver "${job.game.title}" em Buscar Jogos`}
+                    >
+                      {`Migrando para ${job.game.providerName}`}
+                    </button>
+                  ) : job.operation === 'update' ? (
+                    `Atualizando via ${job.game.providerName}`
+                  ) : (
+                    `Fonte: ${job.game.providerName}`
+                  )}{' '}
+                  · {job.transport === 'torbox' ? 'via TorBox · ' : ''}
+                  <span className="dmActiveStatusHighlight">
+                    {statusLabels[job.status] || job.status}
+                  </span>
+                </span>
+              </div>
+
+              {job.oldRemoved && job.status !== 'completed' && (
+                <p
+                  role="status"
+                  className="dmExternalNoticeBanner"
+                  title="A instalação antiga foi removida. O jogo ficará indisponível até concluir a reinstalação. O backup dos saves está preservado com o GhostShield."
+                >
+                  <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#00ffff', marginRight: '6px' }} />
+                  Instalação antiga removida. O jogo ficará indisponível até reinstalar. <span className="dmHighlightText">Backup dos saves preservado</span>.
+                </p>
+              )}
+
+              {/* Error or Awaiting File Notice (Full Width, up to 3 lines, unclipped) */}
+              <span
+                className="dmExternalNoticeText"
+                title={job.error || undefined}
+              >
+                {job.error ||
+                  (job.status === 'awaiting-file'
+                    ? 'Conclua o download no navegador e selecione o arquivo baixado (.zip, .rar, .7z).'
+                    : 'A fonte requer ação manual para prosseguir.')}
               </span>
-              {job.status === 'downloading' && progress !== undefined && (
-                <span className="dmActiveProgressPercent">{progress}%</span>
+
+              {job.status === 'error' && job.directDiagnostic && (
+                <details style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  <summary>Detalhes da interrupção</summary>
+                  <p>
+                    Hospedagem: {job.directDiagnostic.host || 'não identificada'} · Recebido: {bytes(job.directDiagnostic.bytes)} de {bytes(job.directDiagnostic.total)} · Tentativas: {job.directDiagnostic.attempts}.
+                  </p>
+                </details>
+              )}
+
+              {errorMessage && (
+                <div className="dmActiveErrorRow">
+                  <span>{errorMessage}</span>
+                </div>
               )}
             </div>
 
-            {job.oldRemoved && job.status !== 'completed' && (
-              <p role="status">A instalação antiga foi removida. O jogo ficará indisponível até concluir a reinstalação. O backup dos saves está preservado.</p>
-            )}
-            {job.spacePlan && (
-              <section className="dmExternalSpacePlan" aria-label="Espaço para reinstalação">
-                <h3>Espaço necessário para reinstalar</h3>
-                <p>Destino: <strong>{job.spacePlan.destination}</strong></p>
-                <p>{job.spacePlan.packageReady ? 'Pacote já baixado' : `Pacote: ${bytes(job.spacePlan.packageBytes)}`} · Jogo instalado: {bytes(job.spacePlan.installedBytes)}{job.spacePlan.estimated ? ' (estimativa; o tamanho real pode ser maior)' : ''}.</p>
-                <p>Para baixar e extrair no disco original, mantenha {bytes(job.spacePlan.requiredOriginal)} livres, incluindo margem de segurança. Faltam {bytes(job.spacePlan.missingOriginal)}.</p>
-                {job.spacePlan.missingDestination > 0 ? (
-                  <p>Libere pelo menos {bytes(job.spacePlan.missingDestination)} no destino para comportar o jogo instalado. Outro disco para o pacote não resolve essa falta de espaço.</p>
-                ) : job.spacePlan.temporaryDirectory ? (
-                  <p>O pacote será baixado temporariamente em <strong>{job.spacePlan.temporaryDirectory}</strong> porque o disco original não comporta o pacote e o jogo juntos. Se houver uma transferência parcial, ela será reiniciada no novo local. Após instalar e restaurar os saves, essa pasta será removida.</p>
-                ) : <p>Nenhum outro disco com espaço suficiente foi encontrado. Libere espaço e verifique novamente.</p>}
-                <button type="button" disabled={busy || !job.spacePlan.temporaryDirectory || job.spacePlan.missingDestination > 0} onClick={() => void handleAction({ type: 'space-proceed', jobId: job.id })}>Prosseguir</button>
-                <button type="button" disabled={busy} onClick={() => void handleAction({ type: 'space-recheck', jobId: job.id })}>Verificar novamente após liberar espaço</button>
-                <button type="button" disabled={busy} onClick={() => void handleAction({ type: 'cancel', jobId: job.id })}>Cancelar</button>
-              </section>
-            )}
-
-            {/* Downloading State */}
-            {job.status === 'downloading' && job.directDiagnostic && ['interrupted', 'retry-scheduled', 'resuming'].includes(job.directDiagnostic.event) && (
-              <p role="status">Conexão interrompida. Tentando continuar o download automaticamente ({job.directDiagnostic.attempts}/5)…</p>
-            )}
-            {job.status === 'error' && job.directDiagnostic && (
-              <details><summary>Detalhes da interrupção</summary>
-                <p>Hospedagem: {job.directDiagnostic.host || 'não identificada'} · Recebido: {bytes(job.directDiagnostic.bytes)} de {bytes(job.directDiagnostic.total)} · Tentativas: {job.directDiagnostic.attempts}. O navegador não informou a causa da interrupção.</p>
-              </details>
-            )}
-            {job.status === 'downloading' && job.transferPhase === 'torrent' && (
-              <p role="status">Obtendo torrent de {job.game.providerName}. Na janela do site, entre na conta se necessário e escolha Torrent.</p>
-            )}
-            {job.status === 'downloading' && ['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && !job.transferPhase && (
-              <p role="status">Confirme o download do pacote na janela de {job.game.providerName}. O Ghost receberá o arquivo automaticamente.</p>
-            )}
-            {job.status === 'downloading' && (
-              <>
-                <div className="dmProgressBarTrack">
-                  <div
-                    className="dmProgressBarFill"
-                    style={{ width: `${progress || 0}%` }}
-                  />
-                </div>
-                <div className="dmActiveEtaRow">
-                  <span>
-                    {bytes(job.bytes)}
-                    {job.total ? ` / ${bytes(job.total)}` : ''}
-                    {job.speed ? ` · ${bytes(job.speed)}/s` : ''}
-                    {etaMinutes ? ` · ${etaMinutes} min restantes` : ''}
-                  </span>
-                </div>
-              </>
-            )}
-
-            {/* Extracting / Installing State */}
-            {(job.status === 'extracting' || job.status === 'installing') && (
-              <>
-                <div className="dmProgressBarTrack">
-                  <div className="dmProgressBarFill dmMarqueeFill" style={{ width: '100%' }} />
-                </div>
-                <div className="dmActiveEtaRow">
-                  <span>
-                    {job.status === 'extracting'
-                      ? 'Descompactando arquivos na pasta do jogo…'
-                      : job.game.platform === 'switch' ? 'Adicionando a ROM à biblioteca…' : 'Configurando executável e protegendo saves GhostShield…'}
-                  </span>
-                </div>
-              </>
-            )}
-
-            {/* Awaiting File or Error State */}
-            {(job.status === 'awaiting-file' || job.status === 'error') && (
-              <div className="dmExternalActionContainer">
-                <span className="dmExternalNoticeText">
-                  {job.error ||
-                    (job.status === 'awaiting-file'
-                      ? 'Conclua o download no navegador e selecione o arquivo baixado (.zip, .rar, .7z).'
-                      : 'A fonte requer ação manual para prosseguir.')}
-                </span>
+            {/* Unified Bottom Actions Row */}
+            <div className="dmActiveActionsRow">
+              <div className="dmActiveActionsLeft">
                 {job.transport !== 'torbox' && (
                   <button
                     type="button"
@@ -243,117 +278,288 @@ export default function ExternalActiveCard({
                   </button>
                 )}
               </div>
-            )}
 
-            {/* Ready for executable selection */}
-            {job.status === 'ready' && (
-              <div className="dmExternalReadyContainer">
-                <select
-                  aria-label={`${job.game.platform === 'switch' ? 'ROM' : 'Executável'} de ${job.game.title}`}
-                  value={executable}
-                  className="dmExternalExecSelect"
-                  onChange={(e) => setExecutable(e.target.value)}
-                >
-                  <option value="">{job.game.platform === 'switch' ? 'Selecione a ROM do jogo base (não update/DLC)...' : 'Selecione o executável principal...'}</option>
-                  {job.candidates.map((cand) => (
-                    <option key={cand} value={cand}>
-                      {cand}
-                    </option>
-                  ))}
-                </select>
+              <div className="dmActiveControls">
+                {!job.spacePlan && (job.canResume || ['error', 'cancelled', 'paused'].includes(job.status)) && (
+                  <button
+                    type="button"
+                    className="dmActiveSelectArchiveBtn dmResumeDownloadBtn"
+                    title="Retomar Download"
+                    aria-label={`Retomar ${job.game.title}`}
+                    disabled={busy}
+                    onClick={() =>
+                      void handleAction({ type: 'resume', jobId: job.id })
+                    }
+                  >
+                    <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
+                      <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+                      <polygon points="15,12 27,19 15,26" fill="currentColor" />
+                    </svg>
+                    <span>Retomar</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  className="dmPlayBtn dmFinishInstallBtn"
-                  disabled={busy || !executable}
+                  className="dmNeonCircleBtn dmNeonCancelBtn"
+                  title={['cancelled', 'error'].includes(job.status) ? 'Remover Tarefa' : 'Cancelar Tarefa'}
+                  aria-label={`${['cancelled', 'error'].includes(job.status) ? 'Remover' : 'Cancelar'} ${job.game.title}`}
+                  disabled={busy}
                   onClick={() =>
                     void handleAction({
-                      type: 'finish',
-                      jobId: job.id,
-                      executable
+                      type: ['cancelled', 'error'].includes(job.status) ? 'dismiss' : 'cancel',
+                      jobId: job.id
                     })
                   }
                 >
-                  <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '6px' }} />
-                  Concluir Instalação
+                  <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
+                    <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+                    <line x1="13.5" y1="13.5" x2="24.5" y2="24.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="24.5" y1="13.5" x2="13.5" y2="24.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
-            )}
-
-            {/* Paused State */}
-            {job.status === 'paused' && (
-              <div className="dmActiveEtaRow">
-                <span style={{ color: '#ffb703' }}>Download pausado pelo usuário</span>
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="dmActiveErrorRow">
-                <span>{errorMessage}</span>
-              </div>
-            )}
+            </div>
           </div>
+        ) : (
+          <div className="dmActiveBottomRow">
+            <div className="dmActiveProgressCol">
+              {/* Status Line */}
+              <div className="dmActiveStatusRow">
+                <span className="dmActiveStatusText">
+                  {job.operation === 'switch-source' ? (
+                    <button
+                      type="button"
+                      className="dmActiveMigrateLinkBtn"
+                      onClick={handleGoToSearch}
+                      title={`Trocar de loja: Ver "${job.game.title}" em Buscar Jogos`}
+                    >
+                      {`Migrando para ${job.game.providerName}`}
+                    </button>
+                  ) : job.operation === 'update' ? (
+                    `Atualizando via ${job.game.providerName}`
+                  ) : (
+                    `Fonte: ${job.game.providerName}`
+                  )}{' '}
+                  · {job.transport === 'torbox' ? 'via TorBox · ' : ''}
+                  <span className="dmActiveStatusHighlight">
+                    {statusLabels[job.status] || job.status}
+                  </span>
+                </span>
+                {job.status === 'downloading' && progress !== undefined && (
+                  <span className="dmActiveProgressPercent">{progress}%</span>
+                )}
+              </div>
 
-          {/* Action Controls on the Right */}
-          <div className="dmActiveControls">
-            {job.status === 'downloading' && (
-              <button
-                type="button"
-                className="dmNeonCircleBtn"
-                title="Pausar Download"
-                aria-label={`Pausar ${job.game.title}`}
-                disabled={busy}
-                onClick={() =>
-                  void handleAction({ type: 'pause', jobId: job.id })
-                }
-              >
-                <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
-                  <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
-                  <line x1="14" y1="13" x2="14" y2="25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="24" y1="13" x2="24" y2="25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
+              {job.oldRemoved && job.status !== 'completed' && (
+                <p
+                  role="status"
+                  className="dmExternalNoticeBanner"
+                  title="A instalação antiga foi removida. O jogo ficará indisponível até concluir a reinstalação. O backup dos saves está preservado com o GhostShield."
+                >
+                  <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#00ffff', marginRight: '6px' }} />
+                  Instalação antiga removida. O jogo ficará indisponível até reinstalar. <span className="dmHighlightText">Backup dos saves preservado</span>.
+                </p>
+              )}
+              {job.spacePlan && (
+                <section className="dmExternalSpacePlan" aria-label="Espaço para reinstalação">
+                  <h3>Espaço necessário para reinstalar</h3>
+                  <p>Destino: <strong>{job.spacePlan.destination}</strong></p>
+                  <p>{job.spacePlan.packageReady ? 'Pacote já baixado' : `Pacote: ${bytes(job.spacePlan.packageBytes)}`} · Jogo instalado: {bytes(job.spacePlan.installedBytes)}{job.spacePlan.estimated ? ' (estimativa; o tamanho real pode ser maior)' : ''}.</p>
+                  <p>Para baixar e extrair no disco original, mantenha {bytes(job.spacePlan.requiredOriginal)} livres, incluindo margem de segurança. Faltam {bytes(job.spacePlan.missingOriginal)}.</p>
+                  {job.spacePlan.missingDestination > 0 ? (
+                    <p>Libere pelo menos {bytes(job.spacePlan.missingDestination)} no destino para comportar o jogo instalado. Outro disco para o pacote não resolve essa falta de espaço.</p>
+                  ) : job.spacePlan.temporaryDirectory ? (
+                    <p>O pacote será baixado temporariamente em <strong>{job.spacePlan.temporaryDirectory}</strong> porque o disco original não comporta o pacote e o jogo juntos. Se houver uma transferência parcial, ela será reiniciada no novo local. Após instalar e restaurar os saves, essa pasta será removida.</p>
+                  ) : <p>Nenhum outro disco com espaço suficiente foi encontrado. Libere espaço e verifique novamente.</p>}
+                  <button type="button" disabled={busy || !job.spacePlan.temporaryDirectory || job.spacePlan.missingDestination > 0} onClick={() => void handleAction({ type: 'space-proceed', jobId: job.id })}>Prosseguir</button>
+                  <button type="button" disabled={busy} onClick={() => void handleAction({ type: 'space-recheck', jobId: job.id })}>Verificar novamente após liberar espaço</button>
+                  <button type="button" disabled={busy} onClick={() => void handleAction({ type: 'cancel', jobId: job.id })}>Cancelar</button>
+                </section>
+              )}
 
-            {!job.spacePlan && (job.status === 'paused' || (['error', 'cancelled'].includes(job.status) && job.canResume)) && (
-              <button
-                type="button"
-                className="dmActiveSelectArchiveBtn dmResumeDownloadBtn"
-                title="Retomar Download"
-                aria-label={`Retomar ${job.game.title}`}
-                disabled={busy}
-                onClick={() =>
-                  void handleAction({ type: 'resume', jobId: job.id })
-                }
-              >
-                <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
-                  <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
-                  <polygon points="15,12 27,19 15,26" fill="currentColor" />
-                </svg>
-                <span>Retomar</span>
-              </button>
-            )}
+              {/* Downloading State */}
+              {job.status === 'downloading' && job.directDiagnostic && ['interrupted', 'retry-scheduled', 'resuming'].includes(job.directDiagnostic.event) && (
+                <p
+                  role="status"
+                  className="dmExternalNoticeBanner"
+                  title={`Conexão interrompida. Tentando continuar o download automaticamente (${job.directDiagnostic.attempts}/5)…`}
+                >
+                  Conexão interrompida. Tentando continuar automaticamente ({job.directDiagnostic.attempts}/5)…
+                </p>
+              )}
+              {job.status === 'error' && job.directDiagnostic && (
+                <details className="dmExternalNoticeBanner">
+                  <summary>Detalhes da interrupção</summary>
+                  <p>Hospedagem: {job.directDiagnostic.host || 'não identificada'} · Recebido: {bytes(job.directDiagnostic.bytes)} de {bytes(job.directDiagnostic.total)} · Tentativas: {job.directDiagnostic.attempts}. O navegador não informou a causa da interrupção.</p>
+                </details>
+              )}
+              {job.status === 'downloading' && job.transferPhase === 'torrent' && (
+                <p
+                  role="status"
+                  className="dmExternalNoticeBanner"
+                  title={`Obtendo torrent de ${job.game.providerName}. Na janela do site, entre na conta se necessário e escolha Torrent.`}
+                >
+                  Obtendo torrent de {job.game.providerName}. Na janela do site, escolha Torrent.
+                </p>
+              )}
+              {job.status === 'downloading' && ['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && !job.transferPhase && (
+                <p
+                  role="status"
+                  className="dmExternalNoticeBanner"
+                  title={`Confirme o download do pacote na janela de ${job.game.providerName}. O Ghost receberá o arquivo automaticamente.`}
+                >
+                  Confirme o download na janela de {job.game.providerName}. O Ghost receberá o arquivo automaticamente.
+                </p>
+              )}
+              {job.status === 'downloading' && (
+                <>
+                  <div className="dmProgressBarTrack">
+                    <div
+                      className="dmProgressBarFill"
+                      style={{ width: `${progress || 0}%` }}
+                    />
+                  </div>
+                  <div className="dmActiveEtaRow">
+                    <span>
+                      {bytes(job.bytes)}
+                      {job.total ? ` / ${bytes(job.total)}` : ''}
+                      {job.speed ? ` · ${bytes(job.speed)}/s` : ''}
+                      {etaMinutes ? ` · ${etaMinutes} min restantes` : ''}
+                    </span>
+                  </div>
+                </>
+              )}
 
-            {/* Cancel Button for active / error / awaiting-file tasks */}
-            {!['extracting', 'installing', 'completed'].includes(job.status) && (
-              <button
-                type="button"
-                className="dmNeonCircleBtn dmNeonCancelBtn"
-                title="Cancelar Tarefa"
-                aria-label={`Cancelar ${job.game.title}`}
-                disabled={busy}
-                onClick={() =>
-                  void handleAction({ type: 'cancel', jobId: job.id })
-                }
-              >
-                <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
-                  <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
-                  <line x1="13.5" y1="13.5" x2="24.5" y2="24.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="24.5" y1="13.5" x2="13.5" y2="24.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
+              {/* Extracting / Installing State */}
+              {(job.status === 'extracting' || job.status === 'installing') && (
+                <>
+                  <div className="dmProgressBarTrack">
+                    <div className="dmProgressBarFill dmMarqueeFill" style={{ width: '100%' }} />
+                  </div>
+                  <div className="dmActiveEtaRow">
+                    <span>
+                      {job.status === 'extracting'
+                        ? 'Descompactando arquivos na pasta do jogo…'
+                        : job.game.platform === 'switch' ? 'Adicionando a ROM à biblioteca…' : 'Configurando executável e protegendo saves GhostShield…'}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {/* Ready for executable selection */}
+              {job.status === 'ready' && (
+                <div className="dmExternalReadyContainer">
+                  <select
+                    aria-label={`${job.game.platform === 'switch' ? 'ROM' : 'Executável'} de ${job.game.title}`}
+                    value={executable}
+                    className="dmExternalExecSelect"
+                    onChange={(e) => setExecutable(e.target.value)}
+                  >
+                    <option value="">{job.game.platform === 'switch' ? 'Selecione a ROM do jogo base (não update/DLC)...' : 'Selecione o executável principal...'}</option>
+                    {job.candidates.map((cand) => (
+                      <option key={cand} value={cand}>
+                        {cand}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="dmPlayBtn dmFinishInstallBtn"
+                    disabled={busy || !executable}
+                    onClick={() =>
+                      void handleAction({
+                        type: 'finish',
+                        jobId: job.id,
+                        executable
+                      })
+                    }
+                  >
+                    <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: '6px' }} />
+                    Concluir Instalação
+                  </button>
+                </div>
+              )}
+
+              {/* Paused State */}
+              {job.status === 'paused' && (
+                <div className="dmActiveEtaRow">
+                  <span style={{ color: '#ffb703' }}>Download pausado pelo usuário</span>
+                </div>
+              )}
+
+              {errorMessage && (
+                <div className="dmActiveErrorRow">
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Controls on the Right */}
+            <div className="dmActiveControls">
+              {job.status === 'downloading' && (
+                <button
+                  type="button"
+                  className="dmNeonCircleBtn"
+                  title="Pausar Download"
+                  aria-label={`Pausar ${job.game.title}`}
+                  disabled={busy}
+                  onClick={() =>
+                    void handleAction({ type: 'pause', jobId: job.id })
+                  }
+                >
+                  <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
+                    <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+                    <line x1="14" y1="13" x2="14" y2="25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="24" y1="13" x2="24" y2="25" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+
+              {!job.spacePlan && (job.status === 'paused' || (['error', 'cancelled'].includes(job.status) && job.canResume)) && (
+                <button
+                  type="button"
+                  className="dmActiveSelectArchiveBtn dmResumeDownloadBtn"
+                  title="Retomar Download"
+                  aria-label={`Retomar ${job.game.title}`}
+                  disabled={busy}
+                  onClick={() =>
+                    void handleAction({ type: 'resume', jobId: job.id })
+                  }
+                >
+                  <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
+                    <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+                    <polygon points="15,12 27,19 15,26" fill="currentColor" />
+                  </svg>
+                  <span>Retomar</span>
+                </button>
+              )}
+
+              {/* Cancel / Dismiss Button */}
+              {!['extracting', 'installing', 'completed'].includes(job.status) && (
+                <button
+                  type="button"
+                  className="dmNeonCircleBtn dmNeonCancelBtn"
+                  title={['cancelled', 'error'].includes(job.status) ? 'Remover Tarefa' : 'Cancelar Tarefa'}
+                  aria-label={`${['cancelled', 'error'].includes(job.status) ? 'Remover' : 'Cancelar'} ${job.game.title}`}
+                  disabled={busy}
+                  onClick={() =>
+                    void handleAction({
+                      type: ['cancelled', 'error'].includes(job.status) ? 'dismiss' : 'cancel',
+                      jobId: job.id
+                    })
+                  }
+                >
+                  <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
+                    <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
+                    <line x1="13.5" y1="13.5" x2="24.5" y2="24.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                    <line x1="24.5" y1="13.5" x2="13.5" y2="24.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

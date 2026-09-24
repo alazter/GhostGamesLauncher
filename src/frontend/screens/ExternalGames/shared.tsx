@@ -18,49 +18,75 @@ export function SourceBadge({ name, icon }: { name: string; icon?: string }) {
   )
 }
 
-export function useExternalGames() {
-  const [state, setState] = useState<ExternalGamesState>({
-    jobs: [],
-    installations: [],
-    backups: []
+let cachedExternalGamesState: ExternalGamesState = {
+  jobs: [],
+  installations: [],
+  backups: []
+}
+
+const stateSubscribers = new Set<(s: ExternalGamesState) => void>()
+
+function broadcastState(next: ExternalGamesState) {
+  cachedExternalGamesState = next
+  stateSubscribers.forEach((subscriber) => {
+    try {
+      subscriber(next)
+    } catch {}
   })
+}
+
+// Prefetch on module load if window.api is ready
+if (typeof window !== 'undefined' && window.api?.externalGamesState) {
+  window.api
+    .externalGamesState()
+    .then((s) => {
+      if (s) broadcastState(s)
+    })
+    .catch(() => {})
+
+  window.api.onExternalGamesUpdated((_event, next) => {
+    if (next) broadcastState(next)
+  })
+}
+
+export function useExternalGames() {
+  const [state, setState] = useState<ExternalGamesState>(() => cachedExternalGamesState)
   const [error, setError] = useState('')
+
   const refresh = useCallback(async (): Promise<void> => {
     try {
       const next = await window.api.externalGamesState()
-      setState(next)
-      setError('')
+      if (next) {
+        broadcastState(next)
+        setError('')
+      }
     } catch {
       setError('Não foi possível carregar os jogos externos.')
     }
   }, [])
+
   useEffect(() => {
     let mounted = true
-    let receivedEvent = false
-    const poll = async () => {
-      try {
-        const next = await window.api.externalGamesState()
-        if (mounted && !receivedEvent) {
-          setState(next)
-          setError('')
-        }
-      } catch {
-        if (mounted) setError('Não foi possível carregar os jogos externos.')
+    const handleUpdate = (next: ExternalGamesState) => {
+      if (mounted) {
+        setState(next)
+        setError('')
       }
     }
-    const remove = window.api.onExternalGamesUpdated((_event, next) => {
-      receivedEvent = true
-      setState(next)
-      setError('')
-    })
-    void poll()
+    stateSubscribers.add(handleUpdate)
+
+    // Initial refresh if cache is empty or incomplete
+    if (!cachedExternalGamesState.installations.length) {
+      void refresh()
+    }
+
     const removeLibrary = window.api.handleRefreshLibrary(() => { void refresh() })
     const onFocus = () => { void refresh() }
     window.addEventListener('focus', onFocus)
     return () => {
       mounted = false
-      remove()
-      removeLibrary()
+      stateSubscribers.delete(handleUpdate)
+      if (typeof removeLibrary === 'function') removeLibrary()
       window.removeEventListener('focus', onFocus)
     }
   }, [refresh])

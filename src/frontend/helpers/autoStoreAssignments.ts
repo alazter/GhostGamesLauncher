@@ -5,7 +5,8 @@ export function syncAutoStoreAssignments(
   gogGames: GameInfo[] = [],
   amazonGames: GameInfo[] = [],
   zoomGames: GameInfo[] = [],
-  steamGames: GameInfo[] = []
+  steamGames: GameInfo[] = [],
+  accountGames: GameInfo[] = []
 ) {
   try {
     const rawCustomStores = localStorage.getItem('heroic_custom_stores') || '[]'
@@ -41,6 +42,18 @@ export function syncAutoStoreAssignments(
     }
 
     let hasChanges = false
+
+    for (const game of accountGames) {
+      if (!game.accountProvider) continue
+      const aliases = { xbox: ['xbox'], ea: ['ea', 'ea app', 'ea games', 'origin'],
+        ubisoft: ['ubisoft', 'ubisoft connect', 'uplay'], battlenet: ['battlenet', 'battle.net', 'blizzard'] }
+      const storeId = findStoreId((name, id) => aliases[game.accountProvider!].includes(name) ||
+        aliases[game.accountProvider!].includes(id), game.accountProvider)
+      if (currentAssignments[game.app_name] !== storeId) {
+        currentAssignments[game.app_name] = storeId
+        hasChanges = true
+      }
+    }
 
     // Process Epic Games -> epicStoreId
     epicGames.forEach((game) => {

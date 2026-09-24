@@ -151,41 +151,6 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
     }
   }, [])
 
-  const queueCards = React.useMemo(() => {
-    const seen = new Set<string>()
-    if (currentElement?.params.appName) {
-      seen.add(currentElement.params.appName)
-    }
-    return plannendElements.filter((el) => {
-      const id = el?.params?.appName
-      if (!id || seen.has(id)) return false
-      seen.add(id)
-      return true
-    })
-  }, [plannendElements, currentElement?.params.appName])
-
-  useEffect(() => {
-    window.api.getDMQueueInformation().then(({ finished }: DMQueue) => {
-      setFinishedElem(finished)
-    })
-  }, [queueCards.length, currentElement?.params.appName])
-
-  const handleClearList = () => {
-    setFinishedElem([])
-    downloadManagerStore.set('finished', [])
-  }
-
-  const handleClearItem = (appName: string) => {
-    const filteredFinishedElem = finishedElem?.filter(
-      (e) => e.params.appName !== appName
-    )
-    setFinishedElem(filteredFinishedElem)
-    downloadManagerStore.set(
-      'finished',
-      filteredFinishedElem ? filteredFinishedElem : []
-    )
-  }
-
   const { state: externalState, refresh: refreshExternal } = useExternalGames()
 
   const activeExternalJobs = React.useMemo(() => {
@@ -252,6 +217,70 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
     ? Math.round(externalSpeedMB * 1.25 * 100) / 100
     : undefined
 
+  const isExternalDuplicate = React.useCallback(
+    (el: DMQueueElement | undefined | null) => {
+      if (!el?.params?.appName) return false
+      const appName = el.params.appName
+      if (appName.startsWith('external-')) return true
+      const allExt = [...activeExternalJobs, ...queuedExternalJobs]
+      return allExt.some((j) => {
+        if (j.id === appName || `external-${j.id}` === appName) return true
+        if (
+          j.installationId === appName ||
+          `external-${j.installationId}` === appName
+        ) {
+          return true
+        }
+        if (
+          j.game?.title &&
+          el.params?.gameInfo?.title &&
+          j.game.title.trim().toLowerCase() ===
+            el.params.gameInfo.title.trim().toLowerCase()
+        ) {
+          return true
+        }
+        return false
+      })
+    },
+    [activeExternalJobs, queuedExternalJobs]
+  )
+
+  const queueCards = React.useMemo(() => {
+    const seen = new Set<string>()
+    if (currentElement?.params?.appName) {
+      seen.add(currentElement.params.appName)
+    }
+    return plannendElements.filter((el) => {
+      const id = el?.params?.appName
+      if (!id || seen.has(id)) return false
+      if (isExternalDuplicate(el)) return false
+      seen.add(id)
+      return true
+    })
+  }, [plannendElements, currentElement?.params?.appName, isExternalDuplicate])
+
+  useEffect(() => {
+    window.api.getDMQueueInformation().then(({ finished }: DMQueue) => {
+      setFinishedElem(finished)
+    })
+  }, [queueCards.length, currentElement?.params?.appName])
+
+  const handleClearList = () => {
+    setFinishedElem([])
+    downloadManagerStore.set('finished', [])
+  }
+
+  const handleClearItem = (appName: string) => {
+    const filteredFinishedElem = finishedElem?.filter(
+      (e) => e.params.appName !== appName
+    )
+    setFinishedElem(filteredFinishedElem)
+    downloadManagerStore.set(
+      'finished',
+      filteredFinishedElem ? filteredFinishedElem : []
+    )
+  }
+
   const doneElements =
     (finishedElem?.length &&
       [...finishedElem].sort((a, b) => {
@@ -271,11 +300,13 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
   const unifiedQueueItems: UnifiedQueueItem[] = React.useMemo(() => {
     const items: UnifiedQueueItem[] = []
     for (const el of queueCards) {
-      items.push({
-        type: 'official',
-        id: `official-${el.params.appName}`,
-        el
-      })
+      if (!isExternalDuplicate(el)) {
+        items.push({
+          type: 'official',
+          id: `official-${el.params.appName}`,
+          el
+        })
+      }
     }
     for (const job of queuedExternalJobs) {
       items.push({
@@ -285,7 +316,7 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
       })
     }
     return items
-  }, [queueCards, queuedExternalJobs])
+  }, [queueCards, queuedExternalJobs, isExternalDuplicate])
 
   const isAdaptive4Quad = unifiedQueueItems.length > 3
   const topQueueItems = unifiedQueueItems.slice(0, 3)
@@ -324,7 +355,7 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
   const unifiedActiveItems: UnifiedActiveItem[] = React.useMemo(() => {
     const items: UnifiedActiveItem[] = []
 
-    if (currentElement) {
+    if (currentElement && !isExternalDuplicate(currentElement)) {
       items.push({
         type: 'official',
         id: `official-${currentElement.params.appName}`,
@@ -359,7 +390,7 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
     }
 
     return items
-  }, [currentElement, activeExternalJobs])
+  }, [currentElement, activeExternalJobs, isExternalDuplicate])
 
   const isMultiActiveLayout = unifiedActiveItems.length > 2
 
@@ -379,12 +410,17 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
     activeExternalJobs.some((j) =>
       ['downloading', 'extracting', 'installing', 'ready'].includes(j.status)
     ) ||
-    Boolean(currentElement && state !== 'paused' && state !== 'idle')
+    Boolean(
+      currentElement &&
+        !isExternalDuplicate(currentElement) &&
+        state !== 'paused' &&
+        state !== 'idle'
+    )
 
   const hasActivePaused =
     activeExternalJobs.length > 0 &&
     activeExternalJobs.every((j) => j.status === 'paused') &&
-    (!currentElement || state === 'paused')
+    (!currentElement || isExternalDuplicate(currentElement) || state === 'paused')
 
   const handleClearAllFinished = async () => {
     handleClearList()
@@ -400,7 +436,7 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
   }
 
   const handleCancelExternalQueue = async (jobId: string) => {
-    await window.api.externalGamesAction({ type: 'cancel', jobId })
+    await window.api.externalGamesAction({ type: 'dismiss', jobId })
     await refreshExternal()
   }
 
@@ -521,7 +557,9 @@ export default React.memo(function DownloadManager(): JSX.Element | null {
         runner={
           primaryActiveExternal
             ? 'sideload'
-            : currentElement?.params?.runner ?? 'legendary'
+            : currentElement && !isExternalDuplicate(currentElement)
+            ? currentElement?.params?.runner ?? 'legendary'
+            : 'sideload'
         }
         overrideDownloadSpeed={externalSpeedMB}
         overrideDiskSpeed={externalDiskSpeedMB}

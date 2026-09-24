@@ -1,4 +1,6 @@
 import { initImagesCache } from './images_cache'
+import { getAccountStatuses, connectAccount, syncAccount, disconnectAccount, getXboxClientId,
+  setXboxClientId, openAccountGame } from './storeManagers/connectedAccounts/service'
 import { fetchLastestReleases } from './utils/releases'
 import { DiskSpaceData, StatusPromise, WineInstallation, WindowProps } from 'common/types'
 import * as path from 'path'
@@ -1628,12 +1630,23 @@ addHandler('refreshLibrary', async (e, library?) => {
     await libraryManagerMap[library].refresh()
   } else {
     const allRefreshPromises = []
+    for (const account of getAccountStatuses()) {
+      if (account.connected) allRefreshPromises.push(syncAccount(account.provider))
+    }
     for (const manager of Object.values(libraryManagerMap)) {
       allRefreshPromises.push(manager.refresh())
     }
     await Promise.allSettled(allRefreshPromises)
   }
 })
+
+addHandler('getConnectedAccounts', () => getAccountStatuses())
+addHandler('connectAccount', (_event, provider) => connectAccount(provider))
+addHandler('syncAccount', (_event, provider) => syncAccount(provider))
+addHandler('disconnectAccount', (_event, provider) => disconnectAccount(provider))
+addHandler('getXboxClientId', () => getXboxClientId())
+addHandler('setXboxClientId', (_event, clientId) => setXboxClientId(clientId))
+addHandler('openAccountGame', (_event, appName) => openAccountGame(appName))
 
 // get pid/tid on launch and inject
 addHandler('launch', (event, args): StatusPromise => {

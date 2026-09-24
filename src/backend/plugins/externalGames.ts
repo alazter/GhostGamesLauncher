@@ -12,6 +12,8 @@ import {
 } from 'fs'
 import {
   mkdir,
+  readdir,
+  rmdir,
   readFile,
   realpath,
   rename,
@@ -22,6 +24,7 @@ import {
 } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import { synchronizeExternalVersion } from './externalVersion'
+import { selectWrappedPackage } from './wrappedPackage'
 import { archiveSize } from './archiveSize'
 import { planInstallSpace, sizeBytes, spaceReserve } from './installSpace'
 import { gameDirectoryName, prepareNewInstallDirectory } from './installDirectory'
@@ -78,6 +81,7 @@ interface StoredJob extends ExternalDownloadJob {
   torrentHash?: string
   torboxSubmissionPending?: boolean
   torboxWrapped?: boolean
+  packageDownloaded?: boolean
   source: GhostDownloadSource
   manifest: PluginManifest
   directory: string
@@ -168,8 +172,38 @@ export class ExternalGames {
           job.oldRemoved ? 'Reinstalação interrompida. O jogo está indisponível; o backup foi preservado.' : 'Operação interrompida. O jogo anterior e os backups foram preservados.'
       }
     }
+    const migrationFlagFile = join(this.root, '.ghost-defaults-enabled-v1')
+    const needsMigration = !existsSync(migrationFlagFile)
+    let stateModified = false
+
     for (const installation of this.state.installations) {
-      if (installation.game.version && existsSync(installation.executable)) synchronizeExternalVersion(installation.appName, installation.game.version)
+      if (needsMigration) {
+        installation.autoBackup = true
+        installation.autoUpdate = true
+        stateModified = true
+      } else {
+        if (installation.autoBackup === undefined) {
+          installation.autoBackup = true
+          stateModified = true
+        }
+        if (installation.autoUpdate === undefined) {
+          installation.autoUpdate = true
+          stateModified = true
+        }
+      }
+      if (installation.game.version && existsSync(installation.executable)) {
+        synchronizeExternalVersion(installation.appName, installation.game.version)
+      }
+    }
+
+    if (needsMigration) {
+      try {
+        writeFileSync(migrationFlagFile, JSON.stringify({ migratedAt: new Date().toISOString() }))
+      } catch {}
+    }
+
+    if (stateModified) {
+      this.save()
     }
     backendEvents.on('gameStatusUpdate', ({ runner, appName, status }) => {
       if (runner !== 'sideload') return
@@ -339,6 +373,12 @@ export class ExternalGames {
       (item) => item.appName === appName
     )
     if (installation) {
+      if (installation.autoBackup === undefined) {
+        installation.autoBackup = true
+      }
+      if (installation.autoUpdate === undefined) {
+        installation.autoUpdate = true
+      }
       if (!installation.savePath) {
         const autoSave = await this.discoverSavePathEnhanced(installation)
         if (autoSave?.path) {
@@ -375,8 +415,8 @@ export class ExternalGames {
       executable,
       installedAt: new Date().toISOString(),
       savePath: undefined,
-      autoBackup: false,
-      autoUpdate: false,
+      autoBackup: true,
+      autoUpdate: true,
       linkedExisting: true,
       history: []
     }
@@ -435,6 +475,7 @@ export class ExternalGames {
           installation.saveFilesCount = discovery.fileCount
           installation.saveTotalBytes = discovery.totalBytes
           installation.autoBackup = true
+          installation.autoUpdate = true
         }
 
         let backupCreated = false
@@ -617,7 +658,7 @@ export class ExternalGames {
         remoteStatus: job.remoteStatus,
         oldRemoved: job.oldRemoved || job.removalStarted,
         spacePlan: job.spacePlan,
-        canResume: !job.commitStarted && !existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')),
+        canResume: !job.commitStarted && (this.canRetryPackage(job) || (!existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')))),
         candidates: job.candidates
       })),
       installations: this.state.installations.filter(inst =>
@@ -770,8 +811,8 @@ export class ExternalGames {
         directory,
         executable,
         installedAt: new Date().toISOString(),
-        autoBackup: false,
-        autoUpdate: false,
+        autoBackup: true,
+        autoUpdate: true,
         linkedExisting: true,
         history: []
       })
@@ -1305,6 +1346,7 @@ export class ExternalGames {
   }
 
   private async download(job: StoredJob, resolved?: { url: string; manifest: PluginManifest }, activeController?: AbortController) {
+    job.packageDownloaded = false
     job.status = 'downloading'
     const controller = activeController || new AbortController()
     this.controllers.set(job.id, controller)
@@ -1412,7 +1454,41 @@ export class ExternalGames {
       throw new Error(
         'O checksum do pacote não corresponde ao informado pela fonte.'
       )
+    job.packageDownloaded = true
+    this.save()
     await this.prepare(job, job.archive)
+  }
+
+  private canRetryPackage(job: StoredJob): boolean {
+    if (job.transport !== 'torbox' || job.commitStarted || job.removalStarted) return false
+    try {
+      const file = statSync(job.archive)
+      return file.isFile() && file.size > 0 && (job.packageDownloaded === true ||
+        (job.transferPhase === 'local' && Boolean(job.total) && job.bytes === job.total && file.size === job.total))
+    } catch { return false }
+  }
+
+  private async retryPackage(job: StoredJob) {
+    if (!this.canRetryPackage(job)) throw new Error('O pacote local está incompleto ou indisponível.')
+    const downloadFolder = job.temporaryDirectory || join(this.root, 'downloads', job.id)
+    if (resolve(dirname(job.archive)) !== resolve(downloadFolder) ||
+        !inside(await realpath(downloadFolder), await realpath(job.archive)) ||
+        resolve(job.stage) !== resolve(dirname(job.directory), `.ghost-stage-${job.id}`))
+      throw new Error('Caminho de pacote temporário inválido.')
+    if (existsSync(job.stage)) {
+      if (resolve(await realpath(job.stage)).toLowerCase() !== resolve(job.stage).toLowerCase())
+        throw new Error('A pasta de extração foi redirecionada.')
+      await rm(job.stage, { recursive: true, force: true })
+    }
+    job.candidates = []
+    job.error = undefined
+    try { await this.prepare(job, job.archive) }
+    catch (error) {
+      job.status = 'error'
+      job.error = error instanceof Error ? error.message : 'Não foi possível extrair o pacote.'
+      this.save()
+      throw error
+    }
   }
 
   private async prepare(job: StoredJob, archive: string) {
@@ -1441,16 +1517,24 @@ export class ExternalGames {
     let candidates = await extractGame(archive, job.stage, password)
     if (!candidates.length && job.torboxWrapped) {
       const files = await regularFiles(job.stage)
-      const packages = files.filter((file) => /\.(zip|rar|7z|tar)$/i.test(file) && !/\.part(?!0*1\.)\d+\.rar$/i.test(file))
-      if (packages.length !== 1)
-        throw new Error('O torrent contém múltiplos pacotes ou um formato não reconhecido. A instalação anterior foi preservada.')
+      const mainPackage = selectWrappedPackage(files, job.stage, Boolean(password))
       // Keep multipart siblings together for the extractor, with output in a new child.
       const unpacked = join(job.stage, '.ghost-content')
       if (existsSync(unpacked)) throw new Error('O pacote contém uma pasta reservada pelo instalador.')
-      candidates = await extractGame(packages[0], unpacked, password)
+      candidates = await extractGame(mainPackage, unpacked, password)
       if (candidates.length) {
         // These are verified regular files in this job's staging folder, not installed data.
         for (const file of files) await rm(file)
+        // Remove only empty wrapper folders, retaining the extracted game tree.
+        const removeEmptyWrappers = async (directory: string): Promise<void> => {
+          for (const entry of await readdir(directory, { withFileTypes: true })) {
+            const child = join(directory, entry.name)
+            if (entry.isDirectory() && !entry.isSymbolicLink() && child !== unpacked)
+              await removeEmptyWrappers(child)
+          }
+          if (directory !== job.stage && !(await readdir(directory)).length) await rmdir(directory)
+        }
+        await removeEmptyWrappers(job.stage)
       }
     }
     if ((!job.old || job.old.packageRootLayout) && candidates.length) {
@@ -1570,8 +1654,8 @@ export class ExternalGames {
         executable: join(job.directory, executable),
         installedAt: new Date().toISOString(),
         savePath: restoredSavePath,
-        autoBackup: old?.autoBackup ?? false,
-        autoUpdate: old?.autoUpdate ?? false,
+        autoBackup: old?.autoBackup ?? true,
+        autoUpdate: old?.autoUpdate ?? true,
         linkedExisting: old?.linkedExisting,
         history: [
           ...(old?.history || []),
@@ -1691,18 +1775,23 @@ export class ExternalGames {
       !inside(await realpath(dirname(job.stage)), await realpath(job.stage))
     )
       throw new Error('A pasta temporária foi redirecionada.')
-    await rm(job.stage, { recursive: true, force: true })
-    if (job.temporaryDirectory) await this.cleanTemporaryPackage(job)
+    try {
+      if (existsSync(job.stage)) await rm(job.stage, { recursive: true, force: true })
+    } catch {}
+    if (job.temporaryDirectory) {
+      try {
+        await this.cleanTemporaryPackage(job)
+      } catch {}
+    }
     const downloadFolder = join(this.root, 'downloads', job.id)
-    if (
-      !inside(join(this.root, 'downloads'), downloadFolder) ||
-      (!job.temporaryDirectory && dirname(job.archive) !== downloadFolder)
-    )
-      throw new Error('Pasta de download inválida.')
-    await rm(downloadFolder, { recursive: true, force: true })
+    if (inside(join(this.root, 'downloads'), downloadFolder) && existsSync(downloadFolder)) {
+      try {
+        await rm(downloadFolder, { recursive: true, force: true })
+      } catch {}
+    }
     if (job.oldRemoved && job.status === 'cancelled') {
       job.temporaryDirectory = undefined
-      job.archive = join(downloadFolder, basename(job.archive))
+      job.archive = join(downloadFolder, basename(job.archive || 'package.zip'))
       job.spacePlan = undefined
       job.pendingArchive = undefined
       job.bytes = 0
@@ -1747,6 +1836,9 @@ export class ExternalGames {
         ) {
           job.status = 'paused'
           this.controllers.get(job.id)?.abort()
+        } else if (action.type === 'resume' && ['error', 'paused'].includes(job.status) && this.canRetryPackage(job)) {
+          if (this.controllers.has(job.id)) throw new Error('Aguarde a transferência terminar.')
+          await this.retryPackage(job)
         } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'cancelled' && job.oldRemoved) || (job.status === 'error' && (job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')) && !existsSync(job.stage)))) {
           if (this.controllers.has(job.id))
             throw new Error('Aguarde a pausa terminar.')
@@ -1757,18 +1849,38 @@ export class ExternalGames {
         } else if (
           action.type === 'cancel' &&
           !['extracting', 'installing', 'completed'].includes(job.status) &&
-          !job.commitStarted && !job.removalStarted
+          !job.commitStarted
         ) {
-          job.status = 'cancelled'
-          this.controllers.get(job.id)?.abort()
-          if (!this.controllers.has(job.id)) await this.cleanupJob(job)
+          if (job.status === 'cancelled' || job.status === 'error') {
+            this.controllers.get(job.id)?.abort()
+            try {
+              await this.cleanupJob(job)
+            } catch (cleanErr) {
+              console.warn('[ExternalGames] Falha ao limpar arquivos no cancel/dismiss:', cleanErr)
+            }
+            this.state.jobs = this.state.jobs.filter((item) => item.id !== job.id)
+          } else {
+            job.status = 'cancelled'
+            this.controllers.get(job.id)?.abort()
+            if (!this.controllers.has(job.id)) {
+              try {
+                await this.cleanupJob(job)
+              } catch (cleanErr) {
+                console.warn('[ExternalGames] Falha ao limpar arquivos no cancel:', cleanErr)
+              }
+            }
+          }
         } else if (
           action.type === 'dismiss' &&
-          ['completed', 'cancelled', 'error'].includes(job.status) &&
-          !job.commitStarted &&
-          !this.controllers.has(job.id)
+          ['completed', 'cancelled', 'error', 'paused', 'queued'].includes(job.status) &&
+          !job.commitStarted
         ) {
-          await this.cleanupJob(job)
+          this.controllers.get(job.id)?.abort()
+          try {
+            await this.cleanupJob(job)
+          } catch (cleanErr) {
+            console.warn('[ExternalGames] Falha ao limpar arquivos no dismiss:', cleanErr)
+          }
           this.state.jobs = this.state.jobs.filter((item) => item.id !== job.id)
         } else if (
           action.type === 'import-archive' &&
@@ -1815,6 +1927,8 @@ export class ExternalGames {
           )
             throw new Error('Selecione somente a pasta específica dos saves.')
           installation.savePath = path
+          installation.autoBackup ??= true
+          installation.autoUpdate ??= true
         } else if (action.type === 'auto-discover-saves') {
           const discovery = await this.discoverSavePathEnhanced(installation)
           if (discovery?.path) {
@@ -1823,6 +1937,8 @@ export class ExternalGames {
             installation.saveDetectionDetails = discovery.details
             installation.saveFilesCount = discovery.fileCount
             installation.saveTotalBytes = discovery.totalBytes
+            installation.autoBackup ??= true
+            installation.autoUpdate ??= true
           } else {
             throw new Error('Nenhuma pasta de saves conhecida foi encontrada automaticamente para este jogo.')
           }
@@ -1842,6 +1958,8 @@ export class ExternalGames {
             throw new Error('Selecione somente a pasta específica dos saves.')
           }
           installation.savePath = path
+          installation.autoBackup ??= true
+          installation.autoUpdate ??= true
         } else if (action.type === 'delete-backup') {
           return await this.deleteBackup(installation.id, action.backupId)
         } else if (action.type === 'backup') await this.backup(installation)

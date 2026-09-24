@@ -6,6 +6,7 @@ import SideLoad from 'frontend/assets/heroic-icon.svg?react'
 import AmazonLogo from 'frontend/assets/amazon-logo.svg?react'
 import ZoomLogo from 'frontend/assets/zoom-logo.svg?react'
 import SteamLogo from 'frontend/assets/steam-logo.svg?react'
+import { accountProviders, accountProviderNames } from 'common/types/connectedAccounts'
 
 type Props = {
   runner: Runner
@@ -24,6 +25,12 @@ export default function StoreLogos({
   useEffect(() => {
     setImgFailed(false)
   }, [appName, runner])
+
+  const accountProvider = accountProviders.find((provider) => appName?.startsWith(`account-${provider}-`))
+  if (accountProvider) {
+    return <span className={className} title={accountProviderNames[accountProvider]}
+      style={{ fontSize: 10, textAlign: 'center', lineHeight: 1.2 }}>{accountProviderNames[accountProvider]}</span>
+  }
 
   // 1. Determina o ID da loja associada pelo usuário via localStorage
   const assignments = JSON.parse(

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faStore } from '@fortawesome/free-solid-svg-icons'
 import ankerLogo from 'frontend/assets/ankergames-logo.png'
 import steamripLogo from 'frontend/assets/steamrip-logo.png'
+import onlineFixLogo from 'frontend/assets/onlinefix-logo.png'
 import './index.css'
 
 interface ExternalStoreLogoProps {
@@ -15,11 +16,14 @@ interface ExternalStoreLogoProps {
 const KNOWN_STORE_ICONS: Record<string, string> = {
   anker: ankerLogo,
   steamrip: steamripLogo,
-  'online-fix': 'https://online-fix.me/favicon.ico',
-  onlinefix: 'https://online-fix.me/favicon.ico'
+  'online-fix': onlineFixLogo,
+  onlinefix: onlineFixLogo
 }
 
 function resolveStoreIcon(icon?: string, name?: string): string | undefined {
+  if (icon === onlineFixLogo || icon === ankerLogo || icon === steamripLogo) {
+    return icon
+  }
   const lowerName = name?.toLowerCase() || ''
   const lowerIcon = icon?.toLowerCase() || ''
 
@@ -30,8 +34,25 @@ function resolveStoreIcon(icon?: string, name?: string): string | undefined {
   if (lowerName.includes('steamrip') || lowerIcon.includes('steamrip')) {
     return steamripLogo
   }
+  if (
+    lowerName.includes('online-fix') ||
+    lowerName.includes('onlinefix') ||
+    (lowerName.includes('online') && lowerName.includes('fix')) ||
+    lowerIcon.includes('online-fix') ||
+    lowerIcon.includes('onlinefix') ||
+    (lowerIcon.includes('online') && lowerIcon.includes('fix'))
+  ) {
+    return onlineFixLogo
+  }
 
-  if (icon && (icon.startsWith('https://') || icon.startsWith('http://') || icon.startsWith('data:'))) {
+  if (
+    icon &&
+    (icon.startsWith('https://') ||
+      icon.startsWith('http://') ||
+      icon.startsWith('data:') ||
+      icon.startsWith('blob:') ||
+      icon.startsWith('/'))
+  ) {
     return icon
   }
   for (const [key, url] of Object.entries(KNOWN_STORE_ICONS)) {
