@@ -1,5 +1,5 @@
 import { initImagesCache } from './images_cache'
-import { getAccountStatuses, connectAccount, syncAccount, disconnectAccount, getXboxClientId,
+import { getAccountStatusesWithProfiles, getAccountStatuses, connectAccount, syncAccount, disconnectAccount, getXboxClientId,
   setXboxClientId, openAccountGame } from './storeManagers/connectedAccounts/service'
 import { fetchLastestReleases } from './utils/releases'
 import { DiskSpaceData, StatusPromise, WineInstallation, WindowProps } from 'common/types'
@@ -1640,7 +1640,7 @@ addHandler('refreshLibrary', async (e, library?) => {
   }
 })
 
-addHandler('getConnectedAccounts', () => getAccountStatuses())
+addHandler('getConnectedAccounts', () => getAccountStatusesWithProfiles())
 addHandler('connectAccount', (_event, provider) => connectAccount(provider))
 addHandler('syncAccount', (_event, provider) => syncAccount(provider))
 addHandler('disconnectAccount', (_event, provider) => disconnectAccount(provider))

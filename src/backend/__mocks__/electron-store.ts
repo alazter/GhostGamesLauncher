@@ -1,6 +1,6 @@
 import { StoreOptions } from './../../common/types/electron_store'
 import tmp from 'tmp'
-import { join } from 'path'
+import { join, isAbsolute } from 'path'
 
 const OriginalStore = jest.requireActual('electron-store')
 const tmpStoreRootDirectory = tmp.dirSync({ unsafeCleanup: true })
@@ -11,7 +11,9 @@ export default class Store<
   constructor(options?: StoreOptions<T>) {
     if (options) {
       if (options.cwd) {
-        options.cwd = join(tmpStoreRootDirectory.name, options.cwd)
+        options.cwd = isAbsolute(options.cwd)
+          ? options.cwd
+          : join(tmpStoreRootDirectory.name, options.cwd)
       } else {
         options.cwd = tmpStoreRootDirectory.name
       }

@@ -605,18 +605,26 @@ export default function InlineGameSettings({ game, onClose }: Props) {
       }
 
       if (game.runner === 'sideload') {
+        const hasExecutable = Boolean(
+          (sideloadExe || game.install?.executable) &&
+          (sideloadExe || game.install?.executable || '').trim().length > 0
+        )
         const updatedGame: GameInfo = {
+          ...game,
           runner: 'sideload',
           app_name: game.app_name,
           title: game.title,
           install: {
-            executable: game.install?.executable || '',
+            ...game.install,
+            executable: sideloadExe || game.install?.executable || '',
             platform: game.install?.platform || 'windows',
             is_dlc: false
           },
           art_cover: '',
           art_square: '',
-          is_installed: true,
+          is_installed: game.accountProvider
+            ? Boolean(game.is_installed && hasExecutable)
+            : Boolean(game.is_installed),
           canRunOffline: true,
           browserUrl: game.browserUrl || '',
           customUserAgent: game.customUserAgent || '',
@@ -1095,17 +1103,25 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               setInlineSgdbTarget(null)
               try {
                 if (game.runner === 'sideload') {
+                  const hasExecutable = Boolean(
+                    game.install?.executable &&
+                    game.install.executable.trim().length > 0
+                  )
                   const updatedGame: GameInfo = {
+                    ...game,
                     runner: 'sideload',
                     app_name: game.app_name,
                     title: game.title,
                     install: {
+                      ...game.install,
                       executable: game.install?.executable || '',
                       platform: game.install?.platform || 'windows',
                       is_dlc: false
                     },
                     art_cover: editCover || game.art_cover || '',
-                    is_installed: true,
+                    is_installed: game.accountProvider
+                      ? Boolean(game.is_installed && hasExecutable)
+                      : Boolean(game.is_installed),
                     art_square: editSquare || game.art_square || '',
                     canRunOffline: true,
                     browserUrl: game.browserUrl || '',
@@ -1907,17 +1923,25 @@ function GameTitleInput({
       if (finalTitle && finalTitle !== currentTitle) {
         try {
           if (game.runner === 'sideload') {
+            const hasExecutable = Boolean(
+              game.install?.executable &&
+              game.install.executable.trim().length > 0
+            )
             const updatedGame: GameInfo = {
+              ...game,
               runner: 'sideload',
               app_name: game.app_name,
               title: finalTitle,
               install: {
+                ...game.install,
                 executable: game.install?.executable || '',
                 platform: game.install?.platform || 'windows',
                 is_dlc: false
               },
               art_cover: game.art_cover || '',
-              is_installed: true,
+              is_installed: game.accountProvider
+                ? Boolean(game.is_installed && hasExecutable)
+                : Boolean(game.is_installed),
               art_square: game.art_square || '',
               canRunOffline: true,
               browserUrl: game.browserUrl || '',
@@ -1990,17 +2014,25 @@ function GameTitleInput({
 
         if (game.runner === 'sideload') {
           // Para sideload, atualizamos o título no banco de dados do sideload
+          const hasExecutable = Boolean(
+            game.install?.executable &&
+            game.install.executable.trim().length > 0
+          )
           const updatedGame: GameInfo = {
+            ...game,
             runner: 'sideload',
             app_name: game.app_name,
             title: trimmedTitle,
             install: {
+              ...game.install,
               executable: game.install?.executable || '',
               platform: game.install?.platform || 'windows',
               is_dlc: false
             },
             art_cover: curCover || game.art_cover || '',
-            is_installed: true,
+            is_installed: game.accountProvider
+              ? Boolean(game.is_installed && hasExecutable)
+              : Boolean(game.is_installed),
             art_square: curSquare || game.art_square || '',
             canRunOffline: true,
             browserUrl: game.browserUrl || '',

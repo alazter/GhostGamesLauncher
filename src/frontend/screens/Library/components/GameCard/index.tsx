@@ -163,9 +163,18 @@ const GameCard = ({
 
   const {
     art_logo: logo = undefined,
-    is_installed: isInstalled,
+    is_installed: rawIsInstalled,
     install: gameInstallInfo
   } = gameInfoFromProps
+
+  const hasValidExecutable = Boolean(
+    gameInstallInfo?.executable &&
+    typeof gameInstallInfo.executable === 'string' &&
+    gameInstallInfo.executable.trim().length > 0
+  )
+  const isInstalled = gameInfoFromProps.accountProvider
+    ? Boolean(rawIsInstalled && hasValidExecutable)
+    : Boolean(rawIsInstalled)
 
   const art_cover =
     gameOverride?.art_cover !== undefined
@@ -404,7 +413,7 @@ const GameCard = ({
   const isSideloaded = runner === 'sideload'
 
   const handleEdit = () => {
-    if (isSideloaded) {
+    if (isSideloaded && !gameInfo.accountProvider) {
       openInstallGameModal({ appName, runner, gameInfo })
       return
     }

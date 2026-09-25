@@ -9,6 +9,24 @@ import {
 } from '../catalogs'
 
 describe('account catalogs', () => {
+  it('rejects GraphQL partial success responses from EA and Ubisoft', () => {
+    expect(() =>
+      parseEaCatalog({
+        errors: [{ message: 'Partial failure' }],
+        data: {
+          me: { id: 'user', ownedGameProducts: { items: [], totalCount: 0 } }
+        }
+      })
+    ).toThrow('CATALOG_INCOMPLETE')
+    expect(() =>
+      parseUbisoftCatalog({
+        errors: [{ message: 'Partial failure' }],
+        data: {
+          viewer: { ownedGames: { totalCount: 0, nodes: [] } }
+        }
+      })
+    ).toThrow('CATALOG_INCOMPLETE')
+  })
   it('imports Xbox history without interpreting it as ownership and excludes apps', () => {
     const page = parseXboxCatalog({
       titles: [

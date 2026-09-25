@@ -1776,14 +1776,16 @@ export default memo(function Library(): JSX.Element {
       gog.library.length ||
       amazon.library.length ||
       zoom.library.length ||
-      steam.library.length
+      steam.library.length ||
+      sideloadedLibrary.length
     ) {
       syncAutoStoreAssignments(
         epic.library,
         gog.library,
         amazon.library,
         zoom.library,
-        steam.library
+        steam.library,
+        sideloadedLibrary
       )
     }
 
@@ -1800,6 +1802,8 @@ export default memo(function Library(): JSX.Element {
     gog.library,
     amazon.library,
     zoom.library,
+    steam.library,
+    sideloadedLibrary,
     customCategories
   ])
 
@@ -1949,7 +1953,11 @@ export default memo(function Library(): JSX.Element {
       }
 
       if (showInstalledOnly) {
-        library = library.filter((game) => game.is_installed)
+        library = library.filter((game) =>
+          game.accountProvider
+            ? Boolean(game.is_installed && game.install?.executable)
+            : Boolean(game.is_installed)
+        )
       }
     }
 
@@ -2168,12 +2176,19 @@ export default memo(function Library(): JSX.Element {
       }
       processedPart = [...recentPart, ...remainingPart]
     } else {
-      const installed = processedPart.filter((game) => game?.is_installed)
+      const isGameInstalled = (game: GameInfo) =>
+        Boolean(
+          game?.accountProvider
+            ? game?.is_installed && game?.install?.executable
+            : game?.is_installed
+        )
+
+      const installed = processedPart.filter(isGameInstalled)
       const notInstalled = processedPart.filter(
-        (game) => !game?.is_installed && !installing.includes(game?.app_name)
+        (game) => !isGameInstalled(game) && !installing.includes(game?.app_name)
       )
       const installingGames = processedPart.filter(
-        (g) => !g.is_installed && installing.includes(g.app_name)
+        (g) => !isGameInstalled(g) && installing.includes(g.app_name)
       )
 
       processedPart = sortInstalled

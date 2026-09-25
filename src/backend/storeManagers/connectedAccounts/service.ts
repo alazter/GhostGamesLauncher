@@ -31,10 +31,10 @@ import {
   getApiKey,
   fetchCoverFromSteamGridDB
 } from '../sideload/steamgridHelper'
-import { logWarning } from 'backend/logger'
+import { logInfo, logWarning } from 'backend/logger'
 
 const providerSchema = z.enum(accountProviders)
-const EA_GRAPHQL = 'https://service-aggregation-layer.juno.ea.com/graphql'
+const EA_REQUESTS = 'https://service-aggregation-layer.juno.ea.com/*'
 const UBI_APP = 'b8fde481-327d-4031-85ce-7c10a202a700'
 const XBOX_REDIRECT = 'https://login.live.com/oauth20_desktop.srf'
 const XBOX_SCOPE = 'Xboxlive.signin Xboxlive.offline_access'
@@ -142,16 +142,32 @@ function encrypt(credentials: Credentials): string {
 function errorText(error: unknown): string {
   // Do not return provider responses, request headers, tokens or URLs to the renderer/logs.
   const code = error instanceof Error ? error.message : ''
+  if (/^AUTH_PAGE_ERR_[A-Z_]+$/.test(code))
+    return `O navegador não conseguiu abrir a página da plataforma (${code.replace('AUTH_PAGE_', '')}).`
+  if (code === 'AUTH_PAGE_FAILED')
+    return 'O navegador não conseguiu concluir o carregamento da página da plataforma.'
+  if (code === 'EA_IDENTITY_UNAVAILABLE')
+    return 'A EA recusou a consulta que confirma a conta. O Ghost ainda não conseguiu validar esta sessão.'
   if (code === 'XBOX_CLIENT_ID_REQUIRED')
     return 'Configure o ID do aplicativo Microsoft do Ghost para conectar o Xbox.'
   if (code === 'SECURE_STORAGE_UNAVAILABLE')
     return 'O armazenamento seguro do sistema não está disponível.'
+  if (error instanceof z.ZodError)
+    return 'A plataforma retornou os jogos em um formato não reconhecido pelo Ghost. A biblioteca anterior foi preservada.'
   if (code === 'CATALOG_INCOMPLETE')
     return 'A plataforma retornou uma biblioteca incompleta. O catálogo anterior foi preservado.'
-  if (code === 'HTTP_401' || code === 'HTTP_403')
-    return 'A sessão expirou ou o acesso foi recusado. Conecte a conta novamente.'
+  if (code === 'HTTP_400')
+    return 'A plataforma recusou a consulta da biblioteca (HTTP 400). A integração precisa ser revisada.'
+  if (/^HTTP_5\d\d$/.test(code))
+    return 'O serviço da plataforma falhou ao consultar os jogos. Tente sincronizar novamente mais tarde.'
+  if (code === 'HTTP_401')
+    return 'A plataforma não aceitou a autenticação desta sessão. Conecte a conta novamente.'
+  if (code === 'HTTP_403')
+    return 'A plataforma recusou o acesso à consulta. Isso não confirma que a sessão expirou; os jogos já importados foram preservados.'
   if (code === 'BUSY')
     return 'Já existe uma operação em andamento para esta conta.'
+  if (code === 'PROVIDER_BROWSER_BLOCKED')
+    return 'A Ubisoft restringiu o acesso ao navegador de login. Tente novamente mais tarde ou verifique o acesso pelo site oficial da Ubisoft. A conta não foi conectada.'
   if (code === 'AUTH_TIMEOUT')
     return 'O login não foi concluído dentro de 10 minutos.'
   return 'Não foi possível sincronizar a conta. Verifique a conexão e tente conectar novamente. O catálogo anterior foi preservado.'
@@ -162,13 +178,102 @@ async function json(
   url: string,
   options: RequestInit = {}
 ): Promise<unknown> {
+  options.signal?.throwIfAborted()
   const response = await ses.fetch(url, {
     ...options,
     redirect: 'error',
-    signal: AbortSignal.timeout(30000)
+    signal: options.signal
+      ? AbortSignal.any([options.signal, AbortSignal.timeout(30000)])
+      : AbortSignal.timeout(30000)
   })
   if (!response.ok) throw new Error(`HTTP_${response.status}`)
   return response.json()
+}
+
+function navigationErrorCode(error: unknown): string | undefined {
+  // Electron errors can originate in another V8 context, so instanceof Error is unreliable.
+  const parsed = z
+    .object({
+      code: z.unknown().optional(),
+      errno: z.unknown().optional(),
+      message: z.unknown().optional()
+    })
+    .safeParse(error)
+  if (!parsed.success) return undefined
+  if (parsed.data.errno === -3) return 'ERR_ABORTED'
+  for (const value of [parsed.data.code, parsed.data.message]) {
+    if (typeof value !== 'string') continue
+    const code = value.match(/\bERR_[A-Z_]+\b/)?.[0]
+    if (code) return code
+  }
+  return undefined
+}
+
+async function loadAuthPage(win: BrowserWindow, url: string): Promise<void> {
+  try {
+    await win.loadURL(url)
+  } catch (error) {
+    const code = navigationErrorCode(error)
+    // A redirect/new navigation cancels loadURL; it is not an authentication failure.
+    if (code !== 'ERR_ABORTED')
+      throw new Error(code ? `AUTH_PAGE_${code}` : 'AUTH_PAGE_FAILED')
+  }
+}
+
+async function verifyEaIdentity(
+  ses: Session,
+  token: string,
+  signal: AbortSignal
+): Promise<string> {
+  let response: unknown
+  try {
+    // Use the provider's supported persisted operation instead of a custom query.
+    response = await json(ses, eaCatalogUrl(), {
+      signal,
+      headers: { Authorization: token }
+    })
+  } catch (error) {
+    if (error instanceof Error && error.message === 'HTTP_401')
+      throw new Error('AUTH_PENDING')
+    throw error
+  }
+  const graphQlErrors = z
+    .object({
+      errors: z
+        .array(
+          z.object({
+            extensions: z.object({ code: z.string().optional() }).optional()
+          })
+        )
+        .optional()
+    })
+    .parse(response).errors
+  if (graphQlErrors?.length) {
+    if (
+      graphQlErrors.every((entry) =>
+        ['UNAUTHENTICATED', 'UNAUTHORIZED'].includes(
+          entry.extensions?.code || ''
+        )
+      )
+    )
+      throw new Error('AUTH_PENDING')
+    throw new Error('EA_IDENTITY_UNAVAILABLE')
+  }
+  const parsed = z
+    .object({
+      data: z
+        .object({
+          me: z
+            .object({
+              id: z.union([z.string().min(1), z.number()]).transform(String)
+            })
+            .nullable()
+        })
+        .optional()
+    })
+    .parse(response)
+  if (!parsed.data?.me) throw new Error('AUTH_PENDING')
+  return parsed.data.me.id
 }
 
 async function renewEaSession(): Promise<string> {
@@ -193,7 +298,7 @@ async function renewEaSession(): Promise<string> {
     return await new Promise<string>((resolve, reject) => {
       timeout = setTimeout(() => reject(new Error('HTTP_401')), 20000)
       ses.webRequest.onBeforeSendHeaders(
-        { urls: [`${EA_GRAPHQL}*`] },
+        { urls: [EA_REQUESTS] },
         (details, callback) => {
           const token = Object.entries(details.requestHeaders).find(
             ([key]) => key.toLowerCase() === 'authorization'
@@ -223,6 +328,66 @@ export function getAccountStatuses(): ConnectedAccountStatus[] {
       }
   )
 }
+const profileChecks = new Map<AccountProvider, number>()
+
+function savedDisplayName(provider: AccountProvider): string {
+  const name = store().get('accounts')[provider]?.status.username
+  return name && !/^EA · \d+$/.test(name)
+    ? name
+    : accountProviderNames[provider]
+}
+
+export async function getAccountStatusesWithProfiles(): Promise<
+  ConnectedAccountStatus[]
+> {
+  await Promise.all(
+    (['ea', 'battlenet'] as const).map(async (provider) => {
+      const saved = store().get('accounts')[provider]
+      if (!saved?.status.connected) return
+      if (savedDisplayName(provider) !== accountProviderNames[provider]) return
+      if (Date.now() - (profileChecks.get(provider) ?? 0) < 60000) return
+      profileChecks.set(provider, Date.now())
+      try {
+        const data = await json(
+          providerSession(provider),
+          provider === 'ea'
+            ? 'https://www.ea.com/user-data'
+            : 'https://account.battle.net/api/user',
+          { signal: AbortSignal.timeout(5000) }
+        )
+        const name =
+          provider === 'ea'
+            ? z
+                .object({
+                  authenticated: z.literal(true),
+                  originName: z.string().trim().min(1)
+                })
+                .parse(data).originName
+            : z
+                .object({
+                  battleTag: z.object({ name: z.string().trim().min(1) })
+                })
+                .parse(data).battleTag.name
+        const current = store().get('accounts')[provider]
+        // A delayed profile response must not restore a disconnected/replaced account.
+        if (
+          !current?.status.connected ||
+          current.secret !== saved.secret ||
+          current.status.lastSync !== saved.status.lastSync
+        )
+          return
+        save(provider, {
+          ...current,
+          status: { ...current.status, username: name }
+        })
+      } catch {
+        // Display-name lookup must never invalidate an authenticated account or its games.
+      }
+    })
+  )
+  return getAccountStatuses()
+}
+
 export function getXboxClientId(): string {
   return store().get('xboxClientId')
 }
@@ -259,7 +424,8 @@ function allowedNavigation(provider: AccountProvider, value: string): boolean {
 
 async function xboxTokens(
   ses: Session,
-  data: Record<string, string>
+  data: Record<string, string>,
+  signal?: AbortSignal
 ): Promise<Credentials> {
   const body = new URLSearchParams({
     ...data,
@@ -271,6 +437,7 @@ async function xboxTokens(
     .object({ access_token: z.string(), refresh_token: z.string() })
     .parse(
       await json(ses, 'https://login.live.com/oauth20_token.srf', {
+        signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString()
@@ -281,21 +448,36 @@ async function xboxTokens(
 
 async function readCatalog(
   provider: AccountProvider,
-  credentials: Credentials
+  credentials: Credentials,
+  signal?: AbortSignal
 ): Promise<Catalog> {
   const ses = providerSession(provider)
+  const request = (
+    requestSession: Session,
+    url: string,
+    options: RequestInit = {}
+  ) => json(requestSession, url, { ...options, signal })
   if (provider === 'battlenet') {
-    const status = z
-      .object({ authenticated: z.literal(true) })
-      .parse(await json(ses, 'https://account.battle.net/api/'))
-    if (!status.authenticated) throw new Error('HTTP_401')
+    let status: unknown
+    try {
+      status = await request(ses, 'https://account.battle.net/api/', {
+        method: 'POST'
+      })
+    } catch (error) {
+      if (signal && error instanceof Error && error.message === 'HTTP_401')
+        throw new Error('AUTH_PENDING')
+      throw error
+    }
+    const authenticated = z.object({ authenticated: z.boolean() }).parse(status)
+    if (!authenticated.authenticated)
+      throw new Error(signal ? 'AUTH_PENDING' : 'HTTP_401')
     const [modern, classic] = await Promise.all([
-      json(ses, 'https://account.battle.net/api/games-and-subs'),
-      json(ses, 'https://account.battle.net/api/classic-games')
+      request(ses, 'https://account.battle.net/api/games-and-subs'),
+      request(ses, 'https://account.battle.net/api/classic-games')
     ])
     return {
       games: parseBattleNetCatalog(modern, classic),
-      username: 'Battle.net'
+      username: savedDisplayName('battlenet')
     }
   }
   if (provider === 'ea') {
@@ -303,19 +485,36 @@ async function readCatalog(
     let next: string | undefined = '0'
     const seen = new Set<string>()
     const games: AccountGame[] = []
-    let username = 'EA'
+    const username = savedDisplayName('ea')
+    let totalCount: number | undefined
+    let userId: string | undefined
     while (next !== undefined) {
       if (seen.has(next) || seen.size >= 200)
         throw new Error('CATALOG_INCOMPLETE')
       seen.add(next)
       const page = parseEaCatalog(
-        await json(ses, eaCatalogUrl(next), {
+        await request(ses, eaCatalogUrl(next), {
           headers: { Authorization: credentials.token }
         })
       )
-      username = `EA · ${page.userId}`
+      if (credentials.userId && page.userId !== credentials.userId)
+        throw new Error('HTTP_401')
+      if (userId !== undefined && page.userId !== userId)
+        throw new Error('CATALOG_INCOMPLETE')
+      totalCount = page.totalCount
+      userId = page.userId
+
       games.push(...page.games)
       next = page.next
+    }
+    // The provider's next cursor determines completion. Its advertised total can
+    // differ from the records exposed by this filtered catalog operation.
+    if (totalCount !== undefined && games.length !== totalCount) {
+      logWarning(
+        `[ConnectedAccounts] ea: pagination-completed; pages=${seen.size}; records=${games.length}; reportedTotal=${totalCount}`
+      )
+      // Do not clear an existing library on a contradictory empty response.
+      if (!games.length && totalCount > 0) throw new Error('CATALOG_INCOMPLETE')
     }
     return { games: uniqueGames(games), username }
   }
@@ -330,7 +529,7 @@ async function readCatalog(
           rememberMeTicket: z.string().optional()
         })
         .parse(
-          await json(
+          await request(
             ses,
             'https://public-ubiservices.ubi.com/v3/profiles/sessions',
             {
@@ -350,7 +549,7 @@ async function readCatalog(
       credentials.refreshToken =
         refreshed.rememberMeTicket || credentials.refreshToken
     }
-    const result = await json(
+    const result = await request(
       ses,
       'https://public-ubiservices.ubi.com/v1/profiles/me/uplay/graphql',
       {
@@ -375,15 +574,19 @@ async function readCatalog(
   if (credentials.refreshToken)
     Object.assign(
       credentials,
-      await xboxTokens(ses, {
-        grant_type: 'refresh_token',
-        refresh_token: credentials.refreshToken
-      })
+      await xboxTokens(
+        ses,
+        {
+          grant_type: 'refresh_token',
+          refresh_token: credentials.refreshToken
+        },
+        signal
+      )
     )
   if (!credentials.token) throw new Error('HTTP_401')
   const tokenSchema = z.object({ Token: z.string() })
   const user = tokenSchema.parse(
-    await json(ses, 'https://user.auth.xboxlive.com/user/authenticate', {
+    await request(ses, 'https://user.auth.xboxlive.com/user/authenticate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -415,7 +618,7 @@ async function readCatalog(
       })
     })
     .parse(
-      await json(ses, 'https://xsts.auth.xboxlive.com/xsts/authorize', {
+      await request(ses, 'https://xsts.auth.xboxlive.com/xsts/authorize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -438,7 +641,7 @@ async function readCatalog(
     )
     if (next) url.searchParams.set('continuationToken', next)
     const page = parseXboxCatalog(
-      await json(ses, url.toString(), {
+      await request(ses, url.toString(), {
         headers: {
           Authorization: `XBL3.0 x=${claim.uhs};${xsts.Token}`,
           'x-xbl-contract-version': '2'
@@ -565,6 +768,7 @@ export async function connectAccount(
     return { success: false, error: errorText(new Error('BUSY')) }
   }
   running.add(provider)
+  const authPopups = new Set<BrowserWindow>()
   let authWindow: BrowserWindow | undefined
   let timer: ReturnType<typeof setInterval> | undefined
   let timeout: ReturnType<typeof setTimeout> | undefined
@@ -598,6 +802,11 @@ export async function connectAccount(
     let authCode: string | undefined
     let busy = false
     let settled = false
+    let phase = 'opening-login'
+    logInfo(`[ConnectedAccounts] ${provider}: login-started`)
+    let eaStoreOpened = false
+    let verifiedEaUser: string | undefined
+    const controller = new AbortController()
     const state = randomBytes(24).toString('hex')
     const verifier = randomBytes(32).toString('base64url')
     let startUrl = loginUrls[provider]
@@ -619,7 +828,7 @@ export async function connectAccount(
     }
     if (provider === 'ea') {
       ses.webRequest.onBeforeSendHeaders(
-        { urls: [`${EA_GRAPHQL}*`] },
+        { urls: [EA_REQUESTS] },
         (details, callback) => {
           const entry = Object.entries(details.requestHeaders).find(
             ([key]) => key.toLowerCase() === 'authorization'
@@ -633,6 +842,33 @@ export async function connectAccount(
       const finish = (result: AccountResult) => {
         if (settled) return
         settled = true
+        controller.abort()
+        if (!result.success && !result.cancelled) {
+          const previous = store().get('accounts')[provider]
+          try {
+            save(provider, {
+              ...previous,
+              status: {
+                ...(previous?.status ?? {
+                  provider,
+                  connected: false,
+                  gameCount: 0
+                }),
+                error: previous?.status.error?.startsWith('Login confirmado')
+                  ? previous.status.error
+                  : result.error
+              }
+            })
+          } catch {
+            /* Do not prevent completion if storage is unavailable. */
+          }
+          logWarning(
+            `[ConnectedAccounts] ${provider}: ${phase}; ${result.error}`
+          )
+        }
+        logInfo(
+          `[ConnectedAccounts] ${provider}: ${result.success ? 'completed' : result.cancelled ? 'window-closed-or-cancelled' : 'failed'}; phase=${phase}; tokenObserved=${Boolean(credentials.token)}`
+        )
         resolve(result)
       }
       const navigate = (event: Electron.Event, target: string) => {
@@ -658,11 +894,32 @@ export async function connectAccount(
       }
       win.webContents.on('will-navigate', navigate)
       win.webContents.on('will-redirect', navigate)
-      win.webContents.setWindowOpenHandler(({ url }) => {
-        if (allowedNavigation(provider, url))
-          void win.loadURL(url).catch(() => undefined)
-        return { action: 'deny' }
-      })
+      const configurePopups = (parent: BrowserWindow) => {
+        parent.webContents.setWindowOpenHandler(({ url }) => {
+          if (!allowedNavigation(provider, url)) return { action: 'deny' }
+          // OAuth popups need their opener to complete postMessage-based sign-in.
+          return {
+            action: 'allow',
+            overrideBrowserWindowOptions: {
+              autoHideMenuBar: true,
+              webPreferences: {
+                session: ses,
+                sandbox: true,
+                nodeIntegration: false,
+                contextIsolation: true
+              }
+            }
+          }
+        })
+        parent.webContents.on('did-create-window', (popup) => {
+          authPopups.add(popup)
+          popup.webContents.on('will-navigate', navigate)
+          popup.webContents.on('will-redirect', navigate)
+          configurePopups(popup)
+          popup.on('closed', () => authPopups.delete(popup))
+        })
+      }
+      configurePopups(win)
       win.on('closed', () =>
         finish({ success: false, cancelled: true, error: 'Login cancelado.' })
       )
@@ -673,13 +930,35 @@ export async function connectAccount(
           const currentUrl = new URL(win.webContents.getURL() || startUrl)
           if (provider === 'xbox') {
             if (!authCode) return
-            credentials = await xboxTokens(ses, {
-              grant_type: 'authorization_code',
-              code: authCode,
-              code_verifier: verifier
-            })
+            credentials = await xboxTokens(
+              ses,
+              {
+                grant_type: 'authorization_code',
+                code: authCode,
+                code_verifier: verifier
+              },
+              controller.signal
+            )
             authCode = undefined
           } else if (provider === 'ubisoft') {
+            if (!allowedNavigation(provider, currentUrl.href)) return
+            phase = 'checking-ubisoft-page'
+            const blocked = await Promise.all(
+              win.webContents.mainFrame.framesInSubtree.map(async (frame) => {
+                try {
+                  return (
+                    (await frame.executeJavaScript(`(() => {
+                  const text = document.body?.innerText || '';
+                  return /O acesso está temporariamente restrito|Access (?:is )?temporarily restricted|Access denied/i.test(text);
+                })()`)) === true
+                  )
+                } catch {
+                  return false
+                }
+              })
+            )
+            if (blocked.some(Boolean))
+              throw new Error('PROVIDER_BROWSER_BLOCKED')
             if (currentUrl.origin !== 'https://connect.ubisoft.com') return
             const local: unknown = await win.webContents
               .executeJavaScript(`(() => {
@@ -703,35 +982,81 @@ export async function connectAccount(
               refreshToken: parsed.data.rememberMeTicket
             }
           } else if (provider === 'ea') {
-            if (
-              currentUrl.origin !== 'https://www.ea.com' ||
-              currentUrl.pathname.includes('/login')
-            )
-              return
+            // An authenticated service request is stronger evidence than the page URL.
             if (!credentials.token) {
               if (
                 currentUrl.origin === 'https://www.ea.com' &&
-                /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/?)?$/.test(currentUrl.pathname)
+                !/\/(?:login|login_check|logout)(?:\/|$)/i.test(
+                  currentUrl.pathname
+                ) &&
+                !eaStoreOpened
               ) {
-                await win.loadURL('https://www.ea.com/sales/deals')
+                eaStoreOpened = true
+                phase = 'opening-ea-catalog'
+                try {
+                  await loadAuthPage(win, 'https://www.ea.com/sales/deals')
+                } catch (error) {
+                  // The page may fail after emitting the authenticated Juno request.
+                  // The token must still be verified by the API before importing.
+                  if (!credentials.token) throw error
+                }
               }
               return
             }
-          } else if (
-            currentUrl.origin !== 'https://account.battle.net' ||
-            !/^\/(overview|games)?\/?$/.test(currentUrl.pathname)
+          } else {
+            // Account pages can include locale prefixes and new dashboard routes.
+            // The account API below still verifies authentication before importing.
+            if (
+              currentUrl.origin !== 'https://account.battle.net' ||
+              /\/logout(?:\/|$)/i.test(currentUrl.pathname)
+            )
+              return
+          }
+          if (settled) return
+          if (provider === 'ea') {
+            phase = 'verifying-ea-session'
+            verifiedEaUser = await verifyEaIdentity(
+              ses,
+              credentials.token!,
+              controller.signal
+            )
+            credentials.userId = verifiedEaUser
+          }
+          if (settled) return
+          phase = 'importing-library'
+          const catalog = await readCatalog(
+            provider,
+            credentials,
+            controller.signal
           )
-            return
-          const catalog = await readCatalog(provider, credentials)
           if (settled) return
           finish({
             success: true,
             status: commitCatalog(provider, catalog, credentials)
           })
         } catch (error) {
-          // Only start API probes after authentication evidence. Errors remain visible;
+          if (error instanceof Error && error.message === 'AUTH_PENDING') return
+          // Only import after authentication verification. Errors remain visible;
           // closing this window must never be interpreted as successful authentication.
-          finish({ success: false, error: errorText(error) })
+          if (settled) return
+          const message = errorText(error)
+          if (provider === 'ea' && verifiedEaUser) {
+            const previous = store().get('accounts').ea?.status
+            save('ea', {
+              secret: encrypt(credentials),
+              status: {
+                provider: 'ea',
+                connected: true,
+                username: savedDisplayName('ea'),
+                gameCount: libraryStore
+                  .get('games', [])
+                  .filter((game) => game.accountProvider === 'ea').length,
+                lastSync: previous?.lastSync,
+                error: `Login confirmado, mas a importação falhou. ${message} Use Sincronizar para tentar novamente.`
+              }
+            })
+          }
+          finish({ success: false, error: message })
         } finally {
           busy = false
         }
@@ -747,14 +1072,12 @@ export async function connectAccount(
           }),
         600000
       )
-      void win
-        .loadURL(startUrl)
-        .catch(() =>
-          finish({
-            success: false,
-            error: 'Não foi possível abrir a página de login.'
-          })
-        )
+      void loadAuthPage(win, startUrl).catch(() =>
+        finish({
+          success: false,
+          error: 'Não foi possível abrir a página de login.'
+        })
+      )
     })
   } catch (error) {
     return { success: false, error: errorText(error) }
@@ -763,6 +1086,9 @@ export async function connectAccount(
     if (timeout) clearTimeout(timeout)
     if (provider === 'ea') ses.webRequest.onBeforeSendHeaders(null)
     ses.removeListener('will-download', preventDownload)
+    for (const popup of authPopups) {
+      if (!popup.isDestroyed()) popup.destroy()
+    }
     if (authWindow && !authWindow.isDestroyed()) authWindow.destroy()
     windows.delete(provider)
     running.delete(provider)

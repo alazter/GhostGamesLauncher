@@ -323,6 +323,7 @@ export default function SideloadDialog({
 
   async function handleInstall(): Promise<void> {
     setAddingApp(true)
+    const hasExecutable = Boolean(selectedExe && selectedExe.trim().length > 0)
     window.api.addNewApp({
       runner: 'sideload',
       app_name,
@@ -332,7 +333,7 @@ export default function SideloadDialog({
         platform: gameInfo.install?.platform ?? platformToInstall
       },
       art_cover: heroUrl || imageUrl || fallbackImage,
-      is_installed: true,
+      is_installed: Boolean(hasExecutable || gameUrl || (!gameInfo.accountProvider && gameInfo.is_installed)),
       art_square: imageUrl || heroUrl || fallbackImage,
       canRunOffline: true,
       browserUrl: gameUrl,

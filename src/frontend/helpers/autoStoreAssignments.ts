@@ -1,4 +1,6 @@
 import { GameInfo } from 'common/types'
+import { AccountProvider } from 'common/types/connectedAccounts'
+import { ensureConnectedAccountCustomStore } from 'frontend/helpers/connectedAccountStores'
 
 export function syncAutoStoreAssignments(
   epicGames: GameInfo[] = [],
@@ -44,11 +46,11 @@ export function syncAutoStoreAssignments(
     let hasChanges = false
 
     for (const game of accountGames) {
-      if (!game.accountProvider) continue
-      const aliases = { xbox: ['xbox'], ea: ['ea', 'ea app', 'ea games', 'origin'],
-        ubisoft: ['ubisoft', 'ubisoft connect', 'uplay'], battlenet: ['battlenet', 'battle.net', 'blizzard'] }
-      const storeId = findStoreId((name, id) => aliases[game.accountProvider!].includes(name) ||
-        aliases[game.accountProvider!].includes(id), game.accountProvider)
+      const provider = (game.accountProvider ||
+        (game.app_name?.startsWith('account-') ? game.app_name.split('-')[1] : null)) as AccountProvider | null
+      if (!provider) continue
+
+      const storeId = ensureConnectedAccountCustomStore(provider)
       if (currentAssignments[game.app_name] !== storeId) {
         currentAssignments[game.app_name] = storeId
         hasChanges = true
@@ -103,6 +105,7 @@ export function syncAutoStoreAssignments(
     if (hasChanges) {
       localStorage.setItem('heroic_game_assignments', JSON.stringify(currentAssignments))
       window.dispatchEvent(new Event('gameAssignmentsChanged'))
+      window.dispatchEvent(new StorageEvent('storage', { key: 'heroic_game_assignments' }))
     }
 
     // Also sync Piratas store assignments for SteamRIP, AnkerGames and Online-Fix

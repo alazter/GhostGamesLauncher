@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTag, faSpinner, faPen, faCheck, faTimes, faBolt, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo } from 'common/types'
@@ -10,6 +11,7 @@ interface GameVersionBadgeProps {
 }
 
 export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
+  const navigate = useNavigate()
   const [versionInfo, setVersionInfo] = useState<DetectedVersionResult | null>(null)
   const [loading, setLoading] = useState(false)
   const { state: extState } = useExternalGames()
@@ -358,6 +360,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
                 replaceInstallationId: extInstallation.id,
                 confirmed: true
               })
+              navigate('/download-manager')
             } catch (err) {
               console.error('Falha ao disparar atualização:', err)
             } finally {

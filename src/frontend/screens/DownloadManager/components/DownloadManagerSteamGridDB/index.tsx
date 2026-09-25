@@ -53,10 +53,17 @@ export default function DownloadManagerSteamGridDB({ game, onBack }: Props) {
 
       // 2. Se for sideload, sincronizar sideloadLibrary
       if (game.runner === 'sideload') {
+        const hasExecutable = Boolean(
+          game.install?.executable &&
+          game.install.executable.trim().length > 0
+        )
         const updatedGame: GameInfo = {
           ...game,
           art_cover: finalCover,
-          art_square: finalSquare
+          art_square: finalSquare,
+          is_installed: game.accountProvider
+            ? Boolean(game.is_installed && hasExecutable)
+            : Boolean(game.is_installed)
         }
         const games = sideloadLibrary.get('games', [])
         const idx = games.findIndex((g) => g.app_name === game.app_name)

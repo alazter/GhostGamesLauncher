@@ -8,7 +8,8 @@ import {
   faDownload,
   faBolt,
   faExchangeAlt,
-  faShieldAlt
+  faShieldAlt,
+  faCloud
 } from '@fortawesome/free-solid-svg-icons'
 import type {
   ExternalDownloadJob,
@@ -72,9 +73,25 @@ export default function ExternalActiveCard({
     job.old?.appName
   )
 
-  const progress = job.total
+  const isRemoteTorbox = job.transport === 'torbox' && job.transferPhase === 'remote'
+  const isLocalTorbox = job.transport === 'torbox' && job.transferPhase === 'local'
+
+  const progress = isRemoteTorbox
+    ? (job.remoteProgress !== undefined ? Math.min(100, Math.round(job.remoteProgress * 100)) : 0)
+    : job.total
     ? Math.min(100, Math.round((job.bytes / job.total) * 100))
     : undefined
+
+  const getTorboxStatusLabel = (status?: string) => {
+    if (!status) return 'Processando na Nuvem'
+    if (status === 'downloading') return 'Baixando no Servidor'
+    if (status === 'checkingResumeData') return 'Verificando Torrent'
+    if (status === 'cached') return 'Disponível em Cache'
+    if (status === 'completed') return 'Pronto no Servidor'
+    if (status === 'paused') return 'Pausado no Servidor'
+    if (status === 'uploading') return 'Semeando no Servidor'
+    return status
+  }
 
   const etaMinutes =
     job.speed && job.total && job.total > job.bytes
@@ -213,10 +230,28 @@ export default function ExternalActiveCard({
                   ) : (
                     `Fonte: ${job.game.providerName}`
                   )}{' '}
-                  · {job.transport === 'torbox' ? 'via TorBox · ' : ''}
-                  <span className="dmActiveStatusHighlight">
-                    {statusLabels[job.status] || job.status}
-                  </span>
+                  ·{' '}
+                  {isRemoteTorbox ? (
+                    <>
+                      <FontAwesomeIcon icon={faCloud} style={{ color: '#00ffff', marginRight: '4px', fontSize: '11px' }} />
+                      <span>Nuvem TorBox · </span>
+                      <span className="dmActiveStatusHighlight">
+                        {getTorboxStatusLabel(job.remoteStatus)}
+                      </span>
+                    </>
+                  ) : isLocalTorbox ? (
+                    <>
+                      <span>via TorBox · </span>
+                      <span className="dmActiveStatusHighlight">Transferindo para o PC</span>
+                    </>
+                  ) : (
+                    <>
+                      {job.transport === 'torbox' ? 'via TorBox · ' : ''}
+                      <span className="dmActiveStatusHighlight">
+                        {statusLabels[job.status] || job.status}
+                      </span>
+                    </>
+                  )}
                 </span>
               </div>
 
@@ -341,10 +376,28 @@ export default function ExternalActiveCard({
                   ) : (
                     `Fonte: ${job.game.providerName}`
                   )}{' '}
-                  · {job.transport === 'torbox' ? 'via TorBox · ' : ''}
-                  <span className="dmActiveStatusHighlight">
-                    {statusLabels[job.status] || job.status}
-                  </span>
+                  ·{' '}
+                  {isRemoteTorbox ? (
+                    <>
+                      <FontAwesomeIcon icon={faCloud} style={{ color: '#00ffff', marginRight: '4px', fontSize: '11px' }} />
+                      <span>Nuvem TorBox · </span>
+                      <span className="dmActiveStatusHighlight">
+                        {getTorboxStatusLabel(job.remoteStatus)}
+                      </span>
+                    </>
+                  ) : isLocalTorbox ? (
+                    <>
+                      <span>via TorBox · </span>
+                      <span className="dmActiveStatusHighlight">Transferindo para o PC</span>
+                    </>
+                  ) : (
+                    <>
+                      {job.transport === 'torbox' ? 'via TorBox · ' : ''}
+                      <span className="dmActiveStatusHighlight">
+                        {statusLabels[job.status] || job.status}
+                      </span>
+                    </>
+                  )}
                 </span>
                 {job.status === 'downloading' && progress !== undefined && (
                   <span className="dmActiveProgressPercent">{progress}%</span>
@@ -359,6 +412,38 @@ export default function ExternalActiveCard({
                 >
                   <FontAwesomeIcon icon={faShieldAlt} style={{ color: '#00ffff', marginRight: '6px' }} />
                   Instalação antiga removida. O jogo ficará indisponível até reinstalar. <span className="dmHighlightText">Backup dos saves preservado</span>.
+                  {isRemoteTorbox && (
+                    <>
+                      {' · '}
+                      <button
+                        type="button"
+                        className="dmActiveMigrateLinkBtn"
+                        onClick={handleGoToSearch}
+                        style={{ textDecoration: 'underline', color: '#ffb703', fontWeight: 600 }}
+                        title={`Trocar fonte: Ver opções de "${job.game.title}" em Buscar Jogos`}
+                      >
+                        Trocar para Download Direto
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
+              {job.status === 'downloading' && isRemoteTorbox && !job.oldRemoved && (
+                <p
+                  role="status"
+                  className="dmExternalNoticeBanner"
+                  title="O TorBox está baixando o torrent na nuvem. Você pode trocar para download direto a qualquer momento se houver fonte direta disponível."
+                >
+                  <FontAwesomeIcon icon={faCloud} style={{ color: '#00ffff', marginRight: '6px' }} />
+                  Baixando na nuvem TorBox. Preferir alta velocidade imediata?{' '}
+                  <button
+                    type="button"
+                    className="dmActiveMigrateLinkBtn"
+                    onClick={handleGoToSearch}
+                    style={{ textDecoration: 'underline', color: '#00ffff', fontWeight: 600 }}
+                  >
+                    Trocar para Download Direto
+                  </button>
                 </p>
               )}
               {job.spacePlan && (
@@ -421,12 +506,19 @@ export default function ExternalActiveCard({
                     />
                   </div>
                   <div className="dmActiveEtaRow">
-                    <span>
-                      {bytes(job.bytes)}
-                      {job.total ? ` / ${bytes(job.total)}` : ''}
-                      {job.speed ? ` · ${bytes(job.speed)}/s` : ''}
-                      {etaMinutes ? ` · ${etaMinutes} min restantes` : ''}
-                    </span>
+                    {isRemoteTorbox ? (
+                      <span>
+                        <FontAwesomeIcon icon={faCloud} style={{ color: '#00ffff', marginRight: '6px' }} />
+                        Nuvem TorBox: {progress !== undefined ? `${progress}%` : '0%'} baixado no servidor · Aguardando nuvem para transferir ao PC
+                      </span>
+                    ) : (
+                      <span>
+                        {bytes(job.bytes)}
+                        {job.total ? ` / ${bytes(job.total)}` : ''}
+                        {job.speed ? ` · ${bytes(job.speed)}/s` : ''}
+                        {etaMinutes ? ` · ${etaMinutes} min restantes` : ''}
+                      </span>
+                    )}
                   </div>
                 </>
               )}

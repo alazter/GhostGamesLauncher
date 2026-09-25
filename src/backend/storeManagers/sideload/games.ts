@@ -10,7 +10,7 @@ import { GameConfig } from '../../game_config'
 import { GlobalConfig } from 'backend/config'
 import { killPattern, sendGameStatusUpdate, shutdownWine } from '../../utils'
 import { sendFrontendMessage } from '../../ipc'
-import { logInfo, LogPrefix, logWarning } from 'backend/logger'
+import { logError, logInfo, LogPrefix, logWarning } from 'backend/logger'
 import { dirname, basename } from 'path'
 import { existsSync, rmSync } from 'graceful-fs'
 import i18next from 'i18next'
@@ -42,6 +42,9 @@ export default class SideloadGame implements Game {
     if (!info) {
       // @ts-expect-error TODO: As with LegendaryGame and GOGGame, handle this properly
       return {}
+    }
+    if (info.accountProvider && info.is_installed && (!info.install?.executable || info.install.executable.trim() === '')) {
+      return { ...info, is_installed: false }
     }
     return info
   }
@@ -252,6 +255,31 @@ export default class SideloadGame implements Game {
   }
 
   async update(): Promise<{ status: 'done' | 'error' }> {
+    try {
+      const { ExternalGames } = await import('../../plugins/externalGames')
+      const { PluginManager } = await import('../../plugins/pluginManager')
+      const extManager = ExternalGames.getInstance()
+      let gameInfo: GameInfo | null = null
+      try {
+        gameInfo = this.getGameInfo()
+      } catch {}
+      const targetFolder = gameInfo?.folder_name || gameInfo?.install?.install_path
+      const inst = extManager.snapshot().installations.find(
+        (i) => i.appName === this.id || (targetFolder && i.directory && i.directory.toLowerCase() === targetFolder.toLowerCase())
+      )
+      if (inst?.availableUpdate) {
+        logInfo(`[SideloadGame] Auto-updating ${inst.game.title} via ${inst.availableUpdate.providerName}...`, LogPrefix.Backend)
+        const res = await PluginManager.getInstance().installExternalGame({
+          game: inst.availableUpdate,
+          sourceId: inst.availableUpdate.providerId,
+          replaceInstallationId: inst.id,
+          confirmed: true
+        })
+        if (res.success) return { status: 'done' }
+      }
+    } catch (err) {
+      logError(['[SideloadGame] Error during game update:', err], LogPrefix.Backend)
+    }
     return { status: 'error' }
   }
 }

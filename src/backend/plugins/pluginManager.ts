@@ -28,6 +28,7 @@ import { isNewerRelease } from './externalPolicy'
 import { builtinGameSources } from 'common/builtinGameSources'
 import { GlobalConfig } from 'backend/config'
 import { EXCLUDED_PIRATAS_APP_NAMES } from './piratasSaveKnowledge'
+import { TorboxClient } from './torboxClient'
 
 const COMMON_GAME_FILE_HOSTS = [
   'pixeldrain.com',
@@ -53,6 +54,33 @@ const COMMON_GAME_FILE_HOSTS = [
   'online-fix.me',
   '*.online-fix.me'
 ]
+
+export function resolveBestDownloadSource(
+  options: GhostDownloadSource[],
+  requestedSourceId?: string,
+  hasTorbox = false,
+  preferredTransport?: string
+): GhostDownloadSource | undefined {
+  let source = options.find((item) => item.id === requestedSourceId)
+  if (!source && options.length > 0) {
+    if (preferredTransport) {
+      if (preferredTransport === 'torbox' && hasTorbox) {
+        source = options.find((o) => o.type === 'torbox')
+      } else if (preferredTransport.includes('direct') || preferredTransport === 'external') {
+        source = options.find((o) => o.type !== 'torbox')
+      }
+    }
+    // Fallback inteligente: se request.sourceId for o providerId ou não corresponder a nenhuma opção,
+    // escolhe a melhor fonte de download disponível baseada na integração TorBox do usuário:
+    if (!source && hasTorbox) {
+      source = options.find((o) => o.type === 'torbox')
+    }
+    if (!source) {
+      source = options.find((o) => o.type !== 'torbox') || options[0]
+    }
+  }
+  return source
+}
 
 export class PluginManager {
   private static instance: PluginManager
@@ -196,8 +224,18 @@ export class PluginManager {
       }
       const officialAnker = plugin.id === ANKER_SOURCE_ID
       const options = await this.getDownloadSources(plugin.id, game.pageUrl || game.id)
-      let source = options.find((item) => item.id === request.sourceId)
-        if (!officialAnker && !romSource(plugin.id) && plugin.id !== STEAMRIP_SOURCE_ID && plugin.id !== ONLINE_FIX_SOURCE_ID && !source && request.sourceId) {
+      let preferredTransport: string | undefined
+      if (request.replaceInstallationId) {
+        const prevJob = ExternalGames.getInstance().snapshot().jobs.find(
+          (j) => (j.installationId === request.replaceInstallationId || j.id === request.replaceInstallationId) && (j.status === 'completed' || j.bytes > 0)
+        )
+        if (prevJob?.transport) {
+          preferredTransport = prevJob.transport
+        }
+      }
+      const hasTorbox = await TorboxClient.configured().catch(() => false)
+      let source = resolveBestDownloadSource(options, request.sourceId, hasTorbox, preferredTransport)
+      if (!officialAnker && !romSource(plugin.id) && plugin.id !== STEAMRIP_SOURCE_ID && plugin.id !== ONLINE_FIX_SOURCE_ID && !source && request.sourceId) {
         source = {
           id: request.sourceId,
           name: request.game.title,

@@ -868,13 +868,14 @@ class GlobalState extends PureComponent<Props> {
       })
 
       try {
-        const { epic, gog, amazon, zoom } = this.state
+        const { epic, gog, amazon, zoom, sideloadedLibrary } = this.state
         syncAutoStoreAssignments(
           epic.library,
           gog.library,
           amazon.library,
           zoom.library,
-          steamLibrary
+          steamLibrary,
+          sideloadedLibrary
         )
       } catch (e) {
         console.error('Error syncing steam store assignments:', e)

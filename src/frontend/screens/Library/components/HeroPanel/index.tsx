@@ -19,7 +19,7 @@ import { useContext, useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextProvider from 'frontend/state/ContextProvider'
 import { hasStatus } from 'frontend/hooks/hasStatus'
-import { launch, sendKill } from 'frontend/helpers'
+import { launch, sendKill, updateGame } from 'frontend/helpers'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import { timestampStore } from 'frontend/helpers/electronStores'
 import StoreLogos from 'frontend/components/UI/StoreLogos'
@@ -48,7 +48,10 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
 
   const { status } = hasStatus(game)
   const [isLaunching, setIsLaunching] = useState(false)
-  const hasUpdate = Boolean(game.is_installed && gameUpdates?.includes(game.app_name))
+  const isInstalled = game.accountProvider
+    ? Boolean(game.is_installed && game.install?.executable && game.install.executable.trim() !== '')
+    : Boolean(game.is_installed)
+  const hasUpdate = Boolean(isInstalled && gameUpdates?.includes(game.app_name))
 
   const { gameOverrides } = useGlobalState.keys('gameOverrides')
   const gameOverride = gameOverrides[game.app_name]
@@ -269,7 +272,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     const appName = game.app_name
     const runner = game.runner
 
-    if (!game.is_installed && status !== 'queued' && runner !== 'sideload') {
+    if (!isInstalled && status !== 'queued' && runner !== 'sideload') {
       if (runner === 'steam') {
         void window.api.openExternalUrl(`steam://install/${appName}`)
         return
@@ -289,11 +292,11 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       return
     }
 
-    if (game.is_installed) {
+    if (isInstalled) {
       setIsLaunching(true)
       const isOffline = connectivity.status !== 'online'
       const notPlayableOffline = isOffline && !game.canRunOffline
-      const hasUpdate = game.is_installed && gameUpdates?.includes(appName)
+      const hasUpdate = isInstalled && gameUpdates?.includes(appName)
 
       void launch({
         appName,
@@ -409,9 +412,9 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     if (isLaunching) return t('label.launching', 'Launching...')
     if (status === 'installing' || status === 'updating') return t('button.cancel', 'Cancel')
     if (status === 'queued') return t('button.queue.remove', 'Remove from Queue')
-    if (!game.is_installed && game.runner !== 'sideload') return t('button.install', 'Install')
+    if (!isInstalled && game.runner !== 'sideload') return t('button.install', 'Install')
     return t('label.playing.start', 'Play')
-  }, [status, isLaunching, game.is_installed, game.runner, game.accountProvider, t])
+  }, [status, isLaunching, isInstalled, game.runner, game.accountProvider, t])
 
   const renderPlayIcon = () => {
     if (game.accountProvider) return <FontAwesomeIcon icon={faStore} />
@@ -427,7 +430,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     if (status === 'queued') {
       return <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
     }
-    if (!game.is_installed && game.runner !== 'sideload') {
+    if (!isInstalled && game.runner !== 'sideload') {
       return <FontAwesomeIcon icon={faDownload} style={{ fontSize: '16px' }} />
     }
     return <FontAwesomeIcon icon={faPlay} style={{ fontSize: '16px', marginLeft: '2px' }} />
@@ -474,7 +477,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
           borderBottomRightRadius: '0px',
           boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
           cursor: 'pointer',
-          filter: !game.is_installed ? 'grayscale(100%)' : 'none',
+          filter: !isInstalled ? 'grayscale(100%)' : 'none',
           transition: 'filter 0.25s ease'
         }}
         onClick={onClose}
@@ -636,7 +639,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
         {hasUpdate && (
           <button
             onClick={() => {
-              void window.api.updateGame({ appName: game.app_name, runner: game.runner, gameInfo: game })
+              void updateGame({ appName: game.app_name, runner: game.runner, gameInfo: game })
+              navigate('/download-manager')
             }}
             style={{
               background: 'linear-gradient(135deg, #ff9900, #ff5500)',

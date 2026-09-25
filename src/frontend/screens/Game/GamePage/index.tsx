@@ -280,8 +280,7 @@ export default React.memo(function GamePage(): JSX.Element | null {
   }, [status])
 
   function handleUpdate() {
-    if (gameInfo.runner !== 'sideload')
-      updateGame({ appName, runner, gameInfo })
+    updateGame({ appName, runner, gameInfo })
   }
 
   function handleModal() {

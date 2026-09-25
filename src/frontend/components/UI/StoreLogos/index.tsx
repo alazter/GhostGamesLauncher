@@ -7,6 +7,7 @@ import AmazonLogo from 'frontend/assets/amazon-logo.svg?react'
 import ZoomLogo from 'frontend/assets/zoom-logo.svg?react'
 import SteamLogo from 'frontend/assets/steam-logo.svg?react'
 import { accountProviders, accountProviderNames } from 'common/types/connectedAccounts'
+import { CONNECTED_ACCOUNT_STORES } from 'frontend/helpers/connectedAccountStores'
 
 type Props = {
   runner: Runner
@@ -26,19 +27,13 @@ export default function StoreLogos({
     setImgFailed(false)
   }, [appName, runner])
 
-  const accountProvider = accountProviders.find((provider) => appName?.startsWith(`account-${provider}-`))
-  if (accountProvider) {
-    return <span className={className} title={accountProviderNames[accountProvider]}
-      style={{ fontSize: 10, textAlign: 'center', lineHeight: 1.2 }}>{accountProviderNames[accountProvider]}</span>
-  }
-
   // 1. Determina o ID da loja associada pelo usuário via localStorage
   const assignments = JSON.parse(
     localStorage.getItem('heroic_game_assignments') || '{}'
   )
   let storeId = appName ? assignments[appName] : null
 
-  // 2. Se não houver associação direta, mapeia a partir do runner padrão ou usa o próprio runner
+  // 2. Se não houver associação direta, mapeia a partir do runner padrão ou conta conectada
   if (!storeId && runner) {
     if (runner === 'legendary') {
       storeId = 'epic'
@@ -49,16 +44,16 @@ export default function StoreLogos({
     } else if (runner === 'zoom') {
       storeId = 'zoom'
     } else if (runner === 'sideload') {
-      storeId = null // Sideloaded sem associação não tem loja padrão
+      const accProvider = accountProviders.find((p) => appName?.startsWith(`account-${p}-`))
+      if (accProvider) {
+        storeId = CONNECTED_ACCOUNT_STORES[accProvider]?.id || accProvider
+      } else {
+        storeId = null // Sideloaded sem associação não tem loja padrão
+      }
     } else {
       // Caso o runner não seja um padrão, mas sim o ID de uma categoria (ex: vindo do GameCard)
       storeId = (runner as string).toLowerCase()
     }
-  }
-
-  // Se não foi possível mapear para nenhuma loja, exibe o logo padrão do Heroic
-  if (!storeId) {
-    return <SideLoad className={className} />
   }
 
   // 3. Busca os detalhes da loja no customStores salvo pelo usuário
@@ -67,12 +62,52 @@ export default function StoreLogos({
   )
   const store = customStores.find((s: any) => s.id === storeId)
 
+  // Se não foi possível mapear para nenhuma loja existente, tenta fallback inteligente
+  if (!storeId && !store) {
+    const accountProvider = accountProviders.find((provider) => appName?.startsWith(`account-${provider}-`))
+    if (accountProvider) {
+      const config = CONNECTED_ACCOUNT_STORES[accountProvider]
+      if (config?.icon) {
+        return (
+          <img
+            src={config.icon}
+            className={className}
+            alt={config.name}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+          />
+        )
+      }
+      return (
+        <span
+          className={className}
+          title={accountProviderNames[accountProvider]}
+          style={{ fontSize: 10, textAlign: 'center', lineHeight: 1.2 }}
+        >
+          {accountProviderNames[accountProvider]}
+        </span>
+      )
+    }
+    return <SideLoad className={className} />
+  }
+
   // 4. Resolve a origem da imagem do ícone
   const hasCustomIcon = store && store.icon
   const imageSource = hasCustomIcon ? store.icon : `/images/${storeId}.png`
 
-  // Se o carregamento da imagem falhar, exibe o logo padrão do Heroic
+  // Se o carregamento da imagem falhar, exibe o logo padrão ou da conta conectada
   if (imgFailed) {
+    const accountProvider = accountProviders.find((provider) => appName?.startsWith(`account-${provider}-`))
+    if (accountProvider) {
+      return (
+        <span
+          className={className}
+          title={accountProviderNames[accountProvider]}
+          style={{ fontSize: 10, textAlign: 'center', lineHeight: 1.2 }}
+        >
+          {accountProviderNames[accountProvider]}
+        </span>
+      )
+    }
     return <SideLoad className={className} />
   }
 

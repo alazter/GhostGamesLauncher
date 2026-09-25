@@ -1423,7 +1423,26 @@ export function sanitizeExistingSideloadLibrary(): void {
 
   let updated = false
   for (const game of games) {
-    if (game.accountProvider) continue
+    if (game.accountProvider) {
+      const hasRealExe = Boolean(
+        game.install?.executable &&
+        typeof game.install.executable === 'string' &&
+        game.install.executable.trim() !== '' &&
+        existsSync(game.install.executable)
+      )
+      if (game.is_installed && !hasRealExe) {
+        logInfo(
+          `[Sideload Library] Sanitizing uninstalled connected account game "${game.title}" (${game.accountProvider}): resetting is_installed to false`
+        )
+        game.is_installed = false
+        if (game.folder_name === '.') {
+          game.folder_name = undefined
+        }
+        updated = true
+      }
+      continue
+    }
+
     if (!game.title) continue
     const cleaned = cleanScannedGameTitle(game.title)
     if (cleaned !== game.title && cleaned.length > 0) {

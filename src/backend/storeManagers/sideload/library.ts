@@ -1,5 +1,5 @@
 import { ExecResult, GameInfo } from 'common/types'
-import { readdirSync } from 'graceful-fs'
+import { readdirSync, existsSync } from 'graceful-fs'
 import { dirname, join } from 'path'
 import { libraryStore } from './electronStores'
 import { logWarning, logInfo, logError } from 'backend/logger'
@@ -24,11 +24,37 @@ export default class SideloadLibraryManager implements LibraryManager {
     art_cover,
     art_square,
     browserUrl,
-    is_installed = true,
+    is_installed,
     description,
     customUserAgent,
     launchFullScreen
   }: GameInfo): void {
+    const current = libraryStore.get('games', [])
+    const gameIndex = current.findIndex((value) => value.app_name === app_name)
+    const existing = gameIndex !== -1 ? current[gameIndex] : undefined
+
+    const hasRealExecutable = Boolean(
+      executable && typeof executable === 'string' && executable.trim().length > 0
+    )
+    const exeFileExists = Boolean(hasRealExecutable && executable && existsSync(executable))
+
+    const isConnectedAccount = Boolean(existing?.accountProvider)
+    let computedIsInstalled: boolean
+
+    if (isConnectedAccount) {
+      // Jogos de contas conectadas (Battle.net, Xbox, EA, Ubisoft) NUNCA podem ser marcados como
+      // instalados a menos que possuam executável real e existente em disco.
+      computedIsInstalled = exeFileExists
+        ? Boolean(is_installed !== undefined ? is_installed : (existing?.is_installed ?? true))
+        : false
+    } else if (is_installed !== undefined) {
+      computedIsInstalled = is_installed
+    } else if (existing) {
+      computedIsInstalled = Boolean(existing.is_installed)
+    } else {
+      computedIsInstalled = Boolean(hasRealExecutable || browserUrl)
+    }
+
     const game: GameInfo = {
       runner: 'sideload',
       app_name,
@@ -38,9 +64,9 @@ export default class SideloadLibraryManager implements LibraryManager {
         platform,
         is_dlc: false
       },
-      folder_name: executable !== undefined ? dirname(executable) : undefined,
+      folder_name: hasRealExecutable && executable ? dirname(executable) : undefined,
       art_cover,
-      is_installed: is_installed !== undefined ? is_installed : true,
+      is_installed: computedIsInstalled,
       art_square,
       canRunOffline: !browserUrl,
       browserUrl,
@@ -61,13 +87,16 @@ export default class SideloadLibraryManager implements LibraryManager {
       )
     }
 
-    const current = libraryStore.get('games', [])
-
-    const gameIndex = current.findIndex((value) => value.app_name === app_name)
-
     // edit app in case it exists
     if (gameIndex !== -1) {
-      current[gameIndex] = { ...current[gameIndex], ...game }
+      current[gameIndex] = {
+        ...current[gameIndex],
+        ...game,
+        is_installed: computedIsInstalled,
+        folder_name: hasRealExecutable && executable
+          ? dirname(executable)
+          : (existing?.folder_name && existing.folder_name !== '.' ? existing.folder_name : undefined)
+      }
     } else {
       current.push(game)
       addShortcuts(new SideloadGame(app_name))

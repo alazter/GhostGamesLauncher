@@ -21,6 +21,13 @@ export function uniqueGames(games: AccountGame[]): AccountGame[] {
   return [...new Map(games.map((game) => [game.id, game])).values()]
 }
 
+function requireCompleteGraphQlResponse(input: unknown): void {
+  const response = z
+    .object({ errors: z.array(z.unknown()).optional() })
+    .parse(input)
+  if (response.errors?.length) throw new Error('CATALOG_INCOMPLETE')
+}
+
 export function parseXboxCatalog(input: unknown): {
   games: AccountGame[]
   next?: string
@@ -59,13 +66,16 @@ export function parseEaCatalog(input: unknown): {
   games: AccountGame[]
   next?: string
   userId: string
+  totalCount?: number
 } {
+  requireCompleteGraphQlResponse(input)
   const result = z
     .object({
       data: z.object({
         me: z.object({
           id,
           ownedGameProducts: z.object({
+            totalCount: z.number().int().nonnegative().optional(),
             next: z.string().nullish(),
             items: z.array(
               z.object({
@@ -84,6 +94,7 @@ export function parseEaCatalog(input: unknown): {
     .parse(input).data.me
   return {
     userId: result.id,
+    totalCount: result.ownedGameProducts.totalCount,
     next: result.ownedGameProducts.next || undefined,
     games: result.ownedGameProducts.items.map((game) => ({
       id: game.originOfferId || game.id,
@@ -139,6 +150,7 @@ export function eaCatalogUrl(next = '0'): string {
 }
 
 export function parseUbisoftCatalog(input: unknown): AccountGame[] {
+  requireCompleteGraphQlResponse(input)
   const result = z
     .object({
       data: z.object({

@@ -197,9 +197,11 @@ const launch = async ({
               text: t('gamepage:box.yes'),
               onClick: async () => {
                 const gameInfo = await getGameInfo(appName, runner)
-                if (gameInfo && gameInfo.runner !== 'sideload') {
+                if (gameInfo) {
                   void updateGame({ appName, runner, gameInfo })
+                  window.location.hash = '#/download-manager'
                   res({ status: 'done' })
+                  return
                 }
                 res({ status: 'error' })
               }
@@ -469,8 +471,31 @@ async function checkLaunchOptionsAndLaunch({
   })
 }
 
-const updateGame = (args: UpdateParams) => {
-  return window.api.updateGame(args)
+const updateGame = async (args: UpdateParams) => {
+  if (args.runner === 'sideload') {
+    try {
+      const extState = await window.api.externalGamesState()
+      const targetFolder = args.gameInfo?.folder_name || args.gameInfo?.install?.install_path
+      const inst = extState.installations.find(
+        (i) => i.appName === args.appName || (targetFolder && i.directory && i.directory.toLowerCase() === targetFolder.toLowerCase())
+      )
+      if (inst && inst.availableUpdate) {
+        const res = await window.api.externalGamesInstall({
+          game: inst.availableUpdate,
+          sourceId: inst.availableUpdate.providerId,
+          replaceInstallationId: inst.id,
+          confirmed: true
+        })
+        window.location.hash = '#/download-manager'
+        return res
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar jogo sideload no updateGame helper:', err)
+    }
+  }
+  const res = await window.api.updateGame(args)
+  window.location.hash = '#/download-manager'
+  return res
 }
 
 export const normalizeTitle = (title: string) => {

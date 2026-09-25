@@ -6,6 +6,12 @@ import {
   type AccountProvider,
   type ConnectedAccountStatus
 } from 'common/types/connectedAccounts'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faXbox, faBattleNet } from '@fortawesome/free-brands-svg-icons'
+import eaLogo from 'frontend/assets/ea.svg'
+import ubisoftLogo from 'frontend/assets/ubisoft.svg'
+import { ensureConnectedAccountCustomStore } from 'frontend/helpers/connectedAccountStores'
+import '../Runner/index.css'
 import './index.css'
 
 export default function ConnectedAccounts() {
@@ -29,6 +35,11 @@ export default function ConnectedAccounts() {
           setAccounts(statuses)
           setClientId(id)
           setReady(true)
+          for (const acc of statuses) {
+            if (acc.connected) {
+              ensureConnectedAccountCustomStore(acc.provider)
+            }
+          }
         }
       })
       .catch(() => {
@@ -47,18 +58,20 @@ export default function ConnectedAccounts() {
 
   async function operate(
     provider: AccountProvider,
-    action: 'connect' | 'sync' | 'disconnect'
+    action: 'connect' | 'disconnect'
   ) {
     setBusy(provider)
     setError('')
     try {
       const result = await {
         connect: window.api.connectAccount,
-        sync: window.api.syncAccount,
         disconnect: window.api.disconnectAccount
       }[action](provider)
       if (!result.success && !result.cancelled)
         setError(`${accountProviderNames[provider]}: ${result.error}`)
+      if (result.success && action === 'connect') {
+        ensureConnectedAccountCustomStore(provider)
+      }
       setAccounts(await window.api.getConnectedAccounts())
     } catch {
       setError(
@@ -80,60 +93,52 @@ export default function ConnectedAccounts() {
       {accountProviders.map((provider) => {
         const account = accounts.find((entry) => entry.provider === provider)
         return (
-          <div className="connectedAccount" key={provider}>
-            <div className="connectedAccountIdentity">
-              <strong>{accountProviderNames[provider]}</strong>
-              {account?.connected && (
-                <small>
-                  {account.username} ·{' '}
-                  {t('accounts.gameCount', '{{count}} jogos importados', {
-                    count: account.gameCount
-                  })}
-                </small>
+          <div
+            className="runnerWrapper connectedAccount"
+            key={provider}
+            aria-label={accountProviderNames[provider]}
+            aria-busy={busy === provider}
+          >
+            <div className="runnerIcon connectedAccountLogo" aria-hidden="true">
+              {provider === 'xbox' || provider === 'battlenet' ? (
+                <FontAwesomeIcon
+                  icon={provider === 'xbox' ? faXbox : faBattleNet}
+                />
+              ) : (
+                <img src={provider === 'ea' ? eaLogo : ubisoftLogo} alt="" />
               )}
-              {account?.lastSync && (
-                <small>
-                  {t('accounts.lastSync', 'Sincronizado em {{date}}', {
-                    date: new Date(account.lastSync).toLocaleString()
-                  })}
-                </small>
-              )}
-              {account?.error && <small role="status">{account.error}</small>}
             </div>
-            <div className="connectedAccountActions">
+            <div className="userData connectedAccountIdentity">
+              <strong>
+                {account?.connected
+                  ? account.username && !/^EA · \d+$/.test(account.username)
+                    ? account.username
+                    : accountProviderNames[provider]
+                  : accountProviderNames[provider]}
+              </strong>
+            </div>
+            <div className="runnerButtons connectedAccountActions">
               {busy === provider ? (
-                <span role="status">{t('accounts.working', 'Aguarde…')}</span>
+                <span className="connectedAccountWorking" role="status">
+                  {t('accounts.working', 'Aguarde…')}
+                </span>
               ) : (
                 <>
                   <button
+                    type="button"
+                    className={`runnerLogin connectedAccountPrimary${account?.connected ? ' connectedAccountDisconnect' : ''}`}
                     disabled={!ready || busy !== null || saving}
                     onClick={() =>
                       void operate(
                         provider,
-                        account?.connected ? 'sync' : 'connect'
+                        account?.connected ? 'disconnect' : 'connect'
                       )
                     }
                   >
                     {account?.connected
-                      ? t('accounts.sync', 'Sincronizar')
+                      ? t('accounts.disconnect', 'Desconectar')
                       : t('accounts.connect', 'Conectar conta')}
                   </button>
-                  {account?.connected && (
-                    <>
-                      <button
-                        disabled={busy !== null || saving}
-                        onClick={() => void operate(provider, 'connect')}
-                      >
-                        {t('accounts.reconnect', 'Reconectar')}
-                      </button>
-                      <button
-                        disabled={busy !== null || saving}
-                        onClick={() => void operate(provider, 'disconnect')}
-                      >
-                        {t('accounts.disconnect', 'Desconectar')}
-                      </button>
-                    </>
-                  )}
                 </>
               )}
             </div>

@@ -278,13 +278,11 @@ export default function ConsoleMode() {
     if (!updateNoticeGame) return
     const game = updateNoticeGame
     setUpdateNoticeGame(null)
-    if (game.runner !== 'sideload') {
-      void updateGame({
-        appName: game.app_name,
-        runner: game.runner as Runner,
-        gameInfo: game
-      })
-    }
+    void updateGame({
+      appName: game.app_name,
+      runner: game.runner as Runner,
+      gameInfo: game
+    })
   }, [updateNoticeGame])
 
   const handleLaunchWithoutUpdate = useCallback(() => {

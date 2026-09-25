@@ -12,12 +12,6 @@ export function isGameAssignedToStore(
   const targetNameLower = (targetStore.name || '').toLowerCase()
   const runnerLower = (game.runner || '').toLowerCase()
 
-  if (game.accountProvider) {
-    const aliases = { xbox: ['xbox'], ea: ['ea', 'ea app', 'ea games', 'origin'],
-      ubisoft: ['ubisoft', 'ubisoft connect', 'uplay'], battlenet: ['battlenet', 'battle.net', 'blizzard'] }
-    return aliases[game.accountProvider].some((alias) => alias === targetIdLower || alias === targetNameLower)
-  }
-
   if (explicitlyAssignedStore) {
     if (explicitlyAssignedStore === targetIdLower) return true
     if (targetNameLower && explicitlyAssignedStore === targetNameLower) return true
@@ -29,7 +23,24 @@ export function isGameAssignedToStore(
     if (targetNameLower.includes('steam') && explicitlyAssignedStore.includes('steam')) return true
     if (targetNameLower.includes('zoom') && explicitlyAssignedStore.includes('zoom')) return true
     if (targetNameLower.includes('sideload') && (explicitlyAssignedStore.includes('sideload') || explicitlyAssignedStore === 'sideloaded')) return true
+    if (targetNameLower.includes('xbox') && explicitlyAssignedStore.includes('xbox')) return true
+    if ((targetNameLower.includes('ea') || targetNameLower.includes('origin')) && (explicitlyAssignedStore.includes('ea') || explicitlyAssignedStore.includes('origin'))) return true
+    if ((targetNameLower.includes('battle') || targetNameLower.includes('blizzard')) && (explicitlyAssignedStore.includes('battle') || explicitlyAssignedStore.includes('blizzard'))) return true
+    if (targetNameLower.includes('ubisoft') && (explicitlyAssignedStore.includes('ubisoft') || explicitlyAssignedStore.includes('uplay'))) return true
     return false
+  }
+
+  const accountProvider = (game.accountProvider ||
+    (game.app_name?.startsWith('account-') ? game.app_name.split('-')[1] : null)) as 'xbox' | 'ea' | 'ubisoft' | 'battlenet' | null
+  if (accountProvider) {
+    const aliases = {
+      xbox: ['xbox'],
+      ea: ['ea', 'ea app', 'ea games', 'origin'],
+      ubisoft: ['ubisoft', 'ubisoft connect', 'uplay'],
+      battlenet: ['battlenet', 'battle.net', 'blizzard']
+    }
+    const providerAliases = aliases[accountProvider] || [accountProvider]
+    return providerAliases.some((alias) => alias === targetIdLower || alias === targetNameLower || targetNameLower.includes(alias))
   }
 
   // Custom stores "Piratas" and "Indies" require explicit assignment
