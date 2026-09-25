@@ -15,7 +15,7 @@
 - **Title Format**: Always title releases as `👻 Ghost v[Version]` (e.g., `👻 Ghost v0.1.4-beta`).
 - **Release Description Header**: Right under the header `## Notas de Lançamento da Versão v...` in the release body description, always insert this exact HTML image:
   `<img width="192" height="191" alt="notas da atualização oficial" src="https://github.com/user-attachments/assets/17ab8642-b2fa-4c17-a76e-2573d38b5586" />`
-- **Changelog Conciso (Regra Canônica de Changelog)**: NUNCA detalhar exaustivamente arquivos ou parágrafos longos dentro do changelog/notas da versão (nem no GitHub Releases nem nas respostas do chat). Manter sempre a lista de novidades direta, resumida em 1 linha por item com emojis temáticos (ex: `1. 📦 Empacotamento Seguro de Dependências no Processo Principal.`) e finalizar com `🐞 Correções de bugs menores.` (ou `🐞 Correções e melhorias de estabilidade.`).
+- **Changelog Conciso & Gaveta Expansível (Regra Canônica de Changelog)**: O changelog principal DEVE ser sempre direto e conciso, resumido em 1 linha por item com emojis temáticos (ex: `1. 📦 Empacotamento Seguro de Dependências no Processo Principal.`) e finalizando com `🐞 Correções de bugs menores.`. Para disponibilizar o detalhamento técnico completo sem poluir a leitura, adicionar abaixo da lista uma gaveta expansível via `<details><summary>🔍 <b>Clique aqui para ver os detalhes técnicos completos da versão</b></summary>...</details>`.
 - **Version Auto-Detection**: Always verify the last published version via git tags/GitHub releases, and increment it logically (e.g., bump patch version like 0.1.3 -> 0.1.4) to determine the next release version.
 
 ## Releases.com Left Sidebar Expansion
