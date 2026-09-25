@@ -12,8 +12,37 @@ import {
 import { createHash } from 'crypto'
 import { dirname, join, resolve } from 'path'
 import { execFile } from 'child_process'
-import extract from 'extract-zip'
 import { archivePathIsSafe, inside } from './externalPolicy'
+
+type ExtractZipType = (
+  zipPath: string,
+  opts: {
+    dir: string
+    defaultDirMode?: number
+    defaultFileMode?: number
+    onEntry?: (entry: any) => void
+  }
+) => Promise<void>
+
+let cachedExtractZip: ExtractZipType | null = null
+
+async function getExtractZip(): Promise<ExtractZipType | null> {
+  if (cachedExtractZip) return cachedExtractZip
+  try {
+    const req = typeof require !== 'undefined' ? require : null
+    if (req) {
+      const mod = req('extract-zip')
+      cachedExtractZip = ((mod && mod.default) || mod) as ExtractZipType
+      if (typeof cachedExtractZip === 'function') return cachedExtractZip
+    }
+  } catch {}
+  try {
+    const mod = await import('extract-zip')
+    cachedExtractZip = ((mod as any).default || mod) as ExtractZipType
+    if (typeof cachedExtractZip === 'function') return cachedExtractZip
+  } catch {}
+  return null
+}
 
 let cached7zPath: string | null = null
 
@@ -56,36 +85,55 @@ async function extractWith7z(file: string, destination: string, password?: strin
     throw new Error('Instale o 7-Zip para extrair arquivos RAR/7Z ou pacotes protegidos por senha.')
   }
   const passwordArgs = password ? [`-p${password}`] : []
-  if (password) {
-    // Inspect encrypted headers before allowing the extractor to write any files.
-    const listing = await new Promise<string>((res, rej) => {
-      execFile(sevenZip, ['l', '-slt', '-ba', '-sccUTF-8', ...passwordArgs, '--', resolve(file)],
-        { maxBuffer: 32 * 1024 * 1024, timeout: 60000 }, (error, stdout) => {
-          if (error) rej(new Error('Não foi possível abrir o pacote com a senha padrão do Online-Fix. O arquivo pode estar incompleto ou usar outra senha.'))
-          else res(stdout)
-        })
-    })
-    const disk = await statfs(dirname(destination))
-    let bytes = 0
-    const seen = new Set<string>()
-    for (const block of listing.trim().split(/\r?\n\r?\n/)) {
-      const fields = Object.fromEntries(block.split(/\r?\n/).map(line => {
+  // Inspeciona os cabeçalhos do pacote antes de permitir a escrita de qualquer arquivo
+  const listing = await new Promise<string>((res, rej) => {
+    execFile(
+      sevenZip,
+      ['l', '-slt', '-ba', '-sccUTF-8', ...passwordArgs, '--', resolve(file)],
+      { maxBuffer: 32 * 1024 * 1024, timeout: 60000 },
+      (error, stdout) => {
+        if (error) {
+          if (password)
+            rej(
+              new Error(
+                'Não foi possível abrir o pacote com a senha padrão do Online-Fix. O arquivo pode estar incompleto ou usar outra senha.'
+              )
+            )
+          else rej(new Error(`Falha ao ler pacote com 7-Zip: ${error.message}`))
+        } else res(stdout)
+      }
+    )
+  })
+  const disk = await statfs(dirname(destination))
+  let bytes = 0
+  const seen = new Set<string>()
+  for (const block of listing.trim().split(/\r?\n\r?\n/)) {
+    if (!block.trim()) continue
+    const fields = Object.fromEntries(
+      block.split(/\r?\n/).map((line) => {
         const separator = line.indexOf(' = ')
         return [line.slice(0, separator), line.slice(separator + 3)]
-      }))
-      const name = fields.Path?.replace(/\\/g, '/')
-      if (!name || !archivePathIsSafe(name) || !inside(destination, join(destination, name)) ||
-        fields['Symbolic Link'] || fields['Hard Link'] || /(?:^|\s)l[rwx-]{9}/.test(fields.Attributes || ''))
-        throw new Error('O pacote contém caminho inseguro ou link. Extração interrompida.')
-      const key = name.toLowerCase().replace(/\/$/, '')
-      if (seen.has(key)) throw new Error('O pacote contém caminhos duplicados.')
-      seen.add(key)
-      const size = Number(fields.Size || 0)
-      if (!Number.isSafeInteger(size) || size < 0) throw new Error('Tamanho inválido no pacote.')
-      bytes += size
-      if (bytes > disk.bavail * disk.bsize || bytes > 1024 ** 4 || seen.size > 200000)
-        throw new Error('Espaço insuficiente ou limite de extração excedido.')
-    }
+      })
+    )
+    const name = fields.Path?.replace(/\\/g, '/')
+    if (
+      !name ||
+      !archivePathIsSafe(name) ||
+      !inside(destination, join(destination, name)) ||
+      fields['Symbolic Link'] ||
+      fields['Hard Link'] ||
+      /(?:^|\s)l[rwx-]{9}/.test(fields.Attributes || '')
+    )
+      throw new Error('O pacote contém caminho inseguro ou link. Extração interrompida.')
+    const key = name.toLowerCase().replace(/\/$/, '')
+    if (seen.has(key)) throw new Error('O pacote contém caminhos duplicados.')
+    seen.add(key)
+    const size = Number(fields.Size || 0)
+    if (!Number.isSafeInteger(size) || size < 0)
+      throw new Error('Tamanho inválido no pacote.')
+    bytes += size
+    if (bytes > disk.bavail * disk.bsize || bytes > 1024 ** 4 || seen.size > 200000)
+      throw new Error('Espaço insuficiente ou limite de extração excedido.')
   }
   return new Promise((res, rej) => {
     execFile(sevenZip, ['x', `-o${resolve(destination)}`, '-y', '-aoa', ...passwordArgs, '--', resolve(file)], (error, _stdout, stderr) => {
@@ -139,61 +187,66 @@ export async function extractGame(
   if (isRarOr7z) {
     await extractWith7z(file, destination, password)
   } else {
-    // Para .zip, utiliza o motor extract-zip com validação atômica de cada entrada
-    try {
-      let bytes = 0
-      const disk = await statfs(dirname(destination))
-      const available = disk.bavail * disk.bsize
-      const seen = new Set<string>()
-      await extract(file, {
-        dir: resolve(destination),
-        onEntry: (entry) => {
-          const name = entry.fileName
-          const type = (entry.externalFileAttributes >>> 16) & 0o170000
-          if (
-            !archivePathIsSafe(name) ||
-            !inside(destination, join(destination, name)) ||
-            (type && type !== 0o100000 && type !== 0o040000) ||
-            entry.generalPurposeBitFlag & 1
-          ) {
-            throw new Error(
-              'ZIP contém caminho inseguro, link ou arquivo criptografado. Extraia manualmente e confira o pacote.'
-            )
+    // Para .zip, tenta o motor extract-zip com validação atômica; caso indisponível, usa 7-Zip
+    const extract = await getExtractZip()
+    if (extract) {
+      try {
+        let bytes = 0
+        const disk = await statfs(dirname(destination))
+        const available = disk.bavail * disk.bsize
+        const seen = new Set<string>()
+        await extract(file, {
+          dir: resolve(destination),
+          onEntry: (entry) => {
+            const name = entry.fileName
+            const type = (entry.externalFileAttributes >>> 16) & 0o170000
+            if (
+              !archivePathIsSafe(name) ||
+              !inside(destination, join(destination, name)) ||
+              (type && type !== 0o100000 && type !== 0o040000) ||
+              entry.generalPurposeBitFlag & 1
+            ) {
+              throw new Error(
+                'ZIP contém caminho inseguro, link ou arquivo criptografado. Extraia manualmente e confira o pacote.'
+              )
+            }
+            const key = name.toLowerCase()
+            if (seen.has(key)) throw new Error('ZIP contém caminhos duplicados.')
+            seen.add(key)
+            bytes += entry.uncompressedSize
+            if (bytes > available)
+              throw new Error(
+                'Espaço insuficiente para extrair o pacote. A instalação anterior foi preservada.'
+              )
+            if (bytes > 1024 ** 4 || seen.size > 200000)
+              throw new Error('Limite de extração excedido.')
           }
-          const key = name.toLowerCase()
-          if (seen.has(key)) throw new Error('ZIP contém caminhos duplicados.')
-          seen.add(key)
-          bytes += entry.uncompressedSize
-          if (bytes > available)
-            throw new Error(
-              'Espaço insuficiente para extrair o pacote. A instalação anterior foi preservada.'
-            )
-          if (bytes > 1024 ** 4 || seen.size > 200000)
-            throw new Error('Limite de extração excedido.')
-        }
-      })
-    } catch (zipErr) {
-      // Fallback para 7z APENAS se o zip tiver compressão estendida não suportada pelo extract-zip
-      const errMsg = String(zipErr).toLowerCase()
-      const isSecurityOrSpaceErr =
-        errMsg.includes('caminho') ||
-        errMsg.includes('inseguro') ||
-        errMsg.includes('out of bound') ||
-        errMsg.includes('traversal') ||
-        errMsg.includes('espaço') ||
-        errMsg.includes('insuficiente') ||
-        errMsg.includes('duplicado') ||
-        errMsg.includes('criptografado') ||
-        errMsg.includes('limite')
+        })
+      } catch (zipErr) {
+        // Fallback para 7z se o zip tiver compressão estendida, criptografia ou recurso não suportado pelo extract-zip
+        const errMsg = String(zipErr).toLowerCase()
+        const isSecurityOrSpaceErr =
+          errMsg.includes('caminho') ||
+          errMsg.includes('inseguro') ||
+          errMsg.includes('out of bound') ||
+          errMsg.includes('traversal') ||
+          errMsg.includes('espaço') ||
+          errMsg.includes('insuficiente') ||
+          errMsg.includes('duplicado') ||
+          errMsg.includes('limite')
 
-      const sevenZip = await resolve7zPath()
-      if (password && (errMsg.includes('encrypted') || errMsg.includes('criptografado'))) {
-        await extractWith7z(file, destination, password)
-      } else if (sevenZip && !isSecurityOrSpaceErr && (errMsg.includes('compression') || errMsg.includes('unsupported') || errMsg.includes('method'))) {
-        await extractWith7z(file, destination, password)
-      } else {
-        throw zipErr
+        const sevenZip = await resolve7zPath()
+        if (password && (errMsg.includes('encrypted') || errMsg.includes('criptografado'))) {
+          await extractWith7z(file, destination, password)
+        } else if (sevenZip && !isSecurityOrSpaceErr) {
+          await extractWith7z(file, destination, password)
+        } else {
+          throw zipErr
+        }
       }
+    } else {
+      // Se extract-zip não estiver disponível no runtime, utiliza o 7-Zip diretamente
+      await extractWith7z(file, destination, password)
     }
   }
 

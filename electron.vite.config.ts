@@ -11,7 +11,12 @@ const srcAliases = ['backend', 'frontend', 'common'].map((aliasName) => ({
 const dependenciesToNotExternalize = [
   '@xhmikosr/decompress',
   '@xhmikosr/decompress-targz',
-  '@xhmikosr/decompress-unzip'
+  '@xhmikosr/decompress-unzip',
+  'extract-zip',
+  'yauzl',
+  'get-stream',
+  'buffer-crc32',
+  'fd-slicer'
 ]
 
 export default defineConfig(({ mode }) => ({
