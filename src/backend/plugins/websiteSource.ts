@@ -7,6 +7,7 @@ import type {
 } from 'common/types/plugins'
 import type { SourceProvider } from './pluginHost'
 import { NetworkGuard } from './networkGuard'
+import { isNewerRelease } from 'common/utils'
 
 function plain(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
@@ -918,9 +919,37 @@ export function websiteSource(
       // 1. Extração no título
       let version = extractVersionFromText(rawTitle)
 
-      // 2. Extração no corpo completo da página
-      if (!version) {
-        version = extractVersionFromText(html)
+      // 2. Extração via tags explícitas de versão (badges, spans com title, classes de versão)
+      const versionTagMatches: string[] = []
+      const explicitSpan = html.match(/<span\b[^>]*title=["'](V\s*[\d.]+)["']/i)?.[1]
+      if (explicitSpan) versionTagMatches.push(explicitSpan)
+      const classMatches = html.matchAll(/<span\b[^>]*class=["'][^"']*(?:badge|version|ver)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi)
+      for (const cm of classMatches) {
+        const v = extractVersionFromText(cm[1])
+        if (v) versionTagMatches.push(v)
+      }
+      const strongMatch = html.match(/<strong>\s*(?:Vers(?:ion|ão|ия)|Build)\s*[:：]?\s*<\/strong>\s*([^<\n]+)/i)?.[1]
+      if (strongMatch) {
+        const v = extractVersionFromText(strongMatch)
+        if (v) versionTagMatches.push(v)
+      }
+      const directVerMatch = html.match(/(?:Vers(?:ion|ão|ия)|Build)\s*[:：]\s*([v\d][a-zA-Z0-9._-]+)/i)?.[1]
+      if (directVerMatch) {
+        const v = extractVersionFromText(directVerMatch)
+        if (v) versionTagMatches.push(v)
+      }
+
+      // Adiciona também a versão encontrada no corpo geral da página
+      const bodyVersion = extractVersionFromText(html)
+      if (bodyVersion) versionTagMatches.push(bodyVersion)
+
+      // Se achou candidatos, seleciona o mais recente (nunca regredindo)
+      for (const candidate of versionTagMatches) {
+        if (!version) {
+          version = candidate
+        } else if (isNewerRelease(version, candidate)) {
+          version = candidate
+        }
       }
 
       const meta = extractGameMetadataFromHtml(html, manifest.id)

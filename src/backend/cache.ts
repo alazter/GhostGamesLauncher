@@ -22,7 +22,14 @@ export default class CacheStore<ValueType, KeyType extends string = string> {
     this.store = new Store({
       cwd: 'store_cache',
       name: filename,
-      clearInvalidConfig: true
+      clearInvalidConfig: true,
+      deserialize: (text: string) => {
+        try {
+          return JSON.parse(text.replace(/^\uFEFF/, '').trim())
+        } catch {
+          return {}
+        }
+      }
     })
     this.in_memory_store = new Map<string, ValueType>()
     this.using_in_memory = false

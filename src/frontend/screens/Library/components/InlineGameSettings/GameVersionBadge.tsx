@@ -44,7 +44,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
 
       // 4. Title match
       const instTitle = String(i.game?.title || '').trim().toLowerCase()
-      if (gameTitle && instTitle && gameTitle === instTitle) return true
+      if (gameTitle && instTitle && (gameTitle === instTitle || gameTitle.replace(/[^a-z0-9]/g, '') === instTitle.replace(/[^a-z0-9]/g, ''))) return true
 
       return false
     })
@@ -399,19 +399,29 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
         </button>
       )}
 
-      {extInstallation && !extInstallation.availableUpdate && (
+      {!extInstallation?.availableUpdate && (
         <button
           onClick={async (e) => {
             e.stopPropagation()
-            if (checkingUpdate || !extInstallation) return
+            if (checkingUpdate) return
             setCheckingUpdate(true)
             setCheckError('')
             try {
-              const result = await window.api.externalGamesAction({
-                type: 'check-update',
-                installationId: extInstallation.id
-              })
-              if (result.error) setCheckError(result.error)
+              let targetId = extInstallation?.id
+              if (!targetId) {
+                // Autocria / vincula a instalação externa para o jogo sideload
+                const created = await window.api.externalGamesGetOrCreateInstallation(game.app_name, game)
+                if (created?.id) targetId = created.id
+              }
+              if (targetId) {
+                const result = await window.api.externalGamesAction({
+                  type: 'check-update',
+                  installationId: targetId
+                })
+                if (result.error) setCheckError(result.error)
+              } else {
+                navigate(`/external-games?q=${encodeURIComponent(game.title)}`)
+              }
             } catch (err) {
               setCheckError('Não foi possível consultar a fonte. Tente novamente.')
               console.error('Falha ao verificar update:', err)
@@ -420,7 +430,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
             }
           }}
           disabled={checkingUpdate}
-          title={`Verificar se há nova versão em ${extInstallation.game.providerName}`}
+          title={extInstallation ? `Verificar se há nova versão em ${extInstallation.game.providerName}` : 'Verificar se há nova versão nas fontes comunitárias'}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -448,7 +458,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
           <span>{checkingUpdate ? 'Checando...' : 'Buscar Update'}</span>
         </button>
       )}
-      {(checkError || extInstallation?.updateMessage) && <span role="status" style={{ fontSize: '11px', maxWidth: '320px' }}>{checkError || extInstallation?.updateMessage}</span>}
+      {(checkError || extInstallation?.updateMessage) && <span role="status" style={{ fontSize: '11px', maxWidth: '320px', color: checkError ? '#f87171' : '#94a3b8' }}>{checkError || extInstallation?.updateMessage}</span>}
     </div>
   )
 }

@@ -313,12 +313,50 @@ export class PluginManager {
     try {
       const installation = ExternalGames.getInstance().snapshot().installations.find((item) => item.id === installationId)
       if (!installation) throw new Error('Instalação externa não encontrada.')
-      const plugin = this.getPlugins().find((item) => item.id === installation.game.providerId && item.isEnabled)
-      const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
-      if (!provider?.getDetails || !plugin) throw new Error('Esta fonte não oferece consulta de versões. Confira a página do jogo.')
-      const details = await provider.getDetails(installation.game.id)
-      if (details.id !== installation.game.id || details.platform !== installation.game.platform || details.edition !== installation.game.edition) throw new Error('A edição da fonte não corresponde à instalação.')
-      
+
+      let plugin = this.getPlugins().find((item) => item.id === installation.game.providerId && item.isEnabled)
+      let provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+      let details: GhostSearchResult | undefined
+
+      if (provider?.getDetails && plugin && installation.game.id && !installation.game.id.startsWith('external-') && !installation.game.id.startsWith('account-')) {
+        try {
+          const direct = await provider.getDetails(installation.game.id)
+          if (direct && direct.id === installation.game.id) {
+            details = direct
+          }
+        } catch {
+          // Fallback para busca por título
+        }
+      }
+
+      // Se não encontrou via provider direto ou se providerId for sideload/desconhecido, busca pelo título nas fontes comunitárias ativas
+      if (!details || !details.version) {
+        const titleToSearch = installation.game.title
+        if (titleToSearch) {
+          const searchRes = await this.searchExternalGames(titleToSearch)
+          const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+          const cleanTarget = norm(titleToSearch)
+          const matches = searchRes.games.filter((g) => {
+            const cleanG = norm(g.title)
+            return cleanG === cleanTarget || cleanG.includes(cleanTarget) || cleanTarget.includes(cleanG)
+          })
+          if (matches.length > 0) {
+            let best = matches[0]
+            for (const m of matches) {
+              if (m.version && (!best.version || isNewerRelease(best.version, m.version))) {
+                best = m
+              }
+            }
+            details = best
+            plugin = this.getPlugins().find((p) => p.id === best.providerId && p.isEnabled)
+          }
+        }
+      }
+
+      if (!details) {
+        throw new Error('Nenhuma fonte ativa encontrou correspondência para este jogo. Tente buscar na página Buscar Jogos.')
+      }
+
       const currentVersion = installation.game.version
       if (!currentVersion || !details.version) {
         const message = !currentVersion
@@ -335,7 +373,7 @@ export class PluginManager {
         ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
         return { success: false, error: message }
       }
-      const update = isNewer ? this.remember(details, plugin) : undefined
+      const update = isNewer && plugin ? this.remember(details, plugin) : undefined
       const message = update
         ? `Atualização disponível: ${update.version || 'Nova versão'}`
         : 'Jogo já está na versão mais recente da fonte.'

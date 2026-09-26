@@ -358,7 +358,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
 
   try {
     const accessToken = await getValidAccessToken(provider, tokens)
-    const backupJson = JSON.stringify(backupData, null, 2)
+    const backupBuffer = Buffer.from(JSON.stringify(backupData), 'utf-8')
     const now = new Date()
     const dd = String(now.getDate()).padStart(2, '0')
     const mm = String(now.getMonth() + 1).padStart(2, '0')
@@ -381,13 +381,16 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
         logError(`Erro ao listar backups anteriores no Google Drive: ${err}`, LogPrefix.Backend)
       }
 
-      // 2. Criar novo arquivo via upload multipart
+      // 2. Criar novo arquivo via upload multipart com Buffer
       const metadata = { name: fileName, mimeType: 'application/octet-stream' }
       const boundary = `ghost_backup_boundary_${Date.now()}`
-      const multipartBody = 
+      const headerPart = Buffer.from(
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
-        `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n${backupJson}\r\n` +
-        `--${boundary}--`
+        `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`,
+        'utf-8'
+      )
+      const footerPart = Buffer.from(`\r\n--${boundary}--`, 'utf-8')
+      const multipartBody = Buffer.concat([headerPart, backupBuffer, footerPart])
 
       const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
@@ -427,7 +430,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
             mute: true
           })
         },
-        body: backupJson
+        body: backupBuffer
       })
       if (!res.ok) throw new Error(`Dropbox upload failed: ${await res.text()}`)
     } else if (provider === 'onedrive') {
@@ -437,7 +440,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
-        body: backupJson
+        body: backupBuffer
       })
       if (!res.ok) throw new Error(`OneDrive upload failed: ${await res.text()}`)
     }
@@ -543,7 +546,7 @@ export async function downloadBackupFromCloud(): Promise<{ success: boolean; dat
       content = await res.text()
     }
 
-    const backupData = JSON.parse(content)
+    const backupData = JSON.parse(content.replace(/^\uFEFF/, '').trim())
     return { success: true, data: backupData }
   } catch (err) {
     logError(`Cloud backup download failed: ${err}`, LogPrefix.Backend)

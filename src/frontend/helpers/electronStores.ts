@@ -110,7 +110,8 @@ class CacheStore<ValueType, KeyType extends string = string> {
 }
 
 const configStore = new TypeCheckedStoreFrontend('configStore', {
-  cwd: 'store'
+  cwd: 'store',
+  clearInvalidConfig: true
 })
 
 const libraryStore = new CacheStore<GameInfo[], 'library'>(
@@ -122,7 +123,8 @@ const wineDownloaderInfoStore = new TypeCheckedStoreFrontend(
   'wineDownloaderInfoStore',
   {
     cwd: 'store',
-    name: 'wine-downloader-info'
+    name: 'wine-downloader-info',
+    clearInvalidConfig: true
   }
 )
 
@@ -131,11 +133,13 @@ const gogInstalledGamesStore = new TypeCheckedStoreFrontend(
   'gogInstalledGamesStore',
   {
     cwd: 'gog_store',
-    name: 'installed'
+    name: 'installed',
+    clearInvalidConfig: true
   }
 )
 const gogConfigStore = new TypeCheckedStoreFrontend('gogConfigStore', {
-  cwd: 'gog_store'
+  cwd: 'gog_store',
+  clearInvalidConfig: true
 })
 
 const zoomLibraryStore = new CacheStore<GameInfo[], 'games'>(
@@ -146,22 +150,26 @@ const zoomInstalledGamesStore = new TypeCheckedStoreFrontend(
   'zoomInstalledGamesStore',
   {
     cwd: 'zoom_store',
-    name: 'installed'
+    name: 'installed',
+    clearInvalidConfig: true
   }
 )
 const zoomConfigStore = new TypeCheckedStoreFrontend('zoomConfigStore', {
-  cwd: 'zoom_store'
+  cwd: 'zoom_store',
+  clearInvalidConfig: true
 })
 
 const steamInstalledGamesStore = new TypeCheckedStoreFrontend(
   'steamInstalledGamesStore',
   {
     cwd: 'steam_store',
-    name: 'installed'
+    name: 'installed',
+    clearInvalidConfig: true
   }
 )
 const steamConfigStore = new TypeCheckedStoreFrontend('steamConfigStore', {
-  cwd: 'steam_store'
+  cwd: 'steam_store',
+  clearInvalidConfig: true
 })
 const steamLibraryStore = new CacheStore<GameInfo[], 'games'>(
   'steam_library',
@@ -173,28 +181,33 @@ const nileLibraryStore = new CacheStore<GameInfo[], 'library'>(
   null
 )
 const nileConfigStore = new TypeCheckedStoreFrontend('nileConfigStore', {
-  cwd: 'nile_store'
+  cwd: 'nile_store',
+  clearInvalidConfig: true
 })
 
 const timestampStore = new TypeCheckedStoreFrontend('timestampStore', {
   cwd: 'store',
-  name: 'timestamp'
+  name: 'timestamp',
+  clearInvalidConfig: true
 })
 
 const sideloadLibrary = new TypeCheckedStoreFrontend('sideloadedStore', {
   cwd: 'sideload_apps',
   name: 'library',
+  clearInvalidConfig: true,
   watch: true
 })
 
 const downloadManagerStore = new TypeCheckedStoreFrontend('downloadManager', {
   cwd: 'store',
-  name: 'download-manager'
+  name: 'download-manager',
+  clearInvalidConfig: true
 })
 
 const gameOverridesStore = new TypeCheckedStoreFrontend('gameOverridesStore', {
   cwd: 'store',
   name: 'game-overrides',
+  clearInvalidConfig: true,
   watch: true
 })
 

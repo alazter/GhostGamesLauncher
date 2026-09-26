@@ -89,18 +89,72 @@ interface StoreMap {
 }
 const stores: StoreMap = {}
 
-export const storeNew = function (storeName: string, options: Store.Options<Record<string, unknown>>) {
-  stores[storeName] = new Store(options)
+const safeDeserialize = (text: string) => {
+  if (typeof text !== 'string') return {}
+  const clean = text.replace(/^\uFEFF/, '').trim()
+  if (!clean) return {}
+  try {
+    return JSON.parse(clean)
+  } catch (err) {
+    const firstBrace = clean.indexOf('{')
+    const firstBracket = clean.indexOf('[')
+    const startIdx =
+      firstBrace !== -1 && firstBracket !== -1
+        ? Math.min(firstBrace, firstBracket)
+        : firstBrace !== -1
+          ? firstBrace
+          : firstBracket
+
+    const lastBrace = clean.lastIndexOf('}')
+    const lastBracket = clean.lastIndexOf(']')
+    const endIdx = Math.max(lastBrace, lastBracket)
+
+    if (startIdx !== -1 && endIdx > startIdx) {
+      try {
+        const sliced = clean.slice(startIdx, endIdx + 1)
+        return JSON.parse(sliced)
+      } catch {}
+    }
+    console.warn('[Preload:SafeDeserialize] Corrupted config JSON detected; falling back safely:', err)
+    return {}
+  }
 }
 
-export const storeSet = (storeName: string, key: string, value?: unknown) => stores[storeName].set(key, value)
+export const storeNew = function (storeName: string, options: Store.Options<Record<string, unknown>>) {
+  const safeOptions: Store.Options<Record<string, unknown>> = {
+    clearInvalidConfig: true,
+    ...options,
+    deserialize: (options.deserialize as any) || safeDeserialize
+  }
 
-export const storeHas = (storeName: string, key: string) => stores[storeName].has(key)
+  try {
+    stores[storeName] = new Store(safeOptions)
+  } catch (err) {
+    console.error(`[Preload:Store:${storeName}] Error creating store:`, err)
+    try {
+      stores[storeName] = new Store({
+        ...safeOptions,
+        clearInvalidConfig: true
+      })
+    } catch {
+      stores[storeName] = {
+        get: (_k: string, def?: unknown) => def,
+        set: () => {},
+        has: () => false,
+        delete: () => {}
+      } as any
+    }
+  }
+}
+
+export const storeSet = (storeName: string, key: string, value?: unknown) => stores[storeName]?.set(key, value)
+
+export const storeHas = (storeName: string, key: string) => stores[storeName]?.has(key) ?? false
 
 export const storeGet = (storeName: string, key: string, defaultValue?: unknown) =>
-  stores[storeName].get(key, defaultValue)
+  stores[storeName]?.get(key, defaultValue) ?? defaultValue
 
-export const storeDelete = (storeName: string, key: string) => stores[storeName].delete(key)
+export const storeDelete = (storeName: string, key: string) => stores[storeName]?.delete(key)
 
 export const getWikiGameInfo = makeHandlerInvoker('getWikiGameInfo')
 export const fetchPlaytimeFromServer = makeHandlerInvoker('getPlaytimeFromRunner')

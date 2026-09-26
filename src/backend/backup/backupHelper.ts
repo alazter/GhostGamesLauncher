@@ -14,7 +14,7 @@ export async function getBackupPayload(): Promise<any> {
   try {
     const backupPath = join(userDataPath, 'store', 'covers-backup.json')
     if (existsSync(backupPath)) {
-      coversBackup = JSON.parse(readFileSync(backupPath, 'utf8'))
+      coversBackup = JSON.parse(readFileSync(backupPath, 'utf8').replace(/^\uFEFF/, '').trim())
     }
   } catch {}
 
@@ -41,17 +41,27 @@ export async function getBackupPayload(): Promise<any> {
               contentBase64: string
               bytes: number
             }> = []
+            let folderBytes = 0
+            const maxFolderBytes = 15 * 1024 * 1024 // Cap at 15MB per backup folder to avoid V8 string limits
+
             const readDirRecursive = (currentDir: string, relativePrefix = '') => {
               const items = readdirSync(currentDir)
               for (const item of items) {
+                if (folderBytes >= maxFolderBytes) break
                 const fullPath = join(currentDir, item)
                 const rel = relativePrefix ? `${relativePrefix}/${item}` : item
                 const stat = lstatSync(fullPath)
                 if (stat.isDirectory()) {
                   readDirRecursive(fullPath, rel)
                 } else if (stat.isFile()) {
-                  if (stat.size <= 50 * 1024 * 1024) {
+                  const lower = item.toLowerCase()
+                  // Do not embed huge logs, crash dumps or caches into cloud JSON payload
+                  if (lower.endsWith('.log') || lower.endsWith('.dmp') || lower.endsWith('.tmp') || lower.includes('cache')) {
+                    continue
+                  }
+                  if (stat.size <= 5 * 1024 * 1024 && folderBytes + stat.size <= maxFolderBytes) {
                     const contentBase64 = readFileSync(fullPath).toString('base64')
+                    folderBytes += stat.size
                     filesInFolder.push({
                       relativePath: rel,
                       contentBase64,

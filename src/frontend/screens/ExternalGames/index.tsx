@@ -173,8 +173,12 @@ export function groupGamesByTitle(games: GhostSearchResult[]): GroupedGameResult
       if (!existing.description && game.description) {
         existing.description = game.description
       }
-      if (!existing.mainGame.version && game.version) {
-        existing.mainGame = game
+      if (game.version && (!existing.mainGame.version || isNewerRelease(existing.mainGame.version, game.version))) {
+        existing.mainGame = {
+          ...game,
+          coverUrl: existing.coverUrl || game.coverUrl,
+          description: existing.description || game.description
+        }
       }
       if (game.title.length > existing.mainGame.title.length && !existing.canonicalTitle.includes(':')) {
         existing.canonicalTitle = getCanonicalGameTitle(game.title)
@@ -1826,18 +1830,31 @@ export default function ExternalGamesScreen() {
 
         setSources(finalOptions)
         if (fullDetails) {
-          setSelected((prev) =>
-            prev && (prev.id === fullDetails.id || prev.pageUrl === fullDetails.pageUrl) && isMatchingProvider(prev.providerId, fullDetails.providerId)
-              ? { ...prev, ...fullDetails }
-              : prev
-          )
+          const preserveBestVersion = (existingVer?: string, detailsVer?: string) => {
+            if (!existingVer) return detailsVer
+            if (!detailsVer) return existingVer
+            return isNewerRelease(existingVer, detailsVer) ? detailsVer : existingVer
+          }
+
+          setSelected((prev) => {
+            if (!prev) return prev
+            const isTarget =
+              (prev.id === fullDetails.id || prev.pageUrl === fullDetails.pageUrl) &&
+              isMatchingProvider(prev.providerId, fullDetails.providerId)
+            if (!isTarget) return prev
+            const bestVer = preserveBestVersion(prev.version, fullDetails.version)
+            return { ...prev, ...fullDetails, version: bestVer }
+          })
           setSearch((prev) => ({
             ...prev,
-            games: prev.games.map((g) =>
-              (g.id === fullDetails.id || (g.pageUrl && g.pageUrl === fullDetails.pageUrl)) && isMatchingProvider(g.providerId, fullDetails.providerId)
-                ? { ...g, ...fullDetails }
-                : g
-            )
+            games: prev.games.map((g) => {
+              const isTarget =
+                (g.id === fullDetails.id || (g.pageUrl && g.pageUrl === fullDetails.pageUrl)) &&
+                isMatchingProvider(g.providerId, fullDetails.providerId)
+              if (!isTarget) return g
+              const bestVer = preserveBestVersion(g.version, fullDetails.version)
+              return { ...g, ...fullDetails, version: bestVer }
+            })
           }))
         }
         if (!finalOptions.length)
@@ -3072,7 +3089,7 @@ export default function ExternalGamesScreen() {
                       statusBoxClass = 'smartStatusBox update'
                       statusIcon = faSyncAlt
                       statusTitle = 'Atualização Disponível'
-                      statusVerText = `v${instStatus.currentVersion || '1.2.0'} → ${getCardVersion(activeSource)}`
+                      statusVerText = `Instalado: v${instStatus.currentVersion?.replace(/^v/i, '') || '1.0'} → Loja: ${getCardVersion(activeSource)}`
                       shieldText = 'Backup de saves automático'
                       primaryBtnClass = 'smartPrimaryBtn cyan'
                       primaryBtnIcon = faBolt
@@ -3090,7 +3107,7 @@ export default function ExternalGamesScreen() {
                       statusBoxClass = 'smartStatusBox upToDate'
                       statusIcon = faCheckCircle
                       statusTitle = 'Instalado e Atualizado'
-                      statusVerText = `${instStatus.currentVersion || getCardVersion(activeSource)} · Versão mais recente`
+                      statusVerText = `${getCardVersion(activeSource)} · Versão mais recente instalada`
                       shieldText = 'Sincronização de integridade ativa'
                       primaryBtnClass = 'smartPrimaryBtn emerald'
                       primaryBtnIcon = faPlay

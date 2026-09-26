@@ -178,6 +178,11 @@ export class ExternalGames {
     const needsMigration = !existsSync(migrationFlagFile)
     let stateModified = false
 
+    const initialGames = (libraryStore.get('games', []) || []) as GameInfo[]
+    if (this.healInstallations(initialGames)) {
+      stateModified = true
+    }
+
     for (const installation of this.state.installations) {
       if (needsMigration) {
         installation.autoBackup = true
@@ -602,17 +607,117 @@ export class ExternalGames {
     return bestCandidate || pool[0]
   }
 
+  private healInstallations(games: GameInfo[]): boolean {
+    if (!Array.isArray(games) || games.length === 0) return false
+    let modified = false
+
+    const norm = (str?: string) =>
+      (str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+    // 1. Reconstitui instalações a partir de completed jobs em state.jobs com executável existente
+    for (const job of this.state.jobs) {
+      if (job.status === 'completed' && job.installationId) {
+        const appName = job.old?.appName || `external-${job.installationId}`
+        const libGame = games.find(
+          (g) =>
+            (g.app_name === appName ||
+              (g.title && job.game?.title && norm(g.title) === norm(job.game.title))) &&
+            g.runner === 'sideload' &&
+            g.is_installed !== false
+        )
+        if (!libGame) continue
+
+        const exists = this.state.installations.some(
+          (i) => i.id === job.installationId || i.appName === libGame.app_name
+        )
+        if (!exists) {
+          const directory =
+            libGame.folder_name ||
+            libGame.install?.install_path ||
+            job.directory
+          const executable =
+            libGame.install?.executable ||
+            (job.candidates?.[0] ? join(directory, job.candidates[0]) : '')
+          if (!executable || !existsSync(executable)) continue
+
+          this.state.installations.push({
+            id: job.installationId,
+            appName: libGame.app_name,
+            game: {
+              ...job.game,
+              version: libGame.version || job.game?.version || '1.0'
+            },
+            directory,
+            executable,
+            installedAt: job.createdAt || new Date().toISOString(),
+            autoBackup: true,
+            autoUpdate: true,
+            history: []
+          })
+          modified = true
+        }
+      }
+    }
+
+    // 2. Reconstitui instalações a partir de jogos sideload com prefixo 'external-' cujo executável exista
+    for (const g of games) {
+      if (g.runner === 'sideload' && g.app_name?.startsWith('external-') && g.is_installed !== false) {
+        const instId = g.app_name.replace(/^external-/, '')
+        const exists = this.state.installations.some(
+          (i) => i.appName === g.app_name || i.id === instId
+        )
+        if (!exists) {
+          const executable = g.install?.executable || ''
+          if (!executable || !existsSync(executable)) continue
+          const directory =
+            g.install?.install_path ||
+            g.folder_name ||
+            dirname(executable)
+          this.state.installations.push({
+            id: instId,
+            appName: g.app_name,
+            game: {
+              id: g.app_name,
+              title: g.title,
+              providerId: 'sideload',
+              providerName: 'Sideload / Piratas',
+              platform: 'windows',
+              version: g.version || '1.0'
+            },
+            directory,
+            executable,
+            installedAt: new Date().toISOString(),
+            autoBackup: true,
+            autoUpdate: true,
+            history: []
+          })
+          modified = true
+        }
+      }
+    }
+
+    return modified
+  }
+
   snapshot(): ExternalGamesState {
     const games = (libraryStore.get('games', []) || []) as GameInfo[]
     let stateChanged = false
 
-    // Auto-prune installations that were removed or uninstalled from the Ghost library
+    // Autocura defensiva: recupera instalações de jobs concluídos e jogos sideload
+    if (this.healInstallations(games)) {
+      stateChanged = true
+    }
+
+    // Auto-prune: remove instalações se o jogo foi removido da biblioteca ou se o executável foi deletado
     {
       const beforeCount = this.state.installations.length
       this.state.installations = this.state.installations.filter((inst) => {
         if (!inst.appName) return true
         if (this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted)) return true
-        return Array.isArray(games) && games.some((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
+        const libGame = Array.isArray(games) && games.find((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
+        if (!libGame) return false
+        if (inst.executable && !existsSync(inst.executable)) return false
+        return true
       })
       if (this.state.installations.length !== beforeCount) {
         stateChanged = true

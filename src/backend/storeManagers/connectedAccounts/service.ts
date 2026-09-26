@@ -111,7 +111,15 @@ async function enrichCovers(provider: AccountProvider): Promise<void> {
 function store() {
   return (storage ??= new Store<AccountStore>({
     name: 'connected-accounts',
-    defaults: { accounts: {}, xboxClientId: '' }
+    defaults: { accounts: {}, xboxClientId: '' },
+    clearInvalidConfig: true,
+    deserialize: (text: string) => {
+      try {
+        return JSON.parse(text.replace(/^\uFEFF/, '').trim())
+      } catch {
+        return { accounts: {}, xboxClientId: '' }
+      }
+    }
   }))
 }
 function providerSession(provider: AccountProvider): Session {
