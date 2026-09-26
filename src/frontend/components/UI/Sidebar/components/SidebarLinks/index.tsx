@@ -157,6 +157,9 @@ export default function SidebarLinks() {
             orderedList.push(id)
           }
         })
+        if (orderedList.length !== parsed.length) {
+          localStorage.setItem('heroic_sidebar_order', JSON.stringify(orderedList))
+        }
         return orderedList
       } catch (err) {
         console.error('Erro ao ler ordem do sidebar:', err)

@@ -15,7 +15,11 @@ import {
   faQuestionCircle,
   faClock,
   faTrash,
-  faPuzzlePiece
+  faPuzzlePiece,
+  faSearch,
+  faArrowUp,
+  faArrowDown,
+  faWineGlass
 } from '@fortawesome/free-solid-svg-icons'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
@@ -1927,23 +1931,24 @@ export default function PersonalizationScreen() {
     } as React.CSSProperties
   }
 
-  const [sidebarItems, setSidebarItems] = useState<{ id: string; icon?: any; isDivider?: boolean; active?: boolean }[]>(() => {
+  const [sidebarItems, setSidebarItems] = useState<{ id: string; icon?: any; isDivider?: boolean; active?: boolean; title?: string }[]>(() => {
     const saved = localStorage.getItem('heroic_sidebar_order')
-    const defaultOrder = [
-      { id: 'library', icon: faGamepad, active: false },
-      { id: 'releases', icon: faClock, active: false },
-      { id: 'personalization', icon: faPaintBrush, active: true },
-      { id: 'plugins', icon: faPuzzlePiece, active: false },
-      { id: 'login', icon: faUser, active: false },
-      { id: 'stores', icon: faStore, active: false },
-      { id: 'divider-1', isDivider: true },
-      { id: 'settings', icon: faSlidersH, active: false },
-      { id: 'console', icon: faTv, active: false },
-      { id: 'downloads', icon: faBarsProgress, active: false },
-      { id: 'accessibility', icon: faUniversalAccess, active: false },
-      { id: 'divider-2', isDivider: true },
-      { id: 'wiki', icon: faGithub, active: false },
-      { id: 'quit', icon: faPowerOff, active: false }
+    const defaultOrder: { id: string; icon?: any; isDivider?: boolean; active?: boolean; title?: string }[] = [
+      { id: 'library', icon: faGamepad, title: 'Biblioteca', active: false },
+      { id: 'releases', icon: faClock, title: 'Lançamentos', active: false },
+      { id: 'personalization', icon: faPaintBrush, title: 'Personalização', active: true },
+      { id: 'plugins', icon: faPuzzlePiece, title: 'Plugins', active: false },
+      { id: 'external-games', icon: faSearch, title: 'Buscar jogos', active: false },
+      { id: 'login', icon: faUser, title: 'Gerenciar Contas', active: false },
+      { id: 'stores', icon: faStore, title: 'Lojas', active: false },
+      { id: 'divider-1', isDivider: true, title: 'Divisor' },
+      { id: 'settings', icon: faSlidersH, title: 'Configurações', active: false },
+      { id: 'console', icon: faTv, title: 'Modo TV', active: false },
+      { id: 'downloads', icon: faBarsProgress, title: 'Downloads', active: false },
+      { id: 'accessibility', icon: faUniversalAccess, title: 'Acessibilidade', active: false },
+      { id: 'divider-2', isDivider: true, title: 'Divisor' },
+      { id: 'wiki', icon: faGithub, title: 'Wiki / Ajuda', active: false },
+      { id: 'quit', icon: faPowerOff, title: 'Sair', active: false }
     ]
     if (saved) {
       try {
@@ -1951,7 +1956,11 @@ export default function PersonalizationScreen() {
         const orderedList: typeof defaultOrder = []
         parsedIds.forEach(id => {
           const found = defaultOrder.find(item => item.id === id)
-          if (found) orderedList.push(found)
+          if (found) {
+            orderedList.push(found)
+          } else if (id === 'wine-manager') {
+            orderedList.push({ id: 'wine-manager', icon: faWineGlass, title: 'Wine Manager', active: false })
+          }
         })
         defaultOrder.forEach(item => {
           if (!orderedList.some(o => o.id === item.id)) {
@@ -1962,9 +1971,24 @@ export default function PersonalizationScreen() {
                 return
               }
             }
+            if (item.id === 'external-games') {
+              const plIdx = orderedList.findIndex(o => o.id === 'plugins')
+              if (plIdx !== -1) {
+                orderedList.splice(plIdx + 1, 0, item)
+                return
+              }
+              const pIdx = orderedList.findIndex(o => o.id === 'personalization')
+              if (pIdx !== -1) {
+                orderedList.splice(pIdx + 1, 0, item)
+                return
+              }
+            }
             orderedList.push(item)
           }
         })
+        if (orderedList.length !== parsedIds.length) {
+          localStorage.setItem('heroic_sidebar_order', JSON.stringify(orderedList.map(item => item.id)))
+        }
         return orderedList
       } catch (err) {
         console.error('Erro ao ler ordem da barra lateral:', err)
@@ -1972,6 +1996,20 @@ export default function PersonalizationScreen() {
     }
     return defaultOrder
   })
+
+  const moveSidebarItem = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= sidebarItems.length) return
+
+    const updated = [...sidebarItems]
+    const item = updated[index]
+    updated.splice(index, 1)
+    updated.splice(targetIndex, 0, item)
+
+    setSidebarItems(updated)
+    localStorage.setItem('heroic_sidebar_order', JSON.stringify(updated.map(i => i.id)))
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
 
   const [draggedSidebarItemIndex, setDraggedSidebarItemIndex] = useState<number | null>(null)
 
@@ -3137,6 +3175,7 @@ export default function PersonalizationScreen() {
                     <div
                       key={item.id}
                       className={`preview-sidebar-item ${item.active ? 'active' : ''}`}
+                      title={item.title || item.id}
                       draggable
                       onDragStart={(e) => handleSidebarItemDragStart(e, idx)}
                       onDragOver={(e) => handleSidebarItemDragOver(e, idx)}
@@ -7060,6 +7099,145 @@ export default function PersonalizationScreen() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* MÓDULO 2: ORDEM DOS BOTÕES DA BARRA LATERAL */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  marginTop: '16px'
+                }}
+              >
+                <div style={styles.toggleTextGroup}>
+                  <span style={styles.toggleTitle}>
+                    Ordem dos Botões da Barra Lateral
+                  </span>
+                  <span style={styles.toggleSub}>
+                    Reordene os botões da barra lateral arrastando na pré-visualização ou utilizando as setas abaixo:
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    padding: '8px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    maxHeight: '360px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {sidebarItems.map((item, index) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px',
+                        background: item.id === 'external-games' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+                        border: item.id === 'external-games' ? '1px solid rgba(0, 229, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        color: '#fff'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {item.isDivider ? (
+                          <span style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: '11px', fontStyle: 'italic' }}>── Linha Divisória ──</span>
+                        ) : (
+                          <>
+                            <div
+                              style={{
+                                width: '22px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: item.id === 'external-games' ? '#00e5ff' : '#8a9bb0'
+                              }}
+                            >
+                              <FontAwesomeIcon icon={item.icon!} />
+                            </div>
+                            <span style={{ fontWeight: item.id === 'external-games' ? 'bold' : 'normal' }}>
+                              {item.title || item.id}
+                            </span>
+                            {item.id === 'external-games' && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  background: 'rgba(0, 229, 255, 0.15)',
+                                  color: '#00e5ff',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 'bold',
+                                  letterSpacing: '0.3px'
+                                }}
+                              >
+                                Buscar Jogos
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          type="button"
+                          disabled={index === 0}
+                          onClick={() => moveSidebarItem(index, 'up')}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: index === 0 ? 'rgba(255, 255, 255, 0.2)' : '#fff',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: index === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '10px',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Mover para cima"
+                        >
+                          <FontAwesomeIcon icon={faArrowUp} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={index === sidebarItems.length - 1}
+                          onClick={() => moveSidebarItem(index, 'down')}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '4px',
+                            color: index === sidebarItems.length - 1 ? 'rgba(255, 255, 255, 0.2)' : '#fff',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: index === sidebarItems.length - 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '10px',
+                            transition: 'all 0.2s'
+                          }}
+                          title="Mover para baixo"
+                        >
+                          <FontAwesomeIcon icon={faArrowDown} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
