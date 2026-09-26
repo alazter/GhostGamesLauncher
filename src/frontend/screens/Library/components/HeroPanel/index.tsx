@@ -11,7 +11,8 @@ import {
   faStore,
   faNewspaper,
   faUsers,
-  faUser
+  faUser,
+  faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo, Runner } from 'common/types'
 import { accountProviderNames } from 'common/types/connectedAccounts'
@@ -268,6 +269,10 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
       return
     }
     if (status !== 'playing' && isLaunching) return
+    if (status === 'notAvailable') {
+      handleSettings()
+      return
+    }
 
     const appName = game.app_name
     const runner = game.runner
@@ -412,6 +417,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     if (isLaunching) return t('label.launching', 'Launching...')
     if (status === 'installing' || status === 'updating') return t('button.cancel', 'Cancel')
     if (status === 'queued') return t('button.queue.remove', 'Remove from Queue')
+    if (status === 'notAvailable') return t('gamepage:status.gameNotAvailable', 'Arquivos indisponíveis')
     if (!isInstalled && game.runner !== 'sideload') return t('button.install', 'Install')
     return t('label.playing.start', 'Play')
   }, [status, isLaunching, isInstalled, game.runner, game.accountProvider, t])
@@ -429,6 +435,9 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
     }
     if (status === 'queued') {
       return <FontAwesomeIcon icon={faTimes} style={{ fontSize: '16px' }} />
+    }
+    if (status === 'notAvailable') {
+      return <FontAwesomeIcon icon={faExclamationTriangle} style={{ fontSize: '16px' }} />
     }
     if (!isInstalled && game.runner !== 'sideload') {
       return <FontAwesomeIcon icon={faDownload} style={{ fontSize: '16px' }} />
@@ -477,11 +486,31 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
           borderBottomRightRadius: '0px',
           boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
           cursor: 'pointer',
-          filter: !isInstalled ? 'grayscale(100%)' : 'none',
+          filter: status === 'notAvailable' ? 'sepia(100%) opacity(0.7)' : !isInstalled ? 'grayscale(100%)' : 'none',
           transition: 'filter 0.25s ease'
         }}
         onClick={onClose}
       />
+
+      {status === 'notAvailable' && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'rgba(0, 0, 0, 0.75)',
+          border: '1px solid rgba(0, 255, 255, 0.3)',
+          borderRadius: '4px',
+          padding: '4px 8px',
+          color: '#00ffff',
+          fontWeight: 700,
+          fontSize: '11px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          zIndex: 5
+        }}>
+          {t('gamepage:status.gameNotAvailable', 'Arquivos indisponíveis')}
+        </div>
+      )}
 
       {/* Titulo */}
       <h2 style={{
@@ -675,7 +704,7 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
           onClick={handlePlay}
           disabled={status !== 'playing' && isLaunching}
           style={{
-            background: status === 'playing' ? '#ff4d4f' : '#00ffff',
+            background: status === 'playing' ? '#ff4d4f' : status === 'notAvailable' ? '#f59e0b' : '#00ffff',
             border: 'none',
             borderRadius: '50%',
             width: '44px',
@@ -690,6 +719,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
             boxShadow:
               status === 'playing'
                 ? '0 0 12px rgba(255, 77, 79, 0.6)'
+                : status === 'notAvailable'
+                ? '0 0 12px rgba(245, 158, 11, 0.6)'
                 : '0 0 10px rgba(0, 255, 255, 0.4)'
           }}
           onMouseOver={(e) => {
@@ -698,6 +729,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
               e.currentTarget.style.boxShadow =
                 status === 'playing'
                   ? '0 0 18px rgba(255, 77, 79, 0.8)'
+                  : status === 'notAvailable'
+                  ? '0 0 18px rgba(245, 158, 11, 0.8)'
                   : '0 0 15px rgba(0, 255, 255, 0.6)'
             }
           }}
@@ -707,6 +740,8 @@ export default function HeroPanel({ game, onClose, onSettingsClick }: Props) {
               e.currentTarget.style.boxShadow =
                 status === 'playing'
                   ? '0 0 12px rgba(255, 77, 79, 0.6)'
+                  : status === 'notAvailable'
+                  ? '0 0 12px rgba(245, 158, 11, 0.6)'
                   : '0 0 10px rgba(0, 255, 255, 0.4)'
             }
           }}

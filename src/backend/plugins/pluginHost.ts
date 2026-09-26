@@ -19,6 +19,7 @@ export interface SourceProvider {
   search: (query: string) => Promise<GhostSearchResult[]>
   getSources: (gameId: string) => Promise<GhostDownloadSource[]>
   getDetails?: (gameId: string) => Promise<GhostSearchResult>
+  getCatalog?: (options?: { letter?: string; page?: number; theme?: string }) => Promise<{ games: GhostSearchResult[]; hasMore: boolean; totalEstimated?: number }>
 }
 
 export class PluginHost {
@@ -188,13 +189,7 @@ export class PluginHost {
       },
 
       // Game source provider (AnkerGames, FitGirl, TorBox, Skidrow, etc.)
-      registerSourceProvider: (provider: {
-        id: string
-        name: string
-        search: (query: string) => Promise<GhostSearchResult[]>
-        getSources: (gameId: string) => Promise<GhostDownloadSource[]>
-        getDetails?: (gameId: string) => Promise<GhostSearchResult>
-      }) => {
+      registerSourceProvider: (provider: SourceProvider) => {
         if (!this.manifest.permissions.includes('game-sources')) {
           logError([`[PluginHost:${this.manifest.id}] Cannot register source provider without "game-sources" permission.`], LogPrefix.Backend)
           return
@@ -204,7 +199,8 @@ export class PluginHost {
           name: provider.name || this.manifest.name,
           search: provider.search,
           getSources: provider.getSources,
-          getDetails: provider.getDetails
+          getDetails: provider.getDetails,
+          getCatalog: provider.getCatalog
         }
       },
 

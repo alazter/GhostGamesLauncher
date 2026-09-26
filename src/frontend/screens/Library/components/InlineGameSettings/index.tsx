@@ -25,7 +25,7 @@ import AfterLaunchScriptPath from 'frontend/screens/Settings/components/AfterLau
 import EnvVariablesTable from 'frontend/screens/Settings/components/EnvVariablesTable'
 import AlternativeExe from 'frontend/screens/Settings/components/AlternativeExe'
 import { sideloadLibrary, gameOverridesStore, configStore } from 'frontend/helpers/electronStores'
-import { clearAvailabilityCache } from 'frontend/hooks/constants'
+import { clearAvailabilityCache, markGameAsUnavailable } from 'frontend/hooks/constants'
 import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
 import { notify } from 'frontend/helpers'
 import { openGameFolder } from 'frontend/utils/pathUtils'
@@ -404,17 +404,28 @@ export default function InlineGameSettings({ game, onClose }: Props) {
         return
       }
 
-      clearAvailabilityCache(appNameToDelete, runnerToDelete)
+      markGameAsUnavailable(appNameToDelete, runnerToDelete)
       const games = sideloadLibrary.get('games', [])
-      const filtered = games.filter((g) => g.app_name !== appNameToDelete)
-      sideloadLibrary.set('games', filtered)
+      const updatedGames = games.map((g) => {
+        if (g.app_name === appNameToDelete) {
+          return {
+            ...g,
+            is_installed: true
+          }
+        }
+        return g
+      })
+      sideloadLibrary.set('games', updatedGames)
 
-      const overrides = gameOverridesStore.get('overrides', {})
-      delete overrides[appNameToDelete]
-      gameOverridesStore.set('overrides', overrides)
-
+      // Regra Canônica: Capa personalizada, capa original e metadados permanecem 100% intactos no Ghost
       ;(configStore as any).set('backup.lastModified', Date.now())
       window.dispatchEvent(new Event('backupStateChanged'))
+      window.dispatchEvent(new Event('refreshLibrary'))
+
+      notify({
+        title: 'Jogo Deletado do Computador',
+        body: 'Arquivos físicos excluídos para liberar espaço. O card permanece na biblioteca como "Arquivos indisponíveis".'
+      })
     } catch (err: any) {
       notify({
         title: 'Erro ao Deletar',
@@ -1410,7 +1421,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#fff' }}>
-                    Deletar Jogo do Computador
+                    Deletar do Computador (Liberar Espaço)
                   </h3>
                   <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', marginTop: '2px' }}>
                     {currentTitle}
@@ -1439,7 +1450,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                 </div>
               )}
 
-              {/* Alerta de Exclusão Definitiva */}
+              {/* Alerta de Exclusão de Arquivos Físicos */}
               <div
                 style={{
                   background: 'rgba(255, 82, 82, 0.08)',
@@ -1456,7 +1467,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
               >
                 <FontAwesomeIcon icon={faExclamationTriangle} style={{ color: '#ff5252', marginTop: '3px', flexShrink: 0 }} />
                 <div>
-                  <strong>Ação permanente e irreversível:</strong> Todos os arquivos desta pasta serão completamente excluídos do disco rígido e o jogo será removido da biblioteca.
+                  <strong>Exclusão de arquivos físicos:</strong> Todos os arquivos desta pasta serão excluídos do computador para liberar espaço em disco. A capa personalizada, capa original e todos os dados do jogo continuarão intactos na sua biblioteca em repouso.
                 </div>
               </div>
 
@@ -1554,7 +1565,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
                   ) : (
                     <>
                       <FontAwesomeIcon icon={faTrashAlt} />
-                      <span>Deletar do Computador</span>
+                      <span>Deletar Arquivos do Disco</span>
                     </>
                   )}
                 </button>

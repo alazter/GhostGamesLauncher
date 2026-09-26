@@ -8,6 +8,7 @@ export const externalGamesLocalCandidates = makeHandlerInvoker('externalGamesLoc
 export const externalGamesLink = makeHandlerInvoker('externalGamesLink')
 export const pluginsInstallBuiltinSource = makeHandlerInvoker('pluginsInstallBuiltinSource')
 export const externalGamesSearch = makeHandlerInvoker('externalGamesSearch')
+export const externalGamesGetCatalog = makeHandlerInvoker('externalGamesGetCatalog')
 export const externalGamesAddPage = makeHandlerInvoker('externalGamesAddPage')
 export const externalGamesInstall = makeHandlerInvoker('externalGamesInstall')
 export const externalGamesInstallLocal = makeHandlerInvoker('externalGamesInstallLocal')

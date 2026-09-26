@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { sameExternalGameIdentity } from 'common/externalGameIdentity'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -521,6 +521,45 @@ export const HOME_SPOTLIGHT_GAMES: SpotlightGameItem[] = [
       description: 'Salve o reino de Hyrule usando a sabedoria da Princesa Zelda e o Trirod em uma aventura inovadora e cativante.'
     }
   }
+]
+
+export const ALPHABET_LIST = [
+  'All',
+  '0-9',
+  'A',
+  'B',
+  'C',
+  'D',
+  'E',
+  'F',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'M',
+  'N',
+  'O',
+  'P',
+  'Q',
+  'R',
+  'S',
+  'T',
+  'U',
+  'V',
+  'W',
+  'X',
+  'Y',
+  'Z'
+]
+
+export const CATALOG_THEME_FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'popular', label: 'Mais Populares', icon: faFire },
+  { id: 'coop', label: 'Co-Op / Online', icon: faUsers },
+  { id: 'action', label: 'Ação / Aventura', icon: faGamepad },
+  { id: 'rpg', label: 'RPG / Tático', icon: faStar }
 ]
 
 export const STORE_HIGHLIGHT_SHELVES: StoreShelfItem[] = [
@@ -1455,6 +1494,95 @@ export default function ExternalGamesScreen() {
     (item) => item.id === replacement
   )
 
+  // Estado do Catálogo "All Games" por loja
+  const [catalogGames, setCatalogGames] = useState<GhostSearchResult[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(false)
+  const [catalogPage, setCatalogPage] = useState(1)
+  const [catalogHasMore, setCatalogHasMore] = useState(true)
+  const [catalogLetter, setCatalogLetter] = useState('All')
+  const [catalogTheme, setCatalogTheme] = useState('all')
+  const [catalogTotal, setCatalogTotal] = useState(0)
+
+  const activeCatalogPlugin = useMemo(() => {
+    if (!provider) return null
+    return plugins.find((p) => isMatchingProvider(p.id, provider) || p.id === provider) || null
+  }, [provider, plugins])
+
+  const loadCatalog = useCallback(async (
+    targetProvider: string,
+    letter: string,
+    theme: string,
+    page: number
+  ) => {
+    if (!targetProvider) return
+    setCatalogLoading(true)
+
+    try {
+      const response = await window.api.externalGamesGetCatalog(targetProvider, {
+        letter: letter === 'All' ? undefined : letter,
+        theme: theme === 'all' ? undefined : theme,
+        page
+      })
+
+      if (response && Array.isArray(response.games) && response.games.length > 0) {
+        setCatalogGames((prev) => (page === 1 ? response.games : [...prev, ...response.games]))
+        setCatalogHasMore(response.hasMore)
+        if (response.totalEstimated) setCatalogTotal(response.totalEstimated)
+      } else if (page === 1) {
+        const fallbackList = STORE_HIGHLIGHT_SHELVES.find((s) =>
+          isMatchingProvider(targetProvider, s.id) ||
+          targetProvider.toLowerCase().includes(s.id.toLowerCase())
+        )?.games || []
+
+        let filteredFallback = fallbackList
+        if (letter !== 'All') {
+          if (letter === '0-9') {
+            filteredFallback = filteredFallback.filter((g) => /^[0-9]/.test(g.title))
+          } else {
+            filteredFallback = filteredFallback.filter((g) =>
+              g.title.toUpperCase().startsWith(letter.toUpperCase())
+            )
+          }
+        }
+        setCatalogGames(filteredFallback)
+        setCatalogHasMore(false)
+        setCatalogTotal(filteredFallback.length)
+      }
+    } catch (err) {
+      console.warn('Falha ao carregar catálogo da loja:', err)
+      if (page === 1) {
+        const fallbackList = STORE_HIGHLIGHT_SHELVES.find((s) =>
+          isMatchingProvider(targetProvider, s.id) ||
+          targetProvider.toLowerCase().includes(s.id.toLowerCase())
+        )?.games || []
+        setCatalogGames(fallbackList)
+        setCatalogHasMore(false)
+        setCatalogTotal(fallbackList.length)
+      }
+    } finally {
+      setCatalogLoading(false)
+    }
+  }, [])
+
+  const handleSelectLetter = (letter: string) => {
+    setCatalogLetter(letter)
+    setCatalogPage(1)
+    void loadCatalog(provider, letter, catalogTheme, 1)
+  }
+
+  const handleSelectTheme = (theme: string) => {
+    setCatalogTheme(theme)
+    setCatalogPage(1)
+    void loadCatalog(provider, catalogLetter, theme, 1)
+  }
+
+  const handleLoadMoreCatalog = () => {
+    if (catalogLoading || !catalogHasMore) return
+    const nextPage = catalogPage + 1
+    setCatalogPage(nextPage)
+    void loadCatalog(provider, catalogLetter, catalogTheme, nextPage)
+  }
+
   const handleResetToHome = () => {
     setQuery('')
     setSearched(false)
@@ -1463,6 +1591,10 @@ export default function ExternalGamesScreen() {
     setProvider('')
     setSources([])
     setShowDownloadOptions(false)
+    setCatalogGames([])
+    setCatalogLetter('All')
+    setCatalogTheme('all')
+    setCatalogPage(1)
     if (params.get('q') || params.get('search') || params.get('installation')) {
       navigate('/external-games', { replace: true })
     }
@@ -1821,6 +1953,15 @@ export default function ExternalGamesScreen() {
     }
     return activeGroup.allSources[0] || activeGroup.mainGame
   }, [activeGroup, selected])
+
+  useEffect(() => {
+    if (provider && !query.trim() && !searched && !activeGroup) {
+      setCatalogLetter('All')
+      setCatalogTheme('all')
+      setCatalogPage(1)
+      void loadCatalog(provider, 'All', 'all', 1)
+    }
+  }, [provider, query, searched, activeGroup, loadCatalog])
 
   const currentInstStatus = useMemo(() => {
     if (!activeSource) return { status: 'not_installed' as const }
@@ -2225,7 +2366,7 @@ export default function ExternalGamesScreen() {
           <div className="externalUnifiedSearchRow">
             <button
               type="button"
-              className={`externalHomeBtn ${!searched && !activeGroup && !query ? 'active' : ''}`}
+              className={`externalHomeBtn ${!searched && !activeGroup && !query && !provider ? 'active' : ''}`}
               onClick={handleResetToHome}
               title="Página Inicial de Destaques"
               aria-label="Página Inicial"
@@ -2280,6 +2421,10 @@ export default function ExternalGamesScreen() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* LINHA 2: LOJAS SUPORTADAS (PILLS) DIRETAMENTE ABAIXO DA BARRA DE PESQUISA */}
+          <div className="externalStorePillsRow">
             <div
               className="externalFilterPills"
               onWheel={(e) => {
@@ -2302,50 +2447,35 @@ export default function ExternalGamesScreen() {
               {plugins.map((plugin) => {
                 const storeCount = search.games.filter((g) => isMatchingProvider(g.providerId, plugin.id)).length
                 const isActive = provider === plugin.id || isMatchingProvider(provider, plugin.id)
-                const isSteamRip = plugin.id.toLowerCase().includes('steamrip') || plugin.name.toLowerCase().includes('steamrip')
                 return (
-                  <Fragment key={plugin.id}>
-                    <button
-                      type="button"
-                      className={`externalPill ${isActive ? 'active' : ''}`}
-                      onClick={() => setProvider(isActive ? '' : plugin.id)}
-                    >
-                      {renderProviderIcon(
-                        plugin.id,
-                        plugin.name,
-                        plugin.homepage ? `${plugin.homepage}/favicon.ico` : undefined,
-                        13
-                      )}
-                      <span>{plugin.name}</span>
-                      {searched && storeCount > 0 && (
-                        <span className="pillCountBadge">{storeCount}</span>
-                      )}
-                    </button>
-                    {isSteamRip && (
-                      <button
-                        type="button"
-                        className="externalSettingsPillBtn"
-                        onClick={() => handleOpenSettingsModal('pastas')}
-                        title="Configurações de Buscar Jogos"
-                        aria-label="Configurações de Buscar Jogos"
-                      >
-                        <FontAwesomeIcon icon={faCog} />
-                      </button>
+                  <button
+                    key={plugin.id}
+                    type="button"
+                    className={`externalPill ${isActive ? 'active' : ''}`}
+                    onClick={() => setProvider(isActive ? '' : plugin.id)}
+                  >
+                    {renderProviderIcon(
+                      plugin.id,
+                      plugin.name,
+                      plugin.homepage ? `${plugin.homepage}/favicon.ico` : undefined,
+                      13
                     )}
-                  </Fragment>
+                    <span>{plugin.name}</span>
+                    {searched && storeCount > 0 && (
+                      <span className="pillCountBadge">{storeCount}</span>
+                    )}
+                  </button>
                 )
               })}
-              {!plugins.some((p) => p.id.toLowerCase().includes('steamrip') || p.name.toLowerCase().includes('steamrip')) && (
-                <button
-                  type="button"
-                  className="externalSettingsPillBtn"
-                  onClick={() => handleOpenSettingsModal('pastas')}
-                  title="Configurações de Buscar Jogos"
-                  aria-label="Configurações de Buscar Jogos"
-                >
-                  <FontAwesomeIcon icon={faCog} />
-                </button>
-              )}
+              <button
+                type="button"
+                className="externalSettingsPillBtn"
+                onClick={() => handleOpenSettingsModal('pastas')}
+                title="Configurações de Buscar Jogos"
+                aria-label="Configurações de Buscar Jogos"
+              >
+                <FontAwesomeIcon icon={faCog} />
+              </button>
             </div>
           </div>
 
@@ -2402,8 +2532,8 @@ export default function ExternalGamesScreen() {
                 </div>
               ))}
 
-            {/* NOVO HERO SHOWCASE E VITRINE MODERNA DE JOGOS DESTAQUES (APENAS HOME) */}
-            {!searched && !activeGroup && (
+            {/* NOVO HERO SHOWCASE E VITRINE MODERNA DE JOGOS DESTAQUES (APENAS HOME QUANDO !provider) */}
+            {!searched && !activeGroup && !provider && (
               <div className="ghostHomeContainer">
                 {/* 1. HERO SHOWCASE CINEMÁTICO WIDESCREEN */}
                 {(() => {
@@ -2578,6 +2708,154 @@ export default function ExternalGamesScreen() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* CATÁLOGO "ALL GAMES" DA LOJA QUANDO UM PROVEDOR ESTÁ SELECIONADO NA HOME */}
+            {!searched && !activeGroup && Boolean(provider) && (
+              <div className="ghostStoreCatalogContainer">
+                {/* 1. BANNER DO CATÁLOGO DA LOJA */}
+                <div className="catalogHeaderBanner">
+                  <div className="catalogHeaderInfo">
+                    <div className="catalogHeaderIcon">
+                      {renderProviderIcon(
+                        activeCatalogPlugin?.id || provider,
+                        activeCatalogPlugin?.name || provider,
+                        activeCatalogPlugin?.homepage ? `${activeCatalogPlugin.homepage}/favicon.ico` : undefined,
+                        26
+                      )}
+                    </div>
+                    <div className="catalogHeaderText">
+                      <h3>{activeCatalogPlugin?.name || 'Catálogo'} · Catálogo de Jogos</h3>
+                      <p>
+                        Explore e baixe todos os títulos disponíveis diretamente dos repositórios oficiais com proteção de saves GhostShield.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="catalogHeaderBadge">
+                    <FontAwesomeIcon icon={faShieldAlt} style={{ marginRight: '6px' }} />
+                    <span>
+                      {catalogTotal > 0
+                        ? `${catalogTotal.toLocaleString('pt-BR')} Jogos Disponíveis`
+                        : `${catalogGames.length} Jogos Carregados`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. FILTROS RÁPIDOS (THEME PILLS) */}
+                <div className="catalogQuickFiltersRow">
+                  {CATALOG_THEME_FILTERS.map((f) => {
+                    const isActive = catalogTheme === f.id
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        className={`catalogQuickFilterPill ${isActive ? 'active' : ''}`}
+                        onClick={() => handleSelectTheme(f.id)}
+                      >
+                        {f.icon && <FontAwesomeIcon icon={f.icon} />}
+                        <span>{f.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* 3. BARRA ALFABÉTICA (BROWSE BY LETTER) */}
+                <div className="catalogAlphabetContainer">
+                  <div className="catalogAlphabetTitle">
+                    <FontAwesomeIcon icon={faLayerGroup} />
+                    <span>Filtrar por Letra Inicial:</span>
+                  </div>
+                  <div className="catalogAlphabetButtons">
+                    {ALPHABET_LIST.map((letra) => {
+                      const isActive = catalogLetter === letra
+                      return (
+                        <button
+                          key={letra}
+                          type="button"
+                          className={`catalogLetterBtn ${isActive ? 'active' : ''}`}
+                          onClick={() => handleSelectLetter(letra)}
+                        >
+                          {letra}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. GRADE DE JOGOS DO CATÁLOGO */}
+                <div className="catalogGridHeader">
+                  <h4>
+                    <span>Jogos Encontrados</span>
+                    <span className="catalogCountBadge">({catalogGames.length})</span>
+                  </h4>
+                </div>
+
+                {catalogLoading && catalogGames.length === 0 ? (
+                  <div className="catalogLoadingState">
+                    <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '28px', color: '#00ffff' }} />
+                    <span>Carregando catálogo da loja...</span>
+                  </div>
+                ) : catalogGames.length === 0 ? (
+                  <div className="catalogEmptyState">
+                    <FontAwesomeIcon icon={faGamepad} style={{ fontSize: '32px', color: '#64748b' }} />
+                    <p>Nenhum jogo encontrado para esta letra ou filtro na loja.</p>
+                  </div>
+                ) : (
+                  <div className="catalogCardsGrid">
+                    {catalogGames.map((game, index) => {
+                      const displayVer = getCardVersion(game)
+                      return (
+                        <div
+                          key={`${game.id}-${index}`}
+                          className="catalogGameCard"
+                          onClick={() => handleSelectHomeGame(game)}
+                          title={`${game.title} - Clique para ver detalhes e instalar`}
+                        >
+                          {displayVer && (
+                            <div className="catalogCardVersionBadge">{displayVer}</div>
+                          )}
+                          <CachedImage
+                            src={game.coverUrl || fallbackImage}
+                            alt={game.title}
+                            className="catalogCoverImg"
+                          />
+                          <div className="catalogCardMetaOverlay">
+                            <span className="catalogCardTitle">{game.title}</span>
+                            <div className="catalogCardSub">
+                              <span className="catalogCardGenre">{game.genre?.split(',')[0] || game.mode || 'PC Game'}</span>
+                              {game.size && <span className="catalogCardSize">{game.size}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* 5. BOTÃO CARREGAR MAIS */}
+                {catalogHasMore && catalogGames.length > 0 && (
+                  <div className="catalogLoadMoreContainer">
+                    <button
+                      type="button"
+                      className="catalogLoadMoreBtn"
+                      onClick={handleLoadMoreCatalog}
+                      disabled={catalogLoading}
+                    >
+                      {catalogLoading ? (
+                        <>
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                          <span>Carregando Mais Jogos...</span>
+                        </>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faPlus} />
+                          <span>Carregar Mais Jogos</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

@@ -20,7 +20,7 @@ export function getStatusLabel({
 }: StatusArgs): string {
   const statusMap: Partial<Record<Status, string>> = {
     notSupportedGame: t('gamepage:status.notSupportedGame', 'Not Supported'),
-    notAvailable: t('gamepage:status.gameNotAvailable', 'Game not available'),
+    notAvailable: t('gamepage:status.gameNotAvailable', 'Arquivos indisponíveis'),
     playing: t('gamepage:status.playing', 'Playing'),
     queued: `${t('gamepage:status.queued', 'Queued')}`,
     uninstalling: t('gamepage:status.uninstalling', 'Uninstalling'),
@@ -114,5 +114,23 @@ export function clearAvailabilityCache(appName?: string, runner?: Runner) {
     } catch {
       // ignore
     }
+  }
+}
+
+export function markGameAsUnavailable(appName: string, runner: Runner) {
+  const gameId = `${appName}_${runner}`
+  availabilityCache.set(gameId, false)
+  const nonAvailbleGames = storage.getItem('nonAvailableGames') || '[]'
+  try {
+    const nonAvailbleGamesArray = JSON.parse(nonAvailbleGames) as string[]
+    if (!nonAvailbleGamesArray.includes(appName)) {
+      nonAvailbleGamesArray.push(appName)
+      storage.setItem(
+        'nonAvailableGames',
+        JSON.stringify(nonAvailbleGamesArray)
+      )
+    }
+  } catch {
+    storage.setItem('nonAvailableGames', JSON.stringify([appName]))
   }
 }

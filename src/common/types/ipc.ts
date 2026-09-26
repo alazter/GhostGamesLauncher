@@ -513,6 +513,10 @@ interface AsyncIPCFunctions {
   externalGamesLink: (appName: string, game: GhostSearchResult) => Promise<ExternalActionResult>
   pluginsInstallBuiltinSource: (id: string) => Promise<PluginInstallResult>
   externalGamesSearch: (query: string) => Promise<SourceSearchResponse>
+  externalGamesGetCatalog: (
+    providerId: string,
+    options?: { letter?: string; page?: number; theme?: string }
+  ) => Promise<{ games: GhostSearchResult[]; hasMore: boolean; totalEstimated?: number }>
   externalGamesAddPage: (providerId: string, pageUrl: string, title: string, version?: string) => Promise<GhostSearchResult>
   externalGamesInstall: (request: ExternalInstallRequest) => Promise<ExternalActionResult>
   externalGamesInstallLocal: () => Promise<ExternalActionResult>

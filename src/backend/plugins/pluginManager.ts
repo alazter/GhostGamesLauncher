@@ -210,6 +210,47 @@ export class PluginManager {
     }
   }
 
+  public async getCatalog(
+    providerId: string,
+    options?: { letter?: string; page?: number; theme?: string }
+  ): Promise<{ games: GhostSearchResult[]; hasMore: boolean; totalEstimated?: number }> {
+    const plugin = this.getPlugins().find(
+      (item) => (item.id === providerId || item.id.includes(providerId) || providerId.includes(item.id)) && item.isEnabled
+    )
+    const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+    if (!plugin || !provider) {
+      return { games: [], hasMore: false }
+    }
+
+    if (provider.getCatalog) {
+      try {
+        const result = await provider.getCatalog(options)
+        const rememberedGames = result.games.map((g) => this.remember(g, plugin))
+        return {
+          games: rememberedGames,
+          hasMore: result.hasMore,
+          totalEstimated: result.totalEstimated
+        }
+      } catch (err) {
+        logWarning(`[PluginManager] getCatalog failed for ${providerId}: ${err}`, LogPrefix.Backend)
+      }
+    }
+
+    // Fallback gracioso: busca jogos gerais
+    try {
+      const q = options?.letter && options.letter !== 'All' ? options.letter : (options?.theme || 'a')
+      const games = await provider.search(q)
+      const rememberedGames = games.map((g) => this.remember(g, plugin))
+      return {
+        games: rememberedGames,
+        hasMore: rememberedGames.length >= 10,
+        totalEstimated: rememberedGames.length * 10
+      }
+    } catch {
+      return { games: [], hasMore: false }
+    }
+  }
+
   public async installExternalGame(request: ExternalInstallRequest): Promise<ExternalActionResult> {
     try {
       const plugin = this.getPlugins().find(

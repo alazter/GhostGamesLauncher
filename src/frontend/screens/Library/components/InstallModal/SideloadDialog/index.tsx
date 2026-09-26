@@ -30,6 +30,7 @@ import {
   removeSpecialcharacters,
   writeConfig
 } from 'frontend/helpers'
+import { tryRestoreArchivedDataForGame, getArchivedGameData } from 'frontend/helpers/archivedGameData'
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { AvailablePlatforms } from '..'
@@ -324,17 +325,28 @@ export default function SideloadDialog({
   async function handleInstall(): Promise<void> {
     setAddingApp(true)
     const hasExecutable = Boolean(selectedExe && selectedExe.trim().length > 0)
+
+    // Tenta restaurar capas e metadados arquivados se o usuário readicionou o jogo
+    const restored = tryRestoreArchivedDataForGame({ app_name, title })
+    const finalCover = (heroUrl && heroUrl !== fallbackImage)
+      ? heroUrl
+      : (restored.art_cover || imageUrl || fallbackImage)
+    const finalSquare = (imageUrl && imageUrl !== fallbackImage)
+      ? imageUrl
+      : (restored.art_square || heroUrl || fallbackImage)
+    const finalTitle = title || restored.title || t('sideload.field.title', 'Title')
+
     window.api.addNewApp({
       runner: 'sideload',
       app_name,
-      title,
+      title: finalTitle,
       install: {
         executable: selectedExe,
         platform: gameInfo.install?.platform ?? platformToInstall
       },
-      art_cover: heroUrl || imageUrl || fallbackImage,
+      art_cover: finalCover,
       is_installed: Boolean(hasExecutable || gameUrl || (!gameInfo.accountProvider && gameInfo.is_installed)),
-      art_square: imageUrl || heroUrl || fallbackImage,
+      art_square: finalSquare,
       canRunOffline: true,
       browserUrl: gameUrl,
       customUserAgent,
@@ -1149,6 +1161,19 @@ export default function SideloadDialog({
                                   cleanVal = cleanVal.slice(1, -1)
                                 }
                                 setSelectedExe(cleanVal)
+                                if (!editMode && cleanVal) {
+                                  const rawName = cleanVal.split(/[/\\]/).filter(Boolean).pop()?.replace(/\.[^/.]+$/, '') || ''
+                                  const candidateTitle = rawName ? rawName.replace(/[-_.]+/g, ' ').trim() : ''
+                                  const checkTitle = (!title || title === t('sideload.field.title', 'Title')) ? candidateTitle : title
+                                  const archived = getArchivedGameData({ appName: app_name, title: checkTitle })
+                                  if (archived) {
+                                    if (archived.title) setTitle(archived.title)
+                                    if (archived.art_cover) setHeroUrl(archived.art_cover)
+                                    if (archived.art_square) setImageUrl(archived.art_square)
+                                  } else if ((!title || title === t('sideload.field.title', 'Title')) && candidateTitle) {
+                                    setTitle(candidateTitle)
+                                  }
+                                }
                               }}
                               path={selectedExe}
                               placeholder={t('sideload.info.exe', 'Select Executable')}

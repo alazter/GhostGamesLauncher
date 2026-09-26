@@ -811,6 +811,104 @@ export function websiteSource(
         .filter((game) => matchesQuery(game.title, query))
         .slice(0, 100)
     },
+    async getCatalog(options?: { letter?: string; page?: number; theme?: string }) {
+      const pageNum = options?.page || 1
+      const letter = options?.letter
+      const theme = options?.theme
+      const targetUrls: string[] = []
+
+      if (/ankergames\.net/i.test(base)) {
+        if (letter && letter !== 'All') {
+          if (letter === '0-9') {
+            targetUrls.push(new URL(`/games-list?q=0&page=${pageNum}`, base).href)
+            targetUrls.push(new URL(`/games-list?letter=num&page=${pageNum}`, base).href)
+          } else {
+            targetUrls.push(new URL(`/games-list?q=${encodeURIComponent(letter)}&page=${pageNum}`, base).href)
+            targetUrls.push(new URL(`/games-list?letter=${encodeURIComponent(letter)}&page=${pageNum}`, base).href)
+          }
+        } else if (theme && theme !== 'all') {
+          if (theme === 'popular') {
+            targetUrls.push(new URL(`/games-list?sort=popular&page=${pageNum}`, base).href)
+          } else if (theme === 'coop') {
+            targetUrls.push(new URL(`/search/multiplayer?page=${pageNum}`, base).href)
+            targetUrls.push(new URL(`/games-list?genre=multiplayer&page=${pageNum}`, base).href)
+          } else if (theme === 'action') {
+            targetUrls.push(new URL(`/search/action?page=${pageNum}`, base).href)
+            targetUrls.push(new URL(`/games-list?genre=action&page=${pageNum}`, base).href)
+          } else if (theme === 'rpg') {
+            targetUrls.push(new URL(`/search/rpg?page=${pageNum}`, base).href)
+            targetUrls.push(new URL(`/games-list?genre=rpg&page=${pageNum}`, base).href)
+          } else {
+            targetUrls.push(new URL(`/games-list?genre=${encodeURIComponent(theme)}&page=${pageNum}`, base).href)
+          }
+        } else {
+          targetUrls.push(new URL(`/games-list?page=${pageNum}`, base).href)
+          targetUrls.push(new URL(`/games-list`, base).href)
+        }
+      } else if (/steamrip\.com/i.test(base)) {
+        if (letter && letter !== 'All') {
+          targetUrls.push(new URL(`/?s=${encodeURIComponent(letter)}&page=${pageNum}`, base).href)
+          targetUrls.push(new URL(`/games-list-page/?page=${pageNum}`, base).href)
+        } else if (theme && theme !== 'all') {
+          if (theme === 'popular') {
+            targetUrls.push(new URL(`/?s=popular&page=${pageNum}`, base).href)
+          } else if (theme === 'coop') {
+            targetUrls.push(new URL(`/?s=multiplayer&page=${pageNum}`, base).href)
+          } else if (theme === 'action') {
+            targetUrls.push(new URL(`/category/action/page/${pageNum}/`, base).href)
+          } else if (theme === 'rpg') {
+            targetUrls.push(new URL(`/category/rpg/page/${pageNum}/`, base).href)
+          } else {
+            targetUrls.push(new URL(`/?s=${encodeURIComponent(theme)}&page=${pageNum}`, base).href)
+          }
+        } else {
+          if (pageNum === 1) {
+            targetUrls.push(new URL('/games-list-page/', base).href)
+          } else {
+            targetUrls.push(new URL(`/games-list-page/page/${pageNum}/`, base).href)
+            targetUrls.push(new URL(`/page/${pageNum}/`, base).href)
+          }
+        }
+      } else {
+        const catalogPath = config.catalogPath || '/'
+        targetUrls.push(new URL(catalogPath, base).href)
+      }
+
+      let games: GhostSearchResult[] = []
+      let fetchedHtml = ''
+      for (const target of targetUrls) {
+        try {
+          fetchedHtml = await page(target)
+          const parsed = parseWebsiteGames(fetchedHtml, base, config, manifest)
+          if (parsed.length > 0) {
+            games = parsed
+            break
+          }
+        } catch {
+          // Segue para a próxima URL de fallback
+        }
+      }
+
+      if (letter && letter !== 'All' && games.length > 0) {
+        if (letter === '0-9') {
+          games = games.filter((g) => /^[0-9]/.test(g.title.trim()))
+        } else {
+          games = games.filter((g) => g.title.trim().toUpperCase().startsWith(letter.toUpperCase()))
+        }
+      }
+
+      const hasMore = Boolean(
+        games.length >= 10 ||
+        /class=["'][^"']*(?:next|pagination)[^"']*["']/i.test(fetchedHtml) ||
+        /<a\b[^>]*rel=["']next["']/i.test(fetchedHtml)
+      )
+
+      return {
+        games,
+        hasMore,
+        totalEstimated: games.length > 0 ? (games.length * 15) : 0
+      }
+    },
     async getDetails(id) {
       const html = await page(id)
       const rawTitle = cleanGameTitle(plain(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] || ''))

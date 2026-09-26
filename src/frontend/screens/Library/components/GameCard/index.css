@@ -149,8 +149,12 @@
 }
 
 .gameCard.notAvailable > .gameCardStatus {
-  color: var(--text-log);
+  color: #00ffff;
+  right: 5px;
+  left: auto;
   text-align: end;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(0, 255, 255, 0.25);
 }
 
 .gameCard > a {

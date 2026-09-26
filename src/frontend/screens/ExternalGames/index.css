@@ -439,7 +439,7 @@
   box-sizing: border-box;
 }
 
-/* Barra de Busca Unificada com Filter Pills na Mesma Linha */
+/* Barra de Busca Unificada 100% de Largura */
 .externalUnifiedSearchRow {
   background: #0d131a;
   border: 1.5px solid rgba(255, 255, 255, 0.1);
@@ -447,14 +447,21 @@
   padding: 6px 14px 6px 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
   box-sizing: border-box;
   transition: all 0.2s ease;
   min-height: 54px;
+  width: 100%;
   overflow: hidden;
+}
+
+.externalStorePillsRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
 .externalUnifiedSearchRow:focus-within {
@@ -3530,3 +3537,331 @@
 
 .ghostTransportChoices { display: flex; flex-direction: column; gap: 14px; margin: 24px 0; }
 .ghostTransportChoices button { width: 100%; justify-content: flex-start; text-align: left; }
+
+/* ========================================================================== */
+/* CATÁLOGO "ALL GAMES" DA LOJA                                               */
+/* ========================================================================== */
+.ghostStoreCatalogContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  animation: fadeInCatalog 0.3s ease;
+}
+
+@keyframes fadeInCatalog {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.catalogHeaderBanner {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.08) 0%, rgba(18, 24, 38, 0.8) 100%);
+  border: 1px solid rgba(0, 255, 255, 0.25);
+  border-radius: 14px;
+  padding: 16px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.catalogHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.catalogHeaderIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 255, 255, 0.12);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.catalogHeaderText h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.catalogHeaderText p {
+  font-size: 13px;
+  color: #8a99ad;
+  margin: 3px 0 0 0;
+}
+
+.catalogHeaderBadge {
+  background: rgba(0, 255, 255, 0.12);
+  color: #00ffff;
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.catalogQuickFiltersRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.catalogQuickFilterPill {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #c0c9d6;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.catalogQuickFilterPill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(0, 255, 255, 0.3);
+}
+
+.catalogQuickFilterPill.active {
+  background: rgba(0, 255, 255, 0.16);
+  border-color: #00ffff;
+  color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.25);
+}
+
+.catalogAlphabetContainer {
+  background: rgba(14, 20, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 18px;
+}
+
+.catalogAlphabetTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #8a99ad;
+  font-weight: 800;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.catalogAlphabetButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.catalogLetterBtn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.catalogLetterBtn:hover {
+  border-color: #00ffff;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.catalogLetterBtn.active {
+  background: #00ffff;
+  color: #0b0f19;
+  border-color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+}
+
+.catalogGridHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.catalogGridHeader h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.catalogCountBadge {
+  font-size: 13px;
+  color: #8a99ad;
+}
+
+.catalogCardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 18px;
+  margin-top: 10px;
+  margin-bottom: 24px;
+}
+
+.catalogGameCard {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(18, 24, 38, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  aspect-ratio: 173 / 275;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.catalogGameCard:hover {
+  border-color: #00ffff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9), 0 0 18px rgba(0, 255, 255, 0.35);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.catalogCoverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.catalogGameCard:hover .catalogCoverImg {
+  transform: scale(1.05);
+}
+
+.catalogCardVersionBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 230, 118, 0.9);
+  color: #0b0f19;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+  letter-spacing: 0.3px;
+}
+
+.catalogCardMetaOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 35px 12px 12px 12px;
+  background: linear-gradient(to top, rgba(11, 15, 25, 0.95) 0%, rgba(11, 15, 25, 0.7) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+
+.catalogCardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catalogCardSub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8a99ad;
+}
+
+.catalogCardGenre {
+  color: #00ffff;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.catalogCardSize {
+  color: #c0c9d6;
+  font-size: 11px;
+}
+
+.catalogLoadMoreContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  margin-bottom: 24px;
+}
+
+.catalogLoadMoreBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(18, 24, 38, 0.85);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  color: #00ffff;
+  padding: 12px 32px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.catalogLoadMoreBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 255, 0.15);
+  border-color: #00ffff;
+  box-shadow: 0 0 18px rgba(0, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.catalogLoadMoreBtn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.catalogLoadingState,
+.catalogEmptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: #8a99ad;
+  font-size: 14px;
+}

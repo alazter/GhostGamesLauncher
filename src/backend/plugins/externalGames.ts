@@ -93,6 +93,8 @@ interface StoredJob extends ExternalDownloadJob {
   commitStarted?: boolean
   previousLibrary?: GameInfo
   autoFinish?: boolean
+  cleanReplace?: boolean
+  replaceDirectory?: string
 }
 interface StoredState extends Omit<ExternalGamesState, 'jobs'> {
   jobs: StoredJob[]
@@ -601,7 +603,7 @@ export class ExternalGames {
   }
 
   snapshot(): ExternalGamesState {
-    const games = libraryStore.get('games', [])
+    const games = (libraryStore.get('games', []) || []) as GameInfo[]
     let stateChanged = false
 
     // Auto-prune installations that were removed or uninstalled from the Ghost library
@@ -610,7 +612,7 @@ export class ExternalGames {
       this.state.installations = this.state.installations.filter((inst) => {
         if (!inst.appName) return true
         if (this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted)) return true
-        return games.some((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
+        return Array.isArray(games) && games.some((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
       })
       if (this.state.installations.length !== beforeCount) {
         stateChanged = true
@@ -966,6 +968,8 @@ export class ExternalGames {
     const installationId = old?.id || randomUUID()
     let parent: string
     let finalDirectory: string
+    let cleanReplace = false
+    let replaceDirectory: string | undefined
     if (old) {
       if (targetDirectory && existsSync(targetDirectory) && resolve(targetDirectory) !== resolve(old.directory)) {
         parent = targetDirectory
@@ -975,8 +979,13 @@ export class ExternalGames {
         finalDirectory = old.directory
       }
     } else if (targetDirectory && existsSync(targetDirectory)) {
-      parent = targetDirectory
-      finalDirectory = join(parent, gameDirectoryName(game.title))
+      if (basename(targetDirectory).toLowerCase() === gameDirectoryName(game.title).toLowerCase()) {
+        parent = dirname(targetDirectory)
+        finalDirectory = targetDirectory
+      } else {
+        parent = targetDirectory
+        finalDirectory = join(parent, gameDirectoryName(game.title))
+      }
     } else {
       const selection = await dialog.showOpenDialog({
         title: 'Escolha onde instalar o jogo',
@@ -986,7 +995,17 @@ export class ExternalGames {
         return { success: false }
       }
       parent = selection.filePaths[0]
-      finalDirectory = join(parent, gameDirectoryName(game.title))
+      if (basename(parent).toLowerCase() === gameDirectoryName(game.title).toLowerCase()) {
+        finalDirectory = parent
+        parent = dirname(parent)
+      } else {
+        finalDirectory = join(parent, gameDirectoryName(game.title))
+      }
+    }
+
+    if (!old && existsSync(finalDirectory)) {
+      cleanReplace = true
+      replaceDirectory = finalDirectory
     }
 
     const id = randomUUID()
@@ -1001,6 +1020,8 @@ export class ExternalGames {
       installationId,
       operation,
       old,
+      cleanReplace,
+      replaceDirectory,
       directory: finalDirectory,
       stage: join(parent, `.ghost-stage-${id}`),
       archive: join(work, `package${archiveExt}`),
@@ -1538,9 +1559,11 @@ export class ExternalGames {
       }
     }
     if ((!job.old || job.old.packageRootLayout) && candidates.length) {
+      const allowExisting = Boolean(job.old || job.cleanReplace || (job.directory && existsSync(job.directory)))
       const prepared = await prepareNewInstallDirectory(job.stage, dirname(job.directory), job.game.title, candidates,
-        this.state.jobs.filter(item => item.id !== job.id && !['cancelled', 'error', 'completed'].includes(item.status)).map(item => item.directory))
-      if (!job.old) job.directory = prepared.directory
+        this.state.jobs.filter(item => item.id !== job.id && !['cancelled', 'error', 'completed'].includes(item.status)).map(item => item.directory),
+        allowExisting)
+      if (!job.old && !job.cleanReplace) job.directory = prepared.directory
       candidates = prepared.candidates
     }
     job.candidates = candidates.map((file) => relative(job.stage, file))
@@ -1611,6 +1634,26 @@ export class ExternalGames {
         throw new Error('Nenhum save foi encontrado na pasta configurada. Confira a pasta antes de substituir o jogo.')
       job.backupId = (await this.backup(old)).id
     }
+    if (job.cleanReplace && !job.backupId && existsSync(job.directory)) {
+      try {
+        const dummyInst: ExternalInstallation = {
+          id: job.installationId,
+          appName: old?.appName || `external-${job.installationId}`,
+          game: job.game,
+          directory: job.directory,
+          executable: join(job.directory, executable),
+          installedAt: new Date().toISOString(),
+          autoBackup: true,
+          autoUpdate: true,
+          history: []
+        }
+        const discovered = await this.discoverSavePathEnhanced(dummyInst)
+        if (discovered?.path && existsSync(discovered.path)) {
+          dummyInst.savePath = discovered.path
+          job.backupId = (await this.backup(dummyInst)).id
+        }
+      } catch {}
+    }
     job.previousLibrary = libraryStore
       .get('games', [])
       .find(
@@ -1631,14 +1674,20 @@ export class ExternalGames {
       if (old && !job.oldRemoved) {
         await safeRename(old.directory, rollback)
         movedOld = true
-      } else if (existsSync(job.directory))
-        throw new Error('A pasta de destino já existe.')
+      } else if (existsSync(job.directory)) {
+        if (job.cleanReplace) {
+          await safeRename(job.directory, rollback)
+          movedOld = true
+        } else {
+          throw new Error('A pasta de destino já existe.')
+        }
+      }
       await safeRename(job.stage, job.directory)
       movedNew = true
       if (
-        old?.savePath &&
-        (job.oldRemoved || inside(old.directory, old.savePath)) &&
-        job.backupId
+        ((old?.savePath && (job.oldRemoved || inside(old.directory, old.savePath))) || job.cleanReplace) &&
+        job.backupId &&
+        restoredSavePath
       ) {
         await restoreSaveSnapshot(
           join(this.root, 'backups', job.backupId),
@@ -1683,8 +1732,8 @@ export class ExternalGames {
           app_name: installed.appName,
           title: job.game.title,
           runner: 'sideload',
-          art_cover: job.game.coverUrl || '',
-          art_square: job.game.coverUrl || '',
+          art_cover: previous?.art_cover || job.game.coverUrl || '',
+          art_square: previous?.art_square || job.game.coverUrl || '',
           install: {
             executable: installed.executable,
             install_path: installed.directory,
@@ -1727,7 +1776,7 @@ export class ExternalGames {
       }
     } catch (error) {
       if (movedNew) await safeRename(job.directory, job.stage).catch(() => {})
-      if (movedOld) await safeRename(rollback, old!.directory).catch(() => {})
+      if (movedOld) await safeRename(rollback, old?.directory || job.directory).catch(() => {})
       this.state.installations = this.state.installations.filter(
         (item) => item.id !== job.installationId
       )
@@ -2064,14 +2113,28 @@ export class ExternalGames {
         }
       }
 
-      // Remover registro da instalação no Ghost
-      this.state.installations = this.state.installations.filter(
-        (item) => item.appName !== appName && item.id !== appName
-      )
-      libraryStore.set(
-        'games',
-        games.filter((g) => g.app_name !== appName)
-      )
+      if (!deleteFiles) {
+        // Remover da biblioteca: limpa o registro de instalação e remove de libraryStore
+        this.state.installations = this.state.installations.filter(
+          (item) => item.appName !== appName && item.id !== appName
+        )
+        libraryStore.set(
+          'games',
+          games.filter((g) => g.app_name !== appName)
+        )
+      } else {
+        // "Deletar do Computador": Exclui apenas os arquivos físicos do disco.
+        // O jogo permanece na biblioteca com is_installed: true.
+        // Como os arquivos foram apagados do disco, existsSync(executable) retorna false,
+        // e o Ghost exibe a capa com o status canônico "Arquivos indisponíveis"!
+        this.state.installations = this.state.installations.filter(
+          (item) => item.appName !== appName && item.id !== appName
+        )
+        if (libraryGame) {
+          libraryGame.is_installed = true
+          libraryStore.set('games', games)
+        }
+      }
 
       this.save()
       sendFrontendMessage('external-games-updated', this.snapshot())

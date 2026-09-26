@@ -224,5 +224,52 @@ describe('extractGameMetadataFromHtml', () => {
     expect(meta.uploader).toBe('Online-Fix')
     expect(meta.mode).toBe('Multiplayer / Co-op')
   })
+
+  it('getCatalog fetches and returns games with pagination and letter filtering', async () => {
+    const html = `
+      <article>
+        <h2 class="post-title"><a href="/game/elden-ring">Elden Ring</a></h2>
+        <span title="V 1.10">V 1.10</span>
+        <img src="/covers/elden.jpg" />
+      </article>
+      <article>
+        <h2 class="post-title"><a href="/game/cyberpunk">Cyberpunk 2077</a></h2>
+        <span title="V 2.1">V 2.1</span>
+        <img src="/covers/cp.jpg" />
+      </article>
+    `
+    const request = jest
+      .spyOn(NetworkGuard, 'fetchResponse')
+      .mockImplementation(() => Promise.resolve(new Response(html)))
+
+    try {
+      const provider = websiteSource(
+        {
+          id: 'com.ghost.ankergames-source',
+          name: 'AnkerGames',
+          homepage: 'https://ankergames.net',
+          permissions: ['network', 'game-sources'],
+          allowedDomains: ['ankergames.net']
+        } as PluginManifest,
+        {
+          catalogPath: '/games-list',
+          gamePathPrefix: '/game/',
+          platform: 'windows'
+        }
+      )
+
+      expect(provider.getCatalog).toBeDefined()
+      const resultAll = await provider.getCatalog!({ letter: 'All', page: 1 })
+      expect(resultAll.games.length).toBe(2)
+      expect(resultAll.games[0].title).toBe('Elden Ring')
+      expect(resultAll.games[0].version).toBe('V 1.10')
+
+      const resultE = await provider.getCatalog!({ letter: 'E', page: 1 })
+      expect(resultE.games.length).toBe(1)
+      expect(resultE.games[0].title).toBe('Elden Ring')
+    } finally {
+      request.mockRestore()
+    }
+  })
 })
 
