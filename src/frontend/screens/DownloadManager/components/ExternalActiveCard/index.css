@@ -137,7 +137,7 @@ button.dmActiveOperationBadge:active,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   margin-top: auto;
 }
@@ -374,20 +374,28 @@ button.dmActiveOperationBadge:active,
 .dmExternalReadyContainer {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-top: 4px;
 }
 
 .dmExternalExecSelect {
-  flex: 1;
-  max-width: 320px;
+  flex: 1 1 0;
+  min-width: 110px;
+  max-width: 250px;
   background: rgba(14, 20, 32, 0.85);
   color: #ffffff;
   border: 1.5px solid rgba(0, 229, 255, 0.4);
   border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 11.5px;
   outline: none;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .dmExternalExecSelect:focus {
@@ -396,8 +404,10 @@ button.dmActiveOperationBadge:active,
 }
 
 .dmFinishInstallBtn {
-  padding: 6px 18px !important;
-  font-size: 12px !important;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 6px 14px !important;
+  font-size: 11.5px !important;
 }
 
 .dmActiveErrorRow {
@@ -439,3 +449,216 @@ button.dmActiveOperationBadge:active,
   cursor: pointer;
 }
 .dmExternalSpacePlan button:disabled { opacity: .5; cursor: default; }
+
+/* ==========================================================================
+   MODAL CYBER NEON: ESCOLHA DE TRANSPORTE / DOWNLOAD (REGRA 12 & GLASSMORPHISM)
+   ========================================================================== */
+.dmTransportModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: dmModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dmModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dmTransportModalCard {
+  background: #131a20 !important;
+  border: 1.5px solid #00ffff;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 520px;
+  box-shadow: 0 0 35px rgba(0, 255, 255, 0.25), 0 24px 60px rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #ffffff;
+}
+
+.dmTransportModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(0, 255, 255, 0.04);
+}
+
+.dmTransportModalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.3px;
+}
+
+.dmTransportModalCloseBtn {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.dmTransportModalCloseBtn:hover {
+  color: #00ffff !important;
+  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95)) !important;
+  transform: scale(1.15);
+}
+
+.dmTransportModalBody {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dmTransportGameSubtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.dmTransportGameSubtitle strong {
+  color: #00ffff;
+  font-weight: 700;
+}
+
+.dmTransportLoadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.dmTransportChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dmTransportChoiceBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 18px;
+  background: rgba(14, 20, 32, 0.8);
+  border: 1.5px solid rgba(0, 229, 255, 0.3);
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+}
+
+.dmTransportChoiceBtn:hover {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: #00ffff;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.dmTransportChoiceBtn.isCurrent {
+  border-color: rgba(255, 183, 3, 0.5);
+}
+
+.dmTransportBtnLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dmTransportBtnIcon {
+  font-size: 16px;
+  color: #00ffff;
+  flex-shrink: 0;
+}
+
+.dmTransportBtnTexts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dmTransportBtnLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dmTransportBtnSize {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.dmTransportCurrentBadge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 183, 3, 0.2);
+  border: 1px solid rgba(255, 183, 3, 0.5);
+  color: #ffb703;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dmTransportModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 14px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.dmTransportBtnCancel {
+  background: #1a232c;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dmTransportBtnCancel:hover {
+  background: #24303d;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+

@@ -217,6 +217,8 @@ export type ExternalGameAction =
   | { type: 'dismiss'; jobId: string }
   | { type: 'pause' | 'resume' | 'cancel' | 'import-archive'; jobId: string }
   | { type: 'finish'; jobId: string; executable: string }
+  | { type: 'browse-executable'; jobId: string }
+  | { type: 'switch-source'; jobId: string; source: GhostDownloadSource }
   | { type: 'configure-saves' | 'backup' | 'check-update' | 'auto-discover-saves'; installationId: string }
   | { type: 'set-save-path'; installationId: string; path: string }
   | { type: 'delete-backup'; installationId: string; backupId: string }
@@ -229,6 +231,8 @@ export interface ExternalActionResult {
   success: boolean
   error?: string
   jobId?: string
+  selectedExecutable?: string
+  candidates?: string[]
   update?: GhostSearchResult
   saveDiscovery?: SaveDiscoveryResult
   piratasSyncResult?: PiratasSaveSyncResult

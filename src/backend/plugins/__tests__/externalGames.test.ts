@@ -2,7 +2,7 @@ import * as wrappedPackages from '../wrappedPackage'
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'fs/promises'
 const fsPromises = jest.requireActual<typeof import('fs/promises')>('fs/promises')
 import { tmpdir } from 'os'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { dialog } from 'electron'
 import { ExternalGames } from '../externalGames'
 import * as installSpace from '../installSpace'
@@ -18,6 +18,7 @@ import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
 import { backendEvents } from 'backend/backend_events'
 import type {
   ExternalInstallation,
+  GhostDownloadSource,
   GhostSearchResult,
   PluginManifest
 } from 'common/types/plugins'
@@ -1025,3 +1026,54 @@ it('retries an existing Online-Fix wrapper with a repair archive using the local
   expect(client.link).toHaveBeenCalledTimes(1)
   expect(client.create).not.toHaveBeenCalled()
 })
+
+it('allows browsing and selecting a custom executable via action browse-executable', async () => {
+  const result = await service.enqueue(game, source, manifest, undefined, false, false, root, true)
+  const job = (service as unknown as { state: { jobs: Array<{ id: string; status: string; stage: string; candidates: string[] }> } }).state.jobs.find(j => j.id === result.jobId)!
+  job.status = 'ready'
+  job.candidates = ['auto_detected.exe']
+  await mkdir(job.stage, { recursive: true })
+  const customExe = join(job.stage, 'SubFolder', 'CustomGame.exe')
+  await mkdir(dirname(customExe), { recursive: true })
+  await writeFile(customExe, 'dummy binary content')
+
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [customExe] })
+
+  const actionRes = await service.action({ type: 'browse-executable', jobId: result.jobId! })
+  expect(actionRes.success).toBe(true)
+  expect(actionRes.selectedExecutable).toBe(join('SubFolder', 'CustomGame.exe'))
+  expect(actionRes.candidates).toContain(join('SubFolder', 'CustomGame.exe'))
+})
+
+it('switches download source and resets transfer state via action switch-source', async () => {
+  const ankerGame = { ...game, id: 'https://ankergames.net/game/test', providerId: ANKER_SOURCE_ID }
+  const ankerManifest = { ...manifest, id: ANKER_SOURCE_ID }
+  const result = await service.enqueue(
+    ankerGame,
+    { id: ANKER_DIRECT_ID, name: 'Download direto', type: 'external', url: 'https://ankergames.net/game/test' },
+    ankerManifest,
+    undefined,
+    false,
+    false,
+    root,
+    true
+  )
+  const job = (service as unknown as { state: { jobs: Array<{ id: string; transport?: string; status: string; bytes: number }> } }).state.jobs.find(j => j.id === result.jobId)!
+  job.transport = 'anker-direct'
+  job.bytes = 1000
+
+  const directSource: GhostDownloadSource = {
+    id: 'direct-opt-1',
+    name: 'Download Direto',
+    type: 'direct',
+    url: 'https://example.com/game.zip',
+    archive: 'zip'
+  }
+
+  const switchRes = await service.action({ type: 'switch-source', jobId: result.jobId!, source: directSource })
+  expect(switchRes.success).toBe(true)
+  expect(job.transport).toBeUndefined()
+  expect(job.bytes).toBe(0)
+  expect(job.status).toBe('queued')
+})
+

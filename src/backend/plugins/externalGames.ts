@@ -11,6 +11,7 @@ import {
   writeFileSync
 } from 'fs'
 import {
+  copyFile,
   mkdir,
   readdir,
   rmdir,
@@ -2232,6 +2233,109 @@ export class ExternalGames {
         } else if (action.type === 'finish') {
           if (job.status === 'completed') return { success: true }
           await this.finish(job, action.executable)
+        } else if (action.type === 'browse-executable') {
+          if (job.status !== 'ready') throw new Error('A tarefa não está aguardando seleção de executável.')
+          const isSwitch = job.game.platform === 'switch'
+          const filters = isSwitch
+            ? [
+                { name: 'ROMs do Nintendo Switch (*.nsp, *.xci)', extensions: ['nsp', 'xci'] },
+                { name: 'Todos os arquivos', extensions: ['*'] }
+              ]
+            : [
+                { name: 'Executáveis Windows (*.exe)', extensions: ['exe'] },
+                { name: 'Todos os arquivos', extensions: ['*'] }
+              ]
+
+          const defaultPath = existsSync(job.stage)
+            ? job.stage
+            : existsSync(job.directory)
+            ? job.directory
+            : undefined
+
+          const file = await dialog.showOpenDialog({
+            title: `Selecione o executável principal de ${job.game.title}`,
+            defaultPath,
+            properties: ['openFile'],
+            filters
+          })
+
+          if (file.canceled || !file.filePaths[0]) return { success: false }
+
+          const chosenPath = file.filePaths[0]
+          let relPath: string
+          if (inside(job.stage, chosenPath)) {
+            relPath = relative(job.stage, chosenPath)
+          } else if (existsSync(job.directory) && inside(job.directory, chosenPath)) {
+            relPath = relative(job.directory, chosenPath)
+          } else {
+            const dest = join(job.stage, basename(chosenPath))
+            await copyFile(chosenPath, dest)
+            relPath = basename(chosenPath)
+          }
+
+          if (!job.candidates.includes(relPath)) {
+            job.candidates.push(relPath)
+          }
+          this.save()
+          return {
+            success: true,
+            selectedExecutable: relPath,
+            candidates: job.candidates
+          }
+        } else if (action.type === 'switch-source') {
+          const newSource = action.source
+          if (!newSource) throw new Error('Fonte de download não informada.')
+
+          this.controllers.get(job.id)?.abort()
+          this.controllers.delete(job.id)
+
+          const manifest = job.manifest
+          const viaTorbox = newSource.type === 'torbox'
+          const viaBrowser = manifest.id === ANKER_SOURCE_ID && newSource.id === ANKER_DIRECT_ID
+
+          if (viaBrowser) ankerGameUrl(newSource.url)
+          if (viaTorbox) {
+            this.torrentProvider(manifest.id, newSource.id, newSource.url)
+            await TorboxClient.saved()
+          }
+
+          job.source = newSource
+          job.transport = viaTorbox ? 'torbox' : viaBrowser ? 'anker-direct' : undefined
+
+          job.transferPhase = undefined
+          job.remoteProgress = undefined
+          job.remoteStatus = undefined
+          job.bytes = 0
+          job.total = undefined
+          job.speed = 0
+          job.etag = undefined
+          job.error = undefined
+          job.canResume = true
+
+          const archiveExt = newSource.archive === '7z' ? '.7z' : newSource.archive === 'rar' ? '.rar' : newSource.archive === 'tar' ? '.tar' : '.zip'
+          const work = join(this.root, 'downloads', job.id)
+          job.archive = join(work, `package${archiveExt}`)
+
+          try {
+            if (existsSync(job.archive)) {
+              unlinkSync(job.archive)
+            }
+          } catch {}
+
+          const isDirectArchive = newSource.type === 'direct' && ['zip', 'rar', '7z', 'tar'].includes(newSource.archive || 'zip')
+          job.status = isDirectArchive || viaTorbox || viaBrowser ? 'queued' : 'awaiting-file'
+
+          this.save()
+
+          if (job.status === 'awaiting-file') {
+            const url = new URL(newSource.url)
+            if (!['https:', 'http:', 'magnet:'].includes(url.protocol))
+              throw new Error('Protocolo externo não permitido.')
+            await shell.openExternal(url.href)
+          }
+
+          void this.pump()
+          return { success: true }
         }
         else throw new Error('Ação indisponível nesta etapa.')
       } else if (action.type === 'sync-piratas-saves') {

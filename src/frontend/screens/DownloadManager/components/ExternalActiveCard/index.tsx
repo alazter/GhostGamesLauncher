@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -9,11 +9,14 @@ import {
   faBolt,
   faExchangeAlt,
   faShieldAlt,
-  faCloud
+  faCloud,
+  faTimes,
+  faSpinner
 } from '@fortawesome/free-solid-svg-icons'
 import type {
   ExternalDownloadJob,
-  ExternalGameAction
+  ExternalGameAction,
+  GhostDownloadSource
 } from 'common/types/plugins'
 import { bytes } from 'frontend/screens/ExternalGames/shared'
 import ExternalStoreLogo from '../ExternalStoreLogo'
@@ -51,6 +54,117 @@ export default function ExternalActiveCard({
     job.candidates.length === 1 ? job.candidates[0] : ''
   )
   const [errorMessage, setErrorMessage] = useState('')
+  const [showTransportModal, setShowTransportModal] = useState(false)
+  const [availableSources, setAvailableSources] = useState<GhostDownloadSource[]>([])
+  const [loadingSources, setLoadingSources] = useState(false)
+
+  useEffect(() => {
+    if (!showTransportModal) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowTransportModal(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showTransportModal])
+
+  const handleBrowseExecutable = async () => {
+    setBusy(true)
+    setErrorMessage('')
+    try {
+      const result = await window.api.externalGamesAction({
+        type: 'browse-executable',
+        jobId: job.id
+      })
+      if (result.selectedExecutable) {
+        setExecutable(result.selectedExecutable)
+      }
+      if (onRefresh) await onRefresh()
+    } catch {
+      setErrorMessage('Não foi possível selecionar o executável.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const promptTransportChoice = async () => {
+    setLoadingSources(true)
+    setErrorMessage('')
+    try {
+      const fetched = await window.api.pluginsGetDownloadSources(
+        job.game.providerId,
+        job.game.pageUrl || job.game.id
+      )
+      if (fetched && fetched.length > 0) {
+        setAvailableSources(fetched)
+        setShowTransportModal(true)
+      } else {
+        setErrorMessage('Nenhuma fonte de download alternativa encontrada.')
+      }
+    } catch {
+      setErrorMessage('Não foi possível obter opções de download.')
+    } finally {
+      setLoadingSources(false)
+    }
+  }
+
+  const handleResume = async () => {
+    if (job.status === 'error') {
+      setLoadingSources(true)
+      try {
+        const fetched = await window.api.pluginsGetDownloadSources(
+          job.game.providerId,
+          job.game.pageUrl || job.game.id
+        )
+        if (fetched && fetched.length > 1) {
+          setAvailableSources(fetched)
+          setShowTransportModal(true)
+          setLoadingSources(false)
+          return
+        }
+      } catch {}
+      setLoadingSources(false)
+    }
+
+    setBusy(true)
+    setErrorMessage('')
+    try {
+      const result = await window.api.externalGamesAction({ type: 'resume', jobId: job.id })
+      if (result.error) {
+        setErrorMessage(result.error)
+        void promptTransportChoice()
+      }
+      if (onRefresh) await onRefresh()
+    } catch {
+      setErrorMessage('Não foi possível retomar o download.')
+      void promptTransportChoice()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleSwitchSource = async (source: GhostDownloadSource) => {
+    setBusy(true)
+    setErrorMessage('')
+    try {
+      const result = await window.api.externalGamesAction({
+        type: 'switch-source',
+        jobId: job.id,
+        source
+      })
+      if (result.error) {
+        setErrorMessage(result.error)
+      } else {
+        setShowTransportModal(false)
+      }
+      if (onRefresh) await onRefresh()
+    } catch {
+      setErrorMessage('Não foi possível alterar a fonte de download.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const handleGoToSearch = (e?: React.MouseEvent) => {
     if (e) {
@@ -277,6 +391,21 @@ export default function ExternalActiveCard({
                     : 'A fonte requer ação manual para prosseguir.')}
               </span>
 
+              {job.status === 'error' && (
+                <div style={{ marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    className="dmActiveMigrateLinkBtn"
+                    onClick={() => void promptTransportChoice()}
+                    style={{ textDecoration: 'underline', color: '#00ffff', fontWeight: 600, fontSize: '11.5px' }}
+                    title="Escolha entre Download Direto ou TorBox"
+                  >
+                    <FontAwesomeIcon icon={faExchangeAlt} style={{ marginRight: '5px' }} />
+                    Escolher como baixar (Download Direto / TorBox)
+                  </button>
+                </div>
+              )}
+
               {job.status === 'error' && job.directDiagnostic && (
                 <details style={{ fontSize: '11px', color: '#94a3b8' }}>
                   <summary>Detalhes da interrupção</summary>
@@ -322,9 +451,7 @@ export default function ExternalActiveCard({
                     title="Retomar Download"
                     aria-label={`Retomar ${job.game.title}`}
                     disabled={busy}
-                    onClick={() =>
-                      void handleAction({ type: 'resume', jobId: job.id })
-                    }
+                    onClick={() => void handleResume()}
                   >
                     <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
                       <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
@@ -546,9 +673,16 @@ export default function ExternalActiveCard({
                     aria-label={`${job.game.platform === 'switch' ? 'ROM' : 'Executável'} de ${job.game.title}`}
                     value={executable}
                     className="dmExternalExecSelect"
-                    onChange={(e) => setExecutable(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value === '__browse__') {
+                        void handleBrowseExecutable()
+                      } else {
+                        setExecutable(e.target.value)
+                      }
+                    }}
                   >
                     <option value="">{job.game.platform === 'switch' ? 'Selecione a ROM do jogo base (não update/DLC)...' : 'Selecione o executável principal...'}</option>
+                    <option value="__browse__">📁 Procurar no computador...</option>
                     {job.candidates.map((cand) => (
                       <option key={cand} value={cand}>
                         {cand}
@@ -615,9 +749,7 @@ export default function ExternalActiveCard({
                   title="Retomar Download"
                   aria-label={`Retomar ${job.game.title}`}
                   disabled={busy}
-                  onClick={() =>
-                    void handleAction({ type: 'resume', jobId: job.id })
-                  }
+                  onClick={() => void handleResume()}
                 >
                   <svg viewBox="0 0 38 38" className="dmNeonBtnSvg">
                     <circle cx="19" cy="19" r="16.5" fill="none" stroke="currentColor" strokeWidth="2.2" />
@@ -653,6 +785,102 @@ export default function ExternalActiveCard({
           </div>
         )}
       </div>
+
+      {/* Modal Cyber Neon: Escolha como baixar (Download Direto / TorBox) */}
+      {showTransportModal && (
+        <div
+          className="dmTransportModalOverlay"
+          onClick={() => setShowTransportModal(false)}
+        >
+          <div
+            className="dmTransportModalCard"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dmTransportTitle"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="dmTransportModalHeader">
+              <div className="dmTransportModalTitle">
+                <FontAwesomeIcon icon={faExchangeAlt} style={{ color: '#00ffff' }} />
+                <span id="dmTransportTitle">Escolha como baixar</span>
+              </div>
+              <button
+                type="button"
+                className="dmTransportModalCloseBtn"
+                aria-label="Fechar"
+                onClick={() => setShowTransportModal(false)}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+
+            <div className="dmTransportModalBody">
+              <p className="dmTransportGameSubtitle">
+                <strong>{job.game.title}</strong> · {job.game.providerName}
+              </p>
+
+              {loadingSources ? (
+                <div className="dmTransportLoadingRow">
+                  <FontAwesomeIcon icon={faSpinner} spin style={{ color: '#00ffff', marginRight: '8px' }} />
+                  <span>Buscando opções de download disponíveis...</span>
+                </div>
+              ) : (
+                <div className="dmTransportChoices">
+                  {availableSources.map((source) => {
+                    const isTorbox = source.type === 'torbox'
+                    const isExternal = source.type === 'external'
+                    const label = isTorbox
+                      ? 'TorBox — Torrent'
+                      : isExternal
+                      ? 'Download direto — Confirmar no site'
+                      : source.type === 'direct'
+                      ? 'Download Direto'
+                      : source.name
+
+                    const isCurrent = (isTorbox && job.transport === 'torbox') || (!isTorbox && job.transport !== 'torbox')
+
+                    return (
+                      <button
+                        key={source.id}
+                        type="button"
+                        className={`dmTransportChoiceBtn ${isCurrent ? 'isCurrent' : ''}`}
+                        disabled={busy}
+                        onClick={() => void handleSwitchSource(source)}
+                      >
+                        <div className="dmTransportBtnLeft">
+                          <FontAwesomeIcon
+                            icon={isTorbox ? faCloud : faDownload}
+                            className="dmTransportBtnIcon"
+                          />
+                          <div className="dmTransportBtnTexts">
+                            <span className="dmTransportBtnLabel">{label}</span>
+                            {source.size && (
+                              <span className="dmTransportBtnSize">Tamanho: {source.size}</span>
+                            )}
+                          </div>
+                        </div>
+                        {isCurrent && (
+                          <span className="dmTransportCurrentBadge">Atual</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="dmTransportModalFooter">
+              <button
+                type="button"
+                className="dmTransportBtnCancel"
+                onClick={() => setShowTransportModal(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

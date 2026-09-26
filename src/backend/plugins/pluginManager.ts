@@ -761,23 +761,31 @@ export class PluginManager {
   }
 
     public async getDownloadSources(providerId: string, gameId: string): Promise<GhostDownloadSource[]> {
-      const rom = romSource(providerId)
-      if (rom && this.getPlugins().some(plugin => plugin.id === providerId && plugin.isEnabled)) {
-        return [{ id: ROM_DIRECT_ID, name: `${rom.name} · Download da ROM · Confirmar no site`, type: 'external', url: romPageUrl(providerId, gameId) }]
+      const normProviderId = providerId === 'ankergames'
+        ? ANKER_SOURCE_ID
+        : providerId === 'steamrip'
+        ? STEAMRIP_SOURCE_ID
+        : providerId === 'onlinefix'
+        ? ONLINE_FIX_SOURCE_ID
+        : providerId
+
+      const rom = romSource(normProviderId)
+      if (rom && this.getPlugins().some(plugin => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+        return [{ id: ROM_DIRECT_ID, name: `${rom.name} · Download da ROM · Confirmar no site`, type: 'external', url: romPageUrl(normProviderId, gameId) }]
       }
-      if (providerId === ONLINE_FIX_SOURCE_ID && this.getPlugins().some(plugin => plugin.id === providerId && plugin.isEnabled)) {
-        const existing = await this.hosts.get(providerId)?.getSourceProvider()?.getSources(gameId).catch(() => []) || []
+      if (normProviderId === ONLINE_FIX_SOURCE_ID && this.getPlugins().some(plugin => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+        const existing = await this.hosts.get(normProviderId)?.getSourceProvider()?.getSources(gameId).catch(() => []) || []
         return [{ id: ONLINE_FIX_TORRENT_ID, name: 'Online-Fix · Torrent via TorBox', type: 'torbox', url: onlineFixGameUrl(gameId) }, ...existing.filter(item => item.id !== ONLINE_FIX_TORRENT_ID)]
       }
-      if (providerId === STEAMRIP_SOURCE_ID && this.getPlugins().some(plugin => plugin.id === providerId && plugin.isEnabled)) {
+      if (normProviderId === STEAMRIP_SOURCE_ID && this.getPlugins().some(plugin => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
         return [{ id: STEAMRIP_DIRECT_ID, name: 'SteamRIP · Download direto', type: 'external', url: steamripGameUrl(gameId) }]
       }
-    if (providerId === ANKER_SOURCE_ID && this.getPlugins().some((plugin) => plugin.id === providerId && plugin.isEnabled)) {
-      return [
-        { id: ANKER_TORRENT_ID, name: 'TorBox · Torrent', type: 'torbox', url: ankerGameUrl(gameId) },
-        { id: ANKER_DIRECT_ID, name: 'Download direto · Confirmar no site', type: 'external', url: ankerGameUrl(gameId) }
-      ]
-    }
+      if (normProviderId === ANKER_SOURCE_ID && this.getPlugins().some((plugin) => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+        return [
+          { id: ANKER_TORRENT_ID, name: 'TorBox · Torrent', type: 'torbox', url: ankerGameUrl(gameId) },
+          { id: ANKER_DIRECT_ID, name: 'Download direto · Confirmar no site', type: 'external', url: ankerGameUrl(gameId) }
+        ]
+      }
     let host = this.hosts.get(providerId)
     if (!host) {
       const match = [...this.hosts.entries()].find(([id]) =>
