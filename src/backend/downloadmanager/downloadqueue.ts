@@ -443,7 +443,7 @@ async function getQueueInformation(): Promise<DMQueue> {
       state: effectiveState
     }
   } catch (err) {
-    logWarning(['Failed to scan Steam download state:', err], LogPrefix.DownloadManager)
+    logWarning(['Failed to scan Steam download state:', err], LogPrefix?.DownloadManager || 'DownloadManager')
     return { elements, finished, state: queueState }
   }
 }

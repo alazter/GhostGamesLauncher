@@ -24,6 +24,11 @@ import {
 } from 'fs/promises'
 import { randomUUID } from 'crypto'
 import { synchronizeExternalVersion } from './externalVersion'
+import {
+  writeGhostManifest,
+  readGhostManifest,
+  findManifestForExecutable
+} from './ghostManifest'
 import { selectWrappedPackage } from './wrappedPackage'
 import { archiveSize } from './archiveSize'
 import { planInstallSpace, sizeBytes, spaceReserve } from './installSpace'
@@ -237,7 +242,7 @@ export class ExternalGames {
     this.save()
   }
 
-  private save() {
+  private saveStateOnly() {
     const temporary = `${this.statePath}.tmp`
     const content = JSON.stringify(this.state, null, 2)
     try {
@@ -258,7 +263,11 @@ export class ExternalGames {
     } catch {
       writeFileSync(this.statePath, content)
     }
-    sendFrontendMessage('external-games-updated', this.snapshot())
+  }
+
+  private save() {
+    this.saveStateOnly()
+    sendFrontendMessage('external-games-updated', this.snapshot(false))
     notifyExternalQueueChanged()
   }
 
@@ -332,6 +341,16 @@ export class ExternalGames {
     installation.availableUpdate = undefined
     installation.updateMessage = undefined
     synchronizeExternalVersion(appName, installation.game.version)
+    if (installation.directory && existsSync(installation.directory)) {
+      const manifest = readGhostManifest(installation.directory)
+      if (manifest && installation.game.version) {
+        writeGhostManifest(installation.directory, {
+          ...manifest,
+          version: installation.game.version,
+          lastUpdateAt: new Date().toISOString()
+        })
+      }
+    }
     this.save()
   }
 
@@ -376,28 +395,40 @@ export class ExternalGames {
     appName: string,
     gameInfo?: GameInfo
   ): Promise<ExternalInstallation> {
-    let installation = this.state.installations.find(
+    const existing = this.state.installations.find(
       (item) => item.appName === appName
     )
-    if (installation) {
-      if (installation.autoBackup === undefined) {
-        installation.autoBackup = true
+    if (existing) {
+      if (existing.autoBackup === undefined) {
+        existing.autoBackup = true
       }
-      if (installation.autoUpdate === undefined) {
-        installation.autoUpdate = true
+      if (existing.autoUpdate === undefined) {
+        existing.autoUpdate = true
       }
-      if (!installation.savePath) {
-        const autoSave = await this.discoverSavePathEnhanced(installation)
+      if (existing.executable && existsSync(existing.executable)) {
+        const manifestResult = findManifestForExecutable(existing.executable)
+        if (manifestResult) {
+          if (!existing.game.version && manifestResult.manifest.version) {
+            existing.game.version = manifestResult.manifest.version
+          }
+          if ((!existing.game.providerId || existing.game.providerId === 'sideload') && manifestResult.manifest.storeId) {
+            existing.game.providerId = manifestResult.manifest.storeId
+            existing.game.providerName = manifestResult.manifest.storeName || existing.game.providerName
+          }
+        }
+      }
+      if (!existing.savePath) {
+        const autoSave = await this.discoverSavePathEnhanced(existing)
         if (autoSave?.path) {
-          installation.savePath = autoSave.path
-          installation.saveDetectionType = autoSave.detectionType
-          installation.saveDetectionDetails = autoSave.details
-          installation.saveFilesCount = autoSave.fileCount
-          installation.saveTotalBytes = autoSave.totalBytes
+          existing.savePath = autoSave.path
+          existing.saveDetectionType = autoSave.detectionType
+          existing.saveDetectionDetails = autoSave.details
+          existing.saveFilesCount = autoSave.fileCount
+          existing.saveTotalBytes = autoSave.totalBytes
           this.save()
         }
       }
-      return installation
+      return existing
     }
 
     const libraryGames = libraryStore.get('games', [])
@@ -406,21 +437,28 @@ export class ExternalGames {
     const executable = foundGame?.install?.executable || ''
     const directory = foundGame?.install?.install_path || foundGame?.folder_name || (executable ? dirname(executable) : '')
 
+    let manifestResult: ReturnType<typeof findManifestForExecutable> = null
+    if (executable && existsSync(executable)) {
+      manifestResult = findManifestForExecutable(executable)
+    }
+
     const id = randomUUID()
-    installation = {
+    const newInstallation: ExternalInstallation = {
       id,
       appName,
       game: {
         id: appName,
-        title,
-        providerId: 'sideload',
-        providerName: 'Sideload / Piratas',
+        title: manifestResult?.manifest.title || title,
+        providerId: manifestResult?.manifest.storeId || 'sideload',
+        providerName: manifestResult?.manifest.storeName || 'Sideload / Piratas',
         platform: 'windows',
-        version: foundGame?.version || '1.0'
+        version: manifestResult?.manifest.version || foundGame?.version || '1.0',
+        pageUrl: manifestResult?.manifest.storePageUrl,
+        coverUrl: manifestResult?.manifest.coverUrl || foundGame?.art_cover
       },
-      directory,
+      directory: manifestResult?.manifestDir || directory,
       executable,
-      installedAt: new Date().toISOString(),
+      installedAt: manifestResult?.manifest.installedAt || new Date().toISOString(),
       savePath: undefined,
       autoBackup: true,
       autoUpdate: true,
@@ -428,18 +466,32 @@ export class ExternalGames {
       history: []
     }
 
-    const autoSave = await this.discoverSavePathEnhanced(installation)
-    if (autoSave?.path) {
-      installation.savePath = autoSave.path
-      installation.saveDetectionType = autoSave.detectionType
-      installation.saveDetectionDetails = autoSave.details
-      installation.saveFilesCount = autoSave.fileCount
-      installation.saveTotalBytes = autoSave.totalBytes
+    if (newInstallation.directory && existsSync(newInstallation.directory)) {
+      writeGhostManifest(newInstallation.directory, {
+        ghostAppId: appName,
+        title: newInstallation.game.title,
+        version: newInstallation.game.version || '1.0',
+        storeId: newInstallation.game.providerId,
+        storeName: newInstallation.game.providerName,
+        storePageUrl: newInstallation.game.pageUrl,
+        executableRelPath: executable ? relative(newInstallation.directory, executable) : undefined,
+        installedAt: newInstallation.installedAt,
+        coverUrl: newInstallation.game.coverUrl
+      })
     }
 
-    this.state.installations.push(installation)
+    const autoSave = await this.discoverSavePathEnhanced(newInstallation)
+    if (autoSave?.path) {
+      newInstallation.savePath = autoSave.path
+      newInstallation.saveDetectionType = autoSave.detectionType
+      newInstallation.saveDetectionDetails = autoSave.details
+      newInstallation.saveFilesCount = autoSave.fileCount
+      newInstallation.saveTotalBytes = autoSave.totalBytes
+    }
+
+    this.state.installations.push(newInstallation)
     this.save()
-    return installation
+    return newInstallation
   }
 
   public async syncPiratasSaves(options?: {
@@ -696,55 +748,127 @@ export class ExternalGames {
       }
     }
 
+    // 3. Reconstitui instalações a partir de jogos que possuem manifesto oficial (.ghost-manifest.json)
+    for (const g of games) {
+      if (g.runner === 'sideload' && g.is_installed !== false) {
+        const executable = g.install?.executable || ''
+        if (!executable || !existsSync(executable)) continue
+        const manifestResult = findManifestForExecutable(executable)
+        if (manifestResult) {
+          const { manifest, manifestDir } = manifestResult
+          const existingInst = this.state.installations.find(
+            (i) => i.appName === g.app_name || i.id === g.app_name.replace(/^external-/, '')
+          )
+          if (!existingInst) {
+            const instId = manifest.ghostAppId.replace(/^external-/, '') || randomUUID()
+            this.state.installations.push({
+              id: instId,
+              appName: g.app_name,
+              game: {
+                id: manifest.ghostAppId || g.app_name,
+                title: manifest.title || g.title,
+                providerId: manifest.storeId || 'sideload',
+                providerName: manifest.storeName || 'Sideload / Piratas',
+                platform: 'windows',
+                version: manifest.version || g.version || '1.0',
+                pageUrl: manifest.storePageUrl,
+                coverUrl: manifest.coverUrl || g.art_cover
+              },
+              directory: manifestDir,
+              executable,
+              installedAt: manifest.installedAt || new Date().toISOString(),
+              autoBackup: true,
+              autoUpdate: true,
+              history: []
+            })
+            modified = true
+          } else {
+            // Sincroniza versão e provedor oficial garantidos pelo manifesto físico
+            if (!existingInst.game.version && manifest.version) {
+              existingInst.game.version = manifest.version
+              modified = true
+            }
+            if ((!existingInst.game.providerId || existingInst.game.providerId === 'sideload') && manifest.storeId) {
+              existingInst.game.providerId = manifest.storeId
+              existingInst.game.providerName = manifest.storeName || existingInst.game.providerName
+              modified = true
+            }
+          }
+        }
+      }
+    }
+
+    // 4. Blindagem retroativa: assegura gravação do .ghost-manifest.json no HD para instalações ativas
+    for (const inst of this.state.installations) {
+      if (inst.directory && existsSync(inst.directory) && inst.executable && existsSync(inst.executable)) {
+        const hasManifest = readGhostManifest(inst.directory)
+        if (!hasManifest) {
+          writeGhostManifest(inst.directory, {
+            ghostAppId: inst.appName,
+            title: inst.game.title,
+            version: inst.game.version || '1.0',
+            storeId: inst.game.providerId,
+            storeName: inst.game.providerName,
+            storePageUrl: inst.game.pageUrl,
+            executableRelPath: relative(inst.directory, inst.executable),
+            installedAt: inst.installedAt || new Date().toISOString(),
+            coverUrl: inst.game.coverUrl
+          })
+        }
+      }
+    }
+
     return modified
   }
 
-  snapshot(): ExternalGamesState {
+  snapshot(heal = true): ExternalGamesState {
     const games = (libraryStore.get('games', []) || []) as GameInfo[]
     let stateChanged = false
 
-    // Autocura defensiva: recupera instalações de jobs concluídos e jogos sideload
-    if (this.healInstallations(games)) {
-      stateChanged = true
-    }
-
-    // Auto-prune: remove instalações se o jogo foi removido da biblioteca ou se o executável foi deletado
-    {
-      const beforeCount = this.state.installations.length
-      this.state.installations = this.state.installations.filter((inst) => {
-        if (!inst.appName) return true
-        if (this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted)) return true
-        const libGame = Array.isArray(games) && games.find((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
-        if (!libGame) return false
-        if (inst.executable && !existsSync(inst.executable)) return false
-        return true
-      })
-      if (this.state.installations.length !== beforeCount) {
+    if (heal) {
+      // Autocura defensiva: recupera instalações de jobs concluídos e jogos sideload
+      if (this.healInstallations(games)) {
         stateChanged = true
       }
-    }
 
-    for (const inst of this.state.installations) {
-      const libGame = games.find((g: any) => g.app_name === inst.appName)
-      if (libGame) {
-        const libExecutable = libGame.install?.executable || ''
-        const libDir =
-          libGame.install?.install_path ||
-          libGame.folder_name ||
-          (libExecutable ? dirname(libExecutable) : '')
-        if (libDir && libDir !== inst.directory) {
-          inst.directory = libDir
-          stateChanged = true
-        }
-        if (libExecutable && libExecutable !== inst.executable) {
-          inst.executable = libExecutable
+      // Auto-prune: remove instalações se o jogo foi removido da biblioteca ou se o executável foi deletado
+      {
+        const beforeCount = this.state.installations.length
+        this.state.installations = this.state.installations.filter((inst) => {
+          if (!inst.appName) return true
+          if (this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted)) return true
+          const libGame = Array.isArray(games) && games.find((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
+          if (!libGame) return false
+          if (inst.executable && !existsSync(inst.executable)) return false
+          return true
+        })
+        if (this.state.installations.length !== beforeCount) {
           stateChanged = true
         }
       }
-    }
 
-    if (stateChanged) {
-      this.save()
+      for (const inst of this.state.installations) {
+        const libGame = games.find((g: any) => g.app_name === inst.appName)
+        if (libGame) {
+          const libExecutable = libGame.install?.executable || ''
+          const libDir =
+            libGame.install?.install_path ||
+            libGame.folder_name ||
+            (libExecutable ? dirname(libExecutable) : '')
+          if (libDir && libDir !== inst.directory) {
+            inst.directory = libDir
+            stateChanged = true
+          }
+          if (libExecutable && libExecutable !== inst.executable) {
+            inst.executable = libExecutable
+            stateChanged = true
+          }
+        }
+      }
+
+      if (stateChanged) {
+        this.saveStateOnly()
+      }
     }
 
     return {
@@ -1697,10 +1821,26 @@ export class ExternalGames {
     if (!installation.savePath)
       throw new Error('Configure a pasta de saves primeiro.')
     const id = randomUUID()
+    const backupDir = join(this.root, 'backups', id)
     const snapshot = await copySaveSnapshot(
       resolve(installation.savePath),
-      join(this.root, 'backups', id)
+      backupDir
     )
+    try {
+      writeGhostManifest(backupDir, {
+        ghostAppId: installation.appName,
+        title: installation.game.title,
+        version: installation.game.version || '1.0',
+        storeId: installation.game.providerId,
+        storeName: installation.game.providerName,
+        storePageUrl: installation.game.pageUrl,
+        installedAt: installation.installedAt,
+        saveBackupId: id,
+        coverUrl: installation.game.coverUrl
+      })
+    } catch (err) {
+      console.warn('[Ghost]: Falha não impeditiva ao gravar manifesto no backup de saves:', err)
+    }
     const backup: ExternalSaveBackup = {
       id,
       installationId: installation.id,
@@ -1856,6 +1996,44 @@ export class ExternalGames {
         if (autoSave) {
           installed.savePath = autoSave
         }
+      }
+
+      // Gravação do manifesto oficial Ghost (.ghost-manifest.json) no diretório do jogo
+      try {
+        writeGhostManifest(installed.directory, {
+          ghostAppId: installed.appName,
+          title: job.game.title,
+          version: job.game.version || '1.0',
+          storeId: job.game.providerId,
+          storeName: job.game.providerName,
+          storePageUrl: job.game.pageUrl,
+          executableRelPath: relative(installed.directory, installed.executable),
+          installedAt: installed.installedAt,
+          downloadSource: job.source?.name || job.manifest?.name || job.game.providerName,
+          transport: job.source?.type || 'direct',
+          coverUrl: job.game.coverUrl,
+          saveBackupId: job.backupId
+        })
+
+        if (job.backupId) {
+          const backupDir = join(this.root, 'backups', job.backupId)
+          if (existsSync(backupDir)) {
+            writeGhostManifest(backupDir, {
+              ghostAppId: installed.appName,
+              title: job.game.title,
+              version: job.game.version || '1.0',
+              storeId: job.game.providerId,
+              storeName: job.game.providerName,
+              storePageUrl: job.game.pageUrl,
+              installedAt: installed.installedAt,
+              saveBackupId: job.backupId,
+              coverUrl: job.game.coverUrl,
+              originalInstallPath: installed.directory
+            })
+          }
+        }
+      } catch (err) {
+        console.warn('[Ghost]: Falha não impeditiva ao gravar manifesto oficial:', err)
       }
 
       this.state.installations = [

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faTag, faSpinner, faPen, faCheck, faTimes, faBolt, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
+import { faTag, faSpinner, faShieldAlt, faBolt, faSyncAlt } from '@fortawesome/free-solid-svg-icons'
 import { GameInfo } from 'common/types'
 import { DetectedVersionResult } from 'common/types/ipc'
 import { useExternalGames, SourceBadge } from 'frontend/screens/ExternalGames/shared'
@@ -51,9 +51,6 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
   }, [extState.installations, game.app_name, game.folder_name, game.install?.install_path, game.install?.executable, game.title])
 
   const [isResolvingDate, setIsResolvingDate] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [editValue, setEditValue] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -105,57 +102,6 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
     }
   }, [game?.app_name, game?.version, extInstallation?.id, extInstallation?.game.version, extInstallation?.installedAt])
 
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
-    }
-  }, [editing])
-
-  const handleStartEdit = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    setEditValue(versionInfo?.version || '')
-    setEditing(true)
-  }
-
-  const handleSave = async (e?: React.FormEvent | React.MouseEvent) => {
-    if (e) e.stopPropagation()
-    const clean = editValue.trim()
-    if (!clean) {
-      setEditing(false)
-      return
-    }
-
-    try {
-      const res = await window.api.setGameVersion(game.app_name, clean)
-      if (res?.success) {
-        setVersionInfo({
-          version: res.version,
-          source: 'manual',
-          details: 'Definido manualmente / AnkerGames'
-        })
-      }
-    } catch (err) {
-      console.error('Erro ao salvar versão:', err)
-    } finally {
-      setEditing(false)
-    }
-  }
-
-  const handleCancel = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
-    setEditing(false)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSave()
-    } else if (e.key === 'Escape') {
-      e.stopPropagation()
-      handleCancel()
-    }
-  }
-
   if (loading && !versionInfo) {
     return (
       <div
@@ -178,88 +124,14 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
     )
   }
 
-  if (editing) {
-    return (
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '2px 8px',
-          borderRadius: '16px',
-          background: 'rgba(10, 15, 25, 0.95)',
-          border: '1px solid #00ffff',
-          boxShadow: '0 0 10px rgba(0, 229, 255, 0.3)'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <FontAwesomeIcon icon={faTag} style={{ color: '#00ffff', fontSize: '11px' }} />
-        <input
-          ref={inputRef}
-          type="text"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ex: v1.0.4 ou Build 12345"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            color: '#fff',
-            fontSize: '12px',
-            fontWeight: '600',
-            width: '130px',
-            padding: '2px 4px'
-          }}
-        />
-        <button
-          onClick={handleSave}
-          title="Salvar versão (Enter)"
-          style={{
-            background: 'rgba(0, 229, 255, 0.2)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '20px',
-            height: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#00ffff',
-            cursor: 'pointer'
-          }}
-        >
-          <FontAwesomeIcon icon={faCheck} style={{ fontSize: '10px' }} />
-        </button>
-        <button
-          onClick={handleCancel}
-          title="Cancelar (Esc)"
-          style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '20px',
-            height: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#aaa',
-            cursor: 'pointer'
-          }}
-        >
-          <FontAwesomeIcon icon={faTimes} style={{ fontSize: '10px' }} />
-        </button>
-      </div>
-    )
-  }
-
   const currentVer = versionInfo?.version || 'Sem Versão'
   const isPlaceholder = !versionInfo?.version
 
   const tooltipTitle = isPlaceholder
-    ? 'Nenhuma versão identificada. Clique para definir manualmente para o AnkerGames'
-    : `${versionInfo.details || 'Versão instalada do jogo'}${
+    ? 'Nenhuma versão registrada para monitoramento de atualizações.\n• Baixe ou atualize o jogo pela aba "Buscar Jogos" para ativar a verificação automática.'
+    : `${versionInfo.details || 'Versão verificada pelo Ghost'}${
         isResolvingDate ? ' (Sincronizando com histórico de updates online...)' : ''
-      }\n• Vital para integração de updates com o AnkerGames\n• Clique para editar manualmente`
+      }\n• Integridade protegida: a versão só é alterada através de atualização física ou migração de loja.`
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
@@ -270,7 +142,6 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
         />
       )}
       <div
-        onClick={handleStartEdit}
         title={tooltipTitle}
         style={{
           display: 'inline-flex',
@@ -287,7 +158,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
           fontSize: '12px',
           fontWeight: '600',
           letterSpacing: '0.4px',
-          cursor: 'pointer',
+          cursor: 'default',
           transition: 'all 0.2s ease',
           userSelect: 'none',
           maxWidth: '220px',
@@ -298,14 +169,13 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
         onMouseOver={(e) => {
           e.currentTarget.style.background = isPlaceholder
             ? 'rgba(255, 255, 255, 0.08)'
-            : 'rgba(0, 229, 255, 0.16)'
+            : 'rgba(0, 229, 255, 0.14)'
           e.currentTarget.style.borderColor = isPlaceholder
             ? 'rgba(255, 255, 255, 0.4)'
-            : 'rgba(0, 229, 255, 0.7)'
+            : 'rgba(0, 229, 255, 0.6)'
           e.currentTarget.style.boxShadow = isPlaceholder
             ? 'none'
-            : '0 0 16px rgba(0, 229, 255, 0.3)'
-          e.currentTarget.style.transform = 'translateY(-1px)'
+            : '0 0 14px rgba(0, 229, 255, 0.25)'
         }}
         onMouseOut={(e) => {
           e.currentTarget.style.background = isPlaceholder
@@ -317,14 +187,13 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
           e.currentTarget.style.boxShadow = isPlaceholder
             ? 'none'
             : '0 0 10px rgba(0, 229, 255, 0.12)'
-          e.currentTarget.style.transform = 'translateY(0)'
         }}
       >
         {isResolvingDate ? (
           <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: '11px', color: '#00ffff' }} />
         ) : (
           <FontAwesomeIcon
-            icon={faTag}
+            icon={isPlaceholder ? faTag : faShieldAlt}
             style={{ fontSize: '11px', color: isPlaceholder ? '#888' : '#00ffff' }}
           />
         )}
@@ -337,14 +206,6 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
         >
           {currentVer}
         </span>
-        <FontAwesomeIcon
-          icon={faPen}
-          style={{
-            fontSize: '9px',
-            opacity: 0.5,
-            marginLeft: '2px'
-          }}
-        />
       </div>
 
       {extInstallation?.availableUpdate && (

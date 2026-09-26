@@ -29,7 +29,8 @@ jest.mock('../electronStores', () => ({
 jest.mock('backend/logger', () => ({
   logWarning: jest.fn(),
   logInfo: jest.fn(),
-  logError: jest.fn()
+  logError: jest.fn(),
+  LogPrefix: { DownloadManager: 'DownloadManager' }
 }))
 
 jest.mock('backend/shortcuts/shortcuts/shortcuts', () => ({

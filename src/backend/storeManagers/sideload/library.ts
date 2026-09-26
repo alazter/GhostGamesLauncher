@@ -9,6 +9,8 @@ import { isMac } from 'backend/constants/environment'
 import { getApiKey, fetchCoverFromSteamGridDB } from './steamgridHelper'
 import { LibraryManager } from 'common/types/game_manager'
 import SideloadGame from './games'
+import { findManifestForExecutable } from 'backend/plugins/ghostManifest'
+import { ExternalGames } from 'backend/plugins/externalGames'
 
 export default class SideloadLibraryManager implements LibraryManager {
   init = () => Promise.resolve()
@@ -55,19 +57,35 @@ export default class SideloadLibraryManager implements LibraryManager {
       computedIsInstalled = Boolean(hasRealExecutable || browserUrl)
     }
 
+    // Se o executável existir no disco, busca pelo manifesto físico Ghost (.ghost-manifest.json)
+    let manifestData: ReturnType<typeof findManifestForExecutable> = null
+    if (exeFileExists && executable) {
+      manifestData = findManifestForExecutable(executable)
+    }
+
+    const resolvedTitle = manifestData?.manifest.title && (!title || title === app_name)
+      ? manifestData.manifest.title
+      : title
+    const resolvedVersion = manifestData?.manifest.version || existing?.version || '1.0'
+    const resolvedCover = art_cover || manifestData?.manifest.coverUrl || existing?.art_cover
+    const resolvedSquare = art_square || manifestData?.manifest.coverUrl || existing?.art_square
+
     const game: GameInfo = {
       runner: 'sideload',
       app_name,
-      title,
+      title: resolvedTitle,
+      version: resolvedVersion,
       install: {
         executable,
         platform,
         is_dlc: false
       },
-      folder_name: hasRealExecutable && executable ? dirname(executable) : undefined,
-      art_cover,
+      folder_name: hasRealExecutable && executable
+        ? (manifestData?.manifestDir || dirname(executable))
+        : undefined,
+      art_cover: resolvedCover || '',
       is_installed: computedIsInstalled,
-      art_square,
+      art_square: resolvedSquare || '',
       canRunOffline: !browserUrl,
       browserUrl,
       description,
@@ -94,7 +112,7 @@ export default class SideloadLibraryManager implements LibraryManager {
         ...game,
         is_installed: computedIsInstalled,
         folder_name: hasRealExecutable && executable
-          ? dirname(executable)
+          ? (manifestData?.manifestDir || dirname(executable))
           : (existing?.folder_name && existing.folder_name !== '.' ? existing.folder_name : undefined)
       }
     } else {
@@ -103,6 +121,26 @@ export default class SideloadLibraryManager implements LibraryManager {
     }
 
     libraryStore.set('games', current)
+
+    // Registra a instalação no ExternalGames e vincula à loja do manifesto
+    if (computedIsInstalled && executable && exeFileExists) {
+      try {
+        void ExternalGames.getInstance().getOrCreateInstallation(app_name, game).then(() => {
+          if (manifestData) {
+            const piratasSources = ['anker', 'steamrip', 'online-fix', 'ankergames']
+            const isPiratasEligible = piratasSources.some((s) =>
+              (manifestData?.manifest.storeId || '').toLowerCase().includes(s) ||
+              (manifestData?.manifest.storeName || '').toLowerCase().includes(s)
+            )
+            if (isPiratasEligible) {
+              sendFrontendMessage('external-games-assign-piratas', { appName: game.app_name })
+            }
+          }
+        })
+      } catch (err) {
+        logWarning(`Erro ao registrar instalação Ghost para ${app_name}: ${err}`)
+      }
+    }
 
     sendFrontendMessage('refreshLibrary', 'sideload')
 
