@@ -50,6 +50,8 @@ export const PIRATAS_48_KNOWLEDGE_BASE: Record<string, PiratasKnowledgeEntry> = 
     detectionType: 'unreal',
     details: 'Unreal Engine 5',
     paths: (env) => [
+      // Windrose stores profile progress in SaveProfiles, beside SaveGames.
+      join(env.localAppData, 'R5', 'Saved'),
       join(env.localAppData, 'Windrose', 'Saved', 'SaveGames'),
       join(env.localAppData, 'Windrose')
     ]

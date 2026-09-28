@@ -153,6 +153,7 @@ export async function hashFile(file: string): Promise<string> {
 }
 
 export async function regularFiles(root: string): Promise<string[]> {
+  if (!existsSync(root)) return []
   const paths: string[] = []
   async function walk(directory: string) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {

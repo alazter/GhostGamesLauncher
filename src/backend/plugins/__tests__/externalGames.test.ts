@@ -1077,3 +1077,33 @@ it('switches download source and resets transfer state via action switch-source'
   expect(job.status).toBe('queued')
 })
 
+
+
+it('recovers a missing save path before updating and backs up the discovered saves', async () => {
+  const old = await install()
+  const jobId = await prepare({...game, version:'2.0'}, old.id)
+  const recovered = join(root, 'actual-saves')
+  await mkdir(recovered)
+  await writeFile(join(recovered,'slot.dat'),'real progress')
+  await rm(old.savePath!, {recursive:true,force:true})
+  jest.spyOn(service,'discoverSavePathEnhanced').mockResolvedValue({path:recovered,detectionType:'unreal',details:'Corrected path',existsOnDisk:true,hasFiles:true,fileCount:1,totalBytes:13})
+  expect(await service.action({type:'finish',jobId,executable:'game.exe'})).toEqual({success:true})
+  expect(service.snapshot().installations[0].savePath).toBe(recovered)
+  expect(service.snapshot().backups.length).toBeGreaterThan(0)
+  expect(await readFile(join(recovered,'slot.dat'),'utf8')).toBe('real progress')
+  expect(await readFile(old.executable,'utf8')).toBe('2.0')
+})
+
+it('keeps the old installation and prepared package when missing saves cannot be found', async () => {
+  const old = await install()
+  const jobId = await prepare({...game,version:'2.0'},old.id)
+  await rm(old.savePath!,{recursive:true,force:true})
+  jest.spyOn(service,'discoverSavePathEnhanced').mockResolvedValue({path:old.savePath!,detectionType:'user_profile',details:'Not found',existsOnDisk:false,hasFiles:false,fileCount:0,totalBytes:0})
+  const result = await service.action({type:'finish',jobId,executable:'game.exe'})
+  expect(result.success).toBe(false)
+  expect(result.error).toContain('pasta de saves configurada não existe')
+  expect(result.error).not.toContain('ENOENT')
+  expect(await readFile(old.executable,'utf8')).toBe('1.0')
+  expect(service.snapshot().jobs.find(j=>j.id===jobId)?.status).toBe('ready')
+})
+

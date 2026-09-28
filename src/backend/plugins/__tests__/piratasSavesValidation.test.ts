@@ -21,6 +21,18 @@ describe('Validação da Base de Conhecimento e IA de Saves da Loja Piratas (48 
     await rm(testGameDir, { recursive: true, force: true })
   })
 
+  test('detects Windrose saves in the R5 Unreal project folder by title', async () => {
+    const saves = join(testHome,'AppData','Local','R5','Saved','SaveGames')
+    await mkdir(saves,{recursive:true})
+    await writeFile(join(saves,'settings.sav'),'settings')
+    const profiles = join(saves,'..','SaveProfiles')
+    await mkdir(profiles)
+    await writeFile(join(profiles,'progress.sst'),'profile progress')
+    const result = await discoverSavePathForGame({appName:'external-windrose',title:'Windrose',directory:testGameDir,executable:join(testGameDir,'Windrose.exe'),homeDir:testHome})
+    expect(result.path).toBe(join(saves,'..'))
+    expect(result.hasFiles).toBe(true)
+  })
+
   test('deve conter regras válidas no Knowledge Base para jogos da loja Piratas', () => {
     const entries = Object.values(PIRATAS_48_KNOWLEDGE_BASE)
     expect(entries.length).toBeGreaterThanOrEqual(40)

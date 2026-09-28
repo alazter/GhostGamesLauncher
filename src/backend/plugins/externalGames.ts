@@ -1,3 +1,4 @@
+import { externalErrorMessage } from 'common/externalErrors'
 import { app, dialog, shell } from 'electron'
 import {
   createWriteStream,
@@ -1053,7 +1054,7 @@ export class ExternalGames {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: externalErrorMessage(error)
       }
     } finally {
       this.locked.delete(appName)
@@ -1274,7 +1275,7 @@ export class ExternalGames {
           job.status = isDirectArchive || viaTorbox || viaBrowser ? 'queued' : 'awaiting-file'
       } catch (error) {
         job.status = 'error'
-        job.error = `${error instanceof Error ? error.message : String(error)}${job.oldRemoved || job.removalStarted ? ' O jogo está indisponível até concluir a reinstalação. O backup foi preservado.' : ''}`
+        job.error = `${externalErrorMessage(error)}${job.oldRemoved || job.removalStarted ? ' O jogo está indisponível até concluir a reinstalação. O backup foi preservado.' : ''}`
       } finally { this.locked.delete(installationId) }
     }
     this.save()
@@ -1314,6 +1315,31 @@ export class ExternalGames {
       }
     }
     if (!job.backupId) {
+      if (old.savePath) {
+        try { await stat(old.savePath) } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+          const discovered = await this.discoverSavePathEnhanced(old)
+          if (!discovered.path || !discovered.existsOnDisk || !discovered.hasFiles)
+            throw new Error('A pasta de saves configurada não existe e não foi possível localizar seus saves. Corrija a pasta de saves nas configurações do jogo e tente concluir novamente. O jogo atual e os arquivos baixados foram preservados.')
+          if (!(await regularFiles(discovered.path)).length)
+            throw new Error('Nenhum save foi encontrado na pasta detectada. Confira a pasta antes de substituir o jogo.')
+          old.savePath = discovered.path
+          old.saveDetectionType = discovered.detectionType
+          old.saveDetectionDetails = discovered.details
+          old.saveFilesCount = discovered.fileCount
+          old.saveTotalBytes = discovered.totalBytes
+          job.old = { ...old }
+          const inst = this.installation(old.id)
+          if (inst) {
+            inst.savePath = discovered.path
+            inst.saveDetectionType = discovered.detectionType
+            inst.saveDetectionDetails = discovered.details
+            inst.saveFilesCount = discovered.fileCount
+            inst.saveTotalBytes = discovered.totalBytes
+          }
+          this.save()
+        }
+      }
       if (!old.savePath || !(await regularFiles(old.savePath)).length)
         throw new Error('Nenhum save encontrado. Configure a pasta correta antes de substituir o jogo.')
       job.backupId = (await this.backup(old)).id
@@ -1419,7 +1445,7 @@ export class ExternalGames {
         } catch (error) {
           if (!['paused', 'cancelled'].includes(job.status)) {
             job.status = 'error'
-            job.error = (error instanceof Error ? error.message : String(error)) + (job.oldRemoved ? ' O jogo está indisponível até concluir a reinstalação; o backup foi preservado.' : '')
+            job.error = (externalErrorMessage(error)) + (job.oldRemoved ? ' O jogo está indisponível até concluir a reinstalação; o backup foi preservado.' : '')
           }
         } finally {
           if (job.status === 'cancelled')
@@ -1736,7 +1762,7 @@ export class ExternalGames {
     try { await this.prepare(job, job.archive) }
     catch (error) {
       job.status = 'error'
-      job.error = error instanceof Error ? error.message : 'Não foi possível extrair o pacote.'
+      job.error = externalErrorMessage(error)
       this.save()
       throw error
     }
@@ -1872,14 +1898,40 @@ export class ExternalGames {
     const old = job.oldRemoved ? job.old : job.old ? this.installation(job.installationId) : undefined
     if (old && resolve(old.directory) !== resolve(job.directory) && existsSync(job.directory))
       throw new Error('A pasta de destino já existe. Escolha uma pasta vazia para a nova instalação.')
-    const restoredSavePath = old?.savePath && inside(old.directory, old.savePath)
-      ? join(job.directory, relative(old.directory, old.savePath)) : old?.savePath
     if (old && !job.oldRemoved) {
       await this.owned(old.directory, old.id)
+      if (old.savePath) {
+        try { await stat(old.savePath) } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+          const discovered = await this.discoverSavePathEnhanced(old)
+          if (!discovered.path || !discovered.existsOnDisk || !discovered.hasFiles)
+            throw new Error('A pasta de saves configurada não existe e não foi possível localizar seus saves. Corrija a pasta de saves nas configurações do jogo e tente concluir novamente. O jogo atual e os arquivos baixados foram preservados.')
+          // Verify the discovered folder before changing the saved configuration.
+          if (!(await regularFiles(discovered.path)).length)
+            throw new Error('Nenhum save foi encontrado na pasta detectada. Confira a pasta antes de substituir o jogo.')
+          old.savePath = discovered.path
+          old.saveDetectionType = discovered.detectionType
+          old.saveDetectionDetails = discovered.details
+          old.saveFilesCount = discovered.fileCount
+          old.saveTotalBytes = discovered.totalBytes
+          job.old = { ...old }
+          const inst = this.installation(old.id)
+          if (inst) {
+            inst.savePath = discovered.path
+            inst.saveDetectionType = discovered.detectionType
+            inst.saveDetectionDetails = discovered.details
+            inst.saveFilesCount = discovered.fileCount
+            inst.saveTotalBytes = discovered.totalBytes
+          }
+          this.save()
+        }
+      }
       if (!old.savePath || !(await regularFiles(old.savePath)).length)
         throw new Error('Nenhum save foi encontrado na pasta configurada. Confira a pasta antes de substituir o jogo.')
       job.backupId = (await this.backup(old)).id
     }
+    const restoredSavePath = old?.savePath && inside(old.directory, old.savePath)
+      ? join(job.directory, relative(old.directory, old.savePath)) : old?.savePath
     if (job.cleanReplace && !job.backupId && existsSync(job.directory)) {
       try {
         const dummyInst: ExternalInstallation = {
@@ -2429,7 +2481,7 @@ export class ExternalGames {
       this.save()
       return { success: true }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = externalErrorMessage(error)
       if (
         'jobId' in action &&
         ['import-archive', 'finish'].includes(action.type)
@@ -2529,7 +2581,7 @@ export class ExternalGames {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: externalErrorMessage(error)
       }
     }
   }
@@ -2609,7 +2661,7 @@ export class ExternalGames {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: externalErrorMessage(error)
       }
     }
   }

@@ -1,3 +1,4 @@
+import { externalErrorMessage } from 'common/externalErrors'
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -50,9 +51,34 @@ export default function ExternalActiveCard({
 }: ExternalActiveCardProps) {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
-  const [executable, setExecutable] = useState(
-    job.candidates.length === 1 ? job.candidates[0] : ''
-  )
+  const findSmartExecutable = () => {
+    if (job.candidates.length === 1) return job.candidates[0]
+    if (job.old?.executable && job.candidates.length > 0) {
+      const oldBase = job.old.executable.split(/[/\\]/).pop()?.toLowerCase()
+      if (oldBase) {
+        const match = job.candidates.find((c) => c.split(/[/\\]/).pop()?.toLowerCase() === oldBase)
+        if (match) return match
+      }
+    }
+    if (job.game?.title && job.candidates.length > 0) {
+      const titleClean = job.game.title.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const match = job.candidates.find((c) => {
+        const base = c.split(/[/\\]/).pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || ''
+        return base.includes(titleClean) || titleClean.includes(base)
+      })
+      if (match) return match
+    }
+    return ''
+  }
+
+  const [executable, setExecutable] = useState(findSmartExecutable)
+
+  useEffect(() => {
+    if (job.status === 'ready' && !executable && job.candidates.length > 0) {
+      const smart = findSmartExecutable()
+      if (smart) setExecutable(smart)
+    }
+  }, [job.status, job.candidates, job.old?.executable, job.game?.title, executable])
   const [errorMessage, setErrorMessage] = useState('')
   const [showTransportModal, setShowTransportModal] = useState(false)
   const [availableSources, setAvailableSources] = useState<GhostDownloadSource[]>([])
@@ -132,7 +158,7 @@ export default function ExternalActiveCard({
     try {
       const result = await window.api.externalGamesAction({ type: 'resume', jobId: job.id })
       if (result.error) {
-        setErrorMessage(result.error)
+        setErrorMessage(externalErrorMessage(result.error))
         void promptTransportChoice()
       }
       if (onRefresh) await onRefresh()
@@ -154,7 +180,7 @@ export default function ExternalActiveCard({
         source
       })
       if (result.error) {
-        setErrorMessage(result.error)
+        setErrorMessage(externalErrorMessage(result.error))
       } else {
         setShowTransportModal(false)
       }
@@ -217,7 +243,7 @@ export default function ExternalActiveCard({
     setErrorMessage('')
     try {
       const result = await window.api.externalGamesAction(command)
-      if (result.error) setErrorMessage(result.error)
+      if (result.error) setErrorMessage(externalErrorMessage(result.error))
       if (onRefresh) await onRefresh()
     } catch {
       setErrorMessage('Não foi possível executar esta operação.')
@@ -383,9 +409,9 @@ export default function ExternalActiveCard({
               {/* Error or Awaiting File Notice (Full Width, up to 3 lines, unclipped) */}
               <span
                 className="dmExternalNoticeText"
-                title={job.error || undefined}
+                title={job.error ? externalErrorMessage(job.error) : undefined}
               >
-                {job.error ||
+                {(job.error ? externalErrorMessage(job.error) : undefined) ||
                   (job.status === 'awaiting-file'
                     ? 'Conclua o download no navegador e selecione o arquivo baixado (.zip, .rar, .7z).'
                     : 'A fonte requer ação manual para prosseguir.')}
@@ -714,9 +740,9 @@ export default function ExternalActiveCard({
                 </div>
               )}
 
-              {errorMessage && (
+              {(errorMessage || (job.status === 'ready' && job.error)) && (
                 <div className="dmActiveErrorRow">
-                  <span>{errorMessage}</span>
+                  <span>{errorMessage || job.error}</span>
                 </div>
               )}
             </div>
