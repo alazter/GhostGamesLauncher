@@ -32,7 +32,14 @@ export default class SideloadLibraryManager implements LibraryManager {
     launchFullScreen
   }: GameInfo): void {
     const current = libraryStore.get('games', [])
-    const gameIndex = current.findIndex((value) => value.app_name === app_name)
+    const normTitle = (title || '').trim().toLowerCase()
+    const gameIndex = current.findIndex(
+      (value) =>
+        value.app_name === app_name ||
+        (Boolean(normTitle) &&
+          value.title?.trim().toLowerCase() === normTitle &&
+          value.runner === 'sideload')
+    )
     const existing = gameIndex !== -1 ? current[gameIndex] : undefined
 
     const hasRealExecutable = Boolean(
@@ -120,7 +127,15 @@ export default class SideloadLibraryManager implements LibraryManager {
       addShortcuts(new SideloadGame(app_name))
     }
 
-    libraryStore.set('games', current)
+    const seenApps = new Set<string>()
+    const deduplicated = current.filter((item) => {
+      const key = item.app_name
+      if (!key || seenApps.has(key)) return false
+      seenApps.add(key)
+      return true
+    })
+
+    libraryStore.set('games', deduplicated)
 
     // Registra a instalação no ExternalGames e vincula à loja do manifesto
     if (computedIsInstalled && executable && exeFileExists) {

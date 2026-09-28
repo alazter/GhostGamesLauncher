@@ -54,6 +54,16 @@ const globalSettings = configStore.get_nodefault('settings')
 
 const RTL_LANGUAGES = ['fa', 'ar']
 
+function deduplicateSideloadGames(games: GameInfo[]): GameInfo[] {
+  const seen = new Set<string>()
+  return games.filter((g) => {
+    const key = g.app_name
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 type T = TFunction<'gamepage'> & TFunction<'translations'>
 
 interface Props {
@@ -292,7 +302,9 @@ class GlobalState extends PureComponent<Props> {
       runner: 'legendary',
       gameInfo: null
     },
-    sideloadedLibrary: applyGameOverrides(sideloadLibrary.get('games', [])),
+    sideloadedLibrary: applyGameOverrides(
+      deduplicateSideloadGames(sideloadLibrary.get('games', []))
+    ),
     dialogModalOptions: { showDialog: false },
     externalLinkDialogOptions: { showDialog: false },
     hideChangelogsOnStartup: globalSettings?.hideChangelogsOnStartup || false,
@@ -933,7 +945,7 @@ class GlobalState extends PureComponent<Props> {
         library: this.loadAmazonLibrary(overrides)
       },
       sideloadedLibrary: applyGameOverrides(
-        sideloadLibrary.get('games', []),
+        deduplicateSideloadGames(sideloadLibrary.get('games', [])),
         overrides
       )
     })
@@ -1003,7 +1015,7 @@ class GlobalState extends PureComponent<Props> {
       amazonLibrary = this.loadAmazonLibrary(overrides)
     }
 
-    const updatedSideload = sideloadLibrary.get('games', [])
+    const updatedSideload = deduplicateSideloadGames(sideloadLibrary.get('games', []))
 
     this.setState({
       epic: {

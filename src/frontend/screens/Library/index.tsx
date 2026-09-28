@@ -1721,7 +1721,7 @@ export default memo(function Library(): JSX.Element {
   }, [favourites])
 
   const makeLibrary = useCallback(() => {
-    return [
+    const raw = [
       ...(sideloadedLibrary ?? []),
       ...(epic.library ?? []),
       ...(gog.library ?? []),
@@ -1729,6 +1729,13 @@ export default memo(function Library(): JSX.Element {
       ...(zoom.library ?? []),
       ...(steam.library ?? [])
     ]
+    const seen = new Set<string>()
+    return raw.filter((game) => {
+      const key = `${game.app_name}_${game.runner}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   }, [epic.library, gog.library, amazon.library, zoom.library, steam.library, sideloadedLibrary])
 
   // Keep selectedInlineGame synchronized with the latest library data

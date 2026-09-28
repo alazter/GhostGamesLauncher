@@ -2018,13 +2018,24 @@ export class ExternalGames {
         ]
       }
       const library = libraryStore.get('games', [])
+      const normTitle = (job.game.title || '').trim().toLowerCase()
       const previous = library.find(
-        (game) => game.app_name === installed.appName
+        (game) =>
+          game.app_name === installed.appName ||
+          (job.old?.appName && game.app_name === job.old.appName) ||
+          (job.installationId && game.app_name === `external-${job.installationId}`) ||
+          (game.runner === 'sideload' && (game.title || '').trim().toLowerCase() === normTitle)
       )
       if (previous && previous.runner !== 'sideload')
         throw new Error('Jogos de lojas oficiais não podem ser substituídos.')
       libraryStore.set('games', [
-        ...library.filter((game) => game.app_name !== installed.appName),
+        ...library.filter(
+          (game) =>
+            game.app_name !== installed.appName &&
+            (!job.old?.appName || game.app_name !== job.old.appName) &&
+            (!job.installationId || game.app_name !== `external-${job.installationId}`) &&
+            !(game.runner === 'sideload' && (game.title || '').trim().toLowerCase() === normTitle)
+        ),
         {
           ...previous,
           app_name: installed.appName,
