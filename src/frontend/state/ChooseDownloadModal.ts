@@ -6,6 +6,7 @@ export interface ChooseDownloadModalState {
   game: GhostSearchResult | null
   title: string
   version?: string
+  cover?: string
   providerName?: string
   providerIcon?: string
   providerId?: string
@@ -21,6 +22,7 @@ export const useChooseDownloadModal = create<ChooseDownloadModalState>()(() => (
   game: null,
   title: '',
   version: undefined,
+  cover: undefined,
   providerName: undefined,
   providerIcon: undefined,
   providerId: undefined,
@@ -35,6 +37,7 @@ export interface OpenChooseDownloadParams {
   game: GhostSearchResult
   title?: string
   version?: string
+  cover?: string
   providerName?: string
   providerIcon?: string
   providerId?: string
@@ -49,6 +52,7 @@ export const openChooseDownloadModal = async (params: OpenChooseDownloadParams) 
     game: params.game,
     title: params.title || params.game.title,
     version: params.version || params.game.version,
+    cover: params.cover || params.game.coverUrl || (params.game as any)?.cover || (params.game as any)?.art_cover,
     providerName: params.providerName || params.game.providerName,
     providerIcon: params.providerIcon || params.game.providerIcon,
     providerId: params.providerId || params.game.providerId,

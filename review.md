@@ -1,4 +1,4 @@
-# Review das Alterações - 30/09/2026
+# Review das Alterações - 01/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -719,16 +719,12 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Indicador Local de Remoção/Deleção no GameCard (Conquista 94/Regras 61 e 62)**: Store reativo não-bloqueante (`removingGamesStore.ts`) acionado em 0ms. Overlay interno ao card (`.gameCardRemovalOverlay`) com blur, bordas pulsantes neon e spinner sem alterar o tamanho, largura, altura ou proporção `aspect-ratio: 173/275` do card (Regra 62), permitindo navegar pela biblioteca enquanto a remoção roda em background (Regra 61).
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros no TypeScript (`tsc --noEmit`) e 160/160 testes unitários Jest aprovados.
 
-### 42. Preservação Soberana de Capas/Loja/Diretório, Logotipo HD e Rotas Duplas no Modal de Update, Política Não-Bloqueante de Saves e Botão Exclusivo de Check de Updates na Topbar
-* **Problema:** Ao baixar novamente ou atualizar um jogo, o Ghost criava cards novos duplicando o jogo na biblioteca; a deleção física de binários excluía a loja de origem do jogo; modais de download/update omitiam logos de lojas e opções duplas de transporte (Direto/TorBox); ausência de pastas de saves anteriores bloqueava instalações em jogos nunca iniciados; e faltava um botão rápido dedicado na barra de ações para buscar atualizações na loja Piratas.
+### 43. Estética Soberana Cyber Neon do Modal "Escolha como baixar", Mini-Capa 76x76px e Escaneamento Nativo Sem Senha do Ubisoft Connect
+* **Problema:** O modal "Escolha como baixar" carecia de um showcase visual completo do jogo e de badges amplos de loja; e a conexão da conta Ubisoft Connect exigia login manual ou não integrava a biblioteca local importada pelo lançador oficial.
 * **Solução:**
-  - **Preservação Soberana de Capas e Identidade de Card (Conquista 131/Regra 99)**: Motor multicritério `findMatchingLibraryGame` identifica jogos existentes da biblioteca. `commitInstallation` preserva capas configuradas (`art_cover`, `art_square`), o título customizado e `app_name`, atualizando exclusivamente diretório, executável, versão e manifesto. Poda rigorosa impede criação de duplicatas.
-  - **Preservação Soberana de Loja e Diretório ao Deletar Binários (Conquista 130/Regra 98)**: `deleteInstallationAndFiles` apaga apenas os arquivos físicos do disco mantendo o registro da instalação intacto com a loja de origem (`providerId`/`providerName`) e diretório associado. Reinstalação ou update herda a pasta original sem diálogo nativo do Windows.
-  - **Logotipo Oficial HD e Rotas Duplas (Download Direto e TorBox) no Modal de Update (Conquista 132/Regra 100)**: Integrados logos HD locais (`steamrip-logo.png`, `ankergames-logo.png`, `onlinefix-logo.png`) e pílulas neon no `ChooseDownloadModal`. Apresentação obrigatória de ambos os transportes (Download Direto e TorBox) lado a lado em qualquer janela de download ou update.
-  - **Política Não-Bloqueante por Ausência de Saves**: Ausência de pasta de saves locais em novos downloads, diretórios limpos ou jogos nunca jogados não impede a instalação ou atualização. Ghost alerta via diálogo consultivo se necessário, mas comita a instalação com 100% de sucesso ao concordar.
-  - **Botão Exclusivo em Header Action Icons para Buscar Updates na Loja Piratas (Conquista 129/Regra 97)**: Botão com ícone `faSkullCrossbones` e cor ouro/âmbar `#ffb703` Cyber Neon na barra de ferramentas da topbar, acionando varredura e autocura (`healInstallations`) na loja Piratas com toast neon com contador de novidades.
-  - **Atrelamento de Versão à Data da Fonte (`sourceDate`) e Comparador de Tupla Dupla (Conquista 127/Regra 95)**: `isNewerGameRelease` avalia a tupla $\langle \text{Versão}, \text{Data da Fonte} \rangle$. Se a data da fonte for mais recente, confirma update imediatamente eliminando falsos negativos entre builds e SemVer.
-  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`) e 284/284 testes unitários Jest aprovados em 30 suítes.
+  - **Estética Soberana Cyber Neon do Modal "Escolha como baixar" (Conquista 133/Regra 101)**: Mini-capa quadrada 76x76px com borda neon ciano `1.5px solid #00ffff`, sombra glow e fallback para `faGamepad`; título do jogo em `#ffffff` 16px em destaque, badge de versão Cyber Neon (`⚡ v...`) e linha de caminho físico permanente (`📁 E:\...`) com contorno pontilhado; pílula de loja ampla com logotipo oficial HD (`ExternalStoreLogo`) sem truncamento (`white-space: nowrap`); dual cards de transporte em gradiente Cyber Neon (`#0e1420` → `#141e30`) com badges `⚡ Alta Velocidade` e `☁️ Nuvem Debrid`; e unificação global via `ChooseDownloadModalWrapper`.
+  - **Escaneamento Nativo Sem Senha do Ubisoft Connect (Conquista 134/Regra 102)**: Módulo `ubisoftLocal.ts` que faz o parse seguro do cache local em `%LOCALAPPDATA%\Ubisoft Game Launcher\cache\configuration\configurations`. Extrai títulos, edições, capas oficiais HD da CDN Akamai (`ubistatic3-a.akamaihd.net`), auto-cria a loja `Ubisoft` e atribui os jogos sem requerer login ou senha.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 50/50 testes unitários Jest em `ubisoftLocal.test.ts` aprovados (290/290 testes em plugins).
 
 ---
 

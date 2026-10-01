@@ -5,8 +5,9 @@ import {
   faDownload,
   faCloud,
   faSpinner,
-  faExchangeAlt,
-  faFolder
+  faFolder,
+  faBolt,
+  faGamepad
 } from '@fortawesome/free-solid-svg-icons'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -21,11 +22,13 @@ export function ChooseDownloadModalWrapper() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const [imgFailed, setImgFailed] = useState(false)
 
   useEffect(() => {
     if (!modalState.isOpen) {
       setNotice(null)
       setSubmitting(false)
+      setImgFailed(false)
       return
     }
 
@@ -91,6 +94,13 @@ export function ChooseDownloadModalWrapper() {
     isTorboxConfigured
   } = modalState
 
+  const coverImage = !imgFailed
+    ? modalState.cover ||
+      modalState.game?.coverUrl ||
+      (modalState.game as any)?.cover ||
+      (modalState.game as any)?.art_cover
+    : null
+
   const torboxSource = sources.find((s) => s.type === 'torbox')
   const directSources = sources.filter((s) => s.type === 'external' || s.type === 'direct')
   const hasDirect = directSources.length > 0
@@ -114,12 +124,14 @@ export function ChooseDownloadModalWrapper() {
                   ? 'Download direto — Confirmar no site'
                   : source.name || 'Download Direto'}
               </span>
-              <span className="cdmBtnSize">
-                Download direto em alta velocidade via navegador assistido (Buzzheavier, MegaDB, etc.)
+              <span className="cdmBtnSub">
+                Download direto em alta velocidade (Buzzheavier, MegaDB)
               </span>
             </div>
           </div>
-          {!hasTorbox && <span className="cdmActiveBadge">Disponível</span>}
+          <span className="cdmSpeedBadge">
+            <FontAwesomeIcon icon={faBolt} /> Alta Velocidade
+          </span>
         </button>
       ))
     }
@@ -140,7 +152,7 @@ export function ChooseDownloadModalWrapper() {
           <FontAwesomeIcon icon={faDownload} className="cdmBtnIcon" style={{ color: '#64748b' }} />
           <div className="cdmBtnTexts">
             <span className="cdmBtnLabel">Download direto</span>
-            <span className="cdmBtnSize">Não aplicável nesta loja (distribuição exclusiva via Torrent)</span>
+            <span className="cdmBtnSub">Não aplicável nesta loja (distribuição exclusiva via Torrent)</span>
           </div>
         </div>
         <span className="cdmInfoBadge">Exclusivo TorBox</span>
@@ -163,15 +175,17 @@ export function ChooseDownloadModalWrapper() {
             <FontAwesomeIcon icon={faCloud} className="cdmBtnIcon" />
             <div className="cdmBtnTexts">
               <span className="cdmBtnLabel">TorBox — Torrent</span>
-              <span className="cdmBtnSize">
-                Download em nuvem de alta velocidade com tráfego criptografado
+              <span className="cdmBtnSub">
+                Download em nuvem rápida com descompactação e IP protegido
               </span>
             </div>
           </div>
           {torboxMissing ? (
             <span className="cdmMissingBadge">Não configurado</span>
           ) : (
-            <span className="cdmActiveBadge">Disponível</span>
+            <span className="cdmDebridBadge">
+              <FontAwesomeIcon icon={faCloud} /> Nuvem Debrid
+            </span>
           )}
         </button>
       )
@@ -193,7 +207,7 @@ export function ChooseDownloadModalWrapper() {
           <FontAwesomeIcon icon={faCloud} className="cdmBtnIcon" style={{ color: '#64748b' }} />
           <div className="cdmBtnTexts">
             <span className="cdmBtnLabel">TorBox — Torrent</span>
-            <span className="cdmBtnSize">
+            <span className="cdmBtnSub">
               Disponível em lojas com rede Torrent (AnkerGames / Online-Fix)
             </span>
           </div>
@@ -212,9 +226,10 @@ export function ChooseDownloadModalWrapper() {
         aria-labelledby="cdmModalTitle"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header Cyber Neon */}
         <div className="cdmModalHeader">
           <div className="cdmModalTitle">
-            <FontAwesomeIcon icon={faExchangeAlt} style={{ color: '#00ffff' }} />
+            <FontAwesomeIcon icon={faDownload} className="cdmModalTitleIcon" />
             <span id="cdmModalTitle">Escolha como baixar</span>
           </div>
           <button
@@ -228,29 +243,56 @@ export function ChooseDownloadModalWrapper() {
         </div>
 
         <div className="cdmModalBody">
-          <div className="cdmGameHeaderRow">
-            <div className="cdmGameTitleCol">
-              <strong className="cdmGameTitleText">{title}</strong>
-              {version && <span className="cdmVersionBadge">v{version.replace(/^v/i, '')}</span>}
+          {/* Showcase do Jogo */}
+          <div className="cdmGameCardShowcase">
+            <div className="cdmGameCoverWrap">
+              {coverImage ? (
+                <img
+                  src={coverImage}
+                  alt={title}
+                  className="cdmGameCover"
+                  onError={() => setImgFailed(true)}
+                />
+              ) : (
+                <div className="cdmGameCoverFallback">
+                  <FontAwesomeIcon icon={faGamepad} />
+                </div>
+              )}
             </div>
+
+            <div className="cdmGameInfoCol">
+              <strong className="cdmGameTitleText" title={title}>
+                {title}
+              </strong>
+
+              <div className="cdmGameMetaRow">
+                {version && (
+                  <span className="cdmVersionBadge">
+                    <FontAwesomeIcon icon={faBolt} style={{ fontSize: '10px' }} />
+                    <span>v{version.replace(/^v/i, '')}</span>
+                  </span>
+                )}
+              </div>
+
+              {targetDirectory && (
+                <div className="cdmPathNotice" title={targetDirectory}>
+                  <FontAwesomeIcon icon={faFolder} className="cdmPathIcon" />
+                  <span className="cdmPathText">{targetDirectory}</span>
+                </div>
+              )}
+            </div>
+
             {providerName && (
               <div className="cdmStoreBadgePill" title={`Loja de Origem: ${providerName}`}>
                 <ExternalStoreLogo
                   icon={providerIcon || (modalState.game as any)?.providerIcon}
                   name={providerName}
-                  size={20}
+                  size={24}
                 />
                 <span className="cdmStoreName">{providerName}</span>
               </div>
             )}
           </div>
-
-          {targetDirectory && (
-            <div className="cdmPathNotice" title={targetDirectory}>
-              <FontAwesomeIcon icon={faFolder} className="cdmPathIcon" />
-              <span className="cdmPathText">Pasta: {targetDirectory}</span>
-            </div>
-          )}
 
           {notice && <div className="cdmNoticeBox">{notice}</div>}
 

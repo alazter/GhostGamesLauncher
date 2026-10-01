@@ -15,7 +15,7 @@ import '../Runner/index.css'
 import './index.css'
 
 export default function ConnectedAccounts() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [accounts, setAccounts] = useState<ConnectedAccountStatus[]>([])
   const [busy, setBusy] = useState<AccountProvider | null>(null)
   const [error, setError] = useState('')
@@ -58,18 +58,19 @@ export default function ConnectedAccounts() {
 
   async function operate(
     provider: AccountProvider,
-    action: 'connect' | 'disconnect'
+    action: 'connect' | 'disconnect' | 'sync'
   ) {
     setBusy(provider)
     setError('')
     try {
       const result = await {
         connect: window.api.connectAccount,
-        disconnect: window.api.disconnectAccount
+        disconnect: window.api.disconnectAccount,
+        sync: window.api.syncAccount
       }[action](provider)
       if (!result.success && !result.cancelled)
         setError(`${accountProviderNames[provider]}: ${result.error}`)
-      if (result.success && action === 'connect') {
+      if (result.success && (action === 'connect' || action === 'sync')) {
         ensureConnectedAccountCustomStore(provider)
       }
       setAccounts(await window.api.getConnectedAccounts())
@@ -85,6 +86,19 @@ export default function ConnectedAccounts() {
     }
   }
 
+  const ubisoftAccount = accounts.find((entry) => entry.provider === 'ubisoft')
+  const hasLocalUbisoftLibrary =
+    ubisoftAccount?.connected && ubisoftAccount.connectionMethod === 'local'
+  const ubisoftSourceDate = ubisoftAccount?.sourceUpdatedAt
+    ? new Date(ubisoftAccount.sourceUpdatedAt).toLocaleString(
+        i18n.language.replace(/_/g, '-'),
+        {
+          dateStyle: 'short',
+          timeStyle: 'short'
+        }
+      )
+    : undefined
+
   return (
     <section
       className="connectedAccounts"
@@ -92,6 +106,12 @@ export default function ConnectedAccounts() {
     >
       {accountProviders.map((provider) => {
         const account = accounts.find((entry) => entry.provider === provider)
+        const accountName =
+          account?.connected &&
+          account.username &&
+          !/^EA · \d+$/.test(account.username)
+            ? account.username
+            : accountProviderNames[provider]
         return (
           <div
             className="runnerWrapper connectedAccount"
@@ -110,11 +130,12 @@ export default function ConnectedAccounts() {
             </div>
             <div className="userData connectedAccountIdentity">
               <strong>
-                {account?.connected
-                  ? account.username && !/^EA · \d+$/.test(account.username)
-                    ? account.username
-                    : accountProviderNames[provider]
-                  : accountProviderNames[provider]}
+                {provider === 'ubisoft' && hasLocalUbisoftLibrary
+                  ? t(
+                      'accounts.ubisoftLocalLibrary',
+                      'Biblioteca local · Ubisoft Connect'
+                    )
+                  : accountName}
               </strong>
             </div>
             <div className="runnerButtons connectedAccountActions">
@@ -126,7 +147,7 @@ export default function ConnectedAccounts() {
                 <>
                   <button
                     type="button"
-                    className={`runnerLogin connectedAccountPrimary${account?.connected ? ' connectedAccountDisconnect' : ''}`}
+                    className={`runnerLogin connectedAccountPrimary${account?.connected ? ' connectedAccountDisconnect' : provider === 'ubisoft' ? ' connectedAccountUbisoftImport' : ''}`}
                     disabled={!ready || busy !== null || saving}
                     onClick={() =>
                       void operate(
@@ -137,7 +158,12 @@ export default function ConnectedAccounts() {
                   >
                     {account?.connected
                       ? t('accounts.disconnect', 'Desconectar')
-                      : t('accounts.connect', 'Conectar conta')}
+                      : provider === 'ubisoft'
+                        ? t(
+                            'accounts.ubisoftImport',
+                            'Importar do Ubisoft Connect'
+                          )
+                        : t('accounts.connect', 'Conectar conta')}
                   </button>
                 </>
               )}
@@ -145,6 +171,44 @@ export default function ConnectedAccounts() {
           </div>
         )
       })}
+      <div className="connectedAccountNotice connectedAccountUbisoftNotice">
+        <p>
+          {t(
+            'accounts.ubisoftLocalNotice',
+            'O Ghost importa os jogos da biblioteca local do Ubisoft Connect. Para atualizar a lista, abra o cliente oficial e entre na sua conta; depois volte ao Ghost para importar ou atualizar a biblioteca.'
+          )}
+        </p>
+        {hasLocalUbisoftLibrary && (
+          <>
+            <p>
+              {t(
+                'accounts.ubisoftLocalCount',
+                'Jogos importados da biblioteca local: {{count}}.',
+                { count: ubisoftAccount.gameCount }
+              )}
+              {ubisoftSourceDate && (
+                <>
+                  {' '}
+                  {t(
+                    'accounts.ubisoftCacheUpdated',
+                    'Cache local atualizado em {{date}}.',
+                    { date: ubisoftSourceDate }
+                  )}
+                </>
+              )}
+            </p>
+            <button
+              type="button"
+              disabled={!ready || busy !== null || saving}
+              onClick={() => void operate('ubisoft', 'sync')}
+            >
+              {busy === 'ubisoft'
+                ? t('accounts.working', 'Aguarde…')
+                : t('accounts.ubisoftSync', 'Atualizar biblioteca')}
+            </button>
+          </>
+        )}
+      </div>
       <p className="connectedAccountNotice">
         {t(
           'accounts.xboxNotice',

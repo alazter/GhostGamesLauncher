@@ -13,6 +13,7 @@ const dependenciesToNotExternalize = [
   '@xhmikosr/decompress-targz',
   '@xhmikosr/decompress-unzip',
   'extract-zip',
+  'yaml',
   'yauzl',
   'get-stream',
   'buffer-crc32',

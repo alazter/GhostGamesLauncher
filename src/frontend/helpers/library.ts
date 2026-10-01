@@ -485,6 +485,7 @@ const updateGame = async (args: UpdateParams) => {
           game: inst.availableUpdate,
           title: inst.game.title,
           version: inst.availableUpdate.version,
+          cover: inst.availableUpdate.coverUrl || inst.game.coverUrl,
           providerName: inst.availableUpdate.providerName || inst.game.providerName,
           providerIcon: inst.availableUpdate.providerIcon || inst.game.providerIcon,
           providerId: inst.availableUpdate.providerId || inst.game.providerId,

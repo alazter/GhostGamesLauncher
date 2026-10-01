@@ -1,3 +1,6 @@
+/* ==========================================================================
+   MODAL CYBER NEON: ESCOLHA COMO BAIXAR (REGRAS 12 & 53)
+   ========================================================================== */
 .cdmModalOverlay {
   position: fixed;
   inset: 0;
@@ -27,7 +30,7 @@
   border: 1.5px solid #00ffff;
   border-radius: 16px;
   width: 90%;
-  max-width: 520px;
+  max-width: 580px;
   box-shadow: 0 0 35px rgba(0, 255, 255, 0.25), 0 24px 60px rgba(0, 0, 0, 0.95);
   display: flex;
   flex-direction: column;
@@ -39,27 +42,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 22px;
+  padding: 18px 24px;
   border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-  background: rgba(0, 255, 255, 0.04);
+  background: rgba(0, 255, 255, 0.03);
 }
 
 .cdmModalTitle {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   letter-spacing: 0.3px;
 }
 
+.cdmModalTitleIcon {
+  color: #00ffff;
+  font-size: 19px;
+  filter: drop-shadow(0 0 6px #00ffff);
+}
+
+/* Regra Canônica 12: Fechamento com fundo 100% transparente, sem bordas/molduras */
 .cdmModalCloseBtn {
   background: transparent !important;
   border: none !important;
   outline: none !important;
+  box-shadow: none !important;
   color: rgba(255, 255, 255, 0.65);
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   padding: 4px 8px;
   transition: all 0.2s ease;
@@ -73,126 +84,115 @@
 }
 
 .cdmModalBody {
-  padding: 20px 22px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
-.cdmGameHeaderRow {
+/* Showcase do Jogo */
+.cdmGameCardShowcase {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-bottom: 2px;
-}
-
-.cdmGameTitleCol {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 16px;
+  background: rgba(0, 229, 255, 0.03);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 12px;
   min-width: 0;
-  flex: 1 1 auto;
+  position: relative;
+}
+
+.cdmGameCoverWrap {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1.5px solid #00ffff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
+  background: #0d1217;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cdmGameCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cdmGameCoverFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00ffff;
+  font-size: 28px;
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.cdmGameInfoCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .cdmGameTitleText {
-  color: #00ffff;
+  color: #ffffff;
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 16px;
   letter-spacing: 0.3px;
-  line-height: 1.3;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.cdmStoreBadgePill {
-  display: inline-flex;
+.cdmGameMetaRow {
+  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.35);
-  border-radius: 18px;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.cdmStoreBadgePill:hover {
-  background: rgba(0, 229, 255, 0.14);
-  border-color: #00ffff;
-  box-shadow: 0 0 14px rgba(0, 229, 255, 0.28);
-}
-
-.cdmStoreName {
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.4px;
-}
-
-.cdmActiveBadge {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(0, 229, 255, 0.15);
-  border: 1px solid rgba(0, 229, 255, 0.45);
-  color: #00ffff;
-  flex-shrink: 0;
-}
-
-.cdmInfoBadge {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(148, 163, 184, 0.15);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-.cdmGameSubtitle {
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-  line-height: 1.4;
-}
-
-.cdmGameSubtitle strong {
-  color: #00ffff;
-  font-weight: 700;
+  flex-wrap: wrap;
 }
 
 .cdmVersionBadge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 2px 8px;
   background: rgba(0, 229, 255, 0.12);
-  border: 1px solid rgba(0, 229, 255, 0.4);
-  border-radius: 12px;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  border-radius: 6px;
   color: #00ffff;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  margin-left: 6px;
 }
 
 .cdmPathNotice {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(0, 229, 255, 0.06);
-  border: 1px dashed rgba(0, 229, 255, 0.3);
-  border-radius: 8px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  gap: 7px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(0, 229, 255, 0.25);
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #94a3b8;
   overflow: hidden;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .cdmPathIcon {
   color: #00ffff;
   flex-shrink: 0;
+  font-size: 12px;
 }
 
 .cdmPathText {
@@ -201,41 +201,63 @@
   white-space: nowrap;
 }
 
-.cdmLoadingRow {
-  display: flex;
+.cdmStoreBadgePill {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1.5px solid rgba(0, 229, 255, 0.45);
+  border-radius: 20px;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-left: auto;
+  transition: all 0.2s ease;
 }
 
+.cdmStoreBadgePill:hover {
+  background: rgba(0, 229, 255, 0.16);
+  border-color: #00ffff;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+}
+
+.cdmStoreName {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+/* Lista de Opções de Transporte */
 .cdmChoices {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .cdmChoiceBtn {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  padding: 12px 18px;
-  background: rgba(14, 20, 32, 0.8);
-  border: 1.5px solid rgba(0, 229, 255, 0.3);
-  border-radius: 10px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(14, 20, 32, 0.95) 0%, rgba(20, 30, 48, 0.8) 100%);
+  border: 1.5px solid rgba(0, 229, 255, 0.35);
+  border-radius: 12px;
   color: #ffffff;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
+  box-sizing: border-box;
 }
 
 .cdmChoiceBtn:hover:not(:disabled) {
   background: rgba(0, 229, 255, 0.12);
   border-color: #00ffff;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
   transform: translateY(-1px);
 }
 
@@ -243,51 +265,112 @@
   opacity: 0.55;
   cursor: not-allowed;
   border-color: rgba(255, 255, 255, 0.15);
+  transform: none;
+  box-shadow: none;
 }
 
 .cdmBtnLeft {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
 }
 
 .cdmBtnIcon {
-  font-size: 16px;
+  font-size: 18px;
   color: #00ffff;
   flex-shrink: 0;
+  filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.7));
 }
 
 .cdmBtnTexts {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
 .cdmBtnLabel {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.2px;
 }
 
-.cdmBtnSize {
+.cdmBtnSub {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.35;
+}
+
+/* Badges Neon */
+.cdmSpeedBadge {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  border-radius: 6px;
+  color: #00ffff;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  font-weight: 700;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cdmDebridBadge {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  border-radius: 6px;
+  color: #00ffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .cdmMissingBadge {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
   background: rgba(255, 107, 0, 0.15);
   border: 1px solid rgba(255, 107, 0, 0.45);
   color: #ff9900;
   flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cdmInfoBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #94a3b8;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.cdmActiveBadge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  color: #00ffff;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .cdmNoticeBox {
@@ -300,11 +383,20 @@
   line-height: 1.4;
 }
 
+.cdmLoadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .cdmModalFooter {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 14px 22px;
+  padding: 14px 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(0, 0, 0, 0.25);
 }
@@ -313,9 +405,9 @@
   background: #1a232c;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #cbd5e1;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 8px 18px;
+  padding: 8px 22px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;

@@ -15,6 +15,8 @@ export interface ConnectedAccountStatus {
   lastSync?: number
   gameCount: number
   error?: string
+  connectionMethod?: 'local'
+  sourceUpdatedAt?: number
 }
 
 export type AccountResult =

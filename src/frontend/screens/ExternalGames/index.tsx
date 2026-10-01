@@ -63,6 +63,7 @@ import {
   setDefaultDownloadStoreId,
   syncPiratasStoreAssignments
 } from 'frontend/helpers/autoStoreAssignments'
+import { openChooseDownloadModal } from 'frontend/state/ChooseDownloadModal'
 import { useExternalGames } from './shared'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import ankerLogo from 'frontend/assets/ankergames-logo.png'
@@ -1429,7 +1430,6 @@ export default function ExternalGamesScreen() {
   const [selected, setSelected] = useState<GhostSearchResult>()
   const [selectedGroupKey, setSelectedGroupKey] = useState('')
   const [showDownloadOptions, setShowDownloadOptions] = useState(false)
-  const [showTransportChoice, setShowTransportChoice] = useState(false)
   const [sources, setSources] = useState<GhostDownloadSource[]>([])
   const [localGames, setLocalGames] = useState<LocalCandidateGame[]>([])
   const [replacement, setReplacement] = useState(
@@ -2227,8 +2227,6 @@ export default function ExternalGamesScreen() {
     }
   }
 
-  useEffect(() => { setShowTransportChoice(false) }, [activeSource?.id, activeSource?.providerId])
-
   const handlePrimaryAction = async () => {
     if (!activeSource) return
     const instStatus = await freshInstallationStatus(activeSource)
@@ -2256,7 +2254,36 @@ export default function ExternalGamesScreen() {
         setMessage('A fonte não disponibilizou opções de download.')
         return
       }
-      setShowTransportChoice(true)
+
+      let replaceId = instStatus.installedGame?.id || instStatus.installedGame?.appName
+      if (
+        instStatus.installedGame?.appName &&
+        !state.installations.some((i) => i.id === replaceId)
+      ) {
+        try {
+          const synced = await window.api.externalGamesGetOrCreateInstallation(
+            instStatus.installedGame.appName
+          )
+          if (synced?.id) {
+            replaceId = synced.id
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      void openChooseDownloadModal({
+        game: activeSource,
+        title: activeSource.title,
+        cover: activeSource.coverUrl || (activeSource as any).cover || activeGroup?.coverUrl,
+        version: getCardVersion(activeSource),
+        providerName: activeSource.providerName,
+        providerIcon: activeSource.providerIcon,
+        providerId: activeSource.providerId,
+        replaceInstallationId: replaceId,
+        targetDirectory: selectedInstallPath || instStatus.installedGame?.directory || undefined,
+        sources: options
+      })
     })
   }
 
@@ -2299,14 +2326,12 @@ export default function ExternalGamesScreen() {
         confirmed: true
       })
       if (result.success) {
-        setShowTransportChoice(false)
         setReplacementModal(null)
         navigate('/download-manager')
         if (window.location.hash !== '#/download-manager') {
           window.location.hash = '#/download-manager'
         }
       } else {
-        setShowTransportChoice(false)
         setMessage(result.error || 'Não foi possível iniciar o download. Verifique as configurações.')
         if (result.error) {
           throw new Error(result.error)
@@ -2328,7 +2353,6 @@ export default function ExternalGamesScreen() {
         confirmed: true
       })
       if (result.success) {
-        setShowTransportChoice(false)
         navigate('/download-manager')
         if (window.location.hash !== '#/download-manager') {
           window.location.hash = '#/download-manager'
@@ -3375,127 +3399,7 @@ export default function ExternalGamesScreen() {
           </div>
         )}
 
-        {/* MODAL CYBER NEON: TROCA DE FONTE / ATUALIZAÇÃO (REGRA 12 FECHAMENTO) */}
-        {showTransportChoice && activeSource && (
-          <div className="ghostReplacementModalOverlay" onClick={() => setShowTransportChoice(false)}>
-            <div className="ghostReplacementModalCard" role="dialog" aria-modal="true" aria-labelledby="downloadTransportTitle" onClick={event => event.stopPropagation()}>
-              <div className="ghostPathsModalHeader">
-                <h2 id="downloadTransportTitle">Escolha como baixar</h2>
-                <button type="button" className="ghostPathsModalCloseBtn" aria-label="Fechar" onClick={() => setShowTransportChoice(false)}><FontAwesomeIcon icon={faTimes} /></button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', margin: '8px 0 14px' }}>
-                <span style={{ color: '#00ffff', fontWeight: 700, fontSize: '13.5px' }}>{activeSource.title}</span>
-                <span className="ghostInstProviderIcon" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', background: 'rgba(0, 229, 255, 0.08)', border: '1px solid rgba(0, 229, 255, 0.35)', borderRadius: '16px', color: '#fff', fontSize: '11.5px', fontWeight: 600 }}>
-                  {renderProviderIcon(activeSource.providerId, activeSource.providerName, activeSource.providerIcon, 18)}
-                  <span>{activeSource.providerName}</span>
-                </span>
-              </div>
-              <div className="ghostTransportChoices">
-                {(() => {
-                  const torboxSource = sources.find((s) => s.type === 'torbox')
-                  const directSources = sources.filter((s) => s.type === 'external' || s.type === 'direct')
-                  const hasDirect = directSources.length > 0
-                  const hasTorbox = Boolean(torboxSource)
-                  const torboxMissing = !integrationsState?.torboxConfigured
 
-                  const renderDirect = () =>
-                    hasDirect ? (
-                      directSources.map((source) => (
-                        <button
-                          key={source.id}
-                          type="button"
-                          className="ghostReplacementBtnConfirm"
-                          disabled={busy}
-                          onClick={() => {
-                            setShowTransportChoice(false)
-                            void handleInstallFromSource(source.id)
-                          }}
-                        >
-                          <FontAwesomeIcon icon={faDownload} />
-                          <span>
-                            {source.type === 'external'
-                              ? 'Download direto — Confirmar no site'
-                              : source.name || 'Download Direto'}
-                          </span>
-                        </button>
-                      ))
-                    ) : (
-                      <button
-                        type="button"
-                        className="ghostReplacementBtnConfirm"
-                        style={{ opacity: 0.65 }}
-                        disabled={busy}
-                        onClick={() => {
-                          setMessage(
-                            `A loja ${activeSource.providerName} disponibiliza este jogo exclusivamente através de Torrent via TorBox.`
-                          )
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faDownload} style={{ color: '#64748b' }} />
-                        <span>Download direto (indisponível nesta loja)</span>
-                      </button>
-                    )
-
-                  const renderTorbox = () =>
-                    hasTorbox ? (
-                      <button
-                        key={torboxSource!.id}
-                        type="button"
-                        className="ghostReplacementBtnConfirm"
-                        disabled={busy}
-                        title={torboxMissing ? 'TorBox não configurado em Integrações de downloads' : undefined}
-                        onClick={() => {
-                          if (torboxMissing) {
-                            setMessage(
-                              'O TorBox ainda não está configurado. Conecte o TorBox em Integrações de downloads ou escolha a opção de Download Direto.'
-                            )
-                            return
-                          }
-                          setShowTransportChoice(false)
-                          void handleInstallFromSource(torboxSource!.id)
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faCloud} />
-                        <span>
-                          {`TorBox — Torrent${torboxMissing ? ' (não configurado)' : ''}`}
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="ghostReplacementBtnConfirm"
-                        style={{ opacity: 0.65 }}
-                        disabled={busy}
-                        onClick={() => {
-                          setMessage(
-                            `A loja ${activeSource.providerName} disponibiliza este jogo exclusivamente em Download Direto de alta velocidade (Buzzheavier/MegaDB), sem necessidade de Torrent. Escolha "Download direto" para baixar.`
-                          )
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faCloud} style={{ color: '#64748b' }} />
-                        <span>TorBox — Torrent (exclusivo p/ fontes Torrent)</span>
-                      </button>
-                    )
-
-                  return hasTorbox && !hasDirect ? (
-                    <>
-                      {renderTorbox()}
-                      {renderDirect()}
-                    </>
-                  ) : (
-                    <>
-                      {renderDirect()}
-                      {renderTorbox()}
-                    </>
-                  )
-                })()}
-              </div>
-              <div className="ghostReplacementModalFooter">
-                <button type="button" className="ghostReplacementBtnCancel" onClick={() => setShowTransportChoice(false)}>Cancelar</button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {replacementModal && replacementModal.isOpen && (
           <div

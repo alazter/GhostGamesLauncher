@@ -218,6 +218,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
               game: extInstallation.availableUpdate,
               title: extInstallation.game.title,
               version: extInstallation.availableUpdate.version,
+              cover: (game as any)?.art_cover || extInstallation.availableUpdate.coverUrl || extInstallation.game.coverUrl,
               providerName: extInstallation.availableUpdate.providerName || extInstallation.game.providerName,
               providerIcon: extInstallation.availableUpdate.providerIcon || extInstallation.game.providerIcon,
               providerId: extInstallation.availableUpdate.providerId || extInstallation.game.providerId,

@@ -8,6 +8,8 @@ import {
 import Store from 'electron-store'
 import { createHash, randomBytes } from 'crypto'
 import { z } from 'zod'
+import { statSync } from 'graceful-fs'
+import { readUbisoftLocalCatalog } from './ubisoftLocal'
 import { libraryStore } from '../sideload/electronStores'
 import { sendFrontendMessage } from 'backend/ipc'
 import {
@@ -23,7 +25,6 @@ import {
   eaCatalogUrl,
   parseEaCatalog,
   parseXboxCatalog,
-  parseUbisoftCatalog,
   parseBattleNetCatalog,
   uniqueGames
 } from './catalogs'
@@ -35,13 +36,11 @@ import { logInfo, logWarning } from 'backend/logger'
 
 const providerSchema = z.enum(accountProviders)
 const EA_REQUESTS = 'https://service-aggregation-layer.juno.ea.com/*'
-const UBI_APP = 'b8fde481-327d-4031-85ce-7c10a202a700'
 const XBOX_REDIRECT = 'https://login.live.com/oauth20_desktop.srf'
 const XBOX_SCOPE = 'Xboxlive.signin Xboxlive.offline_access'
-const loginUrls: Record<AccountProvider, string> = {
+const loginUrls: Record<Exclude<AccountProvider, 'ubisoft'>, string> = {
   xbox: 'https://login.live.com/',
   ea: 'https://www.ea.com/login',
-  ubisoft: `https://connect.ubisoft.com/login?appId=${UBI_APP}&genomeId=fbd6791c-a6c6-4206-a75e-77234080b87b&lang=pt-BR&nextUrl=https%3A%2F%2Fconnect.ubisoft.com%2Fready`,
   battlenet: 'https://account.battle.net/oauth2/authorization/account-settings'
 }
 
@@ -54,6 +53,8 @@ interface Credentials {
 interface Catalog {
   games: AccountGame[]
   username: string
+  connectionMethod?: 'local'
+  sourceUpdatedAt?: number
 }
 interface SavedAccount {
   status: ConnectedAccountStatus
@@ -158,6 +159,12 @@ function errorText(error: unknown): string {
     return 'A EA recusou a consulta que confirma a conta. O Ghost ainda não conseguiu validar esta sessão.'
   if (code === 'XBOX_CLIENT_ID_REQUIRED')
     return 'Configure o ID do aplicativo Microsoft do Ghost para conectar o Xbox.'
+  if (code === 'UBISOFT_CLIENT_REQUIRED')
+    return 'Abra o Ubisoft Connect oficial, entre na sua conta e carregue sua biblioteca. Depois volte ao Ghost e tente importar novamente.'
+  if (code === 'UBISOFT_CACHE_INVALID')
+    return 'Não foi possível ler a biblioteca local do Ubisoft Connect. Abra o cliente oficial para atualizar os jogos e tente novamente. A biblioteca anterior foi preservada.'
+  if (code === 'UBISOFT_LOCAL_UNSUPPORTED')
+    return 'A importação da biblioteca local do Ubisoft Connect está disponível no Windows.'
   if (code === 'SECURE_STORAGE_UNAVAILABLE')
     return 'O armazenamento seguro do sistema não está disponível.'
   if (error instanceof z.ZodError)
@@ -459,6 +466,7 @@ async function readCatalog(
   credentials: Credentials,
   signal?: AbortSignal
 ): Promise<Catalog> {
+  if (provider === 'ubisoft') return readUbisoftLocalCatalog()
   const ses = providerSession(provider)
   const request = (
     requestSession: Session,
@@ -525,59 +533,6 @@ async function readCatalog(
       if (!games.length && totalCount > 0) throw new Error('CATALOG_INCOMPLETE')
     }
     return { games: uniqueGames(games), username }
-  }
-  if (provider === 'ubisoft') {
-    if (!credentials.token || !credentials.userId) throw new Error('HTTP_401')
-    if (credentials.refreshToken) {
-      const refreshed = z
-        .object({
-          ticket: z.string(),
-          sessionId: z.string(),
-          userId: z.string(),
-          rememberMeTicket: z.string().optional()
-        })
-        .parse(
-          await request(
-            ses,
-            'https://public-ubiservices.ubi.com/v3/profiles/sessions',
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `rm_v1 t=${credentials.refreshToken}`,
-                'Ubi-AppId': UBI_APP,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ rememberMe: true })
-            }
-          )
-        )
-      credentials.token = refreshed.ticket
-      credentials.sessionId = refreshed.sessionId
-      credentials.userId = refreshed.userId
-      credentials.refreshToken =
-        refreshed.rememberMeTicket || credentials.refreshToken
-    }
-    const result = await request(
-      ses,
-      'https://public-ubiservices.ubi.com/v1/profiles/me/uplay/graphql',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Ubi_v1 t=${credentials.token}`,
-          'Ubi-AppId': UBI_APP,
-          'Ubi-SessionId': credentials.sessionId || '',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          query:
-            'query { viewer { ownedGames: games(filterBy: {isOwned: true}) { totalCount nodes { id name } } } }'
-        })
-      }
-    )
-    return {
-      games: parseUbisoftCatalog(result),
-      username: `Ubisoft · ${credentials.userId}`
-    }
   }
   if (credentials.refreshToken)
     Object.assign(
@@ -670,7 +625,9 @@ function commitCatalog(
   catalog: Catalog,
   credentials: Credentials
 ): ConnectedAccountStatus {
-  const secret = provider === 'battlenet' ? undefined : encrypt(credentials)
+  const local = provider === 'ubisoft' && catalog.connectionMethod === 'local'
+  const secret =
+    provider === 'battlenet' || local ? undefined : encrypt(credentials)
   const current = libraryStore.get('games', [])
   const previous = new Map(
     current
@@ -680,21 +637,32 @@ function commitCatalog(
   const imported = uniqueGames(catalog.games).map((game) => {
     const appName = accountAppName(provider, game.id)
     const old = previous.get(appName)
+    let installed = false
+    if (local && old?.is_installed && old.install.executable) {
+      try {
+        installed = statSync(old.install.executable).isFile()
+      } catch {
+        installed = false
+      }
+    }
     return {
+      ...(local ? old : {}),
       runner: 'sideload' as const,
       accountProvider: provider,
       accountGameId: game.id,
       app_name: appName,
-      title: game.title,
-      art_cover: game.cover || old?.art_cover || '',
-      art_square: game.cover || old?.art_square || '',
+      title: (local && old?.title) || game.title,
+      art_cover:
+        (local && old?.art_cover) || game.cover || old?.art_cover || '',
+      art_square:
+        (local && old?.art_square) || game.cover || old?.art_square || '',
       store_url: game.storeUrl,
       description:
         provider === 'xbox'
           ? `Histórico Xbox: este registro não comprova uma licença ativa. Jogos de console podem não estar disponíveis no PC.\n${game.description || ''}`
-          : game.description,
-      install: {},
-      is_installed: false,
+          : (game.description ?? (local ? old?.description : undefined)),
+      install: local ? old?.install || {} : {},
+      is_installed: installed,
       installable: false,
       canRunOffline: false
     }
@@ -704,7 +672,9 @@ function commitCatalog(
     connected: true,
     username: catalog.username,
     lastSync: Date.now(),
-    gameCount: imported.length
+    gameCount: imported.length,
+    connectionMethod: catalog.connectionMethod,
+    sourceUpdatedAt: catalog.sourceUpdatedAt
   }
   libraryStore.set('games', [
     ...current.filter((game) => game.accountProvider !== provider),
@@ -729,7 +699,7 @@ export async function syncAccount(
   try {
     if (!store().get('accounts')[provider]?.status.connected)
       throw new Error('HTTP_401')
-    credentials = readCredentials(provider)
+    credentials = provider === 'ubisoft' ? {} : readCredentials(provider)
     let catalog: Catalog
     try {
       catalog = await readCatalog(provider, credentials)
@@ -747,7 +717,7 @@ export async function syncAccount(
     if (saved) {
       // Persist rotated refresh tokens even if fetching the catalog failed afterwards.
       let secret = saved.secret
-      if (credentials && provider !== 'battlenet') {
+      if (credentials && provider !== 'battlenet' && provider !== 'ubisoft') {
         try {
           secret = encrypt(credentials)
         } catch {
@@ -774,6 +744,33 @@ export async function connectAccount(
   if (running.has(provider)) {
     windows.get(provider)?.focus()
     return { success: false, error: errorText(new Error('BUSY')) }
+  }
+  if (provider === 'ubisoft') {
+    running.add(provider)
+    try {
+      const catalog = await readUbisoftLocalCatalog()
+      const status = commitCatalog(provider, catalog, {})
+      logInfo(
+        `[ConnectedAccounts] ubisoft: local-library-imported; games=${status.gameCount}`
+      )
+      return { success: true, status }
+    } catch (error) {
+      const message = errorText(error)
+      const previous = store().get('accounts').ubisoft
+      save(provider, {
+        ...previous,
+        status: {
+          ...(previous?.status || { provider, connected: false, gameCount: 0 }),
+          error: message
+        }
+      })
+      logWarning(
+        `[ConnectedAccounts] ubisoft: local-library-failed; ${message}`
+      )
+      return { success: false, error: message }
+    } finally {
+      running.delete(provider)
+    }
   }
   running.add(provider)
   const authPopups = new Set<BrowserWindow>()
@@ -948,47 +945,6 @@ export async function connectAccount(
               controller.signal
             )
             authCode = undefined
-          } else if (provider === 'ubisoft') {
-            if (!allowedNavigation(provider, currentUrl.href)) return
-            phase = 'checking-ubisoft-page'
-            const blocked = await Promise.all(
-              win.webContents.mainFrame.framesInSubtree.map(async (frame) => {
-                try {
-                  return (
-                    (await frame.executeJavaScript(`(() => {
-                  const text = document.body?.innerText || '';
-                  return /O acesso está temporariamente restrito|Access (?:is )?temporarily restricted|Access denied/i.test(text);
-                })()`)) === true
-                  )
-                } catch {
-                  return false
-                }
-              })
-            )
-            if (blocked.some(Boolean))
-              throw new Error('PROVIDER_BROWSER_BLOCKED')
-            if (currentUrl.origin !== 'https://connect.ubisoft.com') return
-            const local: unknown = await win.webContents
-              .executeJavaScript(`(() => {
-              const values = ['PRODloginData', 'PRODrememberMe', 'PRODlastProfile'].map(key => {
-                try { return JSON.parse(localStorage.getItem(key) || '{}') } catch { return {} }
-              }); return Object.assign({}, ...values);
-            })()`)
-            const parsed = z
-              .object({
-                ticket: z.string(),
-                userId: z.string(),
-                sessionId: z.string(),
-                rememberMeTicket: z.string().optional()
-              })
-              .safeParse(local)
-            if (!parsed.success) return
-            credentials = {
-              token: parsed.data.ticket,
-              userId: parsed.data.userId,
-              sessionId: parsed.data.sessionId,
-              refreshToken: parsed.data.rememberMeTicket
-            }
           } else if (provider === 'ea') {
             // An authenticated service request is stronger evidence than the page URL.
             if (!credentials.token) {
@@ -1111,8 +1067,10 @@ export async function disconnectAccount(
     return { success: false, error: errorText(new Error('BUSY')) }
   running.add(provider)
   try {
-    await providerSession(provider).clearStorageData()
-    await providerSession(provider).closeAllConnections()
+    if (provider !== 'ubisoft') {
+      await providerSession(provider).clearStorageData()
+      await providerSession(provider).closeAllConnections()
+    }
     const status = { provider, connected: false, gameCount: 0 }
     save(provider, { status })
     libraryStore.set(

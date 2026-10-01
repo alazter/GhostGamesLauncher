@@ -11,6 +11,7 @@ import {
 import { libraryStore } from '../../sideload/electronStores'
 import { session, shell } from 'electron'
 import type { GameInfo } from 'common/types'
+import { readUbisoftLocalCatalog } from '../ubisoftLocal'
 
 let mockCurrentUrl = 'https://account.battle.net/overview'
 const mockExecuteJavaScript = jest.fn()
@@ -84,13 +85,17 @@ jest.mock('../../sideload/steamgridHelper', () => ({
   getApiKey: () => '',
   fetchCoverFromSteamGridDB: jest.fn()
 }))
+jest.mock('../ubisoftLocal', () => ({ readUbisoftLocalCatalog: jest.fn() }))
 jest.mock('backend/ipc', () => ({ sendFrontendMessage: jest.fn() }))
 jest.mock('backend/logger', () => ({
   logWarning: jest.fn(),
   logInfo: jest.fn()
 }))
 
-const game = (appName: string, provider?: 'battlenet' | 'ea'): GameInfo => ({
+const game = (
+  appName: string,
+  provider?: 'battlenet' | 'ea' | 'ubisoft'
+): GameInfo => ({
   app_name: appName,
   accountProvider: provider,
   runner: 'sideload',
@@ -294,23 +299,145 @@ it('opens the EA catalog once after a localized return instead of waiting foreve
   }
 })
 
-it('reports Ubisoft browser restriction promptly without importing a library', async () => {
-  jest.useFakeTimers()
-  try {
-    mockCurrentUrl = 'https://connect.ubisoft.com/login'
-    mockExecuteJavaScript.mockResolvedValue(true)
-    const result = connectAccount('ubisoft')
-    await jest.advanceTimersByTimeAsync(2500)
-    expect(await result).toEqual(
-      expect.objectContaining({
-        success: false,
-        error: expect.stringContaining('Ubisoft restringiu')
-      })
-    )
-    expect(libraryStore.set).not.toHaveBeenCalled()
-  } finally {
-    jest.useRealTimers()
+const localUbisoftCatalog = {
+  games: [
+    {
+      id: '40',
+      title: 'Revelations',
+      storeUrl: 'https://store.ubisoft.com/search?q=Revelations'
+    }
+  ],
+  username: 'Biblioteca local · Ubisoft Connect',
+  connectionMethod: 'local' as const,
+  sourceUpdatedAt: 1750000000000
+}
+
+it('imports Ubisoft from the official client cache without a browser or stored credentials', async () => {
+  const windowsBefore = mockWindows.length
+  jest.mocked(readUbisoftLocalCatalog).mockResolvedValue(localUbisoftCatalog)
+  const result = await connectAccount('ubisoft')
+  expect(result).toEqual({
+    success: true,
+    status: expect.objectContaining({
+      provider: 'ubisoft',
+      connected: true,
+      connectionMethod: 'local',
+      sourceUpdatedAt: localUbisoftCatalog.sourceUpdatedAt,
+      gameCount: 1
+    })
+  })
+  expect(mockWindows).toHaveLength(windowsBefore)
+  expect(mockSession.fetch).not.toHaveBeenCalled()
+  expect(mockSession.clearStorageData).not.toHaveBeenCalled()
+  const accounts = mockData.accounts as Record<string, { secret?: string }>
+  expect(accounts.ubisoft.secret).toBeUndefined()
+  const games = jest.mocked(libraryStore.set).mock.calls[0][1] as GameInfo[]
+  expect(
+    games.find((entry) => entry.app_name === 'account-ubisoft-40')
+  ).toEqual(
+    expect.objectContaining({ accountProvider: 'ubisoft', is_installed: false })
+  )
+})
+
+it('preserves the Ubisoft cache and status when the client library cannot be read', async () => {
+  mockData.accounts = {
+    ubisoft: {
+      status: {
+        provider: 'ubisoft',
+        connected: true,
+        connectionMethod: 'local',
+        gameCount: 5
+      }
+    }
   }
+  jest
+    .mocked(readUbisoftLocalCatalog)
+    .mockRejectedValue(new Error('UBISOFT_CACHE_INVALID'))
+  expect(await connectAccount('ubisoft')).toEqual(
+    expect.objectContaining({
+      success: false,
+      error: expect.stringContaining('biblioteca anterior foi preservada')
+    })
+  )
+  expect(libraryStore.set).not.toHaveBeenCalled()
+  expect(
+    getAccountStatuses().find((entry) => entry.provider === 'ubisoft')
+  ).toEqual(
+    expect.objectContaining({
+      connected: true,
+      gameCount: 5,
+      connectionMethod: 'local'
+    })
+  )
+})
+
+it('refreshes Ubisoft local games while preserving customized cards and existing executables', async () => {
+  mockData.accounts = {
+    ubisoft: {
+      secret: 'obsolete-web-token',
+      status: {
+        provider: 'ubisoft',
+        connected: true,
+        connectionMethod: 'local',
+        gameCount: 1
+      }
+    }
+  }
+  jest.mocked(readUbisoftLocalCatalog).mockResolvedValue(localUbisoftCatalog)
+  jest.mocked(libraryStore.get).mockReturnValue([
+    game('other', 'ea'),
+    {
+      ...game('account-ubisoft-40', 'ubisoft'),
+      title: 'Custom title',
+      description: 'Custom description',
+      art_cover: 'custom-cover',
+      is_installed: true,
+      install: { executable: __filename, install_path: 'custom-path' }
+    },
+    {
+      ...game('account-ubisoft-50', 'ubisoft'),
+      is_installed: true,
+      install: { executable: 'missing.exe' }
+    }
+  ])
+  const result = await syncAccount('ubisoft')
+  expect(result.success).toBe(true)
+  const games = jest.mocked(libraryStore.set).mock.calls[0][1] as GameInfo[]
+  expect(games.map((entry) => entry.app_name)).toEqual([
+    'other',
+    'account-ubisoft-40'
+  ])
+  expect(games[1]).toEqual(
+    expect.objectContaining({
+      title: 'Custom title',
+      description: 'Custom description',
+      art_cover: 'custom-cover',
+      is_installed: true,
+      install: { executable: __filename, install_path: 'custom-path' }
+    })
+  )
+  expect(mockSession.fetch).not.toHaveBeenCalled()
+})
+
+it('does not keep a Ubisoft game installed when its recorded executable is absent', async () => {
+  jest.mocked(readUbisoftLocalCatalog).mockResolvedValue(localUbisoftCatalog)
+  jest.mocked(libraryStore.get).mockReturnValue([
+    {
+      ...game('account-ubisoft-40', 'ubisoft'),
+      is_installed: true,
+      install: { executable: 'missing.exe', install_path: 'keep-directory' }
+    }
+  ])
+  expect((await connectAccount('ubisoft')).success).toBe(true)
+  const games = jest.mocked(libraryStore.set).mock.calls[0][1] as GameInfo[]
+  expect(games[0].is_installed).toBe(false)
+  expect(games[0].install.install_path).toBe('keep-directory')
+})
+
+it('disconnects Ubisoft without modifying the official client cache', async () => {
+  expect((await disconnectAccount('ubisoft')).success).toBe(true)
+  expect(mockSession.clearStorageData).not.toHaveBeenCalled()
+  expect(mockSession.closeAllConnections).not.toHaveBeenCalled()
 })
 
 it('waits for Battle.net authentication while the OAuth opener remains on its original URL', async () => {
