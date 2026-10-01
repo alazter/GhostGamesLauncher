@@ -2282,7 +2282,8 @@ export default function ExternalGamesScreen() {
         providerId: activeSource.providerId,
         replaceInstallationId: replaceId,
         targetDirectory: selectedInstallPath || instStatus.installedGame?.directory || undefined,
-        sources: options
+        sources: options,
+        availableSources: activeGroup?.allSources && activeGroup.allSources.length > 0 ? activeGroup.allSources : [activeSource]
       })
     })
   }

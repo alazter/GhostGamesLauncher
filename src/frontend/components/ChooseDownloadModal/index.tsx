@@ -7,12 +7,17 @@ import {
   faSpinner,
   faFolder,
   faBolt,
-  faGamepad
+  faGamepad,
+  faStore,
+  faCheck,
+  faChevronDown,
+  faExchangeAlt
 } from '@fortawesome/free-solid-svg-icons'
 import { useNavigate } from 'react-router-dom'
 import {
   useChooseDownloadModal,
-  closeChooseDownloadModal
+  closeChooseDownloadModal,
+  switchChooseDownloadStore
 } from 'frontend/state/ChooseDownloadModal'
 import ExternalStoreLogo from 'frontend/screens/DownloadManager/components/ExternalStoreLogo'
 import './index.css'
@@ -23,12 +28,14 @@ export function ChooseDownloadModalWrapper() {
   const [submitting, setSubmitting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [imgFailed, setImgFailed] = useState(false)
+  const [showStoreSelector, setShowStoreSelector] = useState(false)
 
   useEffect(() => {
     if (!modalState.isOpen) {
       setNotice(null)
       setSubmitting(false)
       setImgFailed(false)
+      setShowStoreSelector(false)
       return
     }
 
@@ -88,10 +95,13 @@ export function ChooseDownloadModalWrapper() {
     version,
     providerName,
     providerIcon,
+    providerId,
     targetDirectory,
     sources,
     loadingSources,
-    isTorboxConfigured
+    isTorboxConfigured,
+    availableSources,
+    searchingOtherStores
   } = modalState
 
   const coverImage = !imgFailed
@@ -272,6 +282,17 @@ export function ChooseDownloadModalWrapper() {
                     <span>v{version.replace(/^v/i, '')}</span>
                   </span>
                 )}
+                {availableSources.length > 1 && (
+                  <button
+                    type="button"
+                    className="cdmSwitchStoreInlineBtn"
+                    title="Clique para trocar a loja deste jogo"
+                    onClick={() => setShowStoreSelector((prev) => !prev)}
+                  >
+                    <FontAwesomeIcon icon={faExchangeAlt} />
+                    <span>Trocar loja ({availableSources.length})</span>
+                  </button>
+                )}
               </div>
 
               {targetDirectory && (
@@ -283,16 +304,92 @@ export function ChooseDownloadModalWrapper() {
             </div>
 
             {providerName && (
-              <div className="cdmStoreBadgePill" title={`Loja de Origem: ${providerName}`}>
-                <ExternalStoreLogo
-                  icon={providerIcon || (modalState.game as any)?.providerIcon}
-                  name={providerName}
-                  size={24}
-                />
-                <span className="cdmStoreName">{providerName}</span>
+              <div className="cdmStoreBadgeCol">
+                <button
+                  type="button"
+                  className={`cdmStoreBadgePill cdmStoreBadgeClickable ${showStoreSelector ? 'active' : ''}`}
+                  title="Clique para trocar de loja"
+                  onClick={() => setShowStoreSelector((prev) => !prev)}
+                >
+                  <ExternalStoreLogo
+                    icon={providerIcon || (modalState.game as any)?.providerIcon}
+                    name={providerName}
+                    size={22}
+                  />
+                  <span className="cdmStoreName">{providerName}</span>
+                  <span className="cdmStoreChangeTag">
+                    <FontAwesomeIcon icon={faExchangeAlt} />
+                    <span>Trocar</span>
+                    <FontAwesomeIcon
+                      icon={faChevronDown}
+                      style={{
+                        fontSize: '9px',
+                        transform: showStoreSelector ? 'rotate(180deg)' : 'none',
+                        transition: 'transform 0.2s ease'
+                      }}
+                    />
+                  </span>
+                </button>
               </div>
             )}
           </div>
+
+          {/* GAVETA DE TROCA DE LOJA CYBER NEON */}
+          {showStoreSelector && (
+            <div className="cdmStoreSelectorDrawer">
+              <div className="cdmStoreSelectorHeader">
+                <div className="cdmStoreSelectorTitle">
+                  <FontAwesomeIcon icon={faStore} style={{ color: '#00ffff' }} />
+                  <span>Escolha a loja de onde deseja baixar:</span>
+                </div>
+                {searchingOtherStores && (
+                  <span className="cdmSearchingStoresHint">
+                    <FontAwesomeIcon icon={faSpinner} spin /> Buscando outras lojas...
+                  </span>
+                )}
+              </div>
+
+              <div className="cdmStoreGrid">
+                {availableSources.map((store) => {
+                  const isCurrent = store.providerId === providerId
+                  return (
+                    <button
+                      key={`${store.providerId}-${store.id}`}
+                      type="button"
+                      className={`cdmStoreCardBtn ${isCurrent ? 'active' : ''}`}
+                      onClick={() => {
+                        void switchChooseDownloadStore(store)
+                        setShowStoreSelector(false)
+                      }}
+                    >
+                      <div className="cdmStoreCardLeft">
+                        <ExternalStoreLogo
+                          icon={store.providerIcon}
+                          name={store.providerName}
+                          size={24}
+                        />
+                        <div className="cdmStoreCardInfo">
+                          <strong className="cdmStoreCardName">{store.providerName}</strong>
+                          <span className="cdmStoreCardVer">
+                            {store.version ? `v${store.version.replace(/^v/i, '')}` : 'Mais recente'}
+                          </span>
+                        </div>
+                      </div>
+                      {isCurrent ? (
+                        <span className="cdmStoreActiveBadge">
+                          <FontAwesomeIcon icon={faCheck} /> Ativa
+                        </span>
+                      ) : (
+                        <span className="cdmStoreSelectActionBadge">
+                          Selecionar
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {notice && <div className="cdmNoticeBox">{notice}</div>}
 

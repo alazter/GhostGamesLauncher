@@ -201,6 +201,12 @@
   white-space: nowrap;
 }
 
+.cdmStoreBadgeCol {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-left: auto;
+}
+
 .cdmStoreBadgePill {
   display: inline-flex;
   align-items: center;
@@ -211,15 +217,23 @@
   border-radius: 20px;
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
   flex-shrink: 0;
-  align-self: flex-start;
-  margin-left: auto;
-  transition: all 0.2s ease;
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
 }
 
-.cdmStoreBadgePill:hover {
-  background: rgba(0, 229, 255, 0.16);
+.cdmStoreBadgeClickable {
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+}
+
+.cdmStoreBadgeClickable:hover,
+.cdmStoreBadgeClickable.active {
+  background: rgba(0, 229, 255, 0.18);
   border-color: #00ffff;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+  transform: translateY(-1px);
 }
 
 .cdmStoreName {
@@ -228,6 +242,208 @@
   color: #ffffff;
   letter-spacing: 0.4px;
   white-space: nowrap;
+}
+
+.cdmStoreChangeTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #00ffff;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 12px;
+  padding: 2px 7px;
+  margin-left: 4px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+.cdmStoreBadgeClickable:hover .cdmStoreChangeTag,
+.cdmStoreBadgeClickable.active .cdmStoreChangeTag {
+  background: rgba(0, 229, 255, 0.3);
+  border-color: #00ffff;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.cdmSwitchStoreInlineBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  background: rgba(255, 183, 3, 0.12);
+  border: 1px solid rgba(255, 183, 3, 0.45);
+  border-radius: 6px;
+  color: #ffb703;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.cdmSwitchStoreInlineBtn:hover {
+  background: rgba(255, 183, 3, 0.25);
+  border-color: #ffc107;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 183, 3, 0.4);
+  transform: translateY(-1px);
+}
+
+/* GAVETA DE SELEÇÃO DE LOJA CYBER NEON */
+.cdmStoreSelectorDrawer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(10, 15, 24, 0.95);
+  border: 1.5px solid rgba(0, 229, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15) inset, 0 8px 24px rgba(0, 0, 0, 0.7);
+  animation: cdmDrawerSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cdmDrawerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cdmStoreSelectorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.18);
+}
+
+.cdmStoreSelectorTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+}
+
+.cdmSearchingStoresHint {
+  font-size: 11px;
+  color: #00ffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.cdmStoreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.cdmStoreCardBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(19, 26, 32, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  outline: none;
+  font-family: inherit;
+  color: #ffffff;
+}
+
+.cdmStoreCardBtn:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: rgba(0, 229, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.cdmStoreCardBtn.active {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: #00ffff;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+}
+
+.cdmStoreCardLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cdmStoreCardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cdmStoreCardName {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cdmStoreCardVer {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+}
+
+.cdmStoreCardBtn.active .cdmStoreCardVer {
+  color: #00ffff;
+}
+
+.cdmStoreActiveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #00ffff;
+  background: rgba(0, 229, 255, 0.18);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cdmStoreSelectActionBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.cdmStoreCardBtn:hover .cdmStoreSelectActionBadge {
+  color: #ffffff;
+  background: rgba(0, 229, 255, 0.25);
+  border-color: #00ffff;
 }
 
 /* Lista de Opções de Transporte */
