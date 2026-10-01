@@ -117,19 +117,42 @@ export function syncAutoStoreAssignments(
 
 export const DEFAULT_DOWNLOAD_STORE_KEY = 'ghost_default_download_store_id'
 
-export function findPiratasStoreId(): string {
+export function findPiratasStoreInfo(): { id: string; name: string } {
   try {
     const rawCustomStores = localStorage.getItem('heroic_custom_stores') || '[]'
     const customStores: Array<{ id: string; name: string }> = JSON.parse(rawCustomStores)
+    const savedDefault = localStorage.getItem(DEFAULT_DOWNLOAD_STORE_KEY)
+
+    // 1. Loja explicitamente configurada pelo usuário como padrão de download
+    if (savedDefault) {
+      const match = customStores.find((s) => s.id === savedDefault)
+      if (match) return { id: match.id, name: match.name }
+    }
+
+    // 2. Loja canônica "store-1781341519204" (mesmo se o usuário alterou seu nome na barra de filtros)
+    const canonical = customStores.find((s) => s.id === 'store-1781341519204')
+    if (canonical) return { id: canonical.id, name: canonical.name }
+
+    // 3. Loja por nome ou id contendo "pirata"
     const found = customStores.find((s) => {
       const nameLower = (s.name || '').toLowerCase()
       const idLower = (s.id || '').toLowerCase()
       return nameLower.includes('pirata') || idLower === 'piratas'
     })
-    return found ? found.id : (customStores[0]?.id || 'piratas')
+    if (found) return { id: found.id, name: found.name }
+
+    // 4. Se houver alguma loja customizada
+    if (customStores.length > 0) {
+      return { id: customStores[0].id, name: customStores[0].name }
+    }
+    return { id: 'piratas', name: 'Piratas' }
   } catch {
-    return 'piratas'
+    return { id: 'piratas', name: 'Piratas' }
   }
+}
+
+export function findPiratasStoreId(): string {
+  return findPiratasStoreInfo().id
 }
 
 export function getDefaultDownloadStoreId(): string {
@@ -204,7 +227,7 @@ export async function syncPiratasStoreAssignments(): Promise<void> {
           (inst.game?.providerId || '').toLowerCase().includes(s) ||
           (inst.game?.providerName || '').toLowerCase().includes(s)
       )
-      if (isEligible && inst.appName && currentAssignments[inst.appName] !== targetStoreId) {
+      if (isEligible && inst.appName && !currentAssignments[inst.appName]) {
         currentAssignments[inst.appName] = targetStoreId
         hasChanges = true
       }

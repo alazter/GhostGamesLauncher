@@ -1,0 +1,39 @@
+[
+  {
+    "id": "com.ghost.ankergames-source",
+    "version": 1,
+    "catalogPath": "/games-list",
+    "gamePathPrefix": "/game/",
+    "selector": ".post-title a"
+  },
+  {
+    "id": "com.ghost.online-fix-source",
+    "version": 1,
+    "catalogPath": "/",
+    "selector": "h2 a"
+  },
+  {
+    "id": "com.ghost.steamrip-source",
+    "version": 1,
+    "catalogPath": "/",
+    "selector": ".entry-title a"
+  },
+  {
+    "id": "com.ghost.nxbrew-source",
+    "version": 1,
+    "catalogPath": "/",
+    "selector": ".entry-title a"
+  },
+  {
+    "id": "com.ghost.nswgf-source",
+    "version": 1,
+    "catalogPath": "/",
+    "selector": ".entry-title a"
+  },
+  {
+    "id": "com.ghost.romslab-source",
+    "version": 1,
+    "catalogPath": "/",
+    "selector": ".entry-title a"
+  }
+]

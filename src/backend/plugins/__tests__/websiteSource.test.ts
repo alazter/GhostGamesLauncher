@@ -75,6 +75,13 @@ it('uses an explicit interactive source when the website requires verification',
 })
 
 describe('cleanGameTitle and matchesQuery', () => {
+  it('requires the requested sequel instead of matching another game in the franchise', () => {
+    for (const title of ['Transport Fever', 'Transport Fever 2', 'Transport Fever 30', 'Transport Fever (v3.0)']) {
+      expect(matchesQuery(title, 'Transport Fever 3')).toBe(false)
+    }
+    expect(matchesQuery('Transport Fever 3 (Build 40408)', 'Transport Fever 3')).toBe(true)
+    expect(matchesQuery('Transport Fever 2', 'Transport Fever')).toBe(true)
+  })
   it('cleans cyrillic boilerplate and free download tags', () => {
     expect(cleanGameTitle('MARVEL Tokon Fighting Souls по сети')).toBe('MARVEL Tokon Fighting Souls')
     expect(cleanGameTitle('PAYDAY 3 скачать торрент')).toBe('PAYDAY 3')
@@ -192,6 +199,7 @@ describe('extractGameMetadataFromHtml', () => {
     `
     const meta = extractGameMetadataFromHtml(steamRipHtml, 'com.ghost.steamrip-source')
     expect(meta.uploadDate).toBe('March 29, 2025')
+    expect(meta.sourceDate).toBe('2025-03-29')
     expect(meta.cracker).toBe('RUNE')
     expect(meta.uploader).toBe('SteamRIP')
     expect(meta.size).toBe('35.1 GB')
@@ -207,6 +215,7 @@ describe('extractGameMetadataFromHtml', () => {
     `
     const meta = extractGameMetadataFromHtml(ankerHtml, 'com.ghost.ankergames-source')
     expect(meta.uploadDate).toBe('Sep 11, 2026')
+    expect(meta.sourceDate).toBe('2026-09-11')
     expect(meta.uploader).toBe('Carzed')
     expect(meta.cracker).toBe('Own CSF')
     expect(meta.size).toBe('76.10 GB')
@@ -220,6 +229,7 @@ describe('extractGameMetadataFromHtml', () => {
     `
     const meta = extractGameMetadataFromHtml(ofHtml, 'com.ghost.onlinefix')
     expect(meta.uploadDate).toBe('26-08-2025')
+    expect(meta.sourceDate).toBe('2025-08-26')
     expect(meta.cracker).toBe('Online-Fix')
     expect(meta.uploader).toBe('Online-Fix')
     expect(meta.mode).toBe('Multiplayer / Co-op')

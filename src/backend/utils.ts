@@ -780,9 +780,9 @@ const getLatestReleases = async (): Promise<Release[]> => {
   try {
     const { data: releases } = await axiosClient.get<Release[]>(GITHUB_API)
     const latestStable = releases
-      .filter((rel) => rel.prerelease === false)
+      .filter((rel) => rel.prerelease === false && !rel.tag_name.startsWith('engines-'))
       .at(0)
-    const latestBeta = releases.filter((rel) => rel.prerelease === true).at(0)
+    const latestBeta = releases.filter((rel) => rel.prerelease === true && !rel.tag_name.startsWith('engines-')).at(0)
 
     const current = app.getVersion()
 

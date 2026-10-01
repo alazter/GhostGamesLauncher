@@ -662,3 +662,32 @@ button.dmActiveOperationBadge:active,
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+
+/* Error and replacement instructions must remain readable at every card width. */
+.dmActiveCard.dmExternalActiveCard.dmExternalExpanded {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 180px;
+}
+.dmExternalExpanded .dmActiveContent,
+.dmExternalExpanded .dmActiveAttentionBody,
+.dmExternalExpanded .dmActiveAttentionTextCol {
+  height: auto !important;
+  max-height: none !important;
+  min-width: 0;
+  overflow: visible !important;
+}
+.dmExternalExpanded .dmExternalNoticeText,
+.dmExternalExpanded .dmExternalNoticeBanner {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+}
+.dmExternalExpanded .dmActiveActionsRow {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}

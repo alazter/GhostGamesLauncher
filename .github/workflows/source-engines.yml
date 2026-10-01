@@ -1,0 +1,94 @@
+name: Validate and publish source engines
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 8 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: source-engines
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: windows-latest
+    outputs:
+      changed: ${{ steps.versions.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - id: versions
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $scrapling = (gh api repos/D4Vinci/Scrapling/releases/latest | ConvertFrom-Json).tag_name.TrimStart('v')
+          $obscura = (gh api repos/h4ckf0r0day/obscura/releases/latest | ConvertFrom-Json).tag_name.TrimStart('v')
+          if ($scrapling -notmatch '^\d+\.\d+\.\d+$' -or $obscura -notmatch '^\d+\.\d+\.\d+$') { throw 'Stable versions required' }
+          "SCRAPLING_VERSION=$scrapling" >> $env:GITHUB_ENV
+          "OBSCURA_VERSION=$obscura" >> $env:GITHUB_ENV
+          # Revalidate when the integration itself changes, even without an upstream release.
+          $fingerprint = git log -1 --format=%H -- scripts/engines src/backend/plugins/sourceEngines.ts src/backend/plugins/adaptiveSource.ts src/backend/plugins/engineProxy.ts src/backend/plugins/enginePolicy.ts src/backend/plugins/sourceRules.ts
+          "ENGINE_INTEGRATION=$fingerprint" >> $env:GITHUB_ENV
+          $changed = 'true'
+          try {
+            $catalog = Invoke-RestMethod 'https://github.com/alazter/GhostGamesLauncher/releases/download/engines-stable/catalog.json'
+            if ($catalog.integration -eq $fingerprint -and ($catalog.releases | Where-Object id -eq 'scrapling').version -eq $scrapling -and ($catalog.releases | Where-Object id -eq 'obscura').version -eq $obscura) { $changed = 'false' }
+          } catch { Write-Host 'No approved catalog yet' }
+          "changed=$changed" >> $env:GITHUB_OUTPUT
+      - if: steps.versions.outputs.changed == 'true'
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm run codecheck
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm exec jest --runInBand src/backend/plugins/__tests__
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m pip install "scrapling==$env:SCRAPLING_VERSION" 'pyinstaller==6.19.0'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/engines/prepare_engines.py --scrapling $env:SCRAPLING_VERSION --obscura $env:OBSCURA_VERSION
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm exec esbuild scripts/engines/runtime_smoke.ts --bundle --platform=node --external:electron --outfile=scratch_engine_runtime.cjs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $runtime = Start-Process -FilePath (Resolve-Path 'node_modules/electron/dist/electron.exe').Path -ArgumentList 'scratch_engine_runtime.cjs' -WindowStyle Hidden -PassThru
+          if (-not $runtime.WaitForExit(120000)) { Stop-Process -Id $runtime.Id; throw 'Runtime validation timeout' }
+          Get-Content "$env:TEMP/ghost-engine-runtime-result.log"
+          if ($runtime.ExitCode -ne 0) { throw 'Runtime validation failed' }
+      - uses: actions/upload-artifact@v4
+        if: steps.versions.outputs.changed == 'true'
+        with:
+          name: approved-source-engines
+          path: public/engine-bundles
+          if-no-files-found: error
+  publish:
+    needs: validate
+    if: needs.validate.outputs.changed == 'true' && github.repository == 'alazter/GhostGamesLauncher'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: approved-source-engines
+          path: bundles
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version=$(jq -r '.releases[] | select(.id == "scrapling") | .version' bundles/catalog.json)
+          digest=$(jq -r '.releases[] | select(.id == "scrapling") | .sha256' bundles/catalog.json)
+          tag="engines-scrapling-$version"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --prerelease --latest=false --title "Ghost source engine: Scrapling $version" --notes "Pacote isolado validado automaticamente. Não é uma atualização do launcher."
+          gh release upload "$tag" "bundles/$digest.zip" --clobber
+          gh release view engines-stable >/dev/null 2>&1 || gh release create engines-stable --prerelease --latest=false --title "Ghost source engines catalog" --notes "Catálogo de motores compatíveis. Não é uma atualização do launcher."
+          # Publish the catalog only after the corresponding package is available.
+          gh release upload engines-stable bundles/catalog.json --clobber

@@ -49,6 +49,19 @@ it('bounds retries and explains the new-link fallback', () => {
   expect(fail.mock.calls[0][0].message).toContain('Retomar')
 })
 
+it('stops a server reset instead of automatically downloading the whole file again', () => {
+  const { item, fail, recovery } = fixture()
+  let bytes = 150
+  item.getReceivedBytes = () => bytes
+  recovery.updated('progressing')
+  bytes = 0
+  recovery.updated('interrupted')
+  jest.runAllTimers()
+  expect(item.resume).not.toHaveBeenCalled()
+  expect(fail).toHaveBeenCalledTimes(1)
+  expect(fail.mock.calls[0][0].message).toContain('reiniciou')
+})
+
 it('does not retry a non-resumable download or revive a cancelled operation', () => {
   const unavailable = fixture(false)
   unavailable.recovery.updated('interrupted')

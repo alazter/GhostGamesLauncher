@@ -33,11 +33,18 @@ export default class SideloadLibraryManager implements LibraryManager {
   }: GameInfo): void {
     const current = libraryStore.get('games', [])
     const normTitle = (title || '').trim().toLowerCase()
+    const cleanTargetTitle = (title || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    const targetDirNorm = executable ? dirname(executable).toLowerCase() : undefined
+
     const gameIndex = current.findIndex(
       (value) =>
         value.app_name === app_name ||
+        (targetDirNorm && value.folder_name && value.folder_name.toLowerCase() === targetDirNorm) ||
         (Boolean(normTitle) &&
           value.title?.trim().toLowerCase() === normTitle &&
+          value.runner === 'sideload') ||
+        (Boolean(cleanTargetTitle) && cleanTargetTitle.length > 2 &&
+          (value.title || '').toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTargetTitle &&
           value.runner === 'sideload')
     )
     const existing = gameIndex !== -1 ? current[gameIndex] : undefined
@@ -70,16 +77,17 @@ export default class SideloadLibraryManager implements LibraryManager {
       manifestData = findManifestForExecutable(executable)
     }
 
-    const resolvedTitle = manifestData?.manifest.title && (!title || title === app_name)
+    const resolvedTitle = existing?.title || (manifestData?.manifest.title && (!title || title === app_name)
       ? manifestData.manifest.title
-      : title
+      : title)
     const resolvedVersion = manifestData?.manifest.version || existing?.version || '1.0'
-    const resolvedCover = art_cover || manifestData?.manifest.coverUrl || existing?.art_cover
-    const resolvedSquare = art_square || manifestData?.manifest.coverUrl || existing?.art_square
+    const resolvedCover = existing?.art_cover || art_cover || manifestData?.manifest.coverUrl || ''
+    const resolvedSquare = existing?.art_square || art_square || manifestData?.manifest.coverUrl || existing?.art_cover || ''
 
     const game: GameInfo = {
+      ...existing,
       runner: 'sideload',
-      app_name,
+      app_name: existing?.app_name || app_name,
       title: resolvedTitle,
       version: resolvedVersion,
       install: {

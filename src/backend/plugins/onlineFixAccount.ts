@@ -1,3 +1,4 @@
+import { isSourceUrl, canonicalSourceUrl } from './sourceSettings'
 import { BrowserWindow, session, type DownloadItem } from 'electron'
 import { mkdir, readFile, rm } from 'fs/promises'
 import { dirname } from 'path'
@@ -9,7 +10,7 @@ export const ONLINE_FIX_TORRENT_ID = 'online-fix-official-torrent'
 export function onlineFixGameUrl(value: string): string {
   const url = new URL(value)
   if (
-    url.origin !== 'https://online-fix.me' ||
+    !isSourceUrl(ONLINE_FIX_SOURCE_ID, value) ||
     url.username ||
     url.password ||
     !/^\/games\/.+\.html$/.test(url.pathname)
@@ -17,7 +18,7 @@ export function onlineFixGameUrl(value: string): string {
     throw new Error('Página de jogo Online-Fix inválida.')
   url.search = ''
   url.hash = ''
-  return url.href
+  return canonicalSourceUrl(ONLINE_FIX_SOURCE_ID, url.href)
 }
 export function onlineFixDownloadUrl(value: string): boolean {
   try {
@@ -26,8 +27,7 @@ export function onlineFixDownloadUrl(value: string): boolean {
       url.protocol === 'https:' &&
       !url.username &&
       !url.password &&
-      (url.hostname === 'online-fix.me' ||
-        url.hostname.endsWith('.online-fix.me'))
+      isSourceUrl(ONLINE_FIX_SOURCE_ID, value, true)
     )
   } catch {
     return false

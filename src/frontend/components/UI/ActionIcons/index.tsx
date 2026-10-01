@@ -8,16 +8,18 @@ import {
   faFilter,
   faFilterCircleXmark,
   faImage,
-  faRotate
+  faRotate,
+  faSkullCrossbones
 } from '@fortawesome/free-solid-svg-icons'
 import { faHardDrive as hardDriveLight } from '@fortawesome/free-regular-svg-icons'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import React, { useContext, useState, useEffect } from 'react'
+import React, { useContext, useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextProvider from 'frontend/state/ContextProvider'
 import FormControl from '../FormControl'
 import SteamGridBatchModal from '../SteamGridBatchModal'
+import { findPiratasStoreInfo, syncPiratasStoreAssignments, getDefaultDownloadStoreId } from 'frontend/helpers/autoStoreAssignments'
 import './index.css'
 import classNames from 'classnames'
 import LibraryContext from 'frontend/screens/Library/LibraryContext'
@@ -30,9 +32,105 @@ export default React.memo(function ActionIcons({
   'data-tour': dataTour
 }: ActionIconsProps = {}) {
   const { t } = useTranslation()
-  const { refreshLibrary, refreshing } = useContext(ContextProvider)
+  const { refreshLibrary, refreshing, sideloadedLibrary } = useContext(ContextProvider)
   const [showSteamGridModal, setShowSteamGridModal] = useState(false)
   const [isReconnecting, setIsReconnecting] = useState(false)
+  const [isCheckingPiratas, setIsCheckingPiratas] = useState(false)
+  const [piratasUpdatesCount, setPiratasUpdatesCount] = useState(0)
+  const [piratasStoreName, setPiratasStoreName] = useState(() => findPiratasStoreInfo().name)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null)
+
+  const updatePiratasState = useCallback(async () => {
+    try {
+      const info = findPiratasStoreInfo()
+      setPiratasStoreName(info.name)
+      if (window.api?.externalGamesState) {
+        const state = await window.api.externalGamesState()
+        const count = (state?.installations || []).filter((i: any) => Boolean(i.availableUpdate)).length
+        setPiratasUpdatesCount(count)
+      }
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    void updatePiratasState()
+    const handleStoreChange = () => void updatePiratasState()
+    window.addEventListener('customStoresChanged', handleStoreChange)
+    window.addEventListener('defaultDownloadStoreChanged', handleStoreChange)
+    window.addEventListener('heroicExternalGamesChanged', handleStoreChange)
+
+    let unsub: (() => void) | undefined
+    if (window.api?.onExternalGamesUpdated) {
+      unsub = window.api.onExternalGamesUpdated(() => {
+        void updatePiratasState()
+      })
+    }
+    return () => {
+      window.removeEventListener('customStoresChanged', handleStoreChange)
+      window.removeEventListener('defaultDownloadStoreChanged', handleStoreChange)
+      window.removeEventListener('heroicExternalGamesChanged', handleStoreChange)
+      unsub?.()
+    }
+  }, [updatePiratasState])
+
+  const handleCheckPiratasUpdates = async () => {
+    if (isCheckingPiratas) return
+    setIsCheckingPiratas(true)
+    setToast(null)
+    try {
+      void syncPiratasStoreAssignments()
+
+      if (window.api?.externalGamesGetOrCreateInstallation && sideloadedLibrary?.length) {
+        const targetStoreId = getDefaultDownloadStoreId()
+        const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+        let currentAssignments: Record<string, string> = {}
+        try { currentAssignments = JSON.parse(rawAssignments) } catch {}
+
+        for (const game of sideloadedLibrary) {
+          const assigned = currentAssignments[game.app_name]
+          if (!assigned || assigned === targetStoreId || assigned === 'piratas' || assigned.includes('pirata')) {
+            try {
+              await window.api.externalGamesGetOrCreateInstallation(game.app_name, game)
+            } catch {}
+          }
+        }
+      }
+
+      let result: { success: boolean; message: string; updatesFound?: number } | undefined
+      if (window.api?.externalGamesCheckPiratasUpdates) {
+        result = await window.api.externalGamesCheckPiratasUpdates(true)
+      }
+
+      await updatePiratasState()
+      refreshLibrary({ checkForUpdates: true })
+      window.dispatchEvent(new Event('heroicExternalGamesChanged'))
+
+      const count = result?.updatesFound ?? 0
+      const currentStoreName = findPiratasStoreInfo().name
+      if (count > 0) {
+        setToast({
+          message: `⚡ ${count} nova(s) atualização(ões) encontrada(s) na loja ${currentStoreName}!`,
+          type: 'success'
+        })
+      } else {
+        setToast({
+          message: `🛡️ Todos os jogos da loja ${currentStoreName} estão na versão mais recente.`,
+          type: 'info'
+        })
+      }
+    } catch (err) {
+      const currentStoreName = findPiratasStoreInfo().name
+      setToast({
+        message: `Não foi possível consultar as atualizações da loja ${currentStoreName}.`,
+        type: 'error'
+      })
+    } finally {
+      setIsCheckingPiratas(false)
+      setTimeout(() => {
+        setToast(null)
+      }, 4000)
+    }
+  }
 
   const handleReconnectCovers = async () => {
     if (isReconnecting) return
@@ -275,7 +373,44 @@ export default React.memo(function ActionIcons({
             icon={faSyncAlt}
           />
         </button>
+        <button
+          className={classNames('FormControl__button', 'FormControl__button--piratas-update', {
+            'is-checking': isCheckingPiratas,
+            'has-updates': piratasUpdatesCount > 0
+          })}
+          title={
+            isCheckingPiratas
+              ? `Buscando atualizações na loja ${piratasStoreName}...`
+              : piratasUpdatesCount > 0
+              ? `Buscar atualizações na loja ${piratasStoreName} (${piratasUpdatesCount} atualização disponível!)`
+              : `Buscar atualizações na loja ${piratasStoreName}`
+          }
+          onClick={handleCheckPiratasUpdates}
+          disabled={isCheckingPiratas}
+        >
+          <FontAwesomeIcon
+            className="FormControl__segmentedFaIcon ActionIcons__piratasFaIcon"
+            spin={isCheckingPiratas}
+            icon={faSkullCrossbones}
+            data-tour="library-piratas-updates"
+          />
+          {piratasUpdatesCount > 0 && !isCheckingPiratas && (
+            <span className="ActionIcons__piratasBadge">
+              {piratasUpdatesCount}
+            </span>
+          )}
+        </button>
       </FormControl>
+
+      {toast && (
+        <div
+          className={`ActionIcons__toast ActionIcons__toast--${toast.type}`}
+          role="status"
+          onClick={() => setToast(null)}
+        >
+          <span>{toast.message}</span>
+        </div>
+      )}
 
       <SteamGridBatchModal
         isOpen={showSteamGridModal}

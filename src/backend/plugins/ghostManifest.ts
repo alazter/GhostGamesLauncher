@@ -9,6 +9,7 @@ export interface GhostGameManifest {
   ghostAppId: string
   title: string
   version: string
+  sourceDate?: string
   storeId?: string
   storeName?: string
   storePageUrl?: string

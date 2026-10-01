@@ -1,3 +1,4 @@
+import { isSourceUrl, sourceDomains, canonicalSourceUrl } from './sourceSettings'
 import type { PluginManifest } from 'common/types/plugins'
 import { TRUSTED_GAME_MIRROR_DOMAINS } from './networkGuard'
 
@@ -18,12 +19,12 @@ export function romPageUrl(id: string, value: string): string {
     url.protocol !== 'https:' ||
     url.username ||
     url.password ||
-    ![source.domain, `www.${source.domain}`].includes(url.hostname) ||
+    !isSourceUrl(id, value) ||
     url.pathname === '/'
   )
     throw new Error('Página da ROM inválida para esta fonte.')
   url.hash = ''
-  return url.href
+  return canonicalSourceUrl(id, url.href)
 }
 export function romManifest(id: string): PluginManifest {
   const source = romSource(id)
@@ -37,7 +38,7 @@ export function romManifest(id: string): PluginManifest {
     type: 'game-source',
     permissions: ['network'],
     allowedDomains: [
-      source.domain,
+      ...sourceDomains(id),
       ...TRUSTED_GAME_MIRROR_DOMAINS,
       ...(source.name === 'RomsLab' ? ['filekeeper.net'] : [])
     ]

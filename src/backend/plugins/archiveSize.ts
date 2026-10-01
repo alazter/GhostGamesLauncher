@@ -9,7 +9,7 @@ export async function archiveSize(
   password?: string
 ): Promise<number> {
   if (/\.zip$/i.test(file)) {
-    return new Promise<number>((resolveSize, reject) => {
+    try { return await new Promise<number>((resolveSize, reject) => {
       open(file, { lazyEntries: true }, (error, zip) => {
         if (error || !zip) {
           reject(error || new Error('Pacote inválido.'))
@@ -27,7 +27,10 @@ export async function archiveSize(
         zip.on('end', () => resolveSize(total))
         zip.readEntry()
       })
-    })
+    }) } catch {
+      // Updates must support the same ZIP formats as initial installation.
+      // The extractor still validates entries before writing any game files.
+    }
   }
   const sevenZip = await resolve7zPath()
   if (!sevenZip)

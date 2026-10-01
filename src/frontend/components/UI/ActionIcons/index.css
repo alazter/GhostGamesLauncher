@@ -144,6 +144,123 @@
   fill: #ffffff !important;
 }
 
+/* ========================================================
+   Botão Exclusivo: Busca de Updates na Loja Piratas
+   ======================================================== */
+.FormControl__button--piratas-update {
+  position: relative !important;
+}
+
+/* Ícone Pirata Exclusivo em repouso - Cyber Neon Âmbar/Ouro #ffb703 */
+.FormControl__segmentedFaIcon.ActionIcons__piratasFaIcon {
+  color: #ffb703 !important;
+  fill: #ffb703 !important;
+  opacity: 0.95 !important;
+  filter: drop-shadow(0 0 3px rgba(255, 183, 3, 0.6)) !important;
+  transition: transform 0.25s ease, filter 0.25s ease, color 0.25s ease !important;
+}
+
+/* Hover no botão exclusivo - Glow intenso e expansão */
+.FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon,
+.ActionIcons.action-icons--neon .FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon {
+  color: #ffd166 !important;
+  fill: #ffd166 !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 6px #ffb703) 
+          drop-shadow(0 0 12px rgba(255, 183, 3, 0.85)) 
+          drop-shadow(0 0 18px rgba(255, 183, 3, 0.45)) !important;
+  transform: scale(1.22) !important;
+}
+
+/* Modo não-neon: toque sutil dourado no botão para exclusividade elegante */
+.ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update {
+  background: rgba(255, 183, 3, 0.08) !important;
+  border-radius: 4px;
+}
+
+.ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update:hover {
+  background: rgba(255, 183, 3, 0.18) !important;
+}
+
+/* Animação quando está checando updates */
+.FormControl__button--piratas-update.is-checking .ActionIcons__piratasFaIcon {
+  color: #00ffff !important;
+  fill: #00ffff !important;
+  filter: drop-shadow(0 0 8px #00ffff) drop-shadow(0 0 14px rgba(0, 255, 255, 0.75)) !important;
+}
+
+/* Badge neon com contagem de atualizações disponíveis */
+.ActionIcons__piratasBadge {
+  position: absolute;
+  top: 1px;
+  right: -2px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffb703 0%, #ff8500 100%);
+  color: #000000;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 15px;
+  text-align: center;
+  box-shadow: 0 0 6px #ffb703, 0 0 10px rgba(255, 183, 3, 0.5);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Floating Toast Cyber Neon */
+.ActionIcons__toast {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #131a20;
+  border: 1px solid #00ffff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 255, 255, 0.35);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: actionIconsToastIn 0.25s ease-out forwards;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ActionIcons__toast--success {
+  border-color: #ffb703;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 12px rgba(255, 183, 3, 0.45);
+}
+
+.ActionIcons__toast--info {
+  border-color: #00ffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 12px rgba(0, 229, 255, 0.45);
+}
+
+.ActionIcons__toast--error {
+  border-color: #ef4444;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 12px rgba(239, 68, 68, 0.45);
+}
+
+@keyframes actionIconsToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 
 

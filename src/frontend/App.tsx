@@ -20,6 +20,7 @@ import UploadedLogFilesList from './screens/Settings/sections/LogSettings/compon
 import { TourProvider } from './state/TourContext'
 import { InstallGameWrapper } from './screens/Library/components/InstallModal'
 import { SettingsModalWrapper } from './screens/Settings/components/SettingsModal'
+import { ChooseDownloadModalWrapper } from './components/ChooseDownloadModal'
 
 
 import { syncLocalStorageToBackend } from './utils/localStorageBackup'
@@ -236,6 +237,7 @@ function Root() {
               <DialogHandler />
               <InstallGameWrapper />
               <SettingsModalWrapper />
+              <ChooseDownloadModalWrapper />
               <ExternalLinkDialog />
               <LogFileUploadDialog />
               <UploadedLogFilesList />

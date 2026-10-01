@@ -281,7 +281,7 @@ export default function ExternalActiveCard({
         !['downloading', 'extracting', 'installing', 'ready'].includes(job.status)))
 
   return (
-    <div className="dmActiveCard dmExternalActiveCard">
+    <div className={`dmActiveCard dmExternalActiveCard${job.error || job.spacePlan || job.oldRemoved ? ' dmExternalExpanded' : ''}`}>
       {/* Background blur artwork */}
       <div className="dmGlassBgContainer">
         <CachedImage

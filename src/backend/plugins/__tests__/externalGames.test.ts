@@ -4,13 +4,13 @@ const fsPromises = jest.requireActual<typeof import('fs/promises')>('fs/promises
 import { tmpdir } from 'os'
 import { join, dirname } from 'path'
 import { dialog } from 'electron'
-import { ExternalGames } from '../externalGames'
+import { ExternalGames, findMatchingLibraryGame, cleanGameTitle, normalizeTitleForDuplicate } from '../externalGames'
 import * as installSpace from '../installSpace'
 import * as archiveMetadata from '../archiveSize'
 import * as externalFiles from '../externalFiles'
 import { PluginPacker } from '../pluginPacker'
 import { NetworkGuard } from '../networkGuard'
-import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID } from '../ankerAccount'
+import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID } from '../ankerAccount'
 import { OnlineFixAccount, ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID } from '../onlineFixAccount'
 import { TorboxClient } from '../torboxClient'
 import { torrentInfoHash } from '../torrentMetadata'
@@ -136,14 +136,26 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
-it('blocks replacement when the configured save folder is empty', async () => {
+it('keeps progress snapshots free of installation healing and filesystem checks', async () => {
+  await install()
+  games = []
+  const fs = jest.requireActual<typeof import('fs')>('fs')
+  const exists = jest.spyOn(fs, 'existsSync')
+  const stat = jest.spyOn(fs, 'statSync')
+  expect(service.snapshot(false).installations).toHaveLength(1)
+  expect(exists).not.toHaveBeenCalled()
+  expect(stat).not.toHaveBeenCalled()
+  // An explicit library refresh still notices the removed game.
+  expect(service.snapshot().installations).toHaveLength(0)
+})
+
+it('does not block replacement when the configured save folder is empty', async () => {
   const installed = await install()
-  const jobId = await prepare({ ...game, version: '2.0' }, installed.id)
   await rm(join(installed.savePath!, 'slot.dat'))
+  const jobId = await prepare({ ...game, version: '2.0' }, installed.id)
   const result = await service.action({ type: 'finish', jobId, executable: 'game.exe' })
-  expect(result.success).toBe(false)
-  expect(result.error).toContain('Nenhum save')
-  expect(await readFile(join(installed.directory, 'game.exe'), 'utf8')).toBe('1.0')
+  expect(result.success).toBe(true)
+  expect(await readFile(join(installed.directory, 'game.exe'), 'utf8')).toBe('2.0')
 })
 
 async function waitForJob(predicate: () => boolean) {
@@ -161,15 +173,16 @@ it('drops the last removed library registration and allows a fresh installation'
   expect(job.installationId).not.toBe(old.id)
 })
 
-it('ignores deleted game files and preserves remaining saves during a fresh install', async () => {
+it('preserves installation, store, and saves when game files are deleted directly from disk', async () => {
   const old = await install()
   await rm(old.executable)
-  expect(service.snapshot().installations).toHaveLength(0)
+  expect(service.snapshot().installations).toHaveLength(1)
+  expect(service.snapshot().installations[0].game.providerId).toBe('anker')
   expect(service.localCandidates()).toHaveLength(0)
   const result = await service.enqueue(game, source, manifest, old.id, false, false, root)
   const job = service.snapshot().jobs.find(item => item.id === result.jobId)!
-  expect(job.operation).toBe('install')
-  expect(job.installationId).not.toBe(old.id)
+  expect(job.operation).toBe('update')
+  expect(job.installationId).toBe(old.id)
   expect(await readFile(join(old.savePath!, 'slot.dat'), 'utf8')).toBe('my progress')
 })
 
@@ -239,6 +252,42 @@ it('receives a browser-confirmed archive without requiring or calling TorBox', a
   expect(torbox).not.toHaveBeenCalled()
   expect(direct).toHaveBeenCalledTimes(1)
   expect(service.snapshot().jobs[0].transport).toBe('anker-direct')
+  expect(service.snapshot().jobs[0].bytes).toBeGreaterThan(0)
+})
+
+it('receives a SteamRIP browser-confirmed archive via steamrip-direct transport', async () => {
+  const torbox = jest.spyOn(TorboxClient, 'saved').mockRejectedValue(new Error('No key'))
+  const direct = jest.spyOn(AnkerAccount, 'direct').mockImplementation(async (_page, directory, _signal, progress) => {
+    await mkdir(directory, { recursive: true })
+    const file = join(directory, 'package.zip')
+    const data = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('steamrip direct game') }])
+    await writeFile(file, data)
+    progress(data.length, data.length, file)
+    return file
+  })
+  const steamripManifest = {
+    ...manifest,
+    id: STEAMRIP_SOURCE_ID,
+    name: 'SteamRIP'
+  }
+  const result = await service.enqueue(
+    { ...game, id: 'https://steamrip.com/test-game/', providerId: STEAMRIP_SOURCE_ID },
+    { id: STEAMRIP_DIRECT_ID, name: 'SteamRIP — Download direto', type: 'external', url: 'https://steamrip.com/test-game/' },
+    steamripManifest, undefined, false, false, root
+  )
+  expect(result.success).toBe(true)
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'ready')
+  expect(torbox).not.toHaveBeenCalled()
+  expect(direct).toHaveBeenCalledTimes(1)
+  expect(direct).toHaveBeenCalledWith(
+    'https://steamrip.com/test-game/',
+    expect.any(String),
+    expect.any(AbortSignal),
+    expect.any(Function),
+    'steamrip',
+    expect.any(Function)
+  )
+  expect(service.snapshot().jobs[0].transport).toBe('steamrip-direct')
   expect(service.snapshot().jobs[0].bytes).toBeGreaterThan(0)
 })
 
@@ -378,10 +427,24 @@ it('installs, switches providers only after success, removes old files and prese
   )
 })
 
-it('keeps the old installation when backup fails', async () => {
+it('proceeds with update when saves are missing on disk without blocking', async () => {
   const installed = await install()
   const jobId = await prepare({ ...game, version: '2.0' }, installed.id)
   await rm(installed.savePath!, { recursive: true })
+  expect(
+    (await service.action({ type: 'finish', jobId, executable: 'game.exe' }))
+      .success
+  ).toBe(true)
+  expect(await readFile(join(installed.directory, 'game.exe'), 'utf8')).toBe(
+    '2.0'
+  )
+  expect(service.snapshot().installations[0].game.version).toBe('2.0')
+})
+
+it('keeps the old installation when real backup fails', async () => {
+  const installed = await install()
+  const jobId = await prepare({ ...game, version: '2.0' }, installed.id)
+  jest.spyOn(service as any, 'backup').mockRejectedValueOnce(new Error('Disk failure'))
   expect(
     (await service.action({ type: 'finish', jobId, executable: 'game.exe' }))
       .success
@@ -755,11 +818,20 @@ it('backs up before confirmed removal and restores saves after a clean replaceme
   await expect(readFile(join(root, `.ghost-download-${job.id}`, '.ghost-download.json'))).rejects.toThrow()
 })
 
-it('does not delete a confirmed replacement when saves cannot be backed up', async () => {
+it('does not block a confirmed replacement when saves cannot be backed up', async () => {
   const old = await install()
   await rm(join(old.savePath!, 'slot.dat'))
   const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, true)
-  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('error')
+  expect(service.snapshot().jobs.find(item => item.id === result.jobId)?.status).toBe('awaiting-file')
+})
+
+it('cancels replacement when saves cannot be found and user denies consent', async () => {
+  const old = await install()
+  await rm(join(old.savePath!, 'slot.dat'))
+  old.savePath = undefined
+  jest.mocked(dialog.showMessageBox).mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+  const result = await service.enqueue(game, source, manifest, old.id, false, false, undefined, false)
+  expect(result.success).toBe(false)
   expect(await readFile(old.executable, 'utf8')).toBe('1.0')
 })
 
@@ -1094,16 +1166,172 @@ it('recovers a missing save path before updating and backs up the discovered sav
   expect(await readFile(old.executable,'utf8')).toBe('2.0')
 })
 
-it('keeps the old installation and prepared package when missing saves cannot be found', async () => {
+it('proceeds with installation when missing saves cannot be found without blocking update', async () => {
   const old = await install()
   const jobId = await prepare({...game,version:'2.0'},old.id)
   await rm(old.savePath!,{recursive:true,force:true})
   jest.spyOn(service,'discoverSavePathEnhanced').mockResolvedValue({path:old.savePath!,detectionType:'user_profile',details:'Not found',existsOnDisk:false,hasFiles:false,fileCount:0,totalBytes:0})
   const result = await service.action({type:'finish',jobId,executable:'game.exe'})
-  expect(result.success).toBe(false)
-  expect(result.error).toContain('pasta de saves configurada não existe')
-  expect(result.error).not.toContain('ENOENT')
-  expect(await readFile(old.executable,'utf8')).toBe('1.0')
-  expect(service.snapshot().jobs.find(j=>j.id===jobId)?.status).toBe('ready')
+  expect(result.success).toBe(true)
+  expect(await readFile(old.executable,'utf8')).toBe('2.0')
 })
 
+it('permits store migration (switch-source) even when the game was never played and has no saves on disk', async () => {
+  const old = await install()
+  await rm(old.savePath!, { recursive: true, force: true })
+  const otherStoreGame: GhostSearchResult = {
+    ...game,
+    providerId: 'steamrip',
+    providerName: 'SteamRIP',
+    version: '2.0'
+  }
+  const jobId = await prepare(otherStoreGame, old.id)
+  jest.spyOn(service, 'discoverSavePathEnhanced').mockResolvedValue({
+    path: old.savePath!,
+    detectionType: 'user_profile',
+    details: 'Not found',
+    existsOnDisk: false,
+    hasFiles: false,
+    fileCount: 0,
+    totalBytes: 0
+  })
+  const result = await service.action({ type: 'finish', jobId, executable: 'game.exe' })
+  expect(result.success).toBe(true)
+  expect(await readFile(old.executable, 'utf8')).toBe('2.0')
+  const inst = service.snapshot().installations[0]
+  expect(inst.game.providerId).toBe('steamrip')
+})
+
+it('preserves installation, directory, and provider store when files are deleted from disk', async () => {
+  const old = await install()
+  expect(service.snapshot().installations[0].game.providerId).toBe('anker')
+  const origDir = old.directory
+
+  // "Deletar do Computador" (deleteFiles = true)
+  const delRes = await service.deleteInstallationAndFiles(old.appName, true)
+  expect(delRes.success).toBe(true)
+
+  // O registro e a loja devem permanecer intactos no snapshot
+  const snapAfterDelete = service.snapshot()
+  expect(snapAfterDelete.installations).toHaveLength(1)
+  expect(snapAfterDelete.installations[0].appName).toBe(old.appName)
+  expect(snapAfterDelete.installations[0].game.providerId).toBe('anker')
+  expect(snapAfterDelete.installations[0].directory).toBe(origDir)
+
+  // Reinstalação / Update da mesma loja deve herdar replaceId e pasta sem perder a loja
+  const jobId = await prepare({ ...game, version: '1.5' }, old.id)
+  const finishRes = await service.action({ type: 'finish', jobId, executable: 'game.exe' })
+  expect(finishRes.success).toBe(true)
+
+  const updatedSnap = service.snapshot()
+  expect(updatedSnap.installations).toHaveLength(1)
+  expect(updatedSnap.installations[0].game.providerId).toBe('anker')
+  expect(updatedSnap.installations[0].game.version).toBe('1.5')
+  expect(updatedSnap.installations[0].directory).toBe(origDir)
+})
+
+it('preserves existing configured cover, title, and appName in libraryStore without creating duplicate cards on update', async () => {
+  const old = await install()
+  const customCover = 'https://custom.art/cover.png'
+  const customSquare = 'https://custom.art/square.png'
+
+  // Simula o card na biblioteca com capa personalizada configurada pelo usuário
+  games = [
+    {
+      app_name: old.appName,
+      title: 'Silent Hill 2 (Configurado)',
+      runner: 'sideload',
+      art_cover: customCover,
+      art_square: customSquare,
+      install: {
+        executable: old.executable,
+        install_path: old.directory,
+        platform: 'Windows',
+        is_dlc: false
+      },
+      folder_name: old.directory,
+      is_installed: true,
+      canRunOffline: true,
+      version: '1.0'
+    }
+  ]
+
+  // Update com nova versão e nova capa remota da loja
+  const remoteCover = 'https://store.remote/default_cover.png'
+  const jobId = await prepare({ ...game, title: 'Silent Hill 2 Remake - Build 12345', version: '2.0', coverUrl: remoteCover }, old.id)
+  const finishRes = await service.action({ type: 'finish', jobId, executable: 'game.exe' })
+  expect(finishRes.success).toBe(true)
+
+  // Deve haver rigorosamente apenas 1 jogo na biblioteca (sem criar capa nova/duplicada)
+  expect(games).toHaveLength(1)
+  const libraryGame = games[0] as any
+  expect(libraryGame.app_name).toBe(old.appName)
+  expect(libraryGame.title).toBe('Silent Hill 2 (Configurado)')
+  expect(libraryGame.art_cover).toBe(customCover)
+  expect(libraryGame.art_square).toBe(customSquare)
+  expect(libraryGame.version).toBe('2.0')
+  expect(libraryGame.is_installed).toBe(true)
+  expect(libraryGame.install.executable).toBe(old.executable)
+})
+
+it('findMatchingLibraryGame matches by app_name, directory, exact title, and normalized title', () => {
+  const sampleLibrary = [
+    {
+      app_name: 'game-1',
+      title: 'Marvel\'s Spider-Man Remastered',
+      runner: 'sideload',
+      folder_name: join(root, 'SpiderMan'),
+      install: { executable: join(root, 'SpiderMan', 'SpiderMan.exe'), install_path: join(root, 'SpiderMan'), platform: 'Windows', is_dlc: false },
+      is_installed: true
+    },
+    {
+      app_name: 'game-2',
+      title: 'Resident Evil 4',
+      runner: 'sideload',
+      folder_name: join(root, 'RE4'),
+      install: { executable: join(root, 'RE4', 're4.exe'), install_path: join(root, 'RE4'), platform: 'Windows', is_dlc: false },
+      is_installed: false
+    }
+  ] as any[]
+
+  // Match por app_name
+  expect(findMatchingLibraryGame(sampleLibrary, { appName: 'game-1' })?.app_name).toBe('game-1')
+
+  // Match por diretório
+  expect(findMatchingLibraryGame(sampleLibrary, { directory: join(root, 'RE4') })?.app_name).toBe('game-2')
+
+  // Match por título limpo (removendo tags de cena / repack / build)
+  expect(findMatchingLibraryGame(sampleLibrary, { title: 'Resident Evil 4 (Remake) - Deluxe Edition [FitGirl Repack]' })?.app_name).toBe('game-2')
+
+  // Match com pontuação diferente
+  expect(findMatchingLibraryGame(sampleLibrary, { title: 'Marvels Spider Man' })?.app_name).toBe('game-1')
+})
+
+
+
+
+it('retries extraction of a completed direct package after restart without a second download', async () => {
+  const direct = jest.spyOn(AnkerAccount, 'direct').mockImplementation(async (_page, directory, _signal, progress) => {
+    await mkdir(directory, { recursive: true })
+    const file = join(directory, 'package.zip')
+    const data = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('complete direct package') }])
+    await writeFile(file, data)
+    progress(data.length, data.length, file)
+    return file
+  })
+  const extraction = jest.spyOn(externalFiles, 'extractGame').mockRejectedValueOnce(new Error('temporary extraction failure'))
+  const result = await service.enqueue(
+    { ...game, id: 'https://ankergames.net/game/test', providerId: ANKER_SOURCE_ID },
+    { id: ANKER_DIRECT_ID, name: 'Download direto', type: 'external', url: 'https://ankergames.net/game/test' },
+    { ...manifest, id: ANKER_SOURCE_ID }, undefined, false, false, root
+  )
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  extraction.mockRestore()
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance()
+  expect(restarted.snapshot().jobs[0].canResume).toBe(true)
+  expect(await restarted.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  expect(restarted.snapshot().jobs[0].status).toBe('ready')
+  expect(direct).toHaveBeenCalledTimes(1)
+})

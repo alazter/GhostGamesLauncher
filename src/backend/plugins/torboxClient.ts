@@ -1,3 +1,4 @@
+import { secureFetch } from './secureDns'
 import { safeStorage } from 'electron'
 import { mkdir, readFile, rename, rm, writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -63,7 +64,7 @@ export class TorboxClient {
   ): Promise<T> {
     let response: Response
     try {
-      response = await fetch(`${apiBase}${path}`, {
+      response = await secureFetch(`${apiBase}${path}`, {
         method: body ? 'POST' : 'GET',
         body,
         redirect: 'error',

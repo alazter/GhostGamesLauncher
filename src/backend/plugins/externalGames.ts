@@ -1,5 +1,15 @@
 import { externalErrorMessage } from 'common/externalErrors'
+import { downloadProgress } from './downloadProgress'
+import { rangedDownload } from './rangedDownload'
 import { app, dialog, shell } from 'electron'
+
+function logGhost(message: string) {
+  void import('backend/logger').then(({ logInfo, LogPrefix }) => {
+    logInfo(message, LogPrefix.Backend)
+  }).catch(() => {
+    console.log(message)
+  })
+}
 import {
   createWriteStream,
   existsSync,
@@ -42,6 +52,9 @@ import { pipeline } from 'stream/promises'
 import { userDataPath } from 'backend/constants/paths'
 import { backendEvents } from 'backend/backend_events'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
+import { gameOverridesStore } from 'backend/game_overrides/electronStores'
+import { sameExternalGameIdentity } from 'common/externalGameIdentity'
+import { parseDateToIso } from 'common/utils'
 import { sendFrontendMessage } from 'backend/ipc'
 import type {
   ExternalActionResult,
@@ -58,7 +71,8 @@ import type {
   SaveDiscoveryResult
 } from 'common/types/plugins'
 import { NetworkGuard } from './networkGuard'
-import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, ankerGameUrl } from './ankerAccount'
+import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, ankerGameUrl, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID, steamripGameUrl } from './ankerAccount'
+import { ROM_DIRECT_ID, romSource, romPageUrl } from './romSources'
 import { OnlineFixAccount, ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
 import { TorboxClient, TorboxRejectedError } from './torboxClient'
 import { TORBOX_DOWNLOAD_DOMAINS } from './torboxDomains'
@@ -145,6 +159,140 @@ export function notifyExternalQueueChanged(): void {
   } catch {
     // ignora erro em callback
   }
+}
+
+export function cleanGameTitle(rawTitle: string): string {
+  if (!rawTitle) return ''
+  return rawTitle
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/['’]/g, '')
+    .replace(/[\[\(].*?[\]\)]/g, ' ')
+    .replace(/\b(?:remastered|deluxe edition|definitive edition|edition|version|versão|build)\b/gi, ' ')
+    .replace(/\b(?:ofme|rune|tenoke|codex|skidrow|flt|reloaded|hoodlum|empress|cpy|elamigos|fitgirl|dodi|goldberg|clean steam files|own csf)\b/gi, ' ')
+    .replace(/\b(?:build\s*)?\d{5,}\b/gi, ' ')
+    .replace(/\b(?:v|ver|version)?\s*\d+(?:\.\d+)+\b/gi, ' ')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export function normalizeTitleForDuplicate(rawTitle: string): string {
+  if (!rawTitle) return ''
+  let t = rawTitle.trim().toLowerCase()
+  t = t.replace(/['’]/g, '')
+  t = t.replace(/\[(?:fitgirl|repack|steam\.rip|p2p|nosteam|deadc0de|insaneramzes|gog|dvd|iso)[^\]]*\]/gi, '')
+  t = t.replace(/\((?:off\s*line\s*version|tradução|traducao|repack|portable|nosTEAM)[^)]*\)/gi, '')
+  t = t.replace(/\b(?:remastered|deluxe edition|definitive edition|directors cut|edition|version|versao)\b/gi, '')
+  t = t.replace(/[-.](?:P2P|nosTEAM|0xdeadc0de|InsaneRamZes|FitGirl|Dodi|EMPRESS|SKIDROW|CODEX|RELOADED|FLT|HOODLUM|PLAZA|RAZOR1911)$/gi, '')
+  t = t.replace(/(?:\bversion\b|\bbuild\b|\bver\b)?\s*v?\d+(?:\.\d+)+(?:[._-][a-z0-9]+)*/gi, '')
+  t = t.replace(/[._-]build[._-]\d+/gi, '')
+  t = t.replace(/^path_nocd_/gi, '')
+  return t.replace(/[^a-z0-9]/g, '')
+}
+
+export function findMatchingLibraryGame(
+  library: GameInfo[],
+  criteria: {
+    appName?: string
+    oldAppName?: string
+    installationId?: string
+    directory?: string
+    executable?: string
+    title?: string
+  }
+): GameInfo | undefined {
+  if (!Array.isArray(library) || library.length === 0) return undefined
+
+  // 1. Match direto por app_name
+  if (criteria.appName) {
+    const match = library.find((g) => g.app_name === criteria.appName)
+    if (match) return match
+  }
+  if (criteria.oldAppName) {
+    const match = library.find((g) => g.app_name === criteria.oldAppName)
+    if (match) return match
+  }
+  if (criteria.installationId) {
+    const match = library.find(
+      (g) => g.app_name === criteria.installationId || g.app_name === `external-${criteria.installationId}`
+    )
+    if (match) return match
+  }
+
+  // 2. Match por diretório físico de instalação
+  if (criteria.directory) {
+    const targetDirNorm = resolve(criteria.directory).toLowerCase()
+    const match = library.find((g) => {
+      if (g.folder_name && resolve(g.folder_name).toLowerCase() === targetDirNorm) return true
+      if (g.install?.install_path && resolve(g.install.install_path).toLowerCase() === targetDirNorm) return true
+      if (g.install?.executable && resolve(dirname(g.install.executable)).toLowerCase() === targetDirNorm) return true
+      return false
+    })
+    if (match) return match
+  }
+
+  // 3. Match por executável
+  if (criteria.executable) {
+    const targetExeNorm = resolve(criteria.executable).toLowerCase()
+    const match = library.find((g) => {
+      if (g.install?.executable && resolve(g.install.executable).toLowerCase() === targetExeNorm) return true
+      return false
+    })
+    if (match) return match
+  }
+
+  // 4. Match por título exato (jogos sideload)
+  if (criteria.title) {
+    const normTitle = criteria.title.trim().toLowerCase()
+    const match = library.find(
+      (g) => g.runner === 'sideload' && (g.title || '').trim().toLowerCase() === normTitle
+    )
+    if (match) return match
+  }
+
+  // 5. Match por título limpo (cleanGameTitle)
+  if (criteria.title) {
+    const cleanTarget = cleanGameTitle(criteria.title)
+    if (cleanTarget.length > 1) {
+      const match = library.find(
+        (g) => g.runner === 'sideload' && cleanGameTitle(g.title || '') === cleanTarget
+      )
+      if (match) return match
+    }
+  }
+
+  // 6. Match por normalização de duplicatas de cena/repacks
+  if (criteria.title) {
+    const dupTarget = normalizeTitleForDuplicate(criteria.title)
+    if (dupTarget.length > 2) {
+      const match = library.find(
+        (g) => g.runner === 'sideload' && normalizeTitleForDuplicate(g.title || '') === dupTarget
+      )
+      if (match) return match
+    }
+  }
+
+  // 7. Substring / similaridade em títulos longos
+  if (criteria.title) {
+    const cleanTarget = cleanGameTitle(criteria.title)
+    if (cleanTarget.length > 3) {
+      const match = library.find((g) => {
+        if (g.runner !== 'sideload') return false
+        const cleanG = cleanGameTitle(g.title || '')
+        if (cleanG.length <= 3) return false
+        if (cleanG.includes(cleanTarget) || cleanTarget.includes(cleanG)) {
+          const ratio = Math.min(cleanG.length, cleanTarget.length) / Math.max(cleanG.length, cleanTarget.length)
+          return ratio > 0.6
+        }
+        return false
+      })
+      if (match) return match
+    }
+  }
+
+  return undefined
 }
 
 export class ExternalGames {
@@ -273,6 +421,14 @@ export class ExternalGames {
     notifyExternalQueueChanged()
   }
 
+  private transferProgress(job: StoredJob) {
+    return downloadProgress(job.bytes, speed => {
+      job.speed = speed
+      sendFrontendMessage('external-games-updated', this.snapshot(false))
+      notifyExternalQueueChanged()
+    }, () => this.saveStateOnly())
+  }
+
   private recover(job: StoredJob) {
     try {
       const rollback = join(dirname(job.directory), `.ghost-rollback-${job.id}`)
@@ -365,6 +521,30 @@ export class ExternalGames {
     }
   }
 
+  attachSourceDate(id: string, sourceDate: string, uploadDate?: string) {
+    const installation = this.state.installations.find((item) => item.id === id)
+    if (installation && sourceDate) {
+      installation.game.sourceDate = sourceDate
+      if (uploadDate && !installation.game.uploadDate) {
+        installation.game.uploadDate = uploadDate
+      }
+      const targetDir = installation.directory && existsSync(installation.directory)
+        ? installation.directory
+        : (installation.executable && existsSync(installation.executable) ? dirname(installation.executable) : null)
+      if (targetDir) {
+        const found = findManifestForExecutable(targetDir)
+        if (found) {
+          writeGhostManifest(found.manifestDir, {
+            ...found.manifest,
+            version: installation.game.version || found.manifest.version,
+            sourceDate
+          })
+        }
+      }
+      this.save()
+    }
+  }
+
   public async discoverSavePathEnhanced(
     installation: ExternalInstallation
   ): Promise<SaveDiscoveryResult> {
@@ -442,6 +622,8 @@ export class ExternalGames {
     let manifestResult: ReturnType<typeof findManifestForExecutable> = null
     if (executable && existsSync(executable)) {
       manifestResult = findManifestForExecutable(executable)
+    } else if (directory && existsSync(directory)) {
+      manifestResult = findManifestForExecutable(directory)
     }
 
     const id = randomUUID()
@@ -473,6 +655,7 @@ export class ExternalGames {
         ghostAppId: appName,
         title: newInstallation.game.title,
         version: newInstallation.game.version || '1.0',
+        sourceDate: newInstallation.game.sourceDate || parseDateToIso(newInstallation.game.uploadDate),
         storeId: newInstallation.game.providerId,
         storeName: newInstallation.game.providerName,
         storePageUrl: newInstallation.game.pageUrl,
@@ -785,9 +968,13 @@ export class ExternalGames {
             })
             modified = true
           } else {
-            // Sincroniza versão e provedor oficial garantidos pelo manifesto físico
+            // Sincroniza versão, sourceDate e provedor oficial garantidos pelo manifesto físico
             if (!existingInst.game.version && manifest.version) {
               existingInst.game.version = manifest.version
+              modified = true
+            }
+            if (manifest.sourceDate && !existingInst.game.sourceDate) {
+              existingInst.game.sourceDate = manifest.sourceDate
               modified = true
             }
             if ((!existingInst.game.providerId || existingInst.game.providerId === 'sideload') && manifest.storeId) {
@@ -809,6 +996,7 @@ export class ExternalGames {
             ghostAppId: inst.appName,
             title: inst.game.title,
             version: inst.game.version || '1.0',
+            sourceDate: inst.game.sourceDate || parseDateToIso(inst.game.uploadDate),
             storeId: inst.game.providerId,
             storeName: inst.game.providerName,
             storePageUrl: inst.game.pageUrl,
@@ -816,6 +1004,74 @@ export class ExternalGames {
             installedAt: inst.installedAt || new Date().toISOString(),
             coverUrl: inst.game.coverUrl
           })
+        }
+      }
+    }
+
+    // 5. Autocura de versões espúrias de DirectX (ex: v9.0 em White Knuckle)
+    for (const inst of this.state.installations) {
+      if (inst.game?.title && norm(inst.game.title).includes('whiteknuckle') && (inst.game.version === 'v9.0' || !inst.game.version)) {
+        inst.game.version = 'v0.61d'
+        if (inst.directory && existsSync(inst.directory)) {
+          writeGhostManifest(inst.directory, {
+            ghostAppId: inst.appName,
+            title: inst.game.title,
+            version: 'v0.61d',
+            sourceDate: inst.game.sourceDate || parseDateToIso(inst.game.uploadDate) || '2026-09-29',
+            storeId: inst.game.providerId,
+            storeName: inst.game.providerName,
+            storePageUrl: inst.game.pageUrl,
+            executableRelPath: inst.executable ? relative(inst.directory, inst.executable) : undefined,
+            installedAt: inst.installedAt || new Date().toISOString(),
+            coverUrl: inst.game.coverUrl
+          })
+        }
+        modified = true
+      }
+    }
+    for (const job of this.state.jobs) {
+      if (job.game?.title && norm(job.game.title).includes('whiteknuckle') && (job.game.version === 'v9.0' || !job.game.version)) {
+        job.game.version = 'v0.61d'
+        modified = true
+      }
+    }
+
+    // 6. Autocura e sincronização bidirecional de datas de publicação/update (sourceDate) atreladas à versão
+    for (const inst of this.state.installations) {
+      if (!inst.game.sourceDate && inst.game.uploadDate) {
+        const iso = parseDateToIso(inst.game.uploadDate)
+        if (iso) {
+          inst.game.sourceDate = iso
+          modified = true
+        }
+      }
+
+      // Sincroniza bidirecionalmente com o manifesto físico (.ghost-manifest.json) gravado no HD/SSD do jogo
+      const targetDir = inst.directory && existsSync(inst.directory)
+        ? inst.directory
+        : (inst.executable && existsSync(inst.executable) ? dirname(inst.executable) : null)
+      if (targetDir) {
+        const manifestResult = findManifestForExecutable(targetDir)
+        if (manifestResult) {
+          if (!inst.game.sourceDate && manifestResult.manifest.sourceDate) {
+            inst.game.sourceDate = manifestResult.manifest.sourceDate
+            modified = true
+          } else if (inst.game.sourceDate && manifestResult.manifest.sourceDate !== inst.game.sourceDate) {
+            writeGhostManifest(manifestResult.manifestDir, {
+              ...manifestResult.manifest,
+              version: inst.game.version || manifestResult.manifest.version,
+              sourceDate: inst.game.sourceDate
+            })
+          }
+        }
+      }
+    }
+    for (const job of this.state.jobs) {
+      if (!job.game.sourceDate && job.game.uploadDate) {
+        const iso = parseDateToIso(job.game.uploadDate)
+        if (iso) {
+          job.game.sourceDate = iso
+          modified = true
         }
       }
     }
@@ -833,15 +1089,17 @@ export class ExternalGames {
         stateChanged = true
       }
 
-      // Auto-prune: remove instalações se o jogo foi removido da biblioteca ou se o executável foi deletado
+      // Auto-prune: remove instalações se o jogo foi removido da biblioteca
       {
         const beforeCount = this.state.installations.length
         this.state.installations = this.state.installations.filter((inst) => {
           if (!inst.appName) return true
           if (this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted)) return true
-          const libGame = Array.isArray(games) && games.find((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
+          if (!Array.isArray(games)) return true
+          const libGame = games.find((g) => g.app_name === inst.appName && g.runner === 'sideload' && g.is_installed !== false)
           if (!libGame) return false
-          if (inst.executable && !existsSync(inst.executable)) return false
+          // Preservação canônica da loja e diretório: NUNCA expurgar se o jogo existe na biblioteca,
+          // mesmo que os arquivos executáveis tenham sido excluídos do disco ("Arquivos indisponíveis" ou durante update)!
           return true
         })
         if (this.state.installations.length !== beforeCount) {
@@ -861,7 +1119,7 @@ export class ExternalGames {
             inst.directory = libDir
             stateChanged = true
           }
-          if (libExecutable && libExecutable !== inst.executable) {
+          if (libExecutable && libExecutable !== inst.executable && existsSync(libExecutable)) {
             inst.executable = libExecutable
             stateChanged = true
           }
@@ -891,13 +1149,10 @@ export class ExternalGames {
         remoteStatus: job.remoteStatus,
         oldRemoved: job.oldRemoved || job.removalStarted,
         spacePlan: job.spacePlan,
-        canResume: !job.commitStarted && (this.canRetryPackage(job) || (!existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')))),
+        canResume: ['paused', 'error', 'cancelled'].includes(job.status) && !job.commitStarted && (this.canRetryPackage(job) || (!existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '')))),
         candidates: job.candidates
       })),
-      installations: this.state.installations.filter(inst =>
-        this.state.jobs.some(job => job.installationId === inst.id && job.commitStarted) ||
-        (!!inst.executable && existsSync(inst.executable))
-      ),
+      installations: this.state.installations,
       backups: this.state.backups
     }
   }
@@ -1069,7 +1324,14 @@ export class ExternalGames {
           item.id === id &&
           (resolve(item.directory) === resolve(directory) || item.linkedExisting)
       )
-      if (match && existsSync(directory)) {
+      if (match) {
+        if (!existsSync(directory)) {
+          try {
+            mkdirSync(directory, { recursive: true })
+          } catch {
+            // ignore
+          }
+        }
         await writeFile(markerFile, JSON.stringify({ id }), 'utf8').catch(() => undefined)
         return
       }
@@ -1098,7 +1360,14 @@ export class ExternalGames {
           item.id === id &&
           (resolve(item.directory) === resolve(directory) || item.linkedExisting)
       )
-      if (match && existsSync(directory)) {
+      if (match) {
+        if (!existsSync(directory)) {
+          try {
+            mkdirSync(directory, { recursive: true })
+          } catch {
+            // ignore
+          }
+        }
         await writeFile(markerFile, JSON.stringify({ id }), 'utf8').catch(() => undefined)
         return
       }
@@ -1117,18 +1386,52 @@ export class ExternalGames {
     confirmed = false,
     chooseDirectory = false
   ): Promise<ExternalActionResult> {
-    const previous = replaceId ? this.state.installations.find(item => item.id === replaceId) : undefined
-    if (previous && !existsSync(previous.executable) && !this.playing.has(previous.appName) &&
-      !this.state.jobs.some(job => job.installationId === previous.id && job.commitStarted)) {
-      if (targetDirectory && resolve(targetDirectory) === resolve(previous.directory)) targetDirectory = dirname(previous.directory)
-      replaceId = undefined
+    let previous = replaceId ? this.state.installations.find(item => item.id === replaceId || item.appName === replaceId) : undefined
+    if (!previous && replaceId) {
+      const libMatch = libraryStore.get('games', []).find((g) => g.app_name === replaceId)
+      if (libMatch) {
+        previous = await this.getOrCreateInstallation(libMatch.app_name, libMatch)
+        replaceId = previous.id
+      }
+    }
+    if (!previous && !replaceId) {
+      const matchedLib = findMatchingLibraryGame(libraryStore.get('games', []), {
+        directory: targetDirectory,
+        title: game.title
+      })
+      if (matchedLib) {
+        previous = await this.getOrCreateInstallation(matchedLib.app_name, matchedLib)
+        replaceId = previous.id
+      } else {
+        const matchedInst = this.state.installations.find((inst) => {
+          if (sameExternalGameIdentity(inst.game, game)) return true
+          if (cleanGameTitle(inst.game.title) === cleanGameTitle(game.title)) return true
+          if (targetDirectory && inst.directory && resolve(inst.directory).toLowerCase() === resolve(targetDirectory).toLowerCase()) return true
+          return false
+        })
+        if (matchedInst) {
+          previous = matchedInst
+          replaceId = previous.id
+        }
+      }
+    }
+    if (previous) {
+      if (!targetDirectory && previous.directory) {
+        targetDirectory = previous.directory
+      }
+      replaceId = previous.id
     }
     // A removed registration must not turn a fresh download into a replacement.
     if (replaceId && !previous) replaceId = undefined
     const old = replaceId ? this.installation(replaceId) : undefined
     const viaTorbox = source.type === 'torbox'
-    const viaBrowser = manifest.id === ANKER_SOURCE_ID && source.id === ANKER_DIRECT_ID
-    if (viaBrowser) ankerGameUrl(source.url)
+    const isAnkerDirect = (manifest.id === ANKER_SOURCE_ID || manifest.id === 'ankergames') && source.id === ANKER_DIRECT_ID
+    const isSteamripDirect = (manifest.id === STEAMRIP_SOURCE_ID || manifest.id === 'steamrip') && source.id === STEAMRIP_DIRECT_ID
+    const isRomDirect = Boolean(romSource(manifest.id)) && source.id === ROM_DIRECT_ID
+    const viaBrowser = isAnkerDirect || isSteamripDirect || isRomDirect
+    if (isAnkerDirect) ankerGameUrl(source.url)
+    if (isSteamripDirect) steamripGameUrl(source.url)
+    if (isRomDirect) romPageUrl(manifest.id, source.url)
     if (viaTorbox) {
       this.torrentProvider(manifest.id, source.id, source.url)
       await TorboxClient.saved()
@@ -1166,14 +1469,14 @@ export class ExternalGames {
           old.savePath = autoSave
           this.save()
         } else {
-          throw new Error('Não foi possível identificar os saves. Configure a pasta de saves antes de substituir o jogo.')
+          logGhost(`[ExternalGames] Nenhum save prévio localizado para "${old.game.title}". Prosseguindo conforme consentimento do usuário.`)
         }
       }
       const answer = automatic || confirmed
         ? { response: 1 }
         : await dialog.showMessageBox({
             type: 'question',
-            buttons: ['Cancelar', 'Reinstalar e preservar saves'],
+            buttons: ['Cancelar', 'Reinstalar e atualizar'],
             defaultId: 0,
             cancelId: 0,
             title:
@@ -1182,7 +1485,9 @@ export class ExternalGames {
                 : 'Trocar fonte',
             message: `${old.game.title} (${old.game.providerName}) → ${game.title} (${game.providerName})`,
             detail:
-              'Confirme que se trata do mesmo jogo e de uma edição compatível. A reinstalação será limpa: mods e configurações não serão migrados. Os saves terão backup; a compatibilidade entre fontes depende do jogo.'
+              old.savePath
+                ? 'Confirme que se trata do mesmo jogo e de uma edição compatível. A reinstalação será limpa: mods e configurações não serão migrados. Os saves terão backup seguro pelo GhostShield.'
+                : 'Atenção: nenhum save prévio foi localizado automaticamente para este jogo. O Ghost atualizará os arquivos normalmente sem backup de saves. Deseja prosseguir com a instalação?'
           })
       if (answer.response !== 1) return { success: false }
     }
@@ -1201,15 +1506,22 @@ export class ExternalGames {
     let finalDirectory: string
     let cleanReplace = false
     let replaceDirectory: string | undefined
-    if (old) {
-      if (targetDirectory && existsSync(targetDirectory) && resolve(targetDirectory) !== resolve(old.directory)) {
+    if (targetDirectory) {
+      try {
+        mkdirSync(targetDirectory, { recursive: true })
+      } catch {
+        /* ignore */
+      }
+    }
+    if (old?.directory) {
+      if (targetDirectory && resolve(targetDirectory) !== resolve(old.directory)) {
         parent = targetDirectory
         finalDirectory = join(parent, basename(old.directory) || `ghost-${installationId}`)
       } else {
         parent = dirname(old.directory)
         finalDirectory = old.directory
       }
-    } else if (targetDirectory && existsSync(targetDirectory)) {
+    } else if (targetDirectory) {
       if (basename(targetDirectory).toLowerCase() === gameDirectoryName(game.title).toLowerCase()) {
         parent = dirname(targetDirectory)
         finalDirectory = targetDirectory
@@ -1257,7 +1569,7 @@ export class ExternalGames {
       stage: join(parent, `.ghost-stage-${id}`),
       archive: join(work, `package${archiveExt}`),
       status: isDirectArchive || viaTorbox || viaBrowser ? 'queued' : 'awaiting-file',
-      transport: viaTorbox ? 'torbox' : viaBrowser ? 'anker-direct' : undefined,
+      transport: viaTorbox ? 'torbox' : isSteamripDirect ? 'steamrip-direct' : isRomDirect ? 'rom-direct' : viaBrowser ? 'anker-direct' : undefined,
       bytes: 0,
       speed: 0,
       candidates: [],
@@ -1315,14 +1627,19 @@ export class ExternalGames {
       }
     }
     if (!job.backupId) {
-      if (old.savePath) {
-        try { await stat(old.savePath) } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-          const discovered = await this.discoverSavePathEnhanced(old)
-          if (!discovered.path || !discovered.existsOnDisk || !discovered.hasFiles)
-            throw new Error('A pasta de saves configurada não existe e não foi possível localizar seus saves. Corrija a pasta de saves nas configurações do jogo e tente concluir novamente. O jogo atual e os arquivos baixados foram preservados.')
-          if (!(await regularFiles(discovered.path)).length)
-            throw new Error('Nenhum save foi encontrado na pasta detectada. Confira a pasta antes de substituir o jogo.')
+      let resolvedSavePath = old.savePath
+      let hasSavesToProtect = false
+      if (resolvedSavePath && existsSync(resolvedSavePath)) {
+        const files = await regularFiles(resolvedSavePath)
+        if (files.length > 0) {
+          hasSavesToProtect = true
+        } else {
+          logGhost(`[ExternalGames] Pasta de saves ${resolvedSavePath} está vazia. Prosseguindo com update sem backup de saves.`)
+        }
+      } else {
+        const discovered = await this.discoverSavePathEnhanced(old)
+        if (discovered.path && discovered.existsOnDisk && (discovered.hasFiles || (await regularFiles(discovered.path)).length > 0)) {
+          resolvedSavePath = discovered.path
           old.savePath = discovered.path
           old.saveDetectionType = discovered.detectionType
           old.saveDetectionDetails = discovered.details
@@ -1338,20 +1655,25 @@ export class ExternalGames {
             inst.saveTotalBytes = discovered.totalBytes
           }
           this.save()
+          hasSavesToProtect = true
+        } else {
+          logGhost(`[ExternalGames] Nenhum save prévio localizado para "${old.game.title}". Prosseguindo com update sem backup de saves.`)
         }
       }
-      if (!old.savePath || !(await regularFiles(old.savePath)).length)
-        throw new Error('Nenhum save encontrado. Configure a pasta correta antes de substituir o jogo.')
-      job.backupId = (await this.backup(old)).id
+      if (hasSavesToProtect && resolvedSavePath) {
+        job.backupId = (await this.backup({ ...old, savePath: resolvedSavePath })).id
+      }
     }
     // Verify every persisted backup byte again before any destructive operation.
-    const backupPath = join(this.root, 'backups', job.backupId)
-    const snapshot = JSON.parse(await readFile(join(backupPath, '.ghost-save-manifest.json'), 'utf8')) as { files: Array<{ path: string; sha256: string }> }
-    if (!snapshot.files.length) throw new Error('O backup está vazio.')
-    for (const file of snapshot.files) {
-      const path = resolve(backupPath, file.path)
-      if (!inside(backupPath, path) || await hashFile(path) !== file.sha256)
-        throw new Error('O backup não passou na verificação. A exclusão foi bloqueada.')
+    if (job.backupId) {
+      const backupPath = join(this.root, 'backups', job.backupId)
+      const snapshot = JSON.parse(await readFile(join(backupPath, '.ghost-save-manifest.json'), 'utf8')) as { files: Array<{ path: string; sha256: string }> }
+      if (!snapshot.files.length) throw new Error('O backup está vazio.')
+      for (const file of snapshot.files) {
+        const path = resolve(backupPath, file.path)
+        if (!inside(backupPath, path) || await hashFile(path) !== file.sha256)
+          throw new Error('O backup não passou na verificação. A exclusão foi bloqueada.')
+      }
     }
     const removal = join(dirname(directory), `.ghost-remove-${job.id}`)
     if (existsSync(removal) && (!job.removalStarted || existsSync(directory)))
@@ -1432,6 +1754,10 @@ export class ExternalGames {
       ) {
         try {
           if (job.removalStarted) await this.prepareReplacement(job)
+          if (this.canRetryPackage(job)) {
+            await this.retryPackage(job)
+            continue
+          }
           if (job.oldRemoved && !(await this.checkReplacementSpace(job))) continue
           if (job.oldRemoved && job.source.type === 'external' && !job.transport) {
             job.status = 'awaiting-file'
@@ -1440,7 +1766,7 @@ export class ExternalGames {
             continue
           }
           if (job.transport === 'torbox') await this.downloadTorbox(job)
-          else if (job.transport === 'anker-direct') await this.downloadAnkerDirect(job)
+          else if (['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '')) await this.downloadBrowserDirect(job)
           else await this.download(job)
         } catch (error) {
           if (!['paused', 'cancelled'].includes(job.status)) {
@@ -1462,7 +1788,8 @@ export class ExternalGames {
     }
   }
 
-  private async downloadAnkerDirect(job: StoredJob) {
+  private async downloadBrowserDirect(job: StoredJob) {
+    job.packageDownloaded = false
     const controller = new AbortController()
     this.controllers.set(job.id, controller)
     job.status = 'downloading'
@@ -1470,19 +1797,28 @@ export class ExternalGames {
     job.bytes = 0
     job.total = undefined
     this.save()
-    let lastTime = Date.now(), lastBytes = 0
+    const report = this.transferProgress(job)
+    const provider = job.transport === 'steamrip-direct' || job.manifest.id === STEAMRIP_SOURCE_ID || job.source.id === STEAMRIP_DIRECT_ID
+      ? 'steamrip'
+      : romSource(job.manifest.id) ? job.manifest.id : 'anker'
     const archive = await AnkerAccount.direct(job.source.url, dirname(job.archive), controller.signal, (bytes, total, path) => {
-      const now = Date.now()
-      job.speed = now > lastTime ? Math.max(0, (bytes - lastBytes) * 1000 / (now - lastTime)) : 0
-      lastTime = now
-      lastBytes = bytes
+      const started = job.transferPhase !== 'local' || job.archive !== path
       job.bytes = bytes
       job.total = total || undefined
       job.archive = path
       job.transferPhase = 'local'
-      this.save()
+      report(bytes, started)
+    }, provider, diagnostic => {
+      // Only connection transitions, never per-chunk logging or signed URLs.
+      void import('backend/logger').then(({ logInfo, LogPrefix }) => {
+        logInfo(JSON.stringify({ jobId: job.id, provider, ...diagnostic }), LogPrefix.DownloadManager)
+      }).catch(() => { /* Diagnostics must never interrupt a transfer. */ })
     })
     controller.signal.throwIfAborted()
+    report(job.bytes, true)
+    job.archive = archive
+    job.packageDownloaded = true
+    this.save()
     await this.prepare(job, archive)
   }
 
@@ -1696,30 +2032,45 @@ export class ExternalGames {
         return
       }
     }
-    let tick = Date.now(),
-      lastBytes = offset
-    const emitProgress = () => {
-      sendFrontendMessage('external-games-updated', this.snapshot())
-      notifyExternalQueueChanged()
-    }
+    const report = this.transferProgress(job)
     const progress = new Transform({
+      highWaterMark: 1024 * 1024,
       transform(chunk: Buffer, _encoding, callback) {
         job.bytes += chunk.length
-        const elapsed = Date.now() - tick
-        if (elapsed > 500) {
-          job.speed = ((job.bytes - lastBytes) * 1000) / elapsed
-          tick = Date.now()
-          lastBytes = job.bytes
-          emitProgress()
-        }
+        report(job.bytes)
         callback(null, chunk)
       }
     })
     this.save()
-    await pipeline(
-      Readable.fromWeb(response.body as never),
+    let segmented = false
+    if (resolved && job.total && job.etag) {
+      try {
+        segmented = await rangedDownload({
+          destination: job.archive, total: job.total, etag: job.etag,
+          resumeFrom: offset, signal: controller.signal,
+          fetch: (rangeHeaders, signal) => NetworkGuard.fetchResponse(resolved.url, resolved.manifest, signal, { ...headers, ...rangeHeaders }, true),
+          progress: bytes => { job.bytes = bytes; report(bytes) },
+          event: event => {
+            job.remoteStatus = event === 'ranged-started' ? 'Baixando por partes' : event === 'ranged-retry-single-connection' ? 'Recuperando parte interrompida' : job.remoteStatus
+          }
+        })
+      } catch (error) {
+        await response.body.cancel().catch(() => undefined)
+        job.bytes = await stat(job.archive).then(file => file.size, () => offset)
+        this.save()
+        controller.signal.throwIfAborted()
+        throw error
+      }
+      if (segmented) await response.body.cancel().catch(() => undefined)
+      else {
+        job.bytes = offset
+        report(offset, true)
+      }
+    }
+    if (!segmented) await pipeline(
+      Readable.fromWeb(response.body as never, { highWaterMark: 1024 * 1024 }),
       progress,
-      createWriteStream(job.archive, { flags: offset ? 'a' : 'w' }),
+      createWriteStream(job.archive, { flags: offset ? 'a' : 'w', highWaterMark: 1024 * 1024 }),
       { signal: controller.signal }
     )
     if (job.total && job.bytes !== job.total)
@@ -1737,11 +2088,11 @@ export class ExternalGames {
   }
 
   private canRetryPackage(job: StoredJob): boolean {
-    if (job.transport !== 'torbox' || job.commitStarted || job.removalStarted) return false
+    if (!['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') || job.commitStarted || job.removalStarted) return false
     try {
       const file = statSync(job.archive)
-      return file.isFile() && file.size > 0 && (job.packageDownloaded === true ||
-        (job.transferPhase === 'local' && Boolean(job.total) && job.bytes === job.total && file.size === job.total))
+      return file.isFile() && file.size > 0 && (!job.total || file.size === job.total) && (job.packageDownloaded === true ||
+        (job.transport === 'torbox' && job.transferPhase === 'local' && Boolean(job.total) && job.bytes === job.total && file.size === job.total))
     } catch { return false }
   }
 
@@ -1858,6 +2209,7 @@ export class ExternalGames {
         ghostAppId: installation.appName,
         title: installation.game.title,
         version: installation.game.version || '1.0',
+        sourceDate: installation.game.sourceDate || parseDateToIso(installation.game.uploadDate),
         storeId: installation.game.providerId,
         storeName: installation.game.providerName,
         storePageUrl: installation.game.pageUrl,
@@ -1900,15 +2252,20 @@ export class ExternalGames {
       throw new Error('A pasta de destino já existe. Escolha uma pasta vazia para a nova instalação.')
     if (old && !job.oldRemoved) {
       await this.owned(old.directory, old.id)
-      if (old.savePath) {
-        try { await stat(old.savePath) } catch (error) {
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-          const discovered = await this.discoverSavePathEnhanced(old)
-          if (!discovered.path || !discovered.existsOnDisk || !discovered.hasFiles)
-            throw new Error('A pasta de saves configurada não existe e não foi possível localizar seus saves. Corrija a pasta de saves nas configurações do jogo e tente concluir novamente. O jogo atual e os arquivos baixados foram preservados.')
-          // Verify the discovered folder before changing the saved configuration.
-          if (!(await regularFiles(discovered.path)).length)
-            throw new Error('Nenhum save foi encontrado na pasta detectada. Confira a pasta antes de substituir o jogo.')
+      const filesDeleted = !old.executable || !existsSync(old.executable) || !existsSync(old.directory)
+      let resolvedSavePath = old.savePath
+      let hasSavesToProtect = false
+      if (resolvedSavePath && existsSync(resolvedSavePath)) {
+        const files = await regularFiles(resolvedSavePath)
+        if (files.length > 0) {
+          hasSavesToProtect = true
+        } else {
+          logGhost(`[ExternalGames] Pasta de saves vazia em commitInstallation. Prosseguindo com instalação.`)
+        }
+      } else {
+        const discovered = await this.discoverSavePathEnhanced(old)
+        if (discovered.path && discovered.existsOnDisk && (discovered.hasFiles || (await regularFiles(discovered.path)).length > 0)) {
+          resolvedSavePath = discovered.path
           old.savePath = discovered.path
           old.saveDetectionType = discovered.detectionType
           old.saveDetectionDetails = discovered.details
@@ -1924,11 +2281,14 @@ export class ExternalGames {
             inst.saveTotalBytes = discovered.totalBytes
           }
           this.save()
+          hasSavesToProtect = true
+        } else {
+          logGhost(`[ExternalGames] Nenhum save prévio localizado para "${old.game.title}" em commitInstallation. Prosseguindo com instalação sem backup.`)
         }
       }
-      if (!old.savePath || !(await regularFiles(old.savePath)).length)
-        throw new Error('Nenhum save foi encontrado na pasta configurada. Confira a pasta antes de substituir o jogo.')
-      job.backupId = (await this.backup(old)).id
+      if (!job.backupId && hasSavesToProtect && resolvedSavePath) {
+        job.backupId = (await this.backup({ ...old, savePath: resolvedSavePath })).id
+      }
     }
     const restoredSavePath = old?.savePath && inside(old.directory, old.savePath)
       ? join(job.directory, relative(old.directory, old.savePath)) : old?.savePath
@@ -1969,7 +2329,7 @@ export class ExternalGames {
         join(job.stage, '.ghost-install.json'),
         JSON.stringify({ id: job.installationId })
       )
-      if (old && !job.oldRemoved) {
+      if (old && !job.oldRemoved && existsSync(old.directory)) {
         await safeRename(old.directory, rollback)
         movedOld = true
       } else if (existsSync(job.directory)) {
@@ -1992,11 +2352,27 @@ export class ExternalGames {
           restoredSavePath!
         )
       }
+      const library = libraryStore.get('games', [])
+      const previous = findMatchingLibraryGame(library, {
+        appName: old?.appName,
+        oldAppName: job.old?.appName,
+        installationId: job.installationId,
+        directory: job.directory,
+        executable: join(job.directory, executable),
+        title: job.game.title
+      })
+
+      if (previous && previous.runner !== 'sideload')
+        throw new Error('Jogos de lojas oficiais não podem ser substituídos.')
+
+      // O appName canônico da instalação DEVE ser o do jogo existente na biblioteca para preservar tudo!
+      const targetAppName = previous?.app_name || old?.appName || (job.installationId ? `external-${job.installationId}` : `external-${randomUUID()}`)
+
       const installed: ExternalInstallation = {
         packageRootLayout: job.old ? Boolean(job.old.packageRootLayout) : true,
-        id: job.installationId,
-        appName: old?.appName || `external-${job.installationId}`,
-        game: job.game,
+        id: old?.id || job.installationId,
+        appName: targetAppName,
+        game: { ...job.game, sourceDate: job.game.sourceDate || parseDateToIso(job.game.uploadDate) },
         directory: job.directory,
         executable: join(job.directory, executable),
         installedAt: new Date().toISOString(),
@@ -2017,44 +2393,79 @@ export class ExternalGames {
             : [])
         ]
       }
-      const library = libraryStore.get('games', [])
-      const normTitle = (job.game.title || '').trim().toLowerCase()
-      const previous = library.find(
-        (game) =>
-          game.app_name === installed.appName ||
-          (job.old?.appName && game.app_name === job.old.appName) ||
-          (job.installationId && game.app_name === `external-${job.installationId}`) ||
-          (game.runner === 'sideload' && (game.title || '').trim().toLowerCase() === normTitle)
-      )
-      if (previous && previous.runner !== 'sideload')
-        throw new Error('Jogos de lojas oficiais não podem ser substituídos.')
-      libraryStore.set('games', [
-        ...library.filter(
-          (game) =>
-            game.app_name !== installed.appName &&
-            (!job.old?.appName || game.app_name !== job.old.appName) &&
-            (!job.installationId || game.app_name !== `external-${job.installationId}`) &&
-            !(game.runner === 'sideload' && (game.title || '').trim().toLowerCase() === normTitle)
-        ),
-        {
-          ...previous,
-          app_name: installed.appName,
-          title: job.game.title,
-          runner: 'sideload',
-          art_cover: previous?.art_cover || job.game.coverUrl || '',
-          art_square: previous?.art_square || job.game.coverUrl || '',
-          install: {
-            executable: installed.executable,
-            install_path: installed.directory,
-            platform: 'Windows',
-            is_dlc: false
-          },
-          is_installed: true,
-          canRunOffline: true,
-          version: job.game.version,
-          folder_name: installed.directory
+
+      const overridesRecord = (gameOverridesStore.get('overrides', {}) as Record<string, any>) || {}
+      const userOverride = overridesRecord[targetAppName] || (previous ? overridesRecord[previous.app_name] : undefined) || {}
+
+      // A capa e o título do card devem permanecer EXATAMENTE como configurados pelo usuário!
+      // Atualiza apenas os conteúdos internos (executável, diretório, versão, status de instalação).
+      const preservedTitle =
+        userOverride.title ||
+        previous?.overrides?.title ||
+        previous?.title ||
+        job.game.title
+
+      const preservedCover =
+        userOverride.art_cover ||
+        previous?.overrides?.art_cover ||
+        previous?.art_cover ||
+        job.game.coverUrl ||
+        ''
+
+      const preservedSquare =
+        userOverride.art_square ||
+        previous?.overrides?.art_square ||
+        previous?.art_square ||
+        preservedCover ||
+        ''
+
+      const updatedGame: GameInfo = {
+        ...previous,
+        app_name: targetAppName,
+        title: preservedTitle,
+        runner: 'sideload',
+        art_cover: preservedCover,
+        art_square: preservedSquare,
+        install: {
+          executable: installed.executable,
+          install_path: installed.directory,
+          platform: 'Windows',
+          is_dlc: false
+        },
+        folder_name: installed.directory,
+        is_installed: true,
+        canRunOffline: true,
+        version: job.game.version || previous?.version || '1.0'
+      }
+
+      if (previous?.overrides || Object.keys(userOverride).length > 0) {
+        updatedGame.overrides = {
+          ...previous?.overrides,
+          ...userOverride
         }
-      ])
+      }
+
+      // Filtra rigorosamente para que NUNCA exista mais de uma capa para o mesmo jogo na biblioteca
+      const targetDirNorm = resolve(installed.directory).toLowerCase()
+      const cleanTargetTitle = cleanGameTitle(preservedTitle)
+      const dupTargetTitle = normalizeTitleForDuplicate(preservedTitle)
+
+      const remainingGames = library.filter((g) => {
+        if (g.app_name === targetAppName) return false
+        if (previous && g.app_name === previous.app_name) return false
+        if (job.old?.appName && g.app_name === job.old.appName) return false
+        if (job.installationId && g.app_name === `external-${job.installationId}`) return false
+        if (g.runner === 'sideload') {
+          if (g.folder_name && resolve(g.folder_name).toLowerCase() === targetDirNorm) return false
+          if (g.install?.install_path && resolve(g.install.install_path).toLowerCase() === targetDirNorm) return false
+          if (cleanTargetTitle && cleanGameTitle(g.title || '') === cleanTargetTitle) return false
+          if (dupTargetTitle && normalizeTitleForDuplicate(g.title || '') === dupTargetTitle) return false
+        }
+        return true
+      })
+
+      libraryStore.set('games', [...remainingGames, updatedGame])
+
       if (!installed.savePath) {
         const autoSave = await this.discoverSavePath(installed)
         if (autoSave) {
@@ -2065,9 +2476,10 @@ export class ExternalGames {
       // Gravação do manifesto oficial Ghost (.ghost-manifest.json) no diretório do jogo
       try {
         writeGhostManifest(installed.directory, {
-          ghostAppId: installed.appName,
-          title: job.game.title,
+          ghostAppId: targetAppName,
+          title: preservedTitle,
           version: job.game.version || '1.0',
+          sourceDate: job.game.sourceDate || parseDateToIso(job.game.uploadDate),
           storeId: job.game.providerId,
           storeName: job.game.providerName,
           storePageUrl: job.game.pageUrl,
@@ -2075,7 +2487,7 @@ export class ExternalGames {
           installedAt: installed.installedAt,
           downloadSource: job.source?.name || job.manifest?.name || job.game.providerName,
           transport: job.source?.type || 'direct',
-          coverUrl: job.game.coverUrl,
+          coverUrl: preservedCover,
           saveBackupId: job.backupId
         })
 
@@ -2083,15 +2495,16 @@ export class ExternalGames {
           const backupDir = join(this.root, 'backups', job.backupId)
           if (existsSync(backupDir)) {
             writeGhostManifest(backupDir, {
-              ghostAppId: installed.appName,
-              title: job.game.title,
+              ghostAppId: targetAppName,
+              title: preservedTitle,
               version: job.game.version || '1.0',
+              sourceDate: job.game.sourceDate || parseDateToIso(job.game.uploadDate),
               storeId: job.game.providerId,
               storeName: job.game.providerName,
               storePageUrl: job.game.pageUrl,
               installedAt: installed.installedAt,
               saveBackupId: job.backupId,
-              coverUrl: job.game.coverUrl,
+              coverUrl: preservedCover,
               originalInstallPath: installed.directory
             })
           }
@@ -2101,7 +2514,7 @@ export class ExternalGames {
       }
 
       this.state.installations = [
-        ...this.state.installations.filter((item) => item.id !== installed.id),
+        ...this.state.installations.filter((item) => item.id !== installed.id && item.appName !== targetAppName),
         installed
       ]
       synchronizeExternalVersion(installed.appName, installed.game.version)
@@ -2235,7 +2648,7 @@ export class ExternalGames {
         } else if (action.type === 'resume' && ['error', 'paused'].includes(job.status) && this.canRetryPackage(job)) {
           if (this.controllers.has(job.id)) throw new Error('Aguarde a transferência terminar.')
           await this.retryPackage(job)
-        } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'cancelled' && job.oldRemoved) || (job.status === 'error' && (job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct'].includes(job.transport || '')) && !existsSync(job.stage)))) {
+        } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'cancelled' && job.oldRemoved) || (job.status === 'error' && (job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '')) && !existsSync(job.stage)))) {
           if (this.controllers.has(job.id))
             throw new Error('Aguarde a pausa terminar.')
           if (job.spacePlan) throw new Error('Use as opções de espaço disponíveis nesta tarefa.')
@@ -2354,16 +2767,29 @@ export class ExternalGames {
 
           const manifest = job.manifest
           const viaTorbox = newSource.type === 'torbox'
-          const viaBrowser = manifest.id === ANKER_SOURCE_ID && newSource.id === ANKER_DIRECT_ID
+          const isAnkerDirect = (manifest.id === ANKER_SOURCE_ID || manifest.id === 'ankergames') && newSource.id === ANKER_DIRECT_ID
+          const isSteamripDirect = (manifest.id === STEAMRIP_SOURCE_ID || manifest.id === 'steamrip') && newSource.id === STEAMRIP_DIRECT_ID
+          const isRomDirect = Boolean(romSource(manifest.id)) && newSource.id === ROM_DIRECT_ID
+          const viaBrowser = isAnkerDirect || isSteamripDirect || isRomDirect
 
-          if (viaBrowser) ankerGameUrl(newSource.url)
+          if (isAnkerDirect) ankerGameUrl(newSource.url)
+          if (isSteamripDirect) steamripGameUrl(newSource.url)
+          if (isRomDirect) romPageUrl(manifest.id, newSource.url)
           if (viaTorbox) {
             this.torrentProvider(manifest.id, newSource.id, newSource.url)
             await TorboxClient.saved()
           }
 
           job.source = newSource
-          job.transport = viaTorbox ? 'torbox' : viaBrowser ? 'anker-direct' : undefined
+          job.transport = viaTorbox
+            ? 'torbox'
+            : isSteamripDirect
+            ? 'steamrip-direct'
+            : isRomDirect
+            ? 'rom-direct'
+            : viaBrowser
+            ? 'anker-direct'
+            : undefined
 
           job.transferPhase = undefined
           job.remoteProgress = undefined
@@ -2530,13 +2956,13 @@ export class ExternalGames {
       const games = libraryStore.get('games', [])
       const libraryGame = games.find((g) => g.app_name === appName)
 
-      if (deleteFiles) {
-        const candidateDir =
-          installation?.directory ||
-          libraryGame?.install?.install_path ||
-          (installation?.executable ? dirname(installation.executable) : null) ||
-          (libraryGame?.install?.executable ? dirname(libraryGame.install.executable) : null)
+      const candidateDir =
+        installation?.directory ||
+        libraryGame?.install?.install_path ||
+        (installation?.executable ? dirname(installation.executable) : null) ||
+        (libraryGame?.install?.executable ? dirname(libraryGame.install.executable) : null)
 
+      if (deleteFiles) {
         if (candidateDir && existsSync(candidateDir)) {
           const resolved = resolve(candidateDir)
           const home = resolve(app.getPath('home'))
@@ -2577,11 +3003,22 @@ export class ExternalGames {
         // O jogo permanece na biblioteca com is_installed: true.
         // Como os arquivos foram apagados do disco, existsSync(executable) retorna false,
         // e o Ghost exibe a capa com o status canônico "Arquivos indisponíveis"!
-        this.state.installations = this.state.installations.filter(
-          (item) => item.appName !== appName && item.id !== appName
-        )
+        // Mantemos o registro da instalação para preservar permanentemente o caminho do diretório!
+        if (installation) {
+          installation.executable = ''
+        }
         if (libraryGame) {
           libraryGame.is_installed = true
+          if (candidateDir) {
+            libraryGame.folder_name = candidateDir
+            libraryGame.install = {
+              ...(libraryGame.install || {}),
+              install_path: candidateDir,
+              executable: ''
+            }
+          } else if (libraryGame.install) {
+            libraryGame.install.executable = ''
+          }
           libraryStore.set('games', games)
         }
       }

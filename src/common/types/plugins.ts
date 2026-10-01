@@ -47,6 +47,7 @@ export interface GhostSearchResult {
   sourcesCount?: number
   releaseDate?: string
   uploadDate?: string
+  sourceDate?: string
   uploader?: string
   cracker?: string
   genre?: string
@@ -275,4 +276,14 @@ export interface GhostCardBadge {
   color?: string
   backgroundColor?: string
   glowColor?: string
+}
+export interface SourceSettings {
+  original: string
+  additional: string[]
+  preferred: string
+}
+
+export interface SourceAddressTest {
+  status: 'available' | 'login' | 'unrecognized' | 'unavailable'
+  message: string
 }

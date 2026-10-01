@@ -28,6 +28,19 @@ describe('Game Version & Update Integrity', () => {
       expect(extractVersionFromText('Assassin\'s Creed Black Flag Resynced V 1.0.4')).toBe('v1.0.4')
       expect(extractVersionFromText('<span title="V 1.0.5">V 1.0.5</span>')).toBe('v1.0.5')
       expect(extractVersionFromText('Dune Awakening (Build 25442319)')).toBe('Build 25442319')
+      expect(extractVersionFromText('White Knuckle Free Download (v0.61d) | AnkerGames')).toBe('v0.61d')
+      expect(extractVersionFromText('<span title="V 0.61d">V 0.61d</span>')).toBe('v0.61d')
+      expect(extractVersionFromText('STAR WARS Zero Company Free Download (Build 25513890) | AnkerGames')).toBe('Build 25513890')
+      expect(extractVersionFromText('B 25513890')).toBe('Build 25513890')
+    })
+
+    it('rejeita versões espúrias de requisitos de hardware (DirectX, Shader Model, OpenGL)', () => {
+      expect(extractVersionFromText('DirectX: Version 9.0')).toBeUndefined()
+      expect(extractVersionFromText('DirectX: Version 9.0c')).toBeUndefined()
+      expect(extractVersionFromText('DirectX 12')).toBeUndefined()
+      expect(extractVersionFromText('OpenGL 4.5, DirectX 11')).toBeUndefined()
+      expect(extractVersionFromText('Shader Model 5.0')).toBeUndefined()
+      expect(extractVersionFromText('Version: v1.0.4 | DirectX 11')).toBe('v1.0.4')
     })
 
     it('mantém a versão mais recente ao encontrar múltiplos candidatos', () => {

@@ -41,4 +41,7 @@ playwright-report
 # scratch / temporary files
 /scratch
 /scratch_*.js
+/public/engine-bundles/
+/scripts/engines/__pycache__/
+/.engine-build/
 

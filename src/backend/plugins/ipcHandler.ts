@@ -1,5 +1,8 @@
 import { addHandler } from 'backend/ipc'
 import { PluginManager } from './pluginManager'
+import { sourceSettings, saveSourceSettings } from './sourceSettings'
+import { testSourceAddress } from './sourceAddressTest'
+import { sourceEnginesState, sourceEngineAction } from './sourceEngines'
 import { ExternalGames } from './externalGames'
 import { AnkerAccount } from './ankerAccount'
 import { TorboxClient } from './torboxClient'
@@ -8,6 +11,13 @@ import { resolvePortugueseDescription, resolveYouTubeTrailerId } from './gameMed
 
 export function registerPluginsIPC(): void {
   const manager = PluginManager.getInstance()
+  addHandler('pluginsSourceEnginesState', async () => sourceEnginesState())
+  addHandler('pluginsSourceEngineAction', async (_event, action) => {
+    try { return { success: true, state: await sourceEngineAction(action) } }
+    catch (error) { return { success: false, error: error instanceof Error ? error.message : 'Não foi possível atualizar o motor.', state: sourceEnginesState() } }
+  })
+  addHandler('pluginsSourceSettings', async (_event, id, value) => value ? saveSourceSettings(id, value) : sourceSettings(id))
+  addHandler('pluginsTestSourceAddress', async (_event, id, address) => testSourceAddress(id, address))
   addHandler('downloadIntegrationsState', async () => ({
     ankerConnected: AnkerAccount.status(), torboxConfigured: await TorboxClient.configured()
   }))

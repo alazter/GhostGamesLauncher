@@ -1,3 +1,5 @@
+import { builtinGameSources } from 'common/builtinGameSources'
+import { sourceCandidates, isSourceUrl, markSourceAvailable, sourceOrigins } from './sourceSettings'
 import type { BrowserWindow } from 'electron'
 
 export async function evaluateAnkerPage(
@@ -21,7 +23,23 @@ export async function evaluateAnkerPage(
 
 // A redirect can reject loadURL with ERR_ABORTED even as its replacement
 // document loads successfully. Wait for that document, not all subresources.
-export function loadAnkerPage(
+export async function loadAnkerPage(
+  window: BrowserWindow, url: string, origin = new URL(url).origin, providerName = 'AnkerGames'
+): Promise<void> {
+  const source = builtinGameSources.find(item => isSourceUrl(item.id, url))
+  let failure: unknown
+  for (const candidate of source ? sourceCandidates(source.id, url) : [url]) {
+    if (window.isDestroyed()) break
+    try {
+      await loadSinglePage(window, candidate, source ? new URL(candidate).origin : origin, providerName)
+      if (source) markSourceAvailable(source.id, candidate)
+      return
+    } catch (error) { failure = error }
+  }
+  throw failure || new Error('A janela foi fechada.')
+}
+
+function loadSinglePage(
   window: BrowserWindow,
   url: string,
   origin = 'https://ankergames.net',
@@ -38,11 +56,13 @@ export function loadAnkerPage(
       if (error) reject(error)
       else resolve()
     }
+    const source = builtinGameSources.find(item => isSourceUrl(item.id, url))
+    const acceptedOrigins = source ? sourceOrigins(source.id).flatMap(value => [value, new URL(value).hostname.startsWith('www.') ? value : value.replace('https://', 'https://www.')]) : [origin]
     const ready = () => {
       if (window.isDestroyed()) return
       void window.webContents
         .executeJavaScript(
-          `location.origin === ${JSON.stringify(origin)} && Boolean(document.body) && document.readyState !== 'loading'`
+          `${JSON.stringify(acceptedOrigins)}.includes(location.origin) && Boolean(document.body) && document.readyState !== 'loading'`
         )
         .then((valid: unknown) => {
           if (valid === true) finish()

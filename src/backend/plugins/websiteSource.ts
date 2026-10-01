@@ -1,3 +1,7 @@
+import { sourceRuleConfig } from './sourceRules'
+import { hasRequestedTitleNumbers } from 'common/externalTitle'
+import { adaptiveGames, experimentalPage } from './adaptiveSource'
+import { sourceCandidates, canonicalSourceUrl, markSourceAvailable } from './sourceSettings'
 import sanitizeHtml from 'sanitize-html'
 import type {
   GhostDownloadSource,
@@ -7,7 +11,7 @@ import type {
 } from 'common/types/plugins'
 import type { SourceProvider } from './pluginHost'
 import { NetworkGuard } from './networkGuard'
-import { isNewerRelease } from 'common/utils'
+import { isNewerRelease, parseDateToIso } from 'common/utils'
 
 function plain(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
@@ -30,10 +34,23 @@ export function cleanGameTitle(raw: string): string {
 
 export function extractVersionFromText(text: string): string | undefined {
   if (!text) return undefined
-  const clean = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  let clean = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 
-  // 1. Versão explícita com build: "v1.2.3 | Build 24832302", "v 1.3.0 | Build 123"
-  const vBuild = clean.match(/\bv?\s*(\d+(?:\.\d+)+[a-z]?)\s*\|\s*Build\s*(\d+)\b/i)
+  // Remove requisitos de hardware/APIs gráficas que geram falsos positivos de versão (ex: DirectX: Version 9.0 -> v9.0)
+  clean = clean
+    .replace(/\b(?:DirectX|Direct3D|DX)\s*[:：]?\s*(?:Version\s*)?[\d.]+[a-z]?/gi, ' ')
+    .replace(/\bShader\s*Model\s*[\d.]+/gi, ' ')
+    .replace(/\bOpenGL\s*[\d.]+/gi, ' ')
+    .replace(/\bVulkan\s*[\d.]+/gi, ' ')
+    .replace(/\bWindows\s*(?:10|11|8(?:\.1)?|7|XP|Vista|98|95)\b/gi, ' ')
+    .replace(/\b(?:vcredist|visual\s*c\+\+|dotnet|\.net\s*[\d.]+|framework\s*[\d.]+)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!clean) return undefined
+
+  // 1. Versão explícita com build: "v1.2.3 | Build 24832302", "v 1.3.0 | Build 123", "v1.7 (Build 18870567)"
+  const vBuild = clean.match(/\bv?\s*(\d+(?:\.\d+)+[a-z]?)\s*(?:\||\()\s*Build\s*(\d+)\)?/i)
   if (vBuild) {
     return `v${vBuild[1]} (Build ${vBuild[2]})`
   }
@@ -62,16 +79,22 @@ export function extractVersionFromText(text: string): string | undefined {
     return `Update ${updateMatch[1]}`
   }
 
-  // 6. SemVer / Dot version em parênteses ou colchetes: (v1.12.3), [v 1.0.4], (1.0.5)
+  // 6. SemVer / Dot version em parênteses ou colchetes: (v1.12.3), [v 1.0.4], (1.0.5), (v0.61d)
   const bracketVerMatch = clean.match(/[\(\[]\s*v?\s*(\d+(?:\.\d+)+[a-z]?)\s*[\)\]]/i)
   if (bracketVerMatch) {
     return `v${bracketVerMatch[1]}`
   }
 
-  // 7. Prefixo 'v' ou 'V' solto com número: v1.0.4, V 1.3.0, v4.1.1.3764840
+  // 7. Prefixo 'v' ou 'V' solto com número: v1.0.4, V 1.3.0, v4.1.1.3764840, V 0.61d
   const vMatch = clean.match(/\b[vV]\s*(\d+(?:\.\d+)+[a-z]?)\b/)
   if (vMatch) {
     return `v${vMatch[1]}`
+  }
+
+  // 8. AnkerGames B + Build: B 25513890
+  const bMatch = clean.match(/\bB\s*(\d{5,})\b/)
+  if (bMatch) {
+    return `Build ${bMatch[1]}`
   }
 
   return undefined
@@ -155,6 +178,7 @@ export function generateSearchQueryVariants(query: string): string[] {
 export function matchesQuery(title: string, query: string): boolean {
   if (!query || !query.trim()) return true
   if (!title || !title.trim()) return false
+  if (!hasRequestedTitleNumbers(title, query)) return false
 
   const normT = normalizeAcronyms(title)
   const normQ = normalizeAcronyms(query)
@@ -197,6 +221,7 @@ export function matchesQuery(title: string, query: string): boolean {
 export interface ExtractedGameMetadata {
   releaseDate?: string
   uploadDate?: string
+  sourceDate?: string
   cracker?: string
   uploader?: string
   size?: string
@@ -227,6 +252,7 @@ export function extractGameMetadataFromHtml(
 
   let releaseDate: string | undefined = undefined
   let uploadDate: string | undefined = undefined
+  let sourceDate: string | undefined = undefined
   let cracker: string | undefined = undefined
   let uploader: string | undefined = undefined
   let size: string | undefined = undefined
@@ -285,17 +311,35 @@ export function extractGameMetadataFromHtml(
   }
 
   // 4. Date (Data de publicação ou update na loja/site)
-  const dateMatch =
-    cleanContent.match(/(?:Updated by|Last Updated)[^(]*\(([^)]+)\)/i) ||
-    cleanContent.match(/Last Updated\s*-\s*[^(]*\(([^)]+)\)/i) ||
-    cleanContent.match(/<[^>]*class=["'][^"']*date[^"']*["'][^>]*>[\s\S]*?([a-zA-Z]+ \d{1,2},? \d{4})<\/[^>]*>/i) ||
-    cleanContent.match(/<[^>]*class=["'][^"']*svchk__date[^"']*["'][^>]*>([^<,]+)/i) ||
-    cleanContent.match(/<time\b[^>]*datetime=["']([^"']+)["'][^>]*>/i) ||
-    cleanContent.match(/<time\b[^>]*>([^<]+)<\/time>/i) ||
-    cleanContent.match(/(?:posted on|published on|updated on|data|date)[:\s]*([a-zA-Z]+ \d{1,2},? \d{4}|\d{1,2} [a-zA-Z]+ \d{4}|\d{1,2}[-./]\d{1,2}[-./]\d{4})/i)
+  const jsonLdDateModified = content.match(/"dateModified"\s*:\s*"([^"]+)"/i)?.[1]
+  const jsonLdDatePublished = content.match(/"datePublished"\s*:\s*"([^"]+)"/i)?.[1]
+  const metaDateModified =
+    content.match(/<meta\b[^>]*property=["']article:modified_time["'][^>]*content=["']([^"']+)["']/i)?.[1] ||
+    content.match(/<meta\b[^>]*content=["']([^"']+)["'][^>]*property=["']article:modified_time["']/i)?.[1]
+  const metaDatePublished =
+    content.match(/<meta\b[^>]*property=["']article:published_time["'][^>]*content=["']([^"']+)["']/i)?.[1] ||
+    content.match(/<meta\b[^>]*content=["']([^"']+)["'][^>]*property=["']article:published_time["']/i)?.[1]
+  const strongLastUpdated =
+    cleanContent.match(/<strong>\s*(?:Last Updated|Data de Atualização|Дата обновления)[:\s]*<\/strong>\s*([^<\n]+)/i)?.[1] ||
+    cleanContent.match(/(?:Last Updated|Data de Atualização|Дата обновления)[:\s]*<\/strong>\s*([^<\n]+)/i)?.[1]
 
-  if (dateMatch) {
-    uploadDate = dateMatch[1].replace(/at\s+\d+:\d+.*$/i, '').trim()
+  const rawDate =
+    jsonLdDateModified ||
+    metaDateModified ||
+    strongLastUpdated ||
+    cleanContent.match(/(?:Updated by|Last Updated)[^(]*\(([^)]+)\)/i)?.[1] ||
+    cleanContent.match(/Last Updated\s*-\s*[^(]*\(([^)]+)\)/i)?.[1] ||
+    cleanContent.match(/<[^>]*class=["'][^"']*date[^"']*["'][^>]*>[\s\S]*?([a-zA-Z]+ \d{1,2},? \d{4})<\/[^>]*>/i)?.[1] ||
+    cleanContent.match(/<[^>]*class=["'][^"']*svchk__date[^"']*["'][^>]*>([^<,]+)/i)?.[1] ||
+    cleanContent.match(/<time\b[^>]*datetime=["']([^"']+)["'][^>]*>/i)?.[1] ||
+    cleanContent.match(/<time\b[^>]*>([^<]+)<\/time>/i)?.[1] ||
+    jsonLdDatePublished ||
+    metaDatePublished ||
+    cleanContent.match(/(?:posted on|published on|updated on|data|date)[:\s]*([a-zA-Z]+ \d{1,2},? \d{4}|\d{1,2} [a-zA-Z]+ \d{4}|\d{1,2}[-./]\d{1,2}[-./]\d{4})/i)?.[1]
+
+  if (rawDate) {
+    uploadDate = rawDate.replace(/at\s+\d+:\d+.*$/i, '').trim()
+    sourceDate = parseDateToIso(rawDate)
   }
 
   // 5. Size (Tamanho do Download)
@@ -415,6 +459,7 @@ export function extractGameMetadataFromHtml(
   return {
     releaseDate,
     uploadDate,
+    sourceDate,
     cracker,
     uploader,
     size,
@@ -510,12 +555,44 @@ export function parseWebsiteGames(
       }
 
       // Versão
-      const versionMatch = /<span\b[^>]*title=["'](V\s*[\d.]+)["']/i.exec(artHtml) ||
-                           /V\s*(\d+(?:\.\d+)+)/i.exec(artHtml) ||
-                           /\[(v\d+)\]/i.exec(title)
-      const version = versionMatch
-        ? (versionMatch[1].startsWith('v') || versionMatch[1].startsWith('V') ? versionMatch[1] : `v${versionMatch[1]}`)
-        : (extractVersionFromText(title) || extractVersionFromText(artHtml))
+      let version: string | undefined = undefined
+      // 1. Badge AnkerGames: title="V 0.61d" ou title="B 25513890"
+      const ankerTitleBadge = artHtml.match(/<span\b[^>]*title=["']([VB]\s*[\d.]+[a-z]?)["']/i)
+      if (ankerTitleBadge) {
+        const raw = ankerTitleBadge[1].trim()
+        if (/^B\s*\d+/i.test(raw)) {
+          version = `Build ${raw.replace(/^B\s*/i, '')}`
+        } else {
+          version = raw
+        }
+      }
+      // 2. Badge AnkerGames texto interno: <span ...bg-green-500...>V 0.61d</span> ou B 25513890
+      if (!version) {
+        const ankerGreenBadge = artHtml.match(/bg-green-500[^>]*>([\s\S]*?)<\/span>/i)
+        if (ankerGreenBadge) {
+          const txt = ankerGreenBadge[1].replace(/<[^>]+>/g, '').trim()
+          if (/^B\s*\d+/i.test(txt)) {
+            version = `Build ${txt.replace(/^B\s*/i, '')}`
+          } else if (/^V\s*[\d.]+[a-z]?/i.test(txt)) {
+            version = `v${txt.replace(/^V\s*/i, '')}`
+          }
+        }
+      }
+      // 3. SteamRIP tagmetafield: <span class="tagmetafield">Build 24874058</span>
+      if (!version) {
+        const tagMeta = artHtml.match(/class=["'][^"']*tagmetafield[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)
+        if (tagMeta) {
+          version = extractVersionFromText(tagMeta[1])
+        }
+      }
+      // 4. Parênteses ou colchetes no título: (v0.61d), (Build 12345), [v131072]
+      if (!version) {
+        version = extractVersionFromText(title)
+      }
+      // 5. Fallback dentro do card (artHtml) via extractVersionFromText
+      if (!version) {
+        version = extractVersionFromText(artHtml)
+      }
 
       const meta = extractGameMetadataFromHtml(artHtml, manifest.id)
 
@@ -531,6 +608,7 @@ export function parseWebsiteGames(
         size: meta.size,
         installedSize: meta.installedSize,
         uploadDate: meta.uploadDate,
+        sourceDate: meta.sourceDate,
         releaseDate: meta.releaseDate,
         cracker: meta.cracker,
         uploader: meta.uploader,
@@ -656,7 +734,14 @@ export function parseWebsiteGames(
         } catch {}
       }
 
-      const version = extractVersionFromText(match[2]) || extractVersionFromText(rawTitle) || (surrounding ? extractVersionFromText(surrounding) : undefined)
+      let version = extractVersionFromText(match[2]) || extractVersionFromText(rawTitle)
+      if (!version && surrounding) {
+        const tagMeta = surrounding.match(/class=["'][^"']*tagmetafield[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1]
+        if (tagMeta) version = extractVersionFromText(tagMeta)
+      }
+      if (!version && surrounding) {
+        version = extractVersionFromText(surrounding)
+      }
       const meta = extractGameMetadataFromHtml(match[2], manifest.id, surrounding)
 
       const existing = results.get(url.href)
@@ -673,6 +758,7 @@ export function parseWebsiteGames(
           size: meta.size || existing?.size,
           installedSize: meta.installedSize || existing?.installedSize,
           uploadDate: meta.uploadDate || existing?.uploadDate,
+          sourceDate: meta.sourceDate || existing?.sourceDate,
           releaseDate: meta.releaseDate || existing?.releaseDate,
           cracker: meta.cracker || existing?.cracker,
           uploader: meta.uploader || existing?.uploader,
@@ -699,11 +785,47 @@ export function websiteSource(
 ): SourceProvider {
   const base = manifest.homepage
   if (!base) throw new Error('A fonte precisa declarar sua página inicial.')
-  async function page(url: string) {
+  function normalizePageLinks(html: string, candidate: string, canonical: boolean) {
+    return html.replace(/\b(href|src)\s*=\s*(["'])([^"']+)\2/gi, (attribute, kind: string, quote: string, value: string) => {
+      try {
+        const url = new URL(value.replace(/&amp;/g, '&'), candidate)
+        if (url.protocol !== 'https:') return attribute
+        const resolved = canonical && kind.toLowerCase() === 'href' ? canonicalSourceUrl(manifest.id, url.href) : url.href
+        return `${kind}=${quote}${resolved.replace(/&/g, '&amp;')}${quote}`
+      } catch { return attribute }
+    })
+  }
+  async function page(url: string, canonical = true, signal = AbortSignal.timeout(20000)) {
+    let failure: unknown
+    for (const candidate of sourceCandidates(manifest.id, url)) {
+      signal.throwIfAborted()
+      try {
+        const html = await readPage(candidate, signal)
+        markSourceAvailable(manifest.id, candidate)
+        return normalizePageLinks(html, candidate, canonical)
+      } catch (error) { failure = error }
+    }
+    signal.throwIfAborted()
+    try {
+      const target = sourceCandidates(manifest.id, url)[0]
+      const rendered = await experimentalPage(target, manifest)
+      if (rendered && !/cf-chl-|Just a moment|Checking your browser/i.test(rendered)) return normalizePageLinks(rendered, target, canonical)
+    } catch { /* Keep the original actionable browser error. */ }
+    throw failure
+  }
+  async function parseCatalog(html: string) {
+    const known = parseWebsiteGames(html, base!, config, manifest)
+    try {
+      // Also observe successful pages so the adaptive parser can learn their structure.
+      const adaptive = await adaptiveGames(html, base!, manifest, config)
+      return known.length ? known : adaptive
+    } catch { return known }
+  }
+  async function readPage(url: string, signal: AbortSignal) {
     const response = await NetworkGuard.fetchResponse(
       url,
       manifest,
-      AbortSignal.timeout(20000)
+      AbortSignal.any([signal, AbortSignal.timeout(8000)])
     )
     if (!response.ok)
       throw new Error(
@@ -754,11 +876,14 @@ export function websiteSource(
     id: manifest.id,
     name: manifest.name,
     async search(query) {
+      const signal = AbortSignal.timeout(22000)
+      config = sourceRuleConfig(manifest.id, config)
       // 1. Gera variantes inteligentes da consulta (ex: stalker 2 -> stalker 2, s.t.a.l.k.e.r. 2, stalker ii)
       const variants = generateSearchQueryVariants(query).slice(0, 4)
       const gamesMap = new Map<string, GhostSearchResult>()
 
       for (const v of variants) {
+        signal.throwIfAborted()
         const searchTargets: string[] = []
         if (/ankergames\.net/i.test(base)) {
           searchTargets.push(new URL(`/search/${encodeURIComponent(v)}`, base).href)
@@ -771,8 +896,8 @@ export function websiteSource(
 
         for (const target of searchTargets) {
           try {
-            const html = await page(target)
-            const parsed = parseWebsiteGames(html, base, config, manifest)
+            const html = await page(target, true, signal)
+            const parsed = await parseCatalog(html)
             if (parsed.length) {
               for (const g of parsed) {
                 if (!gamesMap.has(g.id)) {
@@ -790,8 +915,8 @@ export function websiteSource(
       // Se nenhum alvo de busca encontrou jogos, tenta o catálogo geral como fallback
       if (gamesMap.size === 0) {
         try {
-          const html = await page(new URL(config.catalogPath, base).href)
-          const parsed = parseWebsiteGames(html, base, config, manifest)
+          const html = await page(new URL(config.catalogPath, base).href, true, signal)
+          const parsed = await parseCatalog(html)
           for (const g of parsed) {
             if (!gamesMap.has(g.id)) {
               gamesMap.set(g.id, g)
@@ -813,6 +938,8 @@ export function websiteSource(
         .slice(0, 100)
     },
     async getCatalog(options?: { letter?: string; page?: number; theme?: string }) {
+      const signal = AbortSignal.timeout(22000)
+      config = sourceRuleConfig(manifest.id, config)
       const pageNum = options?.page || 1
       const letter = options?.letter
       const theme = options?.theme
@@ -879,8 +1006,8 @@ export function websiteSource(
       let fetchedHtml = ''
       for (const target of targetUrls) {
         try {
-          fetchedHtml = await page(target)
-          const parsed = parseWebsiteGames(fetchedHtml, base, config, manifest)
+          fetchedHtml = await page(target, true, signal)
+          const parsed = await parseCatalog(fetchedHtml)
           if (parsed.length > 0) {
             games = parsed
             break
@@ -911,44 +1038,86 @@ export function websiteSource(
       }
     },
     async getDetails(id) {
-      const html = await page(id)
+      const html = await page(id, false)
       const rawTitle = cleanGameTitle(plain(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] || ''))
       if (!rawTitle)
         throw new Error('Não foi possível identificar este jogo na fonte.')
 
-      // 1. Extração no título
-      let version = extractVersionFromText(rawTitle)
+      const isAnker = /ankergames\.net/i.test(id) || /ankergames/i.test(manifest.id) || /ankergames/i.test(html)
+      const isSteamrip = /steamrip\.com/i.test(id) || /steamrip/i.test(manifest.id) || /steamrip/i.test(html)
+      const isOnlineFix = /online-fix\.me/i.test(id) || /onlinefix/i.test(manifest.id) || /online-fix/i.test(html)
 
-      // 2. Extração via tags explícitas de versão (badges, spans com title, classes de versão)
-      const versionTagMatches: string[] = []
-      const explicitSpan = html.match(/<span\b[^>]*title=["'](V\s*[\d.]+)["']/i)?.[1]
-      if (explicitSpan) versionTagMatches.push(explicitSpan)
-      const classMatches = html.matchAll(/<span\b[^>]*class=["'][^"']*(?:badge|version|ver)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi)
-      for (const cm of classMatches) {
-        const v = extractVersionFromText(cm[1])
-        if (v) versionTagMatches.push(v)
-      }
-      const strongMatch = html.match(/<strong>\s*(?:Vers(?:ion|ão|ия)|Build)\s*[:：]?\s*<\/strong>\s*([^<\n]+)/i)?.[1]
-      if (strongMatch) {
-        const v = extractVersionFromText(strongMatch)
-        if (v) versionTagMatches.push(v)
-      }
-      const directVerMatch = html.match(/(?:Vers(?:ion|ão|ия)|Build)\s*[:：]\s*([v\d][a-zA-Z0-9._-]+)/i)?.[1]
-      if (directVerMatch) {
-        const v = extractVersionFromText(directVerMatch)
-        if (v) versionTagMatches.push(v)
+      let version: string | undefined = undefined
+
+      // 1. ANKERGAMES (Alta fidelidade via JSON-LD softwareVersion, Title tag, badge animate-glow ou meta description)
+      if (isAnker) {
+        const jsonLdVersion = html.match(/"softwareVersion"\s*:\s*"([^"]+)"/i)?.[1]?.trim()
+        if (jsonLdVersion) {
+          version = jsonLdVersion
+        } else {
+          const titleTagVersion = html.match(/<title>[\s\S]*?\((?:v(?:er)?\.?\s*)?([v\d][^)]+)\)\s*(?:\||»|–|-)\s*AnkerGames/i)?.[1]?.trim()
+          if (titleTagVersion) {
+            version = /^build\b/i.test(titleTagVersion) ? titleTagVersion : (titleTagVersion.startsWith('v') || titleTagVersion.startsWith('V') ? titleTagVersion : `v${titleTagVersion}`)
+          } else {
+            const ankerHeroBadge = html.match(/class=["'][^"']*animate-glow[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1]?.replace(/<[^>]+>/g, '')?.trim()
+            if (ankerHeroBadge) {
+              if (/^B\s*\d+/i.test(ankerHeroBadge)) version = `Build ${ankerHeroBadge.replace(/^B\s*/i, '')}`
+              else if (/^V\s*[\d.]+[a-z]?/i.test(ankerHeroBadge)) version = `v${ankerHeroBadge.replace(/^V\s*/i, '')}`
+            } else {
+              const metaDescVersion = html.match(/<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*content=["'][^"']*\(\s*(?:v(?:er)?\.?\s*)?([v\d][a-zA-Z0-9._-]+|\bBuild\s*\d+)/i)?.[1]?.trim()
+              if (metaDescVersion) {
+                version = /^build\b/i.test(metaDescVersion) ? metaDescVersion : (metaDescVersion.startsWith('v') || metaDescVersion.startsWith('V') ? metaDescVersion : `v${metaDescVersion}`)
+              }
+            }
+          }
+        }
       }
 
-      // Adiciona também a versão encontrada no corpo geral da página
-      const bodyVersion = extractVersionFromText(html)
-      if (bodyVersion) versionTagMatches.push(bodyVersion)
-
-      // Se achou candidatos, seleciona o mais recente (nunca regredindo)
-      for (const candidate of versionTagMatches) {
+      // 2. STEAMRIP (Campo oficial Version na lista de metadados, tagmetafield ou title)
+      if (!version && isSteamrip) {
+        const srStrongMatch = html.match(/<li>\s*<strong>\s*Version\s*[:：]?\s*<\/strong>\s*[:：]?\s*([^<\n]+)<\/li>/i)?.[1]?.trim() ||
+                              html.match(/<strong>\s*Version\s*[:：]?\s*<\/strong>\s*[:：]?\s*([^<\n]+)/i)?.[1]?.trim()
+        if (srStrongMatch) {
+          version = extractVersionFromText(srStrongMatch)
+        }
         if (!version) {
-          version = candidate
-        } else if (isNewerRelease(version, candidate)) {
-          version = candidate
+          const tagMeta = html.match(/class=["'][^"']*tagmetafield[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1]?.trim()
+          if (tagMeta) version = extractVersionFromText(tagMeta)
+        }
+        if (!version) {
+          const srTitleVer = html.match(/<title>[\s\S]*?\((?:v(?:er)?\.?\s*)?([v\d][^)]+)\)\s*(?:»|\||–|-)\s*SteamRIP/i)?.[1]?.trim()
+          if (srTitleVer) {
+            version = /^build\b/i.test(srTitleVer) ? srTitleVer : (srTitleVer.startsWith('v') || srTitleVer.startsWith('V') ? srTitleVer : `v${srTitleVer}`)
+          }
+        }
+      }
+
+      // 3. ONLINE-FIX (.edit ou campo de versão)
+      if (!version && isOnlineFix) {
+        const ofEditMatch = html.match(/<div\b[^>]*class=["'][^"']*edit[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)?.[1]
+        if (ofEditMatch) version = extractVersionFromText(ofEditMatch)
+        if (!version) {
+          const ofInfoMatch = html.match(/<b>\s*(?:Версия игры|Version)\s*[:：]\s*<\/b>\s*([v\d][a-zA-Z0-9._-]+)/i)?.[1]
+          if (ofInfoMatch) version = extractVersionFromText(ofInfoMatch)
+        }
+      }
+
+      // 4. FALLBACK NO TÍTULO / H1 (Ex: Assassin's Creed Black Flag Resynced V 1.0.4)
+      if (!version) {
+        version = extractVersionFromText(rawTitle)
+      }
+
+      // 5. FALLBACK CONTROLADO EM TAGS STRONG EXPLÍCITAS (NUNCA no corpo geral nem requisitos de hardware)
+      if (!version) {
+        const strongMatch = html.match(/<strong>\s*(?:Vers(?:ion|ão|ия)|Build)\s*[:：]?\s*<\/strong>\s*[:：]?\s*([^<\n]+)/i)?.[1]
+        if (strongMatch) {
+          version = extractVersionFromText(strongMatch)
+        }
+      }
+      if (!version) {
+        const directVerMatch = html.match(/(?:^|[^\p{L}\p{N}])(?:Vers(?:ion|ão|ия)|Build)\s*[:：]\s*([v\d][a-zA-Z0-9._-]+)/iu)?.[1]
+        if (directVerMatch) {
+          version = extractVersionFromText(directVerMatch)
         }
       }
 
@@ -979,6 +1148,7 @@ export function websiteSource(
         size: meta.size,
         installedSize: meta.installedSize,
         uploadDate: meta.uploadDate,
+        sourceDate: meta.sourceDate,
         releaseDate: meta.releaseDate,
         cracker: meta.cracker,
         uploader: meta.uploader,
@@ -998,7 +1168,7 @@ export function websiteSource(
       if (!check.allowed) throw new Error(check.reason)
       const sources: GhostDownloadSource[] = []
       try {
-        const html = await page(id)
+        const html = await page(id, false)
         for (const match of html.matchAll(
           /<a\b([^>]*)href\s*=\s*["']([^"']+)["']([^>]*)>(?:([\s\S]*?)<\/a>)?/gi
         )) {

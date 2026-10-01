@@ -20,6 +20,7 @@ export function directDownloadRecovery(
   let attempts = 0
   let closed = false
   let recovering = false
+  let highestBytes = item.getReceivedBytes()
   const delays = [2000, 5000, 10000, 20000, 30000]
   const diagnostic = (event: string) => {
     let host = ''
@@ -46,6 +47,14 @@ export function directDownloadRecovery(
   return {
     updated(state: string) {
       if (closed) return
+      const received = item.getReceivedBytes()
+      if (received < highestBytes) {
+        diagnostic('restart-blocked')
+        stop()
+        fail(new Error('O servidor reiniciou o download do zero em vez de continuar. O Ghost interrompeu a repetição automática. Use Retomar para confirmar um novo link.'))
+        return
+      }
+      highestBytes = Math.max(highestBytes, received)
       if (state !== 'interrupted') {
         if (recovering) {
           recovering = false

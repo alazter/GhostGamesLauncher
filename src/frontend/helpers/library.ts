@@ -12,6 +12,7 @@ import { TFunction } from 'i18next'
 import { getGameInfo } from './index'
 import { DialogModalOptions } from 'frontend/types'
 import { markGameAsPlayed } from './newGamesTracker'
+import { openChooseDownloadModal } from 'frontend/state/ChooseDownloadModal'
 
 const storage: Storage = window.localStorage
 
@@ -480,14 +481,17 @@ const updateGame = async (args: UpdateParams) => {
         (i) => i.appName === args.appName || (targetFolder && i.directory && i.directory.toLowerCase() === targetFolder.toLowerCase())
       )
       if (inst && inst.availableUpdate) {
-        const res = await window.api.externalGamesInstall({
+        await openChooseDownloadModal({
           game: inst.availableUpdate,
-          sourceId: inst.availableUpdate.providerId,
+          title: inst.game.title,
+          version: inst.availableUpdate.version,
+          providerName: inst.availableUpdate.providerName || inst.game.providerName,
+          providerIcon: inst.availableUpdate.providerIcon || inst.game.providerIcon,
+          providerId: inst.availableUpdate.providerId || inst.game.providerId,
           replaceInstallationId: inst.id,
-          confirmed: true
+          targetDirectory: inst.directory
         })
-        window.location.hash = '#/download-manager'
-        return res
+        return
       }
     } catch (err) {
       console.error('Erro ao atualizar jogo sideload no updateGame helper:', err)

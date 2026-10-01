@@ -7,6 +7,7 @@ import { AnkerAccount, directDownloadManifest } from '../ankerAccount'
 import { NetworkGuard } from '../networkGuard'
 import { loadAnkerPage } from '../ankerNavigation'
 import { ROM_SOURCES, romSource } from '../romSources'
+import * as rangeTransfer from '../rangedDownload'
 import {
   OnlineFixAccount,
   onlineFixGameUrl,
@@ -234,3 +235,48 @@ it.each(['anker', 'steamrip', ...ROM_SOURCES.map(source => source.id)])(
     }
   }
 )
+
+it.each([true, false, 'error'])('preserves the native download until the range attempt succeeds (%s)', async (supported) => {
+  const directory = await mkdtemp(join(tmpdir(), 'ghost-direct-range-test-'))
+  const controller = new AbortController()
+  const constructor = jest.mocked(BrowserWindow)
+  const before = constructor.mock.results.length
+  const ranged = jest.spyOn(rangeTransfer, 'rangedDownload').mockImplementation(async options => {
+    if (supported === 'error') throw new Error('Connection interrupted')
+    if (!supported) return false
+    await writeFile(options.destination, 'segmented fixture')
+    options.progress(options.total)
+    return true
+  })
+  const task = AnkerAccount.direct('https://ankergames.net/game/test', directory, controller.signal, jest.fn())
+  try {
+    for (let i = 0; i < 100 && constructor.mock.results.length === before; i++)
+      await new Promise(resolve => setTimeout(resolve, 5))
+    const parent = constructor.mock.results[before].value as BrowserWindow
+    const item = Object.assign(new EventEmitter(), {
+      getFilename: () => 'game.zip', getURL: () => 'https://tunnel5.dlproxy.uk/game.zip',
+      getTotalBytes: () => 32 * 1024 * 1024, getReceivedBytes: () => 0,
+      getETag: () => '"fixture"', canResume: () => true,
+      setSavePath: jest.fn(), pause: jest.fn(),
+      cancel: jest.fn((): void => { item.emit('done', {}, 'cancelled') }),
+      resume: jest.fn((): void => { item.emit('done', {}, 'completed') })
+    })
+    session.fromPartition('unused').emit('will-download', {}, item, parent.webContents)
+    const path = await task
+    expect(item.pause).toHaveBeenCalledTimes(1)
+    if (supported === true) {
+      expect(path).toContain('package-ranged.zip')
+      expect(item.cancel).toHaveBeenCalledTimes(1)
+      expect(item.resume).not.toHaveBeenCalled()
+    } else {
+      expect(path).toContain('package.zip')
+      expect(item.cancel).not.toHaveBeenCalled()
+      expect(item.resume).toHaveBeenCalledTimes(1)
+    }
+  } finally {
+    controller.abort()
+    await task.catch(() => undefined)
+    ranged.mockRestore()
+    await rm(directory, { recursive: true, force: true })
+  }
+})

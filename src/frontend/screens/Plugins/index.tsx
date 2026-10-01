@@ -1,3 +1,5 @@
+import SourceEnginesPanel from './SourceEnginesPanel'
+import SourceSettingsDialog from './SourceSettingsDialog'
 import React, { useState, useEffect, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -27,6 +29,7 @@ import { builtinGameSources } from 'common/builtinGameSources'
 import '../ExternalGames/index.css'
 
 export default function PluginsScreen() {
+  const [configuringSource, setConfiguringSource] = useState<{ id: string; name: string }>()
   const [activeTab, setActiveTab] = useState<'installed' | 'store' | 'dev'>('installed')
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -497,6 +500,7 @@ export default function PluginsScreen() {
                   )}
 
                   <div className="ghost-plugin-card-footer">
+                    {builtinGameSources.some(source => source.id === plugin.id) && <button className="ghost-btn-primary" onClick={() => setConfiguringSource({ id: plugin.id, name: plugin.name })}><FontAwesomeIcon icon={faSlidersH} /> Configurar</button>}
                     <button
                       className="ghost-btn-danger"
                       onClick={() => handleUninstall(plugin)}
@@ -512,6 +516,9 @@ export default function PluginsScreen() {
           )}
         </div>
       )}
+
+      <SourceEnginesPanel />
+      {configuringSource && <SourceSettingsDialog {...configuringSource} close={() => setConfiguringSource(undefined)} />}
 
       {/* TAB 2: COMMUNITY STORE */}
       {activeTab === 'store' && (

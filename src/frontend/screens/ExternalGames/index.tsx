@@ -1,3 +1,4 @@
+import { externalTitleKey, externalTitleGroupKey } from 'common/externalTitle'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { sameExternalGameIdentity } from 'common/externalGameIdentity'
@@ -5,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faSearch,
   faDownload,
+  faCloud,
   faPuzzlePiece,
   faCheckCircle,
   faCheck,
@@ -55,7 +57,7 @@ import type {
   PluginInfo,
   SourceSearchResponse
 } from 'common/types/plugins'
-import { isNewerRelease } from 'common/utils'
+import { isNewerRelease, isNewerGameRelease } from 'common/utils'
 import {
   getDefaultDownloadStoreId,
   setDefaultDownloadStoreId,
@@ -77,18 +79,7 @@ export function normalizeAcronymTitle(title: string): string {
 }
 
 export function cleanTitle(title: string): string {
-  return normalizeAcronymTitle(title)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[\[\(].*?[\]\)]/g, ' ')
-    .replace(/\b(?:remastered|deluxe edition|definitive edition|edition|version|versão|build)\b/gi, ' ')
-    .replace(/\b(?:ofme|rune|tenoke|codex|skidrow|flt|reloaded|hoodlum|empress|cpy|elamigos|fitgirl|dodi|goldberg|clean steam files|own csf)\b/gi, ' ')
-    .replace(/\b(?:build\s*)?\d{5,}\b/gi, ' ')
-    .replace(/\b(?:v|ver|version)?\s*\d+(?:\.\d+)+\b/gi, ' ')
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return externalTitleKey(title)
 }
 
 export function getCanonicalGameTitle(title: string): string {
@@ -122,23 +113,11 @@ export function groupGamesByTitle(games: GhostSearchResult[]): GroupedGameResult
     const key = cleanTitle(game.title)
     if (!key) continue
 
-    let existing = groups.get(key)
-    if (!existing) {
-      for (const [groupKey, group] of groups.entries()) {
-        if (group.platform === (game.platform || 'windows')) {
-          if (
-            (key.includes(groupKey) || groupKey.includes(key)) &&
-            Math.min(key.length, groupKey.length) / Math.max(key.length, groupKey.length) >= 0.6
-          ) {
-            existing = group
-            break
-          }
-        }
-      }
-    }
+    const groupKey = externalTitleGroupKey(game.title, game.platform || 'windows')
+    const existing = groups.get(groupKey)
 
     if (!existing) {
-      groups.set(key, {
+      groups.set(groupKey, {
         key,
         canonicalTitle: getCanonicalGameTitle(game.title),
         mainGame: game,
@@ -173,7 +152,8 @@ export function groupGamesByTitle(games: GhostSearchResult[]): GroupedGameResult
       if (!existing.description && game.description) {
         existing.description = game.description
       }
-      if (game.version && (!existing.mainGame.version || isNewerRelease(existing.mainGame.version, game.version))) {
+      const comp = isNewerGameRelease(existing.mainGame, game)
+      if (game.version && (!existing.mainGame.version || comp.isNewer)) {
         existing.mainGame = {
           ...game,
           coverUrl: existing.coverUrl || game.coverUrl,
@@ -1315,17 +1295,49 @@ export function getGameInstallationStatus(
 
   const currentVer = match.game.version
   const newVer = searchGame.version
-  const isSameStore = match.game.providerId === searchGame.providerId
+  const isSameStore = isMatchingProvider(match.game.providerId, searchGame.providerId)
+  const hasFilesOnDisk = Boolean(match.executable)
 
-  if (currentVer && newVer) {
-    if (isNewerRelease(currentVer, newVer)) {
+  const comp = isNewerGameRelease(
+    { version: currentVer, sourceDate: match.game.sourceDate, uploadDate: match.game.uploadDate },
+    { version: newVer, sourceDate: searchGame.sourceDate, uploadDate: searchGame.uploadDate }
+  )
+
+  if (!hasFilesOnDisk) {
+    if (!isSameStore) {
       return {
-        status: isSameStore ? 'update_available' : 'migrate_available',
+        status: 'migrate_available',
         installedGame: match,
         currentVersion: currentVer,
         newVersion: newVer
       }
     }
+    if (comp.isNewer) {
+      return {
+        status: 'update_available',
+        installedGame: match,
+        currentVersion: currentVer,
+        newVersion: newVer
+      }
+    }
+    return {
+      status: 'not_installed',
+      installedGame: match,
+      currentVersion: currentVer,
+      newVersion: newVer
+    }
+  }
+
+  if (comp.isNewer) {
+    return {
+      status: isSameStore ? 'update_available' : 'migrate_available',
+      installedGame: match,
+      currentVersion: currentVer,
+      newVersion: newVer
+    }
+  }
+
+  if (currentVer && newVer) {
     if (!isSameStore) {
       return {
         status: 'migrate_available',
@@ -1396,25 +1408,6 @@ export function buildFallbackDownloadSources(game: GhostSearchResult): GhostDown
       type: 'external',
       url: targetUrl
     })
-  } else {
-    const prov = game.providerId.toLowerCase()
-    let fallbackUrl = ''
-    if (prov.includes('anker')) fallbackUrl = `https://ankergames.net/game/${game.id.replace(/-anker$/, '')}`
-    else if (prov.includes('steamrip')) fallbackUrl = `https://steamrip.com/${game.id.replace(/-steamrip$/, '')}-free-download/`
-    else if (prov.includes('onlinefix') || prov.includes('online-fix')) fallbackUrl = 'https://online-fix.me'
-    else if (prov.includes('nxbrew')) fallbackUrl = `https://nxbrew.net/${game.id.replace(/-switch$/, '')}-switch-nsp-xci/`
-    else if (prov.includes('nswgf')) fallbackUrl = 'https://nswgf.com'
-    else if (prov.includes('romslab')) fallbackUrl = 'https://romslab.com'
-
-    if (fallbackUrl) {
-      sources.push({
-        id: fallbackUrl,
-        name: `📥 Download Direto / Espelhos · ${game.providerName}`,
-        type: 'direct',
-        archive: 'zip',
-        url: fallbackUrl
-      })
-    }
   }
   return sources
 }
@@ -1831,9 +1824,10 @@ export default function ExternalGamesScreen() {
         setSources(finalOptions)
         if (fullDetails) {
           const preserveBestVersion = (existingVer?: string, detailsVer?: string) => {
-            if (!existingVer) return detailsVer
             if (!detailsVer) return existingVer
-            return isNewerRelease(existingVer, detailsVer) ? detailsVer : existingVer
+            if (!existingVer) return detailsVer
+            if (/^v?(?:9(?:\.0)?|11|12)$/i.test(existingVer.trim())) return detailsVer
+            return detailsVer
           }
 
           setSelected((prev) => {
@@ -2104,27 +2098,7 @@ export default function ExternalGamesScreen() {
       ])
       setLocalGames(local)
       if (current === requestNumber.current) {
-        let finalResults = results
-        if ((!results.games || results.games.length === 0) && trimmed) {
-          const cleanQ = cleanTitle(trimmed)
-          const allKnown: GhostSearchResult[] = [
-            ...DEFAULT_RECENT_RELEASES,
-            ...HOME_SPOTLIGHT_GAMES.map((s) => s.game),
-            ...STORE_HIGHLIGHT_SHELVES.flatMap((s) => s.games),
-            ...(state.installations || []).map((i) => i.game).filter(Boolean) as GhostSearchResult[]
-          ]
-          const matched = allKnown.filter((g) => {
-            const cleanG = cleanTitle(g.title)
-            return cleanG === cleanQ || cleanG.includes(cleanQ) || cleanQ.includes(cleanG)
-          })
-          if (matched.length > 0) {
-            finalResults = {
-              games: matched,
-              errors: results.errors || []
-            }
-          }
-        }
-        setSearch(finalResults)
+        setSearch(results)
         setSearched(true)
         setSelected(undefined)
         setSelectedGroupKey('')
@@ -2300,7 +2274,7 @@ export default function ExternalGamesScreen() {
     if (!instStatus) return
     await run(async () => {
       if (!(await checkDownloadConnection(sourceId))) return
-      let replaceId = instStatus.installedGame?.id
+      let replaceId = instStatus.installedGame?.id || instStatus.installedGame?.appName
       if (
         instStatus.installedGame?.appName &&
         !state.installations.some((i) => i.id === replaceId)
@@ -2317,40 +2291,26 @@ export default function ExternalGamesScreen() {
         }
       }
 
-      if (replaceId && instStatus.installedGame) {
-        const op = instStatus.status === 'update_available' ? 'update' : 'replace'
-        setReplacementModal({
-          isOpen: true,
-          sourceId,
-          replaceId,
-          oldGame: {
-            title: instStatus.installedGame.game?.title || activeSource.title,
-            providerName: instStatus.installedGame.game?.providerName || 'Sideload / Piratas',
-            directory: instStatus.installedGame.directory,
-            version: instStatus.installedGame.game?.version,
-            savePath: instStatus.installedGame.savePath
-          },
-          newGame: {
-            title: activeSource.title,
-            providerName: activeSource.providerName,
-            version: activeSource.version
-          },
-          operation: op,
-          targetDirectory: selectedInstallPath || undefined
-        })
-        return
-      }
-
       const result = await window.api.externalGamesInstall({
         game: activeSource,
         sourceId,
         replaceInstallationId: replaceId,
-        targetDirectory: selectedInstallPath || undefined
+        targetDirectory: selectedInstallPath || instStatus.installedGame?.directory || undefined,
+        confirmed: true
       })
       if (result.success) {
+        setShowTransportChoice(false)
+        setReplacementModal(null)
         navigate('/download-manager')
-      } else if (result.error) {
-        throw new Error(result.error)
+        if (window.location.hash !== '#/download-manager') {
+          window.location.hash = '#/download-manager'
+        }
+      } else {
+        setShowTransportChoice(false)
+        setMessage(result.error || 'Não foi possível iniciar o download. Verifique as configurações.')
+        if (result.error) {
+          throw new Error(result.error)
+        }
       }
     })
   }
@@ -2368,9 +2328,16 @@ export default function ExternalGamesScreen() {
         confirmed: true
       })
       if (result.success) {
+        setShowTransportChoice(false)
         navigate('/download-manager')
-      } else if (result.error) {
-        throw new Error(result.error)
+        if (window.location.hash !== '#/download-manager') {
+          window.location.hash = '#/download-manager'
+        }
+      } else {
+        setMessage(result.error || 'Não foi possível iniciar a atualização.')
+        if (result.error) {
+          throw new Error(result.error)
+        }
       }
     })
   }
@@ -3102,7 +3069,7 @@ export default function ExternalGamesScreen() {
                       shieldText = 'Restauração automática de saves'
                       primaryBtnClass = 'smartPrimaryBtn amber'
                       primaryBtnIcon = faExchangeAlt
-                      primaryBtnLabel = 'Migrar e Atualizar'
+                      primaryBtnLabel = isUpdate ? 'Migrar e Atualizar' : 'Migrar e Baixar'
                     } else if (isUpToDate) {
                       statusBoxClass = 'smartStatusBox upToDate'
                       statusIcon = faCheckCircle
@@ -3112,6 +3079,15 @@ export default function ExternalGamesScreen() {
                       primaryBtnClass = 'smartPrimaryBtn emerald'
                       primaryBtnIcon = faPlay
                       primaryBtnLabel = 'Jogar Agora'
+                    } else if (instStatus.installedGame && !instStatus.installedGame.executable) {
+                      statusBoxClass = 'smartStatusBox notInstalled'
+                      statusIcon = faDownload
+                      statusTitle = 'Pronto para Download e Reinstalação'
+                      statusVerText = `${getCardVersion(activeSource)} · Pasta preservada: ${instStatus.installedGame.directory}`
+                      shieldText = 'Proteção GhostShield e saves preservados'
+                      primaryBtnClass = 'smartPrimaryBtn cyan'
+                      primaryBtnIcon = faDownload
+                      primaryBtnLabel = 'Baixar e Reinstalar'
                     }
 
                     return (
@@ -3407,17 +3383,112 @@ export default function ExternalGamesScreen() {
                 <h2 id="downloadTransportTitle">Escolha como baixar</h2>
                 <button type="button" className="ghostPathsModalCloseBtn" aria-label="Fechar" onClick={() => setShowTransportChoice(false)}><FontAwesomeIcon icon={faTimes} /></button>
               </div>
-              <p>{activeSource.title} · {activeSource.providerName}</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', margin: '8px 0 14px' }}>
+                <span style={{ color: '#00ffff', fontWeight: 700, fontSize: '13.5px' }}>{activeSource.title}</span>
+                <span className="ghostInstProviderIcon" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 10px', background: 'rgba(0, 229, 255, 0.08)', border: '1px solid rgba(0, 229, 255, 0.35)', borderRadius: '16px', color: '#fff', fontSize: '11.5px', fontWeight: 600 }}>
+                  {renderProviderIcon(activeSource.providerId, activeSource.providerName, activeSource.providerIcon, 18)}
+                  <span>{activeSource.providerName}</span>
+                </span>
+              </div>
               <div className="ghostTransportChoices">
-                {sources.map(source => (
-                  <button key={source.id} type="button" className="ghostReplacementBtnConfirm" disabled={busy} onClick={() => {
-                    setShowTransportChoice(false)
-                    void handleInstallFromSource(source.id)
-                  }}>
-                    <FontAwesomeIcon icon={faDownload} />
-                    <span>{source.type === 'torbox' ? 'TorBox — Torrent' : source.type === 'external' ? 'Download direto — Confirmar no site' : source.name}</span>
-                  </button>
-                ))}
+                {(() => {
+                  const torboxSource = sources.find((s) => s.type === 'torbox')
+                  const directSources = sources.filter((s) => s.type === 'external' || s.type === 'direct')
+                  const hasDirect = directSources.length > 0
+                  const hasTorbox = Boolean(torboxSource)
+                  const torboxMissing = !integrationsState?.torboxConfigured
+
+                  const renderDirect = () =>
+                    hasDirect ? (
+                      directSources.map((source) => (
+                        <button
+                          key={source.id}
+                          type="button"
+                          className="ghostReplacementBtnConfirm"
+                          disabled={busy}
+                          onClick={() => {
+                            setShowTransportChoice(false)
+                            void handleInstallFromSource(source.id)
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faDownload} />
+                          <span>
+                            {source.type === 'external'
+                              ? 'Download direto — Confirmar no site'
+                              : source.name || 'Download Direto'}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <button
+                        type="button"
+                        className="ghostReplacementBtnConfirm"
+                        style={{ opacity: 0.65 }}
+                        disabled={busy}
+                        onClick={() => {
+                          setMessage(
+                            `A loja ${activeSource.providerName} disponibiliza este jogo exclusivamente através de Torrent via TorBox.`
+                          )
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faDownload} style={{ color: '#64748b' }} />
+                        <span>Download direto (indisponível nesta loja)</span>
+                      </button>
+                    )
+
+                  const renderTorbox = () =>
+                    hasTorbox ? (
+                      <button
+                        key={torboxSource!.id}
+                        type="button"
+                        className="ghostReplacementBtnConfirm"
+                        disabled={busy}
+                        title={torboxMissing ? 'TorBox não configurado em Integrações de downloads' : undefined}
+                        onClick={() => {
+                          if (torboxMissing) {
+                            setMessage(
+                              'O TorBox ainda não está configurado. Conecte o TorBox em Integrações de downloads ou escolha a opção de Download Direto.'
+                            )
+                            return
+                          }
+                          setShowTransportChoice(false)
+                          void handleInstallFromSource(torboxSource!.id)
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faCloud} />
+                        <span>
+                          {`TorBox — Torrent${torboxMissing ? ' (não configurado)' : ''}`}
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="ghostReplacementBtnConfirm"
+                        style={{ opacity: 0.65 }}
+                        disabled={busy}
+                        onClick={() => {
+                          setMessage(
+                            `A loja ${activeSource.providerName} disponibiliza este jogo exclusivamente em Download Direto de alta velocidade (Buzzheavier/MegaDB), sem necessidade de Torrent. Escolha "Download direto" para baixar.`
+                          )
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faCloud} style={{ color: '#64748b' }} />
+                        <span>TorBox — Torrent (exclusivo p/ fontes Torrent)</span>
+                      </button>
+                    )
+
+                  return hasTorbox && !hasDirect ? (
+                    <>
+                      {renderTorbox()}
+                      {renderDirect()}
+                    </>
+                  ) : (
+                    <>
+                      {renderDirect()}
+                      {renderTorbox()}
+                    </>
+                  )
+                })()}
               </div>
               <div className="ghostReplacementModalFooter">
                 <button type="button" className="ghostReplacementBtnCancel" onClick={() => setShowTransportChoice(false)}>Cancelar</button>

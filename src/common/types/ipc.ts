@@ -506,6 +506,10 @@ interface AsyncIPCFunctions {
   resolveDateVersionOnline: (title: string, dateStr: string) => Promise<DetectedVersionResult>
   setGameVersion: (appName: string, version: string) => Promise<{ success: boolean; version: string }>
   pluginsGetList: () => Promise<PluginInfo[]>
+  pluginsSourceSettings: (id: string, value?: import('./plugins').SourceSettings) => Promise<import('./plugins').SourceSettings>
+  pluginsTestSourceAddress: (id: string, address: string) => Promise<import('./plugins').SourceAddressTest>
+  pluginsSourceEnginesState: () => Promise<import('./sourceEngines').SourceEnginesState>
+  pluginsSourceEngineAction: (action: import('./sourceEngines').SourceEngineAction) => Promise<{ success: boolean; error?: string; state: import('./sourceEngines').SourceEnginesState }>
   externalGamesState: () => Promise<ExternalGamesState>
   downloadIntegrationsState: () => Promise<DownloadIntegrationsState>
   downloadIntegrationsAction: (action: DownloadIntegrationAction) => Promise<ExternalActionResult>
@@ -525,7 +529,7 @@ interface AsyncIPCFunctions {
   externalGamesSyncPiratasSaves: (options?: { autoBackup?: boolean }) => Promise<import('common/types/plugins').PiratasSaveSyncResult>
   externalGamesDeleteGame: (appName: string, deleteFiles: boolean) => Promise<ExternalActionResult>
   externalGamesRemoveInstallation: (installationId: string) => Promise<boolean>
-  externalGamesCheckPiratasUpdates: (force?: boolean) => Promise<{ success: boolean; message: string }>
+  externalGamesCheckPiratasUpdates: (force?: boolean) => Promise<{ success: boolean; message: string; updatesFound?: number }>
   pluginsToggle: (pluginId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>
   pluginsInstall: (filePath?: string) => Promise<PluginInstallResult>
   pluginsInstallFromBuffer: (fileName: string, bufferBase64: string) => Promise<PluginInstallResult>

@@ -280,7 +280,7 @@ async function removeFromQueue(appName: string) {
     if (appName.startsWith('external-')) {
       try {
         const installationId = appName.replace('external-', '')
-        const extJobs = ExternalGames.getInstance().snapshot().jobs
+        const extJobs = ExternalGames.getInstance().snapshot(false).jobs
         const matchJob = extJobs.find((j) => j.installationId === installationId)
         if (matchJob) {
           await ExternalGames.getInstance().action({ type: 'cancel', jobId: matchJob.id })
@@ -337,7 +337,7 @@ async function getQueueInformation(): Promise<DMQueue> {
     // 0. Detecção de downloads ativos de fontes comunitárias / ExternalGames
     let hasExternalActive = false
     try {
-      const extJobs = ExternalGames.getInstance().snapshot().jobs
+      const extJobs = ExternalGames.getInstance().snapshot(false).jobs
       hasExternalActive = extJobs.some((job) =>
         ['downloading', 'extracting', 'installing'].includes(job.status)
       )
@@ -494,7 +494,7 @@ async function pauseCurrentDownload() {
   autoPaused = false
 
   try {
-    const extJobs = ExternalGames.getInstance().snapshot().jobs
+    const extJobs = ExternalGames.getInstance().snapshot(false).jobs
     const activeExtJob = extJobs.find((j) => j.status === 'downloading')
     if (activeExtJob) {
       await ExternalGames.getInstance().action({ type: 'pause', jobId: activeExtJob.id })
@@ -524,7 +524,7 @@ async function resumeCurrentDownload() {
   autoPaused = false
 
   try {
-    const extJobs = ExternalGames.getInstance().snapshot().jobs
+    const extJobs = ExternalGames.getInstance().snapshot(false).jobs
     const pausedExtJob = extJobs.find((j) => j.status === 'paused')
     if (pausedExtJob) {
       await ExternalGames.getInstance().action({ type: 'resume', jobId: pausedExtJob.id })

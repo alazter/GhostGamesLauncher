@@ -29,6 +29,7 @@ describe('Ghost Game Manifest - Integridade e Identificador Único Universal', (
       ghostAppId: 'external-test-123',
       title: 'Assassin\'s Creed Black Flag',
       version: 'v1.0.4',
+      sourceDate: '2026-09-26',
       storeId: 'ankergames',
       storeName: 'AnkerGames',
       storePageUrl: 'https://ankergames.net/game/ac-black-flag',
@@ -45,6 +46,7 @@ describe('Ghost Game Manifest - Integridade e Identificador Único Universal', (
     expect(manifest?.ghostSignature).toBe(GHOST_SIGNATURE)
     expect(manifest?.title).toBe('Assassin\'s Creed Black Flag')
     expect(manifest?.version).toBe('v1.0.4')
+    expect(manifest?.sourceDate).toBe('2026-09-26')
     expect(manifest?.storeId).toBe('ankergames')
     expect(manifest?.storeName).toBe('AnkerGames')
     expect(manifest?.storePageUrl).toBe('https://ankergames.net/game/ac-black-flag')

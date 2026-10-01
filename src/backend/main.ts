@@ -1,3 +1,4 @@
+import { configureSecureDns } from './plugins/secureDns'
 import { initImagesCache } from './images_cache'
 import { getAccountStatusesWithProfiles, getAccountStatuses, connectAccount, syncAccount, disconnectAccount, getXboxClientId,
   setXboxClientId, openAccountGame } from './storeManagers/connectedAccounts/service'
@@ -279,13 +280,6 @@ async function initializeWindow(): Promise<BrowserWindow> {
   mainWindow.setIcon(windowIcon)
   app.commandLine.appendSwitch('enable-spatial-navigation')
 
-  // Configure Quad9 Secure DNS over HTTPS (DoH) for encrypted, privacy-first, malware-protected DNS
-  app.commandLine.appendSwitch('enable-features', 'DnsOverHttps')
-  app.commandLine.appendSwitch(
-    'dns-over-https-templates',
-    'https://dns.quad9.net/dns-query'
-  )
-
   mainWindow.on('maximize', () => sendFrontendMessage('maximized'))
   mainWindow.on('unmaximize', () => sendFrontendMessage('unmaximized'))
   mainWindow.on('enter-full-screen', () =>
@@ -418,6 +412,7 @@ if (!gotTheLock) {
     handleProtocol(argv)
   })
   app.whenReady().then(async () => {
+    configureSecureDns()
     initLogger()
 
     await MigrationSystem.get().applyMigrations()

@@ -1,3 +1,5 @@
+import { initializeSourceSettings, canonicalSourceUrl, sourceDomains } from './sourceSettings'
+import { initializeSourceEngines } from './sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from 'graceful-fs'
 import { join } from 'path'
@@ -24,7 +26,7 @@ import { romSource, romPageUrl, ROM_DIRECT_ID } from './romSources'
 import { ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID, steamripGameUrl, ankerGameUrl } from './ankerAccount'
 import { NetworkGuard } from './networkGuard'
 import { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
-import { isNewerRelease } from './externalPolicy'
+import { isNewerRelease, isNewerGameRelease, parseDateToIso } from './externalPolicy'
 import { builtinGameSources } from 'common/builtinGameSources'
 import { GlobalConfig } from 'backend/config'
 import { EXCLUDED_PIRATAS_APP_NAMES } from './piratasSaveKnowledge'
@@ -92,11 +94,13 @@ export class PluginManager {
   private updateMonitor?: ReturnType<typeof setInterval>
   private checkingUpdates = false
 
-  private async pollExternalUpdates(force = false) {
-    if (this.checkingUpdates) return
+  private async pollExternalUpdates(force = false): Promise<{ success: boolean; message: string; updatesFound: number }> {
+    if (this.checkingUpdates) {
+      return { success: false, message: 'Verificação já em andamento.', updatesFound: 0 }
+    }
     const settings = GlobalConfig.get().getSettings()
     if (!force && settings.checkPirataUpdatesDaily === false) {
-      return
+      return { success: false, message: 'Verificação diária desativada.', updatesFound: 0 }
     }
 
     const service = ExternalGames.getInstance()
@@ -105,15 +109,15 @@ export class PluginManager {
     const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
     if (!force && now - lastCheck < ONE_DAY_MS) {
-      return
+      return { success: true, message: 'Verificação recente já realizada.', updatesFound: 0 }
     }
 
     this.checkingUpdates = true
     try {
-      logInfo('[PluginManager] Iniciando verificação de updates da Loja Piratas (rotina de 24h)...', LogPrefix.Backend)
-      const installations = service.snapshot().installations.filter((item) => {
+      logInfo('[PluginManager] Iniciando verificação de updates da Loja Piratas...', LogPrefix.Backend)
+      const installations = service.snapshot(true).installations.filter((item) => {
         if (!item.appName || EXCLUDED_PIRATAS_APP_NAMES.has(item.appName)) return false
-        return Boolean(item.game?.providerId) || Boolean(item.game?.pageUrl)
+        return Boolean(item.game?.providerId) || Boolean(item.game?.pageUrl) || Boolean(item.game?.title)
       })
 
       let updatesFound = 0
@@ -127,22 +131,29 @@ export class PluginManager {
         } catch {
           // Falha individual silenciada
         }
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await new Promise((resolve) => setTimeout(resolve, 800))
       }
 
       service.setLastUpdateCheckTime(now)
       logInfo(`[PluginManager] Verificação da Loja Piratas concluída. (${updatesFound} atualização(ões) encontrada(s))`, LogPrefix.Backend)
       sendFrontendMessage('external-games-updated', service.snapshot())
+      return {
+        success: true,
+        message: updatesFound > 0
+          ? `${updatesFound} atualização(ões) encontrada(s) na Loja Piratas!`
+          : 'Todos os jogos da Loja Piratas estão atualizados.',
+        updatesFound
+      }
     } catch (err) {
-      logError(['[PluginManager] Erro na verificação diária de updates:', err], LogPrefix.Backend)
+      logError(['[PluginManager] Erro na verificação de updates da Loja Piratas:', err], LogPrefix.Backend)
+      return { success: false, message: 'Erro na verificação de updates da Loja Piratas.', updatesFound: 0 }
     } finally {
       this.checkingUpdates = false
     }
   }
 
-  public async checkPiratasUpdates(force = false): Promise<{ success: boolean; message: string }> {
-    await this.pollExternalUpdates(force)
-    return { success: true, message: 'Verificação da Loja Piratas concluída.' }
+  public async checkPiratasUpdates(force = false): Promise<{ success: boolean; message: string; updatesFound?: number }> {
+    return await this.pollExternalUpdates(force)
   }
 
   public async installBuiltinSource(id: string): Promise<PluginInstallResult> {
@@ -165,8 +176,8 @@ export class PluginManager {
   }
 
   private remember(game: GhostSearchResult, plugin: PluginInfo): GhostSearchResult {
-    const normalized = { ...game, providerId: plugin.id, providerName: plugin.name, providerIcon: plugin.homepage ? new URL('/favicon.ico', plugin.homepage).href : undefined }
-    this.sourceResults.set(JSON.stringify([plugin.id, game.id]), normalized)
+    const normalized = { ...game, id: canonicalSourceUrl(plugin.id, game.id), pageUrl: game.pageUrl ? canonicalSourceUrl(plugin.id, game.pageUrl) : undefined, providerId: plugin.id, providerName: plugin.name, providerIcon: plugin.homepage ? new URL('/favicon.ico', plugin.homepage).href : undefined }
+    this.sourceResults.set(JSON.stringify([plugin.id, normalized.id]), normalized)
     if (this.sourceResults.size > 2000) this.sourceResults.delete(this.sourceResults.keys().next().value!)
     return normalized
   }
@@ -266,12 +277,22 @@ export class PluginManager {
       const officialAnker = plugin.id === ANKER_SOURCE_ID
       const options = await this.getDownloadSources(plugin.id, game.pageUrl || game.id)
       let preferredTransport: string | undefined
+      let targetDirectory = request.targetDirectory
       if (request.replaceInstallationId) {
-        const prevJob = ExternalGames.getInstance().snapshot().jobs.find(
+        const extSnap = ExternalGames.getInstance().snapshot()
+        const prevJob = extSnap.jobs.find(
           (j) => (j.installationId === request.replaceInstallationId || j.id === request.replaceInstallationId) && (j.status === 'completed' || j.bytes > 0)
         )
         if (prevJob?.transport) {
           preferredTransport = prevJob.transport
+        }
+        if (!targetDirectory) {
+          const inst = extSnap.installations.find(
+            (i) => i.id === request.replaceInstallationId || i.appName === request.replaceInstallationId
+          )
+          if (inst?.directory) {
+            targetDirectory = inst.directory
+          }
         }
       }
       const hasTorbox = await TorboxClient.configured().catch(() => false)
@@ -296,7 +317,7 @@ export class PluginManager {
         request.replaceInstallationId,
         false,
         true,
-        request.targetDirectory,
+        targetDirectory,
         Boolean(request.confirmed),
         Boolean(request.chooseDirectory)
       )
@@ -343,7 +364,11 @@ export class PluginManager {
           if (matches.length > 0) {
             let best = matches[0]
             for (const m of matches) {
-              if (m.version && (!best.version || isNewerRelease(best.version, m.version))) {
+              const comp = isNewerGameRelease(
+                { version: best.version, sourceDate: best.sourceDate, uploadDate: best.uploadDate },
+                { version: m.version, sourceDate: m.sourceDate, uploadDate: m.uploadDate }
+              )
+              if (comp.isNewer) {
                 best = m
               }
             }
@@ -358,25 +383,59 @@ export class PluginManager {
       }
 
       const currentVersion = installation.game.version
-      if (!currentVersion || !details.version) {
-        const message = !currentVersion
-          ? 'A versão instalada não foi identificada. Informe a versão instalada para comparar updates.'
-          : 'A fonte não informou a versão disponível. Não foi possível confirmar se há atualização.'
-        ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
-        return { success: false, error: message }
+      const currentCandidate = {
+        version: currentVersion,
+        sourceDate: installation.game.sourceDate,
+        uploadDate: installation.game.uploadDate
       }
-      const isNewer = isNewerRelease(currentVersion, details.version)
+      const remoteCandidate = {
+        version: details.version,
+        sourceDate: details.sourceDate,
+        uploadDate: details.uploadDate
+      }
 
-      const normalized = (value: string) => value.trim().toLowerCase().replace(/^v(?:ersion|er)?[ ._-]*/, '')
-      if (!isNewer && !isNewerRelease(details.version, currentVersion) && normalized(currentVersion) !== normalized(details.version)) {
-        const message = 'As versões instalada e disponível usam formatos diferentes. Confira a versão na página da fonte.'
+      if (!currentVersion && !currentCandidate.sourceDate && !details.version && !remoteCandidate.sourceDate) {
+        const message = 'A versão ou data de publicação não foram informadas para comparar updates.'
         ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
         return { success: false, error: message }
       }
+
+      const comparison = isNewerGameRelease(currentCandidate, remoteCandidate)
+      const isNewer = comparison.isNewer
+
+      if (!isNewer && comparison.reason !== 'date') {
+        const normalized = (value: string) => value.trim().toLowerCase().replace(/^v(?:ersion|er)?[ ._-]*/, '')
+        if (
+          currentVersion &&
+          details.version &&
+          !isNewerRelease(currentVersion, details.version) &&
+          !isNewerRelease(details.version, currentVersion) &&
+          normalized(currentVersion) !== normalized(details.version) &&
+          !currentCandidate.sourceDate &&
+          !remoteCandidate.sourceDate
+        ) {
+          const message = 'As versões instalada e disponível usam formatos diferentes. Confira a versão na página da fonte.'
+          ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
+          return { success: false, error: message }
+        }
+      }
+
       const update = isNewer && plugin ? this.remember(details, plugin) : undefined
+      const dateInfo = details.uploadDate ? ` (Atualizado na fonte em ${details.uploadDate})` : ''
       const message = update
-        ? `Atualização disponível: ${update.version || 'Nova versão'}`
+        ? `Atualização disponível: ${update.version || 'Nova versão'}${dateInfo}`
         : 'Jogo já está na versão mais recente da fonte.'
+
+      // Se a instalação local não possuía sourceDate e está na mesma versão da loja, auto-atrela a data oficial
+      if (!installation.game.sourceDate && (details.sourceDate || details.uploadDate) && currentVersion) {
+        const clean = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '')
+        if (clean(currentVersion) === clean(details.version || '')) {
+          const iso = details.sourceDate || parseDateToIso(details.uploadDate)
+          if (iso) {
+            ExternalGames.getInstance().attachSourceDate(installation.id, iso, details.uploadDate)
+          }
+        }
+      }
 
       ExternalGames.getInstance().recordUpdate(installation.id, update, message)
       return { success: true, update }
@@ -398,6 +457,8 @@ export class PluginManager {
   }
 
   public async init(): Promise<void> {
+    initializeSourceSettings(userDataPath)
+    await initializeSourceEngines(userDataPath, app.isPackaged ? join(process.resourcesPath, 'engine-bundles') : join(app.getAppPath(), 'public', 'engine-bundles'), app.getVersion())
     ExternalGames.getInstance()
     mkdirSync(this.pluginsDir, { recursive: true })
     mkdirSync(this.dataRootDir, { recursive: true })
@@ -467,6 +528,7 @@ export class PluginManager {
 
         results.push({
           ...manifest,
+          allowedDomains: [...new Set([...(manifest.allowedDomains || []), ...sourceDomains(manifest.id)])],
           isEnabled,
           installedPath: pDir,
           isDev,
@@ -770,17 +832,21 @@ export class PluginManager {
         : providerId
 
       const rom = romSource(normProviderId)
-      if (rom && this.getPlugins().some(plugin => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+      const isSourceEnabled = (id: string) =>
+        this.getPlugins().some((plugin) => (plugin.id === id || plugin.id === providerId) && plugin.isEnabled) ||
+        this.pluginStates[id]?.enabled !== false
+
+      if (rom && isSourceEnabled(normProviderId)) {
         return [{ id: ROM_DIRECT_ID, name: `${rom.name} · Download da ROM · Confirmar no site`, type: 'external', url: romPageUrl(normProviderId, gameId) }]
       }
-      if (normProviderId === ONLINE_FIX_SOURCE_ID && this.getPlugins().some(plugin => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+      if (normProviderId === ONLINE_FIX_SOURCE_ID && isSourceEnabled(normProviderId)) {
         const existing = await this.hosts.get(normProviderId)?.getSourceProvider()?.getSources(gameId).catch(() => []) || []
         return [{ id: ONLINE_FIX_TORRENT_ID, name: 'Online-Fix · Torrent via TorBox', type: 'torbox', url: onlineFixGameUrl(gameId) }, ...existing.filter(item => item.id !== ONLINE_FIX_TORRENT_ID)]
       }
-      if (normProviderId === STEAMRIP_SOURCE_ID && this.getPlugins().some(plugin => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+      if (normProviderId === STEAMRIP_SOURCE_ID && isSourceEnabled(normProviderId)) {
         return [{ id: STEAMRIP_DIRECT_ID, name: 'SteamRIP · Download direto', type: 'external', url: steamripGameUrl(gameId) }]
       }
-      if (normProviderId === ANKER_SOURCE_ID && this.getPlugins().some((plugin) => (plugin.id === normProviderId || plugin.id === providerId) && plugin.isEnabled)) {
+      if (normProviderId === ANKER_SOURCE_ID && isSourceEnabled(normProviderId)) {
         return [
           { id: ANKER_TORRENT_ID, name: 'TorBox · Torrent', type: 'torbox', url: ankerGameUrl(gameId) },
           { id: ANKER_DIRECT_ID, name: 'Download direto · Confirmar no site', type: 'external', url: ankerGameUrl(gameId) }

@@ -57,4 +57,10 @@ export function replacementOperation(
   return 'switch-source' as const
 }
 
-export { isNewerRelease } from 'common/utils'
+export {
+  isNewerRelease,
+  parseDateToIso,
+  isNewerGameRelease,
+  type GameReleaseCandidate,
+  type ReleaseComparisonResult
+} from 'common/utils'

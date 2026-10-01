@@ -1,6 +1,10 @@
 import { makeHandlerInvoker, frontendListenerSlot } from '../ipc'
 
 export const pluginsGetList = makeHandlerInvoker('pluginsGetList')
+export const pluginsSourceSettings = makeHandlerInvoker('pluginsSourceSettings')
+export const pluginsTestSourceAddress = makeHandlerInvoker('pluginsTestSourceAddress')
+export const pluginsSourceEnginesState = makeHandlerInvoker('pluginsSourceEnginesState')
+export const pluginsSourceEngineAction = makeHandlerInvoker('pluginsSourceEngineAction')
 export const externalGamesState = makeHandlerInvoker('externalGamesState')
 export const downloadIntegrationsState = makeHandlerInvoker('downloadIntegrationsState')
 export const downloadIntegrationsAction = makeHandlerInvoker('downloadIntegrationsAction')

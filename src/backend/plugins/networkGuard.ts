@@ -1,16 +1,11 @@
+import { secureDispatcher, secureDownloadFetch, isPublicAddress, QUAD9_DOH } from './secureDns'
+import { sourceDomains } from './sourceSettings'
 import type { PluginManifest } from 'common/types/plugins'
-import { lookup } from 'dns'
-import { BlockList, isIP } from 'net'
+import { isIP } from 'net'
 import { Agent } from 'undici'
 import { execFile } from 'child_process'
 
-export function isPublicDownloadAddress(address: string): boolean {
-  const blocked = new BlockList()
-  for (const [network, prefix] of [['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16], ['172.16.0.0', 12], ['192.168.0.0', 16], ['224.0.0.0', 4], ['240.0.0.0', 4]] as const) blocked.addSubnet(network, prefix, 'ipv4')
-  if (isIP(address) === 4) return !blocked.check(address, 'ipv4')
-  // Only global unicast IPv6, excluding mapped IPv4, loopback and local networks.
-  return isIP(address) === 6 && /^[23][0-9a-f]{3}:/i.test(address)
-}
+export const isPublicDownloadAddress = isPublicAddress
 
 const BLOCKED_HOSTNAMES = new Set([
   'localhost',
@@ -33,7 +28,15 @@ export const TRUSTED_GAME_MIRROR_DOMAINS = [
   'rapidgator.net',
   'mega.nz',
   'mediafire.com',
-  'archive.org'
+  'archive.org',
+  'megadb.net',
+  'megadb.co',
+  'megaup.net',
+  'krakenfiles.com',
+  'send.cm',
+  'drop.download',
+  'root.steamrip.com',
+  'steamrip.com'
 ]
 
 function isPrivateIP(ip: string): boolean {
@@ -61,7 +64,10 @@ export class NetworkGuard {
   ): Promise<Response> {
     const args = [
       '-s',
-      '-L',
+      '--doh-url', QUAD9_DOH,
+      '--proto', '=https',
+      '--fail',
+      '--write-out', '\n%{http_code}',
       '--max-time',
       '20',
       '-H',
@@ -84,6 +90,8 @@ export class NetworkGuard {
     for (const [k, v] of Object.entries(headers)) {
       args.push('-H', `${k}: ${v}`)
     }
+    const addresses = await (await import('./secureDns')).resolvePublicHost(new URL(url).hostname)
+    args.push('--resolve', `${new URL(url).hostname}:443:${addresses.map(item => item.family === 6 ? `[${item.address}]` : item.address).join(',')}`)
     args.push(url)
 
     return new Promise((resolve, reject) => {
@@ -92,12 +100,14 @@ export class NetworkGuard {
         args,
         { maxBuffer: 15 * 1024 * 1024, encoding: 'buffer' },
         (error, stdout) => {
-          if (error && !stdout) {
+          if (error) {
             return reject(error)
           }
+          const status = Number(stdout.subarray(-3).toString())
+          if (status < 200 || status >= 300) { reject(new Error(`A fonte respondeu HTTP ${status}.`)); return }
           resolve(
-            new Response(stdout, {
-              status: 200,
+            new Response(stdout.subarray(0, -4), {
+              status,
               statusText: 'OK',
               headers: { 'Content-Type': 'text/html' }
             })
@@ -121,16 +131,7 @@ export class NetworkGuard {
       ...headers
     }
     let requestHeaders = browserHeaders
-    this.dispatcher ??= new Agent({ connect: { autoSelectFamily: true, autoSelectFamilyAttemptTimeout: 250, lookup: (hostname, options, callback) => {
-      lookup(hostname, { all: true }, (error, addresses) => {
-        if (error) { callback(error, '', 4); return }
-        if (!addresses.length || addresses.some((entry) => !isPublicDownloadAddress(entry.address))) {
-          callback(new Error('A fonte resolveu para um endereço de rede privada ou não permitido.'), '', 4); return
-        }
-        if (options.all) callback(null, addresses)
-        else callback(null, addresses[0].address, addresses[0].family)
-      })
-    } } })
+    this.dispatcher ??= secureDispatcher()
     for (let redirects = 0; redirects <= 5; redirects++) {
       const check = this.validateUrl(url, manifest)
       if (!check.allowed) throw new Error(check.reason)
@@ -140,7 +141,7 @@ export class NetworkGuard {
       let response: Response
       try {
         const request = { redirect: 'manual' as const, signal, headers: requestHeaders, dispatcher: this.dispatcher }
-        response = await fetch(url, request)
+        response = nativeOnly ? await secureDownloadFetch(url, request) : await fetch(url, request)
       } catch (error) {
         signal.throwIfAborted()
         if (!nativeOnly && process.platform === 'win32') {
@@ -195,7 +196,7 @@ export class NetworkGuard {
       return { allowed: false, reason: `Access to local network/loopback (${hostname}) is blocked by GhostShield.` }
     }
 
-    const allowedDomains = manifest.allowedDomains || []
+    const allowedDomains = [...(manifest.allowedDomains || []), ...sourceDomains(manifest.id)]
     if (allowedDomains.length === 0 && !manifest.permissions.includes('game-sources')) {
       return { allowed: false, reason: `Plugin has not declared any allowed domains in "allowedDomains".` }
     }
@@ -240,6 +241,8 @@ export class NetworkGuard {
 
     try {
       const response = await fetch(check.parsedUrl.toString(), {
+        dispatcher: secureDispatcher(),
+        redirect: 'error',
         method: options.method || 'GET',
         headers: {
           'User-Agent': `GhostLauncher/${manifest.id}/${manifest.version}`,
@@ -247,7 +250,7 @@ export class NetworkGuard {
         },
         body: options.body,
         signal: controller.signal
-      })
+      } as RequestInit)
 
       const text = await response.text()
 

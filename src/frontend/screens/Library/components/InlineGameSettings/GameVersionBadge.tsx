@@ -5,6 +5,7 @@ import { faTag, faSpinner, faShieldAlt, faBolt, faSyncAlt } from '@fortawesome/f
 import { GameInfo } from 'common/types'
 import { DetectedVersionResult } from 'common/types/ipc'
 import { useExternalGames, SourceBadge } from 'frontend/screens/ExternalGames/shared'
+import { openChooseDownloadModal } from 'frontend/state/ChooseDownloadModal'
 
 interface GameVersionBadgeProps {
   game: GameInfo
@@ -210,26 +211,22 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
 
       {extInstallation?.availableUpdate && (
         <button
-          onClick={async (e) => {
+          onClick={(e) => {
             e.stopPropagation()
-            if (!extInstallation?.availableUpdate || updating) return
-            setUpdating(true)
-            try {
-              await window.api.externalGamesInstall({
-                game: extInstallation.availableUpdate,
-                sourceId: extInstallation.availableUpdate.providerId,
-                replaceInstallationId: extInstallation.id,
-                confirmed: true
-              })
-              navigate('/download-manager')
-            } catch (err) {
-              console.error('Falha ao disparar atualização:', err)
-            } finally {
-              setUpdating(false)
-            }
+            if (!extInstallation?.availableUpdate) return
+            void openChooseDownloadModal({
+              game: extInstallation.availableUpdate,
+              title: extInstallation.game.title,
+              version: extInstallation.availableUpdate.version,
+              providerName: extInstallation.availableUpdate.providerName || extInstallation.game.providerName,
+              providerIcon: extInstallation.availableUpdate.providerIcon || extInstallation.game.providerIcon,
+              providerId: extInstallation.availableUpdate.providerId || extInstallation.game.providerId,
+              replaceInstallationId: extInstallation.id,
+              targetDirectory: extInstallation.directory
+            })
           }}
           disabled={updating}
-          title={`Nova versão ${extInstallation.availableUpdate.version || ''} disponível via ${extInstallation.availableUpdate.providerName || extInstallation.game.providerName}!\nClique para baixar e atualizar automaticamente preservando seus saves.`}
+          title={`Nova versão ${extInstallation.availableUpdate.version || ''} disponível via ${extInstallation.availableUpdate.providerName || extInstallation.game.providerName}!\nClique para escolher como baixar (Download Direto ou TorBox) e instalar na mesma pasta.`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -256,7 +253,18 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
           }}
         >
           <FontAwesomeIcon icon={updating ? faSpinner : faBolt} spin={updating} style={{ color: '#ffb703' }} />
-          <span>{updating ? 'Iniciando...' : `Atualizar: v${extInstallation.availableUpdate.version || 'Nova'}`}</span>
+          <span>
+            {updating
+              ? 'Iniciando...'
+              : `Atualizar: ${
+                  extInstallation.availableUpdate.version
+                    ? extInstallation.availableUpdate.version.toLowerCase().startsWith('v') ||
+                      extInstallation.availableUpdate.version.toLowerCase().startsWith('build')
+                      ? extInstallation.availableUpdate.version
+                      : `v${extInstallation.availableUpdate.version}`
+                    : 'Nova Versão'
+                }`}
+          </span>
         </button>
       )}
 

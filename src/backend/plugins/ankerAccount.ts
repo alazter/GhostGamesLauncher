@@ -1,3 +1,4 @@
+import { isSourceUrl, sourceDomains, canonicalSourceUrl } from './sourceSettings'
 import { BrowserWindow, session, type DownloadItem } from 'electron'
 import { mkdir, readFile, rm } from 'fs/promises'
 import { dirname } from 'path'
@@ -8,6 +9,7 @@ import { TRUSTED_GAME_MIRROR_DOMAINS, NetworkGuard } from './networkGuard'
 import type { PluginManifest } from 'common/types/plugins'
 import { romSource, romPageUrl, romManifest } from './romSources'
 import { directDownloadRecovery, type DirectDownloadDiagnostic } from './directDownloadRecovery'
+import { rangedDownload } from './rangedDownload'
 
 export const ANKER_SOURCE_ID = 'com.ghost.ankergames-source'
 export const ANKER_TORRENT_ID = 'anker-official-torrent'
@@ -18,7 +20,7 @@ export function steamripGameUrl(value: string): string {
   const url = new URL(value)
   if (
     url.protocol !== 'https:' ||
-    !['steamrip.com', 'www.steamrip.com'].includes(url.hostname) ||
+    !isSourceUrl(STEAMRIP_SOURCE_ID, value) ||
     url.username ||
     url.password ||
     url.pathname === '/'
@@ -26,13 +28,14 @@ export function steamripGameUrl(value: string): string {
     throw new Error('Página de jogo SteamRIP inválida.')
   url.search = ''
   url.hash = ''
-  return url.href
+  return canonicalSourceUrl(STEAMRIP_SOURCE_ID, url.href)
 }
 const baseDirectManifest = {
-  permissions: ['network'],
+  permissions: ['network', 'game-sources'],
   allowedDomains: [
     'ankergames.net',
     'steamrip.com',
+    'challenges.cloudflare.com',
     ...TRUSTED_GAME_MIRROR_DOMAINS
   ]
 } as PluginManifest
@@ -43,6 +46,7 @@ export function directDownloadManifest(steamrip: boolean): PluginManifest {
     // Scope the exact relay host to Anker; do not trust all of dlproxy.uk.
     allowedDomains: [
       ...baseDirectManifest.allowedDomains!,
+      ...sourceDomains(steamrip ? STEAMRIP_SOURCE_ID : ANKER_SOURCE_ID),
       ...(steamrip ? [] : ['tunnel5.dlproxy.uk'])
     ]
   }
@@ -50,7 +54,7 @@ export function directDownloadManifest(steamrip: boolean): PluginManifest {
 export function ankerGameUrl(value: string): string {
   const url = new URL(value)
   if (
-    url.origin !== 'https://ankergames.net' ||
+    !isSourceUrl(ANKER_SOURCE_ID, value) ||
     !/^\/game\/[^/]+\/?$/.test(url.pathname) ||
     url.username ||
     url.password
@@ -58,7 +62,7 @@ export function ankerGameUrl(value: string): string {
     throw new Error('Página de jogo AnkerGames inválida.')
   url.hash = ''
   url.search = ''
-  return url.href
+  return canonicalSourceUrl(ANKER_SOURCE_ID, url.href)
 }
 
 export class AnkerAccount {
@@ -82,13 +86,14 @@ export class AnkerAccount {
     isolated.webRequest.onBeforeRequest((details, callback) => {
       try {
         const url = new URL(details.url)
+        const currentSourceId = steamrip ? STEAMRIP_SOURCE_ID : romProvider || ANKER_SOURCE_ID
         const allowed =
           (url.protocol === 'blob:' &&
-            url.origin === 'https://ankergames.net') ||
+            isSourceUrl(currentSourceId, url.origin)) ||
           (url.protocol === 'https:' &&
-            (url.hostname === 'ankergames.net' ||
-              url.hostname.endsWith('.ankergames.net') ||
+            (isSourceUrl(currentSourceId, url.href, true) ||
               url.hostname === 'challenges.cloudflare.com' ||
+              url.hostname.endsWith('.cloudflare.com') ||
               (direct &&
                 NetworkGuard.validateUrl(url.href, directManifest).allowed)))
         if (!allowed && details.resourceType === 'mainFrame')
@@ -127,10 +132,11 @@ export class AnkerAccount {
     })
     const family = new Set<BrowserWindow>([window])
     this.families.set(window, family)
+    const currentSourceId = steamrip ? STEAMRIP_SOURCE_ID : romProvider || ANKER_SOURCE_ID
     const guard = (event: Electron.Event, target: string) => {
       try {
         if (
-          new URL(target).origin !== 'https://ankergames.net' &&
+          !isSourceUrl(currentSourceId, target) &&
           !(
             direct &&
             new URL(target).protocol === 'https:' &&
@@ -226,6 +232,9 @@ export class AnkerAccount {
     let item: DownloadItem | undefined
     let archive: string | undefined
     let completed = false
+    let accelerating = false
+    let acceleration: Promise<void> | undefined
+    const accelerationController = new AbortController()
     let recovery: ReturnType<typeof directDownloadRecovery> | undefined
     let rejectOperation: (error: Error) => void = () => undefined
     const abort = () =>
@@ -274,7 +283,7 @@ export class AnkerAccount {
           const extension = (rom ? /\.(zip|rar|7z|tar|nsp|xci|nsz|xcz)$/i : /\.(zip|rar|7z|tar)$/i)
             .exec(download.getFilename())?.[1]
             ?.toLowerCase()
-          const link = download.getURL()
+          const link = download.getURLChain?.().at(-1) || download.getURL()
           if (
             item ||
             !extension ||
@@ -303,10 +312,12 @@ export class AnkerAccount {
           report()
           recovery = directDownloadRecovery(download, reject, diagnostic)
           download.on('updated', (_event, state) => {
+            if (accelerating) return
             report()
             recovery?.updated(state)
           })
           download.once('done', (_event, state) => {
+            if (accelerating) return
             recovery?.done(state)
             if (state === 'completed') {
               completed = true
@@ -319,6 +330,60 @@ export class AnkerAccount {
                 )
               )
           })
+          // Keep Chromium's authenticated transfer paused as a safe fallback.
+          // Only eligible large files with a strong validator use our range path.
+          if (download.getTotalBytes() >= 32 * 1024 * 1024 && /^"[^\r\n]+"$/.test(download.getETag())) {
+            const nativeArchive = archive
+            const segmentedArchive = `${directory}/package-ranged.${extension}`
+            const transferSignal = AbortSignal.any([signal, accelerationController.signal])
+            accelerating = true
+            download.pause()
+            acceleration = (async () => {
+              try {
+                const transferred = await rangedDownload({
+                  destination: segmentedArchive,
+                  total: download.getTotalBytes(),
+                  etag: download.getETag(),
+                  signal: transferSignal,
+                  fetch: async (headers, requestSignal) => {
+                    if (!NetworkGuard.validateUrl(link, directManifest).allowed) throw new Error('Servidor de download não permitido.')
+                    return isolated.fetch(link, {
+                      headers, signal: requestSignal, credentials: 'include',
+                      redirect: 'error', referrer: contents.getURL(),
+                      referrerPolicy: 'strict-origin-when-cross-origin'
+                    })
+                  },
+                  progress: bytes => {
+                    archive = segmentedArchive
+                    progress(bytes, download.getTotalBytes(), segmentedArchive)
+                  },
+                  event: event => diagnostic({ event, host: new URL(link).hostname,
+                    bytes: 0, total: download.getTotalBytes(), canResume: download.canResume(), attempts: 0,
+                    at: new Date().toISOString() })
+                })
+                transferSignal.throwIfAborted()
+                if (transferred) {
+                  completed = true
+                  archive = segmentedArchive
+                  recovery?.stop()
+                  // The package is complete. A disposed browser item must not
+                  // send us into the fallback and start another transfer.
+                  try { download.cancel() } catch { /* Already closed. */ }
+                  resolve(segmentedArchive)
+                  return
+                }
+              } catch {
+                if (transferSignal.aborted) return
+                diagnostic({ event: 'ranged-fallback', host: new URL(link).hostname,
+                  bytes: download.getReceivedBytes(), total: download.getTotalBytes(),
+                  canResume: download.canResume(), attempts: 0, at: new Date().toISOString() })
+              }
+              archive = nativeArchive
+              accelerating = false
+              report()
+              download.resume()
+            })().catch(reject)
+          }
           for (const member of family) if (!member.isDestroyed()) member.hide()
         }
         isolated.on('will-download', onDownload)
@@ -336,6 +401,8 @@ export class AnkerAccount {
         ).catch(reject)
       })
     } finally {
+      accelerationController.abort()
+      await acceleration?.catch(() => undefined)
       recovery?.stop()
       clearTimeout(timer)
       isolated.removeListener('will-download', onDownload)
@@ -464,7 +531,7 @@ export class AnkerAccount {
             window,
             `(() => {
             const link = [...document.querySelectorAll('a[href]')].find(el =>
-              el.getClientRects().length && el.origin === 'https://ankergames.net' &&
+              el.getClientRects().length && el.origin === location.origin &&
               el.pathname.startsWith('/torrent-file/'));
             if (!link) return false;
             link.click(); return true;

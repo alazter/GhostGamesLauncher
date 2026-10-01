@@ -1,5 +1,6 @@
 appId: com.ghostgameslauncher.ghost
 productName: Ghost Games Launcher
+beforePack: scripts/engines/beforePack.cjs
 publish:
   provider: github
   owner: alazter
@@ -8,6 +9,7 @@ files:
   - build/**/*
   - node_modules/**/*
   - '!build/bin/*'
+  - '!build/engine-bundles/**/*'
   - build/bin/legendary.LICENSE
 
 asarUnpack:
@@ -36,6 +38,11 @@ protocols:
       - heroic
 
 win:
+  extraResources:
+    - from: public/engine-bundles
+      to: engine-bundles
+      filter:
+        - '**/*'
   artifactName: ${productName}-${version}-Portable-${arch}.${ext}
   icon: build/win_icon.ico
   target:

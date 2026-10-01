@@ -791,3 +791,36 @@
     margin: 0;
   }
 }
+.ghost-source-dialog {
+  color: #e6f8fa;
+  background: #131a20;
+  border: 1px solid #00ffff;
+  border-radius: 14px;
+  width: min(680px, 90vw);
+  max-height: 85vh;
+  padding: 26px;
+  overflow: auto;
+  &::backdrop { background: #000a; }
+  > div { position: relative; }
+  h2 { padding-right: 35px; }
+  p, small { color: #afc7cf; }
+  .source-close { position: absolute; right: 0; top: 0; border: 0; background: transparent; font-size: 28px; }
+  .source-address-row { border-bottom: 1px solid #31404b; padding: 12px 0; overflow-wrap: anywhere; }
+  .source-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+  input[type=url] { flex: 1; min-width: 180px; padding: 10px; background: #0b1117; color: white; border: 1px solid #425764; border-radius: 6px; }
+  button { color: #6ffaff; background: #172832; border: 1px solid #42636a; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; }
+}
+.ghost-engine-panel {
+  border: 1px solid #355363;
+  border-radius: 12px;
+  background: #131a20;
+  color: #e6f8fa;
+  padding: 18px;
+  margin: 20px 0;
+  summary { cursor: pointer; color: #6ffaff; font-size: 18px; }
+  section { border-top: 1px solid #355363; margin-top: 16px; padding-top: 10px; }
+  button { margin: 8px; padding: 8px 12px; color: #6ffaff; background: #172832; border: 1px solid #42636a; border-radius: 6px; }
+  button:disabled { opacity: .5; }
+  small { display: block; }
+}
