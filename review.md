@@ -728,6 +728,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Suporte Universal a Jogos Steam e Zoom no System Tray e Protocol Handler (Conquista 166/Regra 132)**: Enum de runners expandido com `steam` e `zoom`, persistência de runner em `RecentGame` e inicialização direta em O(1) a partir da bandeja do Windows (`heroic://launch`).
   - **Blindagem de Empilhamento Visual na Biblioteca (Conquista 165/Regra 131)**: `isolation: isolate` em cards e itens de lista, rebaixamento de badges para nível 6 e elevação do cabeçalho fixo para `z-index: 500`, erradicando transposição de tags e fitas por cima de cabeçalhos e popovers.
   - **Alazterflix Cinema Player: Sincronização Absoluta A/V, Legendas Frame-Accurate e Subtitle Studio (Conquistas 153 a 164)**: Alinhamento de keyframes em O(1) no backend (`mediaStreamServer.ts`), posicionamento vertical livre até o rodapé (2% da base), controle milimétrico de volume de 1 em 1 (step 0.01) e persistência automática de preferências.
+  - **Vínculo Nativo e Minimalista de Lojas em Adicionar Jogo Manualmente (Conquista 169/Regra 135)**: Campo `3. Loja de Origem` via `SelectField` do Ghost listando lojas criadas pelo usuário e checkbox de persistência automática para vincular próximos jogos adicionados à mesma loja, sem alterar layout ou dimensões das capas.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 339/339 testes unitários Jest aprovados (36/36 suítes) e Regra Canônica 62 (aspect-ratio 173/275) 100% preservada.
 
 ---

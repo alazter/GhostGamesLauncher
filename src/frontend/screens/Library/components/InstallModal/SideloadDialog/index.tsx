@@ -21,8 +21,12 @@ import {
   ToggleSwitch,
   InfoBox,
   SteamGridDBPicker,
-  WarningMessage
+  WarningMessage,
+  SelectField
 } from 'frontend/components/UI'
+import { Box, MenuItem } from '@mui/material'
+import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
+import { CustomStore } from 'frontend/types'
 import { DialogContent } from 'frontend/components/UI/Dialog'
 import {
   getGameInfo,
@@ -95,6 +99,29 @@ export default function SideloadDialog({
   const [launcherArgs, setLauncherArgs] = useState('')
   const [launcherArgsError, setLauncherArgsError] = useState('')
   const editMode = Boolean(appName)
+
+  const [customStores] = useState<CustomStore[]>(() => {
+    try {
+      const saved = localStorage.getItem('heroic_custom_stores')
+      return saved ? (JSON.parse(saved) as CustomStore[]) : DEFAULT_GHOST_CUSTOM_STORES
+    } catch {
+      return DEFAULT_GHOST_CUSTOM_STORES
+    }
+  })
+
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(() => {
+    if (appName) {
+      try {
+        const assignments = JSON.parse(localStorage.getItem('heroic_game_assignments') || '{}')
+        if (assignments[appName]) return assignments[appName]
+      } catch {}
+    }
+    return localStorage.getItem('heroic_default_sideload_store') || 'none'
+  })
+
+  const [autoAssignDefaultStore, setAutoAssignDefaultStore] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_default_sideload_store') !== null
+  })
 
   const { refreshLibrary, platform, showDialogModal, sideloadedLibrary, epic, gog, amazon, zoom } = useContext(ContextProvider)
   const navigate = useNavigate()
@@ -188,6 +215,14 @@ export default function SideloadDialog({
           setLauncherArgs(settings.launcherArgs)
         }
       })
+
+      try {
+        const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+        const assignments = JSON.parse(rawAssignments)
+        if (assignments[appName]) {
+          setSelectedStoreId(assignments[appName])
+        }
+      } catch {}
     } else {
       setApp_name(short.generate().toString())
     }
@@ -367,6 +402,31 @@ export default function SideloadDialog({
         appName: app_name,
         config: updatedConfig
       })
+    }
+
+    try {
+      const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+      const assignments = JSON.parse(rawAssignments)
+      if (selectedStoreId && selectedStoreId !== 'none') {
+        assignments[app_name] = selectedStoreId
+      } else {
+        delete assignments[app_name]
+      }
+      localStorage.setItem('heroic_game_assignments', JSON.stringify(assignments))
+      window.dispatchEvent(new Event('gameAssignmentsChanged'))
+      window.dispatchEvent(new StorageEvent('storage', { key: 'heroic_game_assignments' }))
+    } catch (e) {
+      console.error('Erro ao salvar atribuição de loja para o jogo sideload:', e)
+    }
+
+    try {
+      if (autoAssignDefaultStore && selectedStoreId && selectedStoreId !== 'none') {
+        localStorage.setItem('heroic_default_sideload_store', selectedStoreId)
+      } else if (!autoAssignDefaultStore) {
+        localStorage.removeItem('heroic_default_sideload_store')
+      }
+    } catch (e) {
+      console.error('Erro ao salvar loja padrão para sideload:', e)
     }
 
     await refreshLibrary({
@@ -1268,11 +1328,67 @@ export default function SideloadDialog({
                       )}
                     </div>
 
-                    {/* Secao 3: Plataforma & Wine (children) */}
+                    {/* Secao 3: Loja de Origem */}
+                    <div>
+                      <div style={sectionHeaderStyle}>
+                        3. {t('sideload.section.store', 'Loja de Origem')}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <SelectField
+                          label={t('sideload.field.store', 'Vincular a esta Loja:')}
+                          htmlId="sideload-store"
+                          value={selectedStoreId}
+                          onChange={(e) => setSelectedStoreId(e.target.value as string)}
+                        >
+                          <MenuItem value="none">
+                            <em>{t('sideload.store.none', 'Nenhuma Loja (Sem vínculo)')}</em>
+                          </MenuItem>
+                          {customStores.map((store) => (
+                            <MenuItem key={store.id} value={store.id}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <span>{store.name}</span>
+                              </Box>
+                            </MenuItem>
+                          ))}
+                        </SelectField>
+
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            marginTop: '4px'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={autoAssignDefaultStore}
+                            onChange={(e) => setAutoAssignDefaultStore(e.target.checked)}
+                            style={{
+                              accentColor: '#00e5ff',
+                              width: '16px',
+                              height: '16px',
+                              cursor: 'pointer'
+                            }}
+                          />
+                          <span>
+                            {t(
+                              'sideload.store.remember_default',
+                              'Vincular automaticamente todos os próximos jogos adicionados a esta loja'
+                            )}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Secao 4: Plataforma & Wine (children) */}
                     {!editMode && children && (
                       <div>
                         <div style={sectionHeaderStyle}>
-                          3. {t('sideload.section.wine', 'Runner e Configurações')}
+                          4. {t('sideload.section.wine', 'Runner e Configurações')}
                         </div>
                         {children}
                       </div>
