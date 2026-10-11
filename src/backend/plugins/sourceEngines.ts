@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile, rename, rm, stat } from 'fs/promises'
 import { join, resolve } from 'path'
 import { createHash, randomUUID } from 'crypto'
 import extractZip from 'extract-zip'
-import { gt } from 'semver'
+import { gt, valid } from 'semver'
 import type {
   EngineRelease,
   SourceEngineAction,
@@ -45,6 +45,7 @@ const upstream: Partial<Record<SourceEngineId, string>> = {}
 const messages: Partial<Record<SourceEngineId, string>> = {}
 const active = new Set<SourceEngineId>()
 let checking = false
+let catalogError: string | undefined
 let monitor: ReturnType<typeof setInterval> | undefined
 let writes = Promise.resolve()
 const pending = new Set<SourceEngineId>()
@@ -95,23 +96,43 @@ function candidate(id: SourceEngineId) {
   return releases
     .filter((item) => item.id === id && state.rejected[id] !== item.sha256)
     .sort((a, b) =>
-      gt(a.version, b.version) ? -1 : gt(b.version, a.version) ? 1 : 0
+      gt(a.version, b.version)
+        ? -1
+        : gt(b.version, a.version)
+          ? 1
+          : (b.integrationRevision || 0) - (a.integrationRevision || 0)
     )[0]
 }
 export function sourceEnginesState(): SourceEnginesState {
   return {
     automatic: state.automatic,
     checkedAt: state.checkedAt,
-    engines: ids.map((id) => ({
-      id,
-      installed: state.installed[id]?.version,
-      previous: state.previous[id]?.version,
-      available: candidate(id)?.version,
-      upstream: upstream[id],
-      enabled: state.enabled[id],
-      busy: active.has(id),
-      message: messages[id]
-    }))
+    catalogError,
+    engines: ids.map((id) => {
+      const next = candidate(id)
+      const installed = state.installed[id]
+      const published = valid(upstream[id] || '')
+      return {
+        id,
+        installed: state.installed[id]?.version,
+        previous: state.previous[id]?.version,
+        available: next?.version,
+        upstream: upstream[id],
+        updateAvailable: Boolean(
+          installed &&
+          next &&
+          (gt(next.version, installed.version) ||
+            (next.version === installed.version &&
+              next.sha256 !== installed.sha256))
+        ),
+        upstreamUpdateAvailable: Boolean(
+          published && installed && gt(published, installed.version)
+        ),
+        enabled: state.enabled[id],
+        busy: active.has(id),
+        message: messages[id]
+      }
+    })
   }
 }
 async function boundedDownload(url: string, limit: number, timeout = 30000) {
@@ -193,6 +214,10 @@ async function install(id: SourceEngineId) {
   if (!release)
     throw new Error(
       'Ainda não há pacote aprovado para este sistema. Verifique as atualizações mais tarde.'
+    )
+  if (state.installed[id] && gt(state.installed[id]!.version, release.version))
+    throw new Error(
+      'A versão instalada é mais recente que o pacote disponível.'
     )
   if (active.has(id)) {
     pending.add(id)
@@ -304,6 +329,25 @@ async function restore(id: SourceEngineId, alreadyActive = false) {
     if (!alreadyActive) releaseEngine(id)
   }
 }
+async function verify(id: SourceEngineId) {
+  const installed = state.installed[id]
+  if (!installed) throw new Error('Este motor ainda não está instalado.')
+  // Keep the existing repair path, without installing a different update.
+  if (!active.has(id) && candidate(id)?.sha256 === installed.sha256)
+    return install(id)
+  if (!(await claimEngine(id)))
+    throw new Error('Motor em uso. Aguarde e tente novamente.')
+  try {
+    await smoke(installed, directory(installed))
+    messages[id] = 'A versão instalada está íntegra.'
+  } catch (error) {
+    messages[id] =
+      'A instalação falhou na verificação. Reinstale ou restaure uma versão.'
+    throw error
+  } finally {
+    releaseEngine(id)
+  }
+}
 export async function checkSourceEngines(force = false) {
   if (
     !root ||
@@ -341,14 +385,18 @@ export async function checkSourceEngines(force = false) {
         ...releases.filter(
           (old) =>
             !approved.some(
-              (item) => item.id === old.id && item.version === old.version
+              (item) =>
+                item.id === old.id &&
+                item.version === old.version &&
+                (item.integrationRevision || 0) >=
+                  (old.integrationRevision || 0)
             )
         )
       ]
-    } catch {
-      for (const id of ids)
-        messages[id] =
-          'Catálogo remoto indisponível; pacotes locais e versão instalada preservados.'
+      catalogError = undefined
+    } catch (error) {
+      catalogError =
+        `Catálogo de atualizações indisponível. Pacotes locais e versões instaladas preservados. ${error instanceof Error ? error.message : ''}`.trim()
     }
     await Promise.all(
       ids.map(async (id) => {
@@ -396,6 +444,11 @@ export async function initializeSourceEngines(
   await mkdir(root, { recursive: true })
   bundles = bundleRoot
   ghostVersion = version
+  catalogError = undefined
+  for (const id of ids) {
+    delete upstream[id]
+    delete messages[id]
+  }
   state = {
     automatic: true,
     enabled: { scrapling: true, obscura: false },
@@ -475,6 +528,7 @@ export async function sourceEngineAction(action: SourceEngineAction) {
       state.enabled[action.id] = Boolean(action.enabled)
       await persist()
     } else if (action.type === 'install') await install(action.id)
+    else if (action.type === 'verify') await verify(action.id)
     else if (action.type === 'restore') await restore(action.id)
     else throw new Error('Ação desconhecida.')
   }

@@ -1,17 +1,39 @@
 import vm from 'node:vm'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'graceful-fs'
-import { join } from 'path'
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  copyFileSync,
+  renameSync,
+  unlinkSync
+} from 'graceful-fs'
+import { join, dirname, basename, extname } from 'path'
 import type {
   PluginManifest,
   GhostSearchResult,
   GhostDownloadSource,
   GhostHeaderWidget,
-  GhostCardBadge
+  GhostCardBadge,
+  GhostMovie,
+  StremioAddonManifest,
+  StremioMetaPreview,
+  StremioStreamItem,
+  CinemaLibraryState,
+  CinemaMetadataCandidate,
+  CinemaMetadataSettings,
+  CinemaMetadataJob,
+  CinemaUpdateOptions,
+  CinemaMediaPreferences
 } from 'common/types/plugins'
 import { NetworkGuard } from './networkGuard'
 import { websiteSource } from './websiteSource'
 import type { WebsiteSourceConfig } from 'common/types/plugins'
 import { logError, logInfo, logWarning, LogPrefix } from 'backend/logger'
+import { MediaStreamServer } from './mediaStreamServer'
+import { createArtworkFinder, saveMediaArtwork } from './mediaArtwork'
 
 export interface SourceProvider {
   id: string
@@ -19,7 +41,74 @@ export interface SourceProvider {
   search: (query: string) => Promise<GhostSearchResult[]>
   getSources: (gameId: string) => Promise<GhostDownloadSource[]>
   getDetails?: (gameId: string) => Promise<GhostSearchResult>
-  getCatalog?: (options?: { letter?: string; page?: number; theme?: string }) => Promise<{ games: GhostSearchResult[]; hasMore: boolean; totalEstimated?: number }>
+  getCatalog?: (options?: {
+    letter?: string
+    page?: number
+    theme?: string
+  }) => Promise<{
+    games: GhostSearchResult[]
+    hasMore: boolean
+    totalEstimated?: number
+  }>
+}
+
+export interface MediaProvider {
+  clearContinueWatching?: () => Promise<CinemaLibraryState>
+  updateMediaPreferences?: (
+    movieIds: string[],
+    preferences: CinemaMediaPreferences
+  ) => Promise<CinemaLibraryState>
+  id: string
+  name: string
+  getState: () => Promise<CinemaLibraryState>
+  getMovies: () => Promise<GhostMovie[]>
+  scanFolders: (folders?: string[]) => Promise<GhostMovie[]>
+  addFolder: (path: string) => Promise<CinemaLibraryState>
+  removeFolder: (path: string) => Promise<CinemaLibraryState>
+  saveProgress: (
+    movieId: string,
+    progressSeconds: number,
+    durationSeconds: number
+  ) => Promise<void>
+  stremioGetAddons: () => Promise<StremioAddonManifest[]>
+  stremioAddAddon: (manifestUrl: string) => Promise<{
+    success: boolean
+    addon?: StremioAddonManifest
+    error?: string
+  }>
+  stremioRemoveAddon: (addonId: string) => Promise<{ success: boolean }>
+  stremioGetCatalog: (
+    addonId: string,
+    type: string,
+    catalogId: string,
+    skip?: number,
+    search?: string
+  ) => Promise<{ metas: StremioMetaPreview[]; hasMore?: boolean }>
+  stremioGetMeta: (addonId: string, type: string, id: string) => Promise<any>
+  stremioGetStreams: (type: string, id: string) => Promise<StremioStreamItem[]>
+  updateMovie?: (
+    movie: GhostMovie,
+    options?: CinemaUpdateOptions
+  ) => Promise<GhostMovie>
+  enrichMovie?: (movieId: string) => Promise<GhostMovie | null>
+  autoCatalog?: () => Promise<GhostMovie[]>
+  searchMetadata?: (
+    query: string,
+    type: 'movie' | 'series'
+  ) => Promise<CinemaMetadataCandidate[]>
+  metadataDetails?: (
+    candidate: CinemaMetadataCandidate
+  ) => Promise<CinemaMetadataCandidate>
+  refreshMetadata?: (
+    mode: 'missing' | 'all' | 'portuguese'
+  ) => Promise<CinemaMetadataJob>
+  getMetadataStatus?: () => Promise<CinemaMetadataJob>
+  cancelMetadataRefresh?: () => Promise<CinemaMetadataJob>
+  updateMetadataSettings?: (
+    settings: Omit<CinemaMetadataSettings, 'tmdbConfigured'> & {
+      tmdbToken?: string
+    }
+  ) => Promise<CinemaMetadataSettings>
 }
 
 export class PluginHost {
@@ -29,13 +118,19 @@ export class PluginHost {
   private storageFilePath: string
   private dynamicCSS: string[] = []
   private sourceProvider?: SourceProvider
+  private mediaProvider?: MediaProvider
   private headerWidgets: GhostHeaderWidget[] = []
   private cardBadges: GhostCardBadge[] = []
   private gameLaunchedCallbacks: Array<(game: any) => void> = []
   private gameExitedCallbacks: Array<(game: any) => void> = []
   private isDisposed = false
+  private pluginTimers = new Set<NodeJS.Timeout>()
 
-  constructor(manifest: PluginManifest, pluginDir: string, dataRootDir: string) {
+  constructor(
+    manifest: PluginManifest,
+    pluginDir: string,
+    dataRootDir: string
+  ) {
     this.manifest = manifest
     this.pluginDir = pluginDir
     this.dataDir = dataRootDir
@@ -50,16 +145,28 @@ export class PluginHost {
         return JSON.parse(raw)
       }
     } catch (err) {
-      logWarning(`[PluginHost:${this.manifest.id}] Failed to read storage file: ${err}`, LogPrefix.Backend)
+      logWarning(
+        `[PluginHost:${this.manifest.id}] Failed to read storage file: ${err}`,
+        LogPrefix.Backend
+      )
+      throw err
     }
     return {}
   }
 
   private saveStorage(data: Record<string, any>): void {
+    const temporary = `${this.storageFilePath}.tmp`
     try {
-      writeFileSync(this.storageFilePath, JSON.stringify(data, null, 2), 'utf8')
+      writeFileSync(temporary, JSON.stringify(data, null, 2), 'utf8')
+      renameSync(temporary, this.storageFilePath)
     } catch (err) {
-      logError([`[PluginHost:${this.manifest.id}] Failed to write storage file:`, err], LogPrefix.Backend)
+      logError(
+        [`[PluginHost:${this.manifest.id}] Failed to write storage file:`, err],
+        LogPrefix.Backend
+      )
+      throw err
+    } finally {
+      if (existsSync(temporary)) unlinkSync(temporary)
     }
   }
 
@@ -69,6 +176,10 @@ export class PluginHost {
 
   public getSourceProvider(): SourceProvider | undefined {
     return this.sourceProvider
+  }
+
+  public getMediaProvider(): MediaProvider | undefined {
+    return this.mediaProvider
   }
 
   public getHeaderWidgets(): GhostHeaderWidget[] {
@@ -84,7 +195,13 @@ export class PluginHost {
       try {
         cb(game)
       } catch (err) {
-        logError([`[PluginHost:${this.manifest.id}] Error in onGameLaunched callback:`, err], LogPrefix.Backend)
+        logError(
+          [
+            `[PluginHost:${this.manifest.id}] Error in onGameLaunched callback:`,
+            err
+          ],
+          LogPrefix.Backend
+        )
       }
     }
   }
@@ -94,15 +211,27 @@ export class PluginHost {
       try {
         cb(game)
       } catch (err) {
-        logError([`[PluginHost:${this.manifest.id}] Error in onGameExited callback:`, err], LogPrefix.Backend)
+        logError(
+          [
+            `[PluginHost:${this.manifest.id}] Error in onGameExited callback:`,
+            err
+          ],
+          LogPrefix.Backend
+        )
       }
     }
   }
 
   public async start(): Promise<void> {
-    const entryFile = join(this.pluginDir, this.manifest.entrypoint || 'index.js')
+    const entryFile = join(
+      this.pluginDir,
+      this.manifest.entrypoint || 'index.js'
+    )
     if (!existsSync(entryFile)) {
-      logInfo(`[PluginHost:${this.manifest.id}] No entrypoint file found at ${entryFile}. Skipping script execution.`, LogPrefix.Backend)
+      logInfo(
+        `[PluginHost:${this.manifest.id}] No entrypoint file found at ${entryFile}. Skipping script execution.`,
+        LogPrefix.Backend
+      )
       return
     }
 
@@ -111,7 +240,8 @@ export class PluginHost {
     // Prepare GhostShield SDK
     const ghostSdk = {
       registerWebsiteSource: (config: WebsiteSourceConfig) => {
-        if (!this.manifest.permissions.includes('game-sources')) throw new Error('Permissão game-sources necessária.')
+        if (!this.manifest.permissions.includes('game-sources'))
+          throw new Error('Permissão game-sources necessária.')
         this.sourceProvider = websiteSource(this.manifest, config)
       },
       plugin: {
@@ -122,10 +252,16 @@ export class PluginHost {
       },
 
       log: (...args: any[]) => {
-        logInfo(`[Plugin:${this.manifest.id}] ${args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')}`, LogPrefix.Backend)
+        logInfo(
+          `[Plugin:${this.manifest.id}] ${args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')}`,
+          LogPrefix.Backend
+        )
       },
       warn: (...args: any[]) => {
-        logWarning(`[Plugin:${this.manifest.id}] ${args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')}`, LogPrefix.Backend)
+        logWarning(
+          `[Plugin:${this.manifest.id}] ${args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')}`,
+          LogPrefix.Backend
+        )
       },
       error: (...args: any[]) => {
         logError([`[Plugin:${this.manifest.id}]`, ...args], LogPrefix.Backend)
@@ -145,6 +281,7 @@ export class PluginHost {
           return store[key] !== undefined ? store[key] : fallback
         },
         set: async (key: string, value: any) => {
+          if (this.isDisposed) throw new Error('O plugin foi desativado.')
           const store = this.loadStorage()
           store[key] = value
           this.saveStorage(store)
@@ -168,7 +305,12 @@ export class PluginHost {
           const cssRule = `:root { ${varName}: ${value} !important; }`
           this.dynamicCSS.push(cssRule)
         },
-        registerHeaderWidget: (widget: { id: string; title: string; icon: string; badgeText?: string }) => {
+        registerHeaderWidget: (widget: {
+          id: string
+          title: string
+          icon: string
+          badgeText?: string
+        }) => {
           this.headerWidgets.push({
             id: widget.id,
             pluginId: this.manifest.id,
@@ -177,7 +319,12 @@ export class PluginHost {
             badgeText: widget.badgeText
           })
         },
-        registerCardBadge: (badge: { text: string; color?: string; backgroundColor?: string; glowColor?: string }) => {
+        registerCardBadge: (badge: {
+          text: string
+          color?: string
+          backgroundColor?: string
+          glowColor?: string
+        }) => {
           this.cardBadges.push({
             pluginId: this.manifest.id,
             text: badge.text,
@@ -191,7 +338,12 @@ export class PluginHost {
       // Game source provider (AnkerGames, FitGirl, TorBox, Skidrow, etc.)
       registerSourceProvider: (provider: SourceProvider) => {
         if (!this.manifest.permissions.includes('game-sources')) {
-          logError([`[PluginHost:${this.manifest.id}] Cannot register source provider without "game-sources" permission.`], LogPrefix.Backend)
+          logError(
+            [
+              `[PluginHost:${this.manifest.id}] Cannot register source provider without "game-sources" permission.`
+            ],
+            LogPrefix.Backend
+          )
           return
         }
         this.sourceProvider = {
@@ -201,6 +353,207 @@ export class PluginHost {
           getSources: provider.getSources,
           getDetails: provider.getDetails,
           getCatalog: provider.getCatalog
+        }
+      },
+
+      // Media provider (Ghost Cinema & Stremio Addons)
+      media: {
+        artworkExists: async (path: string) => {
+          if (!this.manifest.permissions.includes('media'))
+            throw new Error('Permissão media necessária.')
+          return /\.(jpg|jpeg|png|webp)$/i.test(path) && existsSync(path)
+        },
+        registerMediaProvider: (provider: MediaProvider) => {
+          if (!this.manifest.permissions.includes('media')) {
+            logError(
+              [
+                `[PluginHost:${this.manifest.id}] Cannot register media provider without "media" permission.`
+              ],
+              LogPrefix.Backend
+            )
+            return
+          }
+          this.mediaProvider = {
+            ...provider,
+            id: this.manifest.id,
+            name: this.manifest.name
+          }
+        },
+        scanFolder: async (
+          dirPath: string
+        ): Promise<
+          Array<{
+            path: string
+            name: string
+            size: number
+            birthtime: string
+            localPoster?: string
+            localBackdrop?: string
+            posterStreamUrl?: string
+            backdropStreamUrl?: string
+          }>
+        > => {
+          if (!this.manifest.permissions.includes('media')) {
+            throw new Error(
+              'Permissão "media" necessária para escanear pastas.'
+            )
+          }
+          if (!existsSync(dirPath) || !statSync(dirPath).isDirectory())
+            throw new Error('A pasta de mídia não está disponível.')
+          const list: Array<{
+            path: string
+            name: string
+            size: number
+            birthtime: string
+            localPoster?: string
+            localBackdrop?: string
+            posterStreamUrl?: string
+            backdropStreamUrl?: string
+          }> = []
+          const VIDEO_EXTS = new Set([
+            '.mp4',
+            '.mkv',
+            '.webm',
+            '.avi',
+            '.mov',
+            '.m4v',
+            '.ts',
+            '.wmv',
+            '.flv',
+            '.rmvb',
+            '.vob',
+            '.divx',
+            '.ogv',
+            '.mpg',
+            '.mpeg',
+            '.m2ts'
+          ])
+          const findArtwork = createArtworkFinder()
+
+          let streamPort = 0
+          try {
+            streamPort = await MediaStreamServer.getInstance().start()
+          } catch {}
+
+          const scanRecursive = (dir: string, depth = 0) => {
+            if (depth > 12) return
+            try {
+              const entries = readdirSync(dir, { withFileTypes: true })
+              for (const entry of entries) {
+                if (
+                  entry.name.startsWith('.') ||
+                  entry.name.startsWith('$') ||
+                  entry.name === 'System Volume Information' ||
+                  entry.name === '$RECYCLE.BIN'
+                ) {
+                  continue
+                }
+                const full = join(dir, entry.name)
+                if (entry.isDirectory()) {
+                  scanRecursive(full, depth + 1)
+                } else if (entry.isFile()) {
+                  const lastDot = full.lastIndexOf('.')
+                  if (lastDot !== -1) {
+                    const ext = full.slice(lastDot).toLowerCase()
+                    if (VIDEO_EXTS.has(ext)) {
+                      try {
+                        const stat = statSync(full)
+                        const artwork = findArtwork(full)
+                        const posterStreamUrl =
+                          artwork.poster && streamPort > 0
+                            ? `http://127.0.0.1:${streamPort}/stream?file=${encodeURIComponent(artwork.poster)}`
+                            : undefined
+                        const backdropStreamUrl =
+                          artwork.backdrop && streamPort > 0
+                            ? `http://127.0.0.1:${streamPort}/stream?file=${encodeURIComponent(artwork.backdrop)}`
+                            : undefined
+
+                        list.push({
+                          path: full,
+                          name: entry.name,
+                          size: stat.size,
+                          birthtime: stat.birthtime
+                            ? stat.birthtime.toISOString()
+                            : new Date().toISOString(),
+                          localPoster: artwork.poster,
+                          localBackdrop: artwork.backdrop,
+                          posterStreamUrl,
+                          backdropStreamUrl
+                        })
+                      } catch {}
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              logWarning(
+                `[PluginHost:${this.manifest.id}] Erro ao ler pasta ${dir}: ${err}`,
+                LogPrefix.Backend
+              )
+            }
+          }
+
+          scanRecursive(dirPath)
+          return list
+        },
+        findLocalArtwork: async (
+          filePath: string,
+          showDir?: string
+        ): Promise<{
+          poster?: string
+          backdrop?: string
+          posterStreamUrl?: string
+          backdropStreamUrl?: string
+        }> => {
+          if (!this.manifest.permissions.includes('media')) {
+            throw new Error('Permissão "media" necessária.')
+          }
+          const res: {
+            poster?: string
+            backdrop?: string
+            posterStreamUrl?: string
+            backdropStreamUrl?: string
+          } = createArtworkFinder()(filePath, showDir)
+
+          let streamPort = 0
+          try {
+            streamPort = await MediaStreamServer.getInstance().start()
+          } catch {}
+
+          if (res.poster && streamPort > 0) {
+            res.posterStreamUrl = `http://127.0.0.1:${streamPort}/stream?file=${encodeURIComponent(res.poster)}`
+          }
+          if (res.backdrop && streamPort > 0) {
+            res.backdropStreamUrl = `http://127.0.0.1:${streamPort}/stream?file=${encodeURIComponent(res.backdrop)}`
+          }
+
+          return res
+        },
+        saveArtwork: async (
+          filePath: string,
+          imageSource: string,
+          type: 'poster' | 'backdrop',
+          showDir?: string,
+          singleItem = false
+        ) => {
+          if (!this.manifest.permissions.includes('media'))
+            throw new Error('Permissão media necessária para salvar capas.')
+          return saveMediaArtwork(
+            this.manifest,
+            filePath,
+            imageSource,
+            type,
+            showDir,
+            singleItem
+          )
+        },
+        getStreamUrl: async (filePath: string): Promise<string> => {
+          if (!this.manifest.permissions.includes('media')) {
+            throw new Error(
+              'Permissão "media" necessária para obter URL de streaming.'
+            )
+          }
+          return MediaStreamServer.getInstance().getStreamUrl(filePath)
         }
       },
 
@@ -224,10 +577,29 @@ export class PluginHost {
         error: ghostSdk.error,
         info: ghostSdk.log
       },
-      setTimeout,
-      clearTimeout,
-      setInterval,
-      clearInterval,
+      setTimeout: (callback: () => void, delay: number) => {
+        const timer = setTimeout(() => {
+          this.pluginTimers.delete(timer)
+          if (!this.isDisposed) callback()
+        }, delay)
+        this.pluginTimers.add(timer)
+        return timer
+      },
+      clearTimeout: (timer: NodeJS.Timeout) => {
+        this.pluginTimers.delete(timer)
+        clearTimeout(timer)
+      },
+      setInterval: (callback: () => void, delay: number) => {
+        const timer = setInterval(() => {
+          if (!this.isDisposed) callback()
+        }, delay)
+        this.pluginTimers.add(timer)
+        return timer
+      },
+      clearInterval: (timer: NodeJS.Timeout) => {
+        this.pluginTimers.delete(timer)
+        clearInterval(timer)
+      },
       URL,
       URLSearchParams,
       Buffer,
@@ -250,17 +622,26 @@ export class PluginHost {
         filename: `${this.manifest.id}/index.js`
       })
       script.runInContext(context, { timeout: 10000 })
-      logInfo(`[PluginHost:${this.manifest.id}] Initialized successfully.`, LogPrefix.Backend)
+      logInfo(
+        `[PluginHost:${this.manifest.id}] Initialized successfully.`,
+        LogPrefix.Backend
+      )
     } catch (err: any) {
-      logError([`[PluginHost:${this.manifest.id}] Execution failed:`, err], LogPrefix.Backend)
+      logError(
+        [`[PluginHost:${this.manifest.id}] Execution failed:`, err],
+        LogPrefix.Backend
+      )
       throw err
     }
   }
 
   public dispose(): void {
     this.isDisposed = true
+    for (const timer of this.pluginTimers) clearTimeout(timer)
+    this.pluginTimers.clear()
     this.dynamicCSS = []
     this.sourceProvider = undefined
+    this.mediaProvider = undefined
     this.headerWidgets = []
     this.cardBadges = []
     this.gameLaunchedCallbacks = []

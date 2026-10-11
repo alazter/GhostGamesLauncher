@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "intervalMs": 7000,
+  "firstNineTitles": [
+    "Filme de teste",
+    "cartoon",
+    "Indicação 6",
+    "Indicação 2",
+    "Agent Aika",
+    "Indicação 1",
+    "Indicação 4",
+    "Indicação 3",
+    "series"
+  ],
+  "hoverPause": true,
+  "keyboardFocusPause": true,
+  "explicitPause": true,
+  "visibilityPause": true,
+  "detailsPause": true,
+  "mobile": true,
+  "reducedMotion": true,
+  "smallAndEmptyLibraries": true,
+  "pageErrors": []
+}

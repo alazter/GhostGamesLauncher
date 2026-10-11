@@ -1,0 +1,1900 @@
+/*
+with 1.2 scale ratio and 16px root font size
+name px rem
+xs	11.11	0.69
+sm	13.33	0.83
+md	16.00	1.00
+lg	19.20	1.20
+xl	23.04	1.44
+2xl	27.65	1.73
+3xl	33.18	2.07
+4xl	39.81	2.49
+5xl	47.78	2.99
+6xl	57.33	3.58
+*/
+body {
+  font-size: 1rem;
+  font-family: var(--secondary-font-family), -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-style: normal;
+  font-weight: var(--regular);
+}
+
+code {
+  font-family: var(--secondary-font-family), source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.subtitle {
+  font-family: var(--primary-font-family);
+}
+
+.content-sm {
+  font-family: var(--secondary-font-family);
+}
+
+.text--6xl {
+  font-size: var(--text-6xl);
+}
+
+.text--5xl {
+  font-size: var(--text-5xl);
+}
+
+h1,
+.text--4xl {
+  font-size: var(--text-4xl);
+}
+
+h2,
+.text--3xl {
+  font-size: var(--text-3xl);
+}
+
+h3,
+.text--2xl {
+  font-size: var(--text-2xl);
+}
+
+h4,
+.text--xl {
+  font-size: var(--text-xl);
+}
+
+h5,
+.text--lg {
+  font-size: var(--text-lg);
+}
+
+.subtitle,
+.content,
+p,
+h6,
+.text--md,
+button,
+.button-md {
+  font-size: var(--text-md);
+}
+
+.content-sm,
+.button-sm,
+.text--sm {
+  font-size: var(--text-sm);
+}
+
+.subtitle-sm,
+.caption,
+.status,
+.text--xs {
+  font-size: var(--text-xs);
+}
+
+.subtitle,
+.content-sm,
+h5,
+h4 {
+  font-weight: var(--medium);
+}
+
+.subtitle-sm,
+.button-sm,
+.button-md,
+h3,
+h2,
+h1 {
+  font-weight: var(--bold);
+}
+
+.status,
+h6 {
+  font-weight: var(--semibold);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-block-start: 0;
+  margin-block-end: 0;
+  margin-bottom: var(--space-2xs);
+}
+
+body {
+  margin: 0;
+}
+
+body {
+  color: var(--text-default);
+  background: var(--body-background);
+}
+
+a {
+  color: var(--text-default);
+}
+a:not(.underlined) {
+  text-decoration: none;
+}
+
+.simple-keyboard-wrapper .hg-button {
+  background: var(--osk-button-background);
+  border-color: var(--osk-button-border);
+  color: var(--text-default);
+}
+.simple-keyboard-wrapper .hg-button.hg-activeButton {
+  background: var(--osk-button-border);
+  border-color: var(--osk-button-border);
+  color: var(--text-default);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--text-default);
+}
+
+.gogIcon {
+  fill: var(--text-default);
+}
+
+button {
+  font-family: var(--secondary-font-family);
+  border-radius: var(--space-3xs);
+  color: #161616;
+}
+
+.button {
+  font-family: var(--secondary-font-family);
+  border-radius: var(--space-3xs);
+  color: #161616;
+  --line-height: 17px;
+  cursor: pointer;
+  padding: var(--space-sm);
+  background: var(--primary);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  font-style: normal;
+  font-weight: var(--medium);
+  font-size: var(--text-md);
+  line-height: var(--line-height);
+  border: none;
+  max-height: 40px;
+  text-align: center;
+  transition: 500ms;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button.is-small {
+  min-width: 130px;
+}
+
+.button.is-primary {
+  background: var(--brand-primary);
+}
+
+.button.is-primary:hover {
+  background: var(--primary-hover);
+}
+
+.button.is-primary:disabled {
+  color: var(--text-secondary);
+  background: var(--disabled-button, var(--background-secondary));
+  pointer-events: none;
+}
+
+.button.is-secondary {
+  background: var(--secondary-button);
+  color: var(--text-tertiary);
+  transition: 500ms;
+}
+
+.button.is-secondary:hover {
+  background: var(--secondary-button-overlay, var(--accent-overlay));
+}
+
+.button:disabled.is-secondary,
+.button:disabled:hover.is-secondary {
+  background-color: var(--disabled-button, var(--background-secondary));
+  color: var(--text-secondary);
+}
+
+.button.is-tertiary {
+  background: var(--tertiary-button, var(--neutral-04));
+  color: var(--text-tertiary);
+}
+
+.button.is-tertiary:hover {
+  background: var(--tertiary-button-overlay, var(--body-background));
+  color: var(--text-tertiary);
+}
+
+.button.is-tools:hover,
+.button.is-tools:focus-visible {
+  background-color: var(--stop-button);
+}
+
+.button.is-tools:hover .toolTitle,
+.button.is-tools:focus-visible .toolTitle {
+  transition: 500ms;
+  color: var(--text-hover);
+}
+
+.button.is-empty {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.button.is-danger {
+  background: var(--cancel-button, var(--status-danger));
+}
+
+.button.is-danger:hover,
+.button.is-danger:focus-visible {
+  background: var(--cancel-button-overlay, var(--status-danger));
+  box-shadow: 0px 0px 0px 3px var(--danger, var(--text-default));
+}
+
+.button.is-success {
+  background: var(--success-button, var(--status-success));
+}
+
+.button.is-success:hover:not(:disabled) {
+  box-shadow: 0px 0px 0px 3px var(--button-stroke, var(--text-default));
+}
+
+.button.is-success:hover:disabled,
+.button.is-success:disabled {
+  background: var(--background);
+  background: var(--disabled-button);
+  color: var(--text-default);
+}
+
+.button.outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid;
+}
+
+.button.outline:hover:disabled,
+.button.outline:disabled {
+  background-color: var(--background-secondary);
+  background: var(--disabled-button);
+  color: var(--text-secondary);
+  border: none;
+}
+
+.button:hover.outline,
+.button.outline.active {
+  background: transparent;
+  color: var(--accent-overlay) !important;
+  border: 2px solid;
+}
+
+.button.settings {
+  background: var(--text-secondary);
+}
+
+.button.settings:hover {
+  background: var(--secondary-hover);
+}
+
+.button.settings:disabled:hover,
+.button.settings:disabled {
+  background: var(--disabled-button);
+}
+
+.button.is-text {
+  background: var(--accent);
+  color: var(--background);
+  box-shadow: none;
+  text-transform: none;
+  min-width: fit-content;
+  font-family: var(--content-font-family);
+  font-size: var(--text-sm);
+  padding: var(--space-xs);
+  margin-inline-start: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.button.is-text:hover {
+  background: var(--primary-hover);
+}
+
+.button.is-link {
+  font-family: var(--secondary-font-family);
+  font-style: normal;
+  font-weight: normal;
+  font-size: var(--text-md);
+  line-height: 17px;
+  color: var(--text-default);
+  margin: var(--space-3xs) 0em;
+  cursor: pointer;
+  padding: var(--space-3xs);
+}
+
+.button.is-link:hover {
+  color: var(--accent);
+}
+
+.button.is-link[disabled] {
+  color: var(--icon-disabled);
+  cursor: wait;
+}
+
+.button:disabled {
+  background: var(--disabled-button);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.buttonWithIcon {
+  display: flex;
+  place-items: center;
+}
+.buttonWithIcon > svg {
+  height: 20px;
+}
+
+:root {
+  --default-primary-font-family: "Rubik", sans-serif;
+  --default-secondary-font-family: "Cabin", sans-serif;
+  --primary-font-family: var(--default-primary-font-family);
+  --secondary-font-family: var(--default-secondary-font-family);
+  --light: 300;
+  --regular: 400;
+  --medium: 500;
+  --semibold: 600;
+  --bold: 700;
+  --extrabold: 900;
+  /* set base values */
+  --text-scale-ratio: 1.2;
+  font-size: 16px;
+  /* type scale */
+  --text-xs: calc(1rem / (var(--text-scale-ratio) * var(--text-scale-ratio)));
+  --text-sm: calc(1rem / var(--text-scale-ratio));
+  --text-md: calc(1rem);
+  --text-lg: calc(1rem * var(--text-scale-ratio));
+  --text-xl: calc(1rem * var(--text-scale-ratio) * var(--text-scale-ratio));
+  --text-2xl: calc(
+    1rem * var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio)
+  );
+  --text-3xl: calc(
+    1rem * var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio) * var(--text-scale-ratio)
+  );
+  --text-4xl: calc(
+    1rem * var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio)
+  );
+  --text-5xl: calc(
+    1rem * var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio) * var(--text-scale-ratio)
+  );
+  --text-6xl: calc(
+    1rem * var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio) * var(--text-scale-ratio) *
+      var(--text-scale-ratio)
+  );
+  /* spacing values */
+  --space-3xs: 0.25em;
+  --space-2xs: 0.375em;
+  --space-xs: 0.5em;
+  --space-sm: 0.75em;
+  --space-md: 1em;
+  --space-lg: 1.5em;
+  --space-xl: 3em;
+  --space-2xl: 4.5em;
+  --space-3xl: 8.5em;
+  --space-unit-fixed: 16px;
+  --space-2xs-fixed: calc(0.25 * var(--space-unit-fixed));
+  --space-xs-fixed: calc(0.5 * var(--space-unit-fixed));
+  --space-sm-fixed: calc(0.75 * var(--space-unit-fixed));
+  --space-md-fixed: calc(1 * var(--space-unit-fixed));
+  --space-lg-fixed: calc(1.2 * var(--space-unit-fixed));
+  --space-xl-fixed: calc(2.5 * var(--space-unit-fixed));
+  --space-2xl-fixed: calc(4.5 * var(--space-unit-fixed));
+  /* General Colors as on Figma. Do not add new colors here */
+  /* Brand */
+  --brand-primary: #1de8f5;
+  --brand-primary-hover: #0db4be;
+  --brand-secondary: #bfb3ff;
+  --brand-secondary-hover: #dad5ff;
+  --brand-text-01: #caf3fd;
+  --brand-text-02: #a5edfd;
+  --brand-text-03: #6fd9f7;
+  --brand-text-04: #e0d0ff;
+  --brand-text-05: #9ea3fd;
+  /* Neutral */
+  --neutral-01: #070a0b;
+  --neutral-02: #161c1e;
+  --neutral-03: #272f31;
+  --neutral-04: #51595a;
+  --neutral-05: #a8aeaf;
+  --neutral-06: #d1e4e9;
+  --neutral-07: #f0f7f9;
+  --neutral-08: #f9fbfc;
+  /* Status */
+  --status-default: #d2d2d2;
+  --status-success: #0ce396;
+  --status-warning: #f8ae79;
+  --status-danger: #f97881;
+  --status-info: #2ceac7;
+  --primary-hover: #0db4be;
+  --primary-active: #88ebf1;
+  --secondary-hover: #a7baff;
+  --secondary-active: #2253ff;
+  /* Base */
+  --base-06: #9aa1a3;
+  /* Status Hover */
+  --status-default-hover: rgb(197, 197, 197);
+  --status-success-hover: #39fab6;
+  --status-warning-hover: #ffbd8e;
+  --status-danger-hover: #fc9ba1;
+  --status-info-hover: #0fefc7;
+  /* Other */
+  --accent: #8bffff;
+  --accent-02: #484daf5b;
+  --accent-overlay: #b098e2;
+  --eighty-percent-black: #000000cc;
+  --sixty-percent-black: #00000099;
+  /* Gradient */
+  --gradient-01: linear-gradient(270.36deg, #86b6ff 1.57%, #18dfec 96.46%);
+  --gradient-02: linear-gradient(270.36deg, #1de8f5 1.57%, #4b93ff 96.46%);
+  --gamecard-title-color: var(--eighty-percent-black);
+  --gradient-gamecard: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.418) 1.8%,
+    var(--gamecard-title-color) 45%
+  );
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  overflow-y: overlay;
+  /* Effects */
+  --blur-light: 4px;
+  --blur-strong: 16px;
+}
+
+html {
+  width: 100vw;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+}
+
+body, #root, #root > *, .app-container, .listing {
+  max-width: 100vw;
+  overflow-x: hidden !important;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  /* Frameless window defaults */
+  --titlebar-color: var(--body-background);
+  --titlebar-symbol-color: var(--accent);
+  --overlay-controls-height: env(titlebar-area-height, 39px);
+  --overlay-controls-width: calc(
+    100vw - env(titlebar-area-width, calc(100vw - 120px))
+  );
+  overflow: auto !important;
+  padding: 0 !important;
+}
+
+/* Overlay Scrollbar*/
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background: var(--current-background, var(--body-background));
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  display: none;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 5px;
+  margin: 2px;
+  min-height: 55px;
+  min-width: 55px;
+  border: 2px solid var(--current-background, var(--body-background));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-overlay);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--accent);
+}
+
+::-webkit-scrollbar-corner,
+::-webkit-resizer {
+  background: var(--gradient-body-background, var(--body-background));
+}
+
+.simple-keyboard-wrapper {
+  display: none;
+}
+.simple-keyboard-wrapper[open] {
+  position: fixed;
+  display: initial;
+  inset-block-start: auto;
+  inset-block-end: 50px;
+  width: 100vw;
+  background: var(--osk-background);
+}
+
+.smallInputInfo {
+  font-size: var(--text-sm);
+  align-self: flex-start;
+  margin-block: var(--space-xs) var(--space-3xs);
+  margin-inline: var(--space-xs) 0;
+  color: var(--text-secondary);
+}
+
+#root:has(> .UpdateComponent) {
+  height: 100vh;
+}
+#root:has(> .UpdateComponent) > .UpdateComponent {
+  height: 100vh;
+}
+@charset "UTF-8";
+body {
+  --text-default: #eae8e5;
+  --text-secondary: #b1b1b1;
+  --text-tertiary: var(--neutral-01);
+  --tertiary-button: var(--status-warning);
+  --tertiary-button-overlay: var(--status-warning-hover);
+  --cancel-button: var(--status-warning);
+  --cancel-button-overlay: var(--status-warning-hover);
+  --background-darker-80: var(--eighty-percent-black);
+  --anticheat-denied: #a25d21;
+  --anticheat-broken: var(--status-warning);
+  --anticheat-running: var(--status-default);
+  --anticheat-supported: var(--status-success);
+  --anticheat-planned: var(--status-info);
+  --anticheat-unknown: var(--status-denied);
+  --alphabet-filter-accent-color: var(--accent);
+  --alphabet-filter-accent-hover: var(--accent-overlay, var(--accent));
+}
+
+body.alphabet-filter-button--active {
+  --alphabet-filter-accent-color: var(
+    --accent,
+    var(--primary, var(--brand-primary))
+  );
+  --alphabet-filter-accent-hover: var(
+    --accent-overlay,
+    var(--primary-hover, var(--brand-primary-hover))
+  );
+}
+
+body.midnightMirage {
+  /* Default Theme */
+  /* Text colours */
+  --text-default: var(--brand-text-01);
+  --text-secondary: var(--brand-text-02);
+  --text-tertiary: var(--neutral-01); /* This is not defined in figma */
+  --text-quartenary: var(--neutral-04);
+  /* Background colors, inputs, OnScreenKeyboard and Modal */
+  --background: var(--neutral-02);
+  --background-darker: var(--neutral-01);
+  --background-lighter: var(--neutral-03);
+  --body-background: var(--background-darker);
+  --input-background: var(--background-lighter);
+  --controller-hints-background: transparent;
+  --current-background: var(--body-background);
+  --modal-background: var(--background-darker);
+  --modal-backdrop: var(--background-darker-80);
+  --modal-border: var(--background);
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --search-bar-background: var(--neutral-02);
+  --search-bar-border: var(--neutral-03);
+  /* Action Icons */
+  --action-icon: var(--neutral-05);
+  --action-icon-hover: var(--text-hover);
+  --action-icon-active: var(--neutral-06);
+  --modal-backdrop: var(--eighty-percent-black);
+  --icon-disabled: var(--disabled-button);
+  --icon-disabled-overlay: var(--disabled-button-overlay);
+  --icons-background: var(--neutral-02);
+  /* Buttons */
+  --primary-button: var(--brand-primary);
+  --secondary-button: var(--brand-secondary);
+  --button-stroke: var(--accent);
+  --secondary-button-overlay: var(--primary-hover);
+  --tertiary-button-overlay: var(--status-warning-hover);
+  --success-button: var(--status-success);
+  --disabled-button: var(--neutral-03);
+  --disabled-button-overlay: var(--neutral-05);
+  --play-button: var(--primary-button);
+  --install-button: var(--secondary-button);
+  --cancel-button: var(--status-warning);
+  --cancel-button-overlay: var(--status-warning-hover);
+  --link-highlight: var(--accent);
+  --success-button: var(--status-success);
+  --secondary-button: var(--brand-primary);
+  /* Text */
+  --text-default: var(--brand-text-01);
+  --text-tertiary: var(--neutral-01);
+  --text-hover: var(--brand-text-02);
+  /* Sidebar */
+  --navbar-active: var(--text-secondary);
+  --navbar-inactive: var(--neutral-06);
+  --navbar-active-background: var(--background-darker);
+  --navbar-accent: var(--text-default);
+  --navbar-background: var(--background);
+  --divider: var(--neutral-03);
+  /* Status */
+  --success: var(--status-success);
+  --success-hover: var(--status-success-hover);
+  --danger: #a62b2b;
+  --danger-hover: var(--status-danger);
+  /* Others for compatibility, probably can be refactored */
+  --primary: var(--brand-primary);
+  --secondary: var(--brand-secondary);
+}
+
+body.classic,
+body.cyberSpaceOasis,
+body.cyberSpaceOasisAlt {
+  --background: #151f3d;
+  --background-darker: #0d0f1c;
+  --background-darker-80: #0d0f1ce0;
+  --background-secondary: #323035;
+  --background-lighter: #152f6d;
+  /* Colours */
+  --navbar-background: var(--background);
+  --input-background: var(--background-darker);
+  --body-background: #13172a;
+  --current-background: var(--body-background);
+  --modal-background: #13172a;
+  --modal-border: #1f253f;
+  --text-hover: #7ae3fa;
+  --primary: #07c5ef;
+  --primary-hover: #4cdafa;
+  --link-highlight: #07c5ef;
+  --accent: #e0ab40;
+  --accent-overlay: #ffbb33;
+  --navbar-accent: var(--accent);
+  --navbar-active-background: var(--background-lighter);
+  --play-button: #59d0ea;
+  --download-button: #3082d9;
+  --download-button-overlay: #1372d7;
+  --danger: var(
+    --status-danger
+  ); /* These success, danger and disabled colours need to be documented */
+  --success: #12e195;
+  --success-hover: #5cefb9;
+  --danger-hover: var(--status-danger-hover);
+  --icon-disabled: #625e69;
+  --icons-background: #17131c;
+  --divider: gray;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --controller-hints-background: transparent;
+  --anticheat-denied: #8a2020;
+  --anticheat-broken: #a62b2b;
+  --anticheat-running: #0e8598;
+  --anticheat-supported: #2f9e44;
+  --anticheat-planned: #6841d9;
+  /* Gradients */
+  --gamecard-title-color: #17131cd2;
+  --gradient-gamecard: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.418) 1.8%,
+    var(--gamecard-title-color) 45%
+  );
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  /* Text colours */
+  --text-default: #eae8e5;
+  --text-secondary: #b1b1b1;
+  --text-pause-cancel: #97f4e9;
+  --text-title: #ffffff;
+  --text-tertiary: #101111; /* This is not defined in figma */
+  --text-quartenary: #5a5e5f; /* this is meant to be a background colour */
+  --text-danger: var(--status-danger);
+  --text-gametitle: var(--text-default);
+  --text-log: var(--status-warning);
+  --text-warning: var(--status-warning-hover);
+  /*Action Icons*/
+  --action-icon: var(--text-default);
+  --action-icon-hover: var(--brand-text-01);
+  --action-icon-active: var(--brand-text-02);
+  /*Buttons*/
+  --success-button: #12e195;
+  --secondary-button: #ffbb33;
+}
+
+body.gruvbox_dark {
+  --accent: #b57614;
+  --accent-overlay: #d79921;
+  --navbar-accent: #f9f5d7;
+  --background: #1d2021;
+  --body-background: #282828;
+  --background-darker: var(--body-background);
+  --current-background: var(--body-background);
+  --navbar-background: #32302f;
+  --navbar-active-background: #282828;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #32302f;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #70b430;
+  --success-hover: #9bce6b;
+  --primary: #458588;
+  --primary-hover: #83a598;
+  --danger: #9e2c28;
+  --danger-hover: #f05d4d;
+  --anticheat-denied: #9e2c28;
+  --anticheat-broken: #af3a03;
+  --anticheat-running: #076678;
+  --anticheat-supported: #79740e;
+  --anticheat-planned: #8f3f71;
+  --text-title: #f9f5d7;
+  --icons-background: #3c3836;
+  --action-icon: #f9f5d7;
+  --action-icon-hover: #b16286;
+  --action-icon-active: #8ec07c;
+  --icon-disabled: #928374;
+  --success-button: #9bce6b;
+  --secondary-button: #e2951a;
+  --osk-button-background: var(--input-background);
+}
+
+body.high-contrast {
+  --accent: #00ddff;
+  --accent-overlay: #36ddff;
+  --navbar-accent: #ffffffff;
+  --background: #121212ff;
+  --body-background: #202020ff;
+  --background-darker: var(--background);
+  --current-background: var(--body-background);
+  --navbar-background: #121212ff;
+  --navbar-active-background: #202020ff;
+  --gradient-body-background: var(--background);
+  --input-background: #262937ff;
+  --modal-background: var(--background);
+  --modal-border: #ffffffff;
+  --download-button: #44475a;
+  --download-button-overlay: #007bff;
+  --success: #00ff40;
+  --success-hover: #2dff61;
+  --primary: #ff0090;
+  --primary-hover: #ff36a8;
+  --danger: #ff0000;
+  --text-title: #00ddff;
+  --text-hover: #00ddff;
+  --icons-background: var(--background);
+  --action-icon-hover: var(--accent);
+  --action-icon-active: var(--accent);
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: #ffffffff;
+  --secondary-button: #f364b5;
+  --success-button: #00ddff;
+}
+body.high-contrast .heroicVersion {
+  color: var(--text-default);
+}
+
+body.dracula,
+body.dracula-classic {
+  --accent: #bd93f9;
+  --accent-overlay: #d5b8ff;
+  --navbar-accent: #eae8e5;
+  --background: #090b1c;
+  --body-background: #282a35;
+  --background-darker: var(--body-background);
+  --current-background: var(--body-background);
+  --navbar-background: #44475a;
+  --navbar-active: var(--accent);
+  --navbar-active-background: #282a36;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #44475a;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #50fa7b;
+  --success-hover: #66f389;
+  --primary: #ff79c6;
+  --primary-hover: #f560b4;
+  --danger: #ff5555;
+  --text-title: #8be9fd;
+  --text-default: white;
+  --icons-background: #17131c;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --action-icon: var(--text-default);
+  --action-icon-hover: var(--text-hover);
+  --action-icon-active: var(--accent);
+  --install-button: #b889fa;
+  --secondary-button: #b889fa;
+  --action-icon-hover: var(--accent);
+}
+body.dracula .heroicVersion,
+body.dracula-classic .heroicVersion {
+  color: var(--text-default);
+}
+
+body.nord-light {
+  --background-light: #eceff4;
+  --body-background: var(--background-light);
+  --accent-overlay: #81a1c1;
+  --navbar-accent: #81a1c1;
+  --background-darker: var(--body-background);
+  --current-background: var(--body-background);
+  --navbar-active-background: #2e3440;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-light) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --primary: #b48ead;
+  --primary-hover: #a17399;
+  --danger: #bf616a;
+  --text-tertiary: var(--brand-text-01);
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --action-icon-hover: var(--accent);
+  --action-icon-active: var(--text-default);
+  --navbar-inactive: #ffffff;
+  --navbar-active: #d0ddff;
+  --success-button: #3687a9;
+  --secondary-button: #15a3e0;
+  --icons-background: #6f738f;
+  --tertiary-button: #6f738f;
+  --brand-text-01: #e0f9ff;
+  --neutral-06: #2e3440;
+  --neutral-03: #429ec5;
+  --accent: #30444a;
+  --background: var(--background-light);
+  --navbar-background: #4c566a;
+  --input-background: #d8dee9;
+  --success: #3e532d;
+  --success-hover: #617550;
+  --text-title: #20242c;
+  --text-default: var(--text-title);
+  --text-secondary: #393b41;
+  --text-hover: #5e81ac;
+  --action-icon: #748aa0;
+  --status-warning: #b86901;
+  --gamecard-title-color: #ccdaf8cc;
+  --install-button: var(--primary);
+  --status-success-hover: #5e81ac;
+  --text-log: var(--status-warning);
+  --tour-popup-background: var(--input-background);
+  --tour-bullet-active: var(--accent);
+  --tour-bullet-inactive: var(--accent-overlay);
+  --tour-popup-title: var(--text-title);
+  --tour-popup-skip-color: var(--text-secondary);
+  --tour-popup-skip-color-hover: var(--text-title);
+}
+body.nord-light .developer,
+body.nord-light .releaseDate,
+body.nord-light .timeContainerLabel {
+  color: var(--text-default) !important;
+}
+body.nord-light .MuiDialog-paper {
+  background-color: var(--background-light);
+  color: var(--text-default);
+}
+body.nord-light .runnerIcon {
+  background: #88c0d0;
+}
+body.nord-light .genre {
+  background: #2e3440 !important;
+  color: #e5e9f0 !important;
+}
+body.nord-light button.is-primary {
+  color: var(--text-default);
+}
+body.nord-light .button.is-success {
+  color: var(--text-default);
+  background-color: #81a1c1;
+}
+body.nord-light .playIcon circle {
+  fill: var(--status-success);
+}
+body.nord-light .downIcon circle {
+  fill: var(--primary-active);
+}
+body.nord-light .button.is-link {
+  color: var(--navbar-active);
+}
+body.nord-light .currentDownload {
+  color: var(--navbar-active);
+  --success: var(--status-success);
+}
+body.nord-light .selectFieldWrapper select > option {
+  background: var(--background);
+}
+body.nord-light .searchBarInput::placeholder {
+  color: var(--text-default);
+  opacity: 1;
+}
+body.nord-light .heroicVersion:hover {
+  color: var(--navbar-active);
+}
+body.nord-light .contextMenu > .MuiPaper-root, body.nord-light .contextMenu > .MuiPaper-root > .MuiMenu-list {
+  background-color: var(--input-background);
+}
+body.nord-light .contextMenu > .MuiPaper-root .MuiMenuItem-root:hover, body.nord-light .contextMenu > .MuiPaper-root > .MuiMenu-list .MuiMenuItem-root:hover {
+  background-color: var(--navbar-accent);
+}
+body.nord-light .progressDialog.log-box,
+body.nord-light .errorDialog.error-box {
+  background-color: #dde1e7;
+}
+body.nord-light .gameCard > .gameCardStatus {
+  color: var(--navbar-active);
+}
+body.nord-light .CategoriesManager__Dialog .MuiDialogContent-root .Category:hover, body.nord-light .CategoriesManager__Dialog .MuiDialogContent-root .Category:focus-within {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+body.nord-light .tour-button {
+  --tour-button-color: var(--accent);
+}
+body.nord-light .Sidebar .tour-button {
+  --tour-button-color: var(--primary-active);
+}
+body.nord-light .alternative > svg {
+  fill: var(--accent) !important;
+}
+
+body.nord-dark {
+  --accent: #a5dceb;
+  --accent-overlay: #cbeef8;
+  --navbar-accent: #afc4eb;
+  --background: #191c22;
+  --body-background: var(--background);
+  --background-darker: var(--body-background);
+  --current-background: var(--body-background);
+  --navbar-background: #2e3440;
+  --navbar-active-background: #191c22;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #2e3440;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #94f1ab;
+  --success-hover: #75e08f;
+  --primary: #b48ead;
+  --primary-hover: #a17399;
+  --danger: #bf616a;
+  --text-title: var(--brand-text-01);
+  --text-default: var(--text-title);
+  --text-secondary: #ffffff;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --action-icon: #748aa0;
+  --action-icon-hover: var(--accent-overlay);
+  --action-icon-active: var(--text-default);
+  --download-button: var(--brand-primary);
+  --success-button: #94f1ab;
+  --secondary-button: #a5dceb;
+}
+
+body.marine,
+body.marine-classic {
+  --accent: #d39f37;
+  --accent-overlay: #d39f37;
+  --background: #031b22;
+  --body-background: #031b22;
+  --background-darker: #031b22;
+  --current-background: var(--body-background);
+  --navbar-background: #0b3e4b;
+  --navbar-active-background: #042028;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #063442;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #66e9fd;
+  --success-hover: #5dc6f7;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --action-icon: var(--text-default);
+  --action-icon-hover: var(--accent);
+  --action-icon-active: var(--accent);
+  --navbar-accent: var(--accent);
+  --primary: #34aaf8;
+  --secondary-button: #d39f37;
+  --success-button: #66e9fd;
+  --icons-background: #134c5c;
+}
+
+body.zombie,
+body.zombie-classic {
+  --accent: #59c627;
+  --accent-overlay: #83da5b;
+  --navbar-accent: var(--accent);
+  --background: #1d1f1f;
+  --body-background: var(--background);
+  --background-darker: var(--body-background);
+  --current-background: var(--body-background);
+  --navbar-background: #323232;
+  --navbar-active-background: #232525;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #323232;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #d8d784;
+  --success-hover: #5af15a;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: #434343;
+  --action-icon: var(--text-default);
+  --action-icon-hover: var(--accent);
+  --action-icon-active: var(--accent);
+  --primary-button: #14e8c8;
+  --secondary-button: #59c627;
+  --success-button: #d8d784;
+  --icons-background: #323232;
+}
+
+body.zombie .alphabet-filter-button--active,
+body.zombie-classic .alphabet-filter-button--active {
+  --alphabet-filter-accent-color: var(--primary-button);
+  --alphabet-filter-accent-hover: var(
+    --primary-button-hover,
+    var(--primary-button)
+  );
+}
+
+body.old-school {
+  --accent: #ffa800;
+  --accent-overlay: #ffc44f;
+  --navbar-accent: #eae8e5;
+  --background: #1d1f1f;
+  --body-background: #1d1f1f;
+  --background-darker: #1d1f1f;
+  --current-background: var(--body-background);
+  --navbar-background: #323232;
+  --navbar-active-background: #222424;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #323232;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #0bd48c;
+  --success-hover: #28f028;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: #434343;
+  --action-icon: var(--text-default);
+  --action-icon-hover: var(--accent);
+  --action-icon-active: var(--accent);
+  --primary-button: var(--status-success);
+  --success-button: #0bd48c;
+  --secondary-button: #ffa800;
+  --icons-background: #323232;
+}
+
+body.classic .sid-input,
+body.old-school .sid-input {
+  background: var(--background);
+}
+
+body.old-school .alphabet-filter-button--active {
+  --alphabet-filter-accent-color: var(--status-success);
+  --alphabet-filter-accent-hover: var(--status-success-hover);
+}
+
+body.classic,
+body.cyberSpaceOasisAlt,
+body.dracula-classic,
+body.marine-classic,
+body.zombie-classic {
+  --navbar-accent: var(--text-default);
+}
+
+body.sweet,
+body.sweet-dark {
+  --accent: #ff9af7;
+  --accent-overlay: #eea6e8;
+  --navbar-accent: #d4c2d6;
+  --background: #110111;
+  --body-background: #110111;
+  --background-darker: #110111;
+  --current-background: #110111;
+  --navbar-background: #220422;
+  --navbar-active-background: #3b0a3b;
+  --gradient-body-background: linear-gradient(
+    90deg,
+    var(--background-darker) -32px,
+    var(--body-background) 64px,
+    var(--body-background) 100%
+  );
+  --input-background: #360a36;
+  --modal-background: var(--body-background);
+  --modal-border: var(--body-background);
+  --success: #9a8de7;
+  --success-hover: #7f148e;
+  --primary: #c28cb8;
+  --primary-hover: #a17399;
+  --danger: #bf61a2;
+  --text-log: #8c909b;
+  --text-title: #e9eaeb;
+  --text-default: var(--text-title);
+  --text-secondary: #a892ab;
+  --text-tertiary: #39263b;
+  --osk-background: var(--body-background);
+  --osk-button-background: var(--input-background);
+  --osk-button-border: var(--navbar-background);
+  --action-icon: #ab92a8;
+  --action-icon-hover: var(--accent-overlay);
+  --action-icon-active: var(--text-default);
+  --success-button: #9a8de7;
+  --secondary-button: #ff9af7;
+  --icons-background: #302530;
+}
+
+/* =========================================
+   HEROIC CUSTOM - CYAN THEME & ATMOSPHERE
+   ========================================= */
+body,
+:root {
+  /* 1.4: Background Profundo NATIVO (Usando a imagem real do PRD) */
+  /* DEFINIÇÃO DA IMAGEM DE FUNDO */
+  --gradient-body-background: url("/heroic_background.jpg") !important;
+  /* Aplicando a imagem com as configurações corretas de atmosfera */
+  background: var(--gradient-body-background) no-repeat center center fixed !important;
+  background-size: cover !important; /* Força a imagem a cobrir a tela toda sem distorcer */
+  background-color: #000000 !important; /* Fundo preto de segurança */
+  /* Forçando transparência nos painéis internos para a imagem aparecer */
+  --background: transparent !important;
+  --body-background: transparent !important;
+  --current-background: transparent !important;
+  --navbar-background: rgba(
+    2,
+    5,
+    7,
+    0.8
+  ) !important; /* Barra lateral semi-transparente */
+  --cardBg: rgba(8, 18, 26, 0.6) !important; /* Cards semi-transparentes */
+  /* 1.1: Mantendo o Ciano Neon para os destaques (isso ficou bom) */
+  --accent: #00ffff !important;
+  --brand-primary: #00ffff !important;
+  --primary: #00ffff !important;
+  --success: #00ffff !important;
+  --info: #00ffff !important;
+  --text-default: #ffffff !important;
+}
+
+/* 1.2 e 1.3: Arredondamento e Efeito Glow (mantemos, ficou ótimo) */
+button:not([aria-label*=close i]):not([aria-label*=fechar i]):not([class*=close i]):not([class*=Close i]):not(.dialog-close-button):not(.Dialog__CloseButton):not(.Sidebar__quitButton):not(.heroPanelActionIcon):not(.heroPanelStaticBadge),
+.btn,
+[role=button]:not([aria-label*=close i]):not([class*=close i]):not(.Sidebar__quitButton):not(.heroPanelActionIcon):not(.heroPanelStaticBadge),
+article,
+.GameCard,
+div[data-testid=game-card] {
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+}
+
+.heroPanelStaticBadge {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: default !important;
+  transform: none !important;
+}
+.heroPanelStaticBadge .dmExternalStoreLogo,
+.heroPanelStaticBadge .dmExternalStoreLogo:hover {
+  transform: none !important;
+  cursor: default !important;
+  filter: none !important;
+  pointer-events: none !important;
+}
+.heroPanelStaticBadge .dmExternalStoreLogoImg {
+  filter: none !important;
+  border-radius: 4px;
+  transform: none !important;
+}
+.heroPanelStaticBadge:hover, .heroPanelStaticBadge:focus, .heroPanelStaticBadge:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+.heroPanelActionIcon,
+button.heroPanelActionIcon,
+div[role=button].heroPanelActionIcon {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.heroPanelActionIcon:hover, .heroPanelActionIcon:focus, .heroPanelActionIcon:focus-visible, .heroPanelActionIcon:active,
+button.heroPanelActionIcon:hover,
+button.heroPanelActionIcon:focus,
+button.heroPanelActionIcon:focus-visible,
+button.heroPanelActionIcon:active,
+div[role=button].heroPanelActionIcon:hover,
+div[role=button].heroPanelActionIcon:focus,
+div[role=button].heroPanelActionIcon:focus-visible,
+div[role=button].heroPanelActionIcon:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+}
+
+button:focus,
+button:focus-visible,
+.btn:focus,
+.btn:focus-visible,
+[role=button]:focus,
+[role=button]:focus-visible,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+.MuiButtonBase-root:focus,
+.MuiButtonBase-root:focus-visible,
+.MuiIconButton-root:focus,
+.MuiIconButton-root:focus-visible,
+.MuiInputBase-input:focus,
+.MuiInputBase-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.button.is-primary:hover,
+.button.is-success:hover,
+.btn.btn-primary:hover,
+.GameCard:hover,
+div[data-testid=game-card]:hover {
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.6) !important;
+  border-color: #00ffff !important;
+}
+
+button[aria-label*=close i],
+button[aria-label*=fechar i],
+button[class*=close i],
+button[class*=Close i],
+.Dialog__CloseButton,
+.dialog-close-button,
+.steamConfigModal__closeBtn,
+.UpdatePopupModal__close-btn,
+.SteamGridDBPicker__close-btn,
+.Sidebar__quitButton,
+button.close,
+button.is-close,
+.MuiIconButton-root[aria-label*=close i] {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+button[aria-label*=close i]:hover, button[aria-label*=close i]:focus, button[aria-label*=close i]:focus-visible, button[aria-label*=close i]:active,
+button[aria-label*=fechar i]:hover,
+button[aria-label*=fechar i]:focus,
+button[aria-label*=fechar i]:focus-visible,
+button[aria-label*=fechar i]:active,
+button[class*=close i]:hover,
+button[class*=close i]:focus,
+button[class*=close i]:focus-visible,
+button[class*=close i]:active,
+button[class*=Close i]:hover,
+button[class*=Close i]:focus,
+button[class*=Close i]:focus-visible,
+button[class*=Close i]:active,
+.Dialog__CloseButton:hover,
+.Dialog__CloseButton:focus,
+.Dialog__CloseButton:focus-visible,
+.Dialog__CloseButton:active,
+.dialog-close-button:hover,
+.dialog-close-button:focus,
+.dialog-close-button:focus-visible,
+.dialog-close-button:active,
+.steamConfigModal__closeBtn:hover,
+.steamConfigModal__closeBtn:focus,
+.steamConfigModal__closeBtn:focus-visible,
+.steamConfigModal__closeBtn:active,
+.UpdatePopupModal__close-btn:hover,
+.UpdatePopupModal__close-btn:focus,
+.UpdatePopupModal__close-btn:focus-visible,
+.UpdatePopupModal__close-btn:active,
+.SteamGridDBPicker__close-btn:hover,
+.SteamGridDBPicker__close-btn:focus,
+.SteamGridDBPicker__close-btn:focus-visible,
+.SteamGridDBPicker__close-btn:active,
+.Sidebar__quitButton:hover,
+.Sidebar__quitButton:focus,
+.Sidebar__quitButton:focus-visible,
+.Sidebar__quitButton:active,
+button.close:hover,
+button.close:focus,
+button.close:focus-visible,
+button.close:active,
+button.is-close:hover,
+button.is-close:focus,
+button.is-close:focus-visible,
+button.is-close:active,
+.MuiIconButton-root[aria-label*=close i]:hover,
+.MuiIconButton-root[aria-label*=close i]:focus,
+.MuiIconButton-root[aria-label*=close i]:focus-visible,
+.MuiIconButton-root[aria-label*=close i]:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+}
+button[aria-label*=close i] svg,
+button[aria-label*=close i] path,
+button[aria-label*=close i] .svg-inline--fa,
+button[aria-label*=fechar i] svg,
+button[aria-label*=fechar i] path,
+button[aria-label*=fechar i] .svg-inline--fa,
+button[class*=close i] svg,
+button[class*=close i] path,
+button[class*=close i] .svg-inline--fa,
+button[class*=Close i] svg,
+button[class*=Close i] path,
+button[class*=Close i] .svg-inline--fa,
+.Dialog__CloseButton svg,
+.Dialog__CloseButton path,
+.Dialog__CloseButton .svg-inline--fa,
+.dialog-close-button svg,
+.dialog-close-button path,
+.dialog-close-button .svg-inline--fa,
+.steamConfigModal__closeBtn svg,
+.steamConfigModal__closeBtn path,
+.steamConfigModal__closeBtn .svg-inline--fa,
+.UpdatePopupModal__close-btn svg,
+.UpdatePopupModal__close-btn path,
+.UpdatePopupModal__close-btn .svg-inline--fa,
+.SteamGridDBPicker__close-btn svg,
+.SteamGridDBPicker__close-btn path,
+.SteamGridDBPicker__close-btn .svg-inline--fa,
+.Sidebar__quitButton svg,
+.Sidebar__quitButton path,
+.Sidebar__quitButton .svg-inline--fa,
+button.close svg,
+button.close path,
+button.close .svg-inline--fa,
+button.is-close svg,
+button.is-close path,
+button.is-close .svg-inline--fa,
+.MuiIconButton-root[aria-label*=close i] svg,
+.MuiIconButton-root[aria-label*=close i] path,
+.MuiIconButton-root[aria-label*=close i] .svg-inline--fa {
+  color: rgba(255, 255, 255, 0.65) !important;
+  fill: rgba(255, 255, 255, 0.65) !important;
+  filter: none !important;
+  transition: all 0.2s ease !important;
+}
+button[aria-label*=close i]:hover svg, button[aria-label*=close i]:hover path, button[aria-label*=close i]:hover .svg-inline--fa,
+button[aria-label*=fechar i]:hover svg,
+button[aria-label*=fechar i]:hover path,
+button[aria-label*=fechar i]:hover .svg-inline--fa,
+button[class*=close i]:hover svg,
+button[class*=close i]:hover path,
+button[class*=close i]:hover .svg-inline--fa,
+button[class*=Close i]:hover svg,
+button[class*=Close i]:hover path,
+button[class*=Close i]:hover .svg-inline--fa,
+.Dialog__CloseButton:hover svg,
+.Dialog__CloseButton:hover path,
+.Dialog__CloseButton:hover .svg-inline--fa,
+.dialog-close-button:hover svg,
+.dialog-close-button:hover path,
+.dialog-close-button:hover .svg-inline--fa,
+.steamConfigModal__closeBtn:hover svg,
+.steamConfigModal__closeBtn:hover path,
+.steamConfigModal__closeBtn:hover .svg-inline--fa,
+.UpdatePopupModal__close-btn:hover svg,
+.UpdatePopupModal__close-btn:hover path,
+.UpdatePopupModal__close-btn:hover .svg-inline--fa,
+.SteamGridDBPicker__close-btn:hover svg,
+.SteamGridDBPicker__close-btn:hover path,
+.SteamGridDBPicker__close-btn:hover .svg-inline--fa,
+.Sidebar__quitButton:hover svg,
+.Sidebar__quitButton:hover path,
+.Sidebar__quitButton:hover .svg-inline--fa,
+button.close:hover svg,
+button.close:hover path,
+button.close:hover .svg-inline--fa,
+button.is-close:hover svg,
+button.is-close:hover path,
+button.is-close:hover .svg-inline--fa,
+.MuiIconButton-root[aria-label*=close i]:hover svg,
+.MuiIconButton-root[aria-label*=close i]:hover path,
+.MuiIconButton-root[aria-label*=close i]:hover .svg-inline--fa {
+  color: #00ffff !important;
+  fill: #00ffff !important;
+  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95)) !important;
+  transform: scale(1.05) !important;
+}
+
+/* =========================================
+   HEROIC CUSTOM - ALFABETO NO HORIZONTE
+   ========================================= */
+.custom-alphabet-wrapper {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.custom-alphabet-wrapper > div,
+.custom-alphabet-wrapper ul,
+.custom-alphabet-wrapper nav,
+.custom-alphabet-wrapper [class*=Alphabet] {
+  display: flex !important;
+  flex-wrap: nowrap !important; /* PROÍBE A QUEBRA DE LINHA */
+  justify-content: var(--alphabet-alignment, center) !important; /* DYNAMIC ALIGNMENT */
+  align-items: center !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  padding-left: var(--alphabet-padding-left, 12px) !important;
+  padding-right: 12px !important;
+  gap: 10px !important; /* ESPAÇAMENTO COMPACTO E ELEGANTE */
+}
+
+/* Garante que os botões das letras fiquem ultra compactos e harmoniosos */
+.custom-alphabet-wrapper button {
+  min-width: unset !important;
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 17px !important; /* Letras legíveis e proporcionais ao botão compacto */
+  padding: 0 !important; /* Centralização perfeita da letra */
+  margin: 0 !important; /* Garante que nenhuma margem indesejada adicione espaço */
+  flex-shrink: 1 !important;
+}
+
+/* =========================================
+   HEROIC CUSTOM - DROPDOWNS DE FILTROS E CATEGORIAS
+   ========================================= */
+.Header__filters .selectStyle {
+  height: 42px !important;
+  border-radius: 20px !important; /* Formato de pílula idêntico */
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.6) 50%), linear-gradient(135deg, rgba(255, 255, 255, 0.6) 50%, transparent 50%), linear-gradient(to right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15)) !important; /* Seta e separador translúcidos premium */
+  background-position: calc(100% - 20px) calc(50% + 1px), calc(100% - 15px) calc(50% + 1px), calc(100% - 35px) 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important; /* Remove sombra antiga pesada */
+  backdrop-filter: blur(5px) !important;
+  transition: all 0.2s ease !important;
+  padding-inline-end: 3.5rem !important; /* Espaço para o texto não sobrepor o separador */
+  text-indent: 18px !important; /* Recuo harmonioso do texto do botão */
+}
+
+.Header__filters .selectStyle:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1) !important;
+}
+
+.Header__filters .Header__dropdownBtn {
+  height: 32px !important;
+  min-width: 36px !important;
+  width: auto !important;
+  border-radius: 6px !important;
+  background-image: none !important;
+  padding: 0 6px !important;
+  text-indent: 0 !important;
+  padding-inline-end: 6px !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+}
+
+.Header__filters.header-buttons--neon .Header__dropdownBtn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.toggleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.toggleWithInfo label {
+  padding-bottom: 0px !important;
+}
+.toggleWithInfo .popover-wrapper {
+  margin-inline-start: 3rem;
+  padding-bottom: var(--space-md);
+}
+
+.helpIcon {
+  padding-inline-start: 5px;
+  color: var(--accent);
+}
+
+.settingsDialogContent .defaults-hint,
+.settingsWrapper .defaults-hint {
+  background: var(--anticheat-denied, var(--status-danger));
+  color: var(--brand-text-01);
+  text-align: start;
+  padding: var(--space-md);
+  display: flex;
+  gap: var(--space-md);
+  border-radius: var(--space-3xs);
+}
+.settingsDialogContent section:not(:nth-of-type(0)),
+.settingsWrapper section:not(:nth-of-type(0)) {
+  padding-top: var(--space-xl);
+  min-width: 500px;
+}
+
+.MuiTabs-root {
+  padding-bottom: var(--space-xs);
+}
+.MuiTabs-root .MuiTabs-scroller .MuiTabs-indicator {
+  background-color: var(--accent);
+}
+.MuiTabs-root .MuiTabs-scroller .MuiTabs-flexContainer .MuiTab-root {
+  color: var(--text-default);
+}
+.MuiTabs-root .MuiTabs-scroller .MuiTabs-flexContainer .Mui-selected {
+  color: var(--accent);
+}
+
+details {
+  cursor: pointer;
+  width: 100%;
+}
+details button,
+details .button {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+}
+details summary {
+  font-weight: bold;
+  padding: var(--space-xs) 0;
+  font-size: var(--text-xl);
+}
+
+.gamescopeSettings .selectFieldWrapper {
+  grid-template-areas: "label info" "select select";
+  grid-template-columns: max-content 1fr;
+}
+.gamescopeSettings .textInputFieldWrapper {
+  grid-template-areas: "label info" "input input";
+  grid-template-columns: max-content 1fr;
+}
+.gamescopeSettings .row {
+  display: flex;
+  gap: 10px;
+}
+
+.Field {
+  text-align: left;
+}
+
+/*
+  Subset of font https://github.com/googlefonts/noto-emoji
+  which includes only flags emoji generated using command:
+  $ fonttools subset NotoColorEmoji.ttf --ignore-missing-glyphs --text-file=data.txt
+  where data.txt is a text file containing all the glyphs you want to include
+*/
+@font-face {
+  font-family: 'Noto Color Emoji';
+  src: url('./assets/NotoColorEmoji.subset.ttf');
+}
+
+* {
+  box-sizing: border-box;
+  /* Measurements */
+}
+
+body {
+  height: 100vh;
+}
+
+.App {
+  text-align: center;
+  display: grid;
+  grid-template-columns: min-content 1fr;
+  grid-template-areas: 'offline offline' 'sidebar content' 'sidebar controller';
+  grid-template-rows: min-content 1fr min-content;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.App .Sidebar {
+  grid-area: sidebar;
+  height: 100vh;
+  max-height: 100vh;
+  position: sticky;
+  top: 0px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.App .content {
+  container: main-content / inline-size;
+  display: flex;
+  grid-area: content;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  &:not(:has(.gameConfigContainer img.backgroundImage)) {
+    background: var(--gradient-body-background, var(--body-background));
+  }
+}
+
+.App .controller {
+  grid-area: controller;
+  position: sticky;
+  bottom: 0px;
+  background: var(--background);
+  /* MUI Dialogs use a z-index of 1300, make sure this is never less than it */
+  z-index: 1400;
+}
+
+.App .offline-message {
+  grid-area: offline;
+}
+
+body:has(.disableAnimations) {
+  *,
+  *:before,
+  *:after {
+    animation: none !important;
+    transition: none !important;
+    transition-duration: 0ms !important;
+  }
+  .MuiTouchRipple-root {
+    display: none !important;
+  }
+  .Mui-focusVisible {
+    background: color(from var(--accent-overlay) srgb r g b / 0.3);
+  }
+}
+
+.HelpButton {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+}
+
+/* Disable content behind an opened dialog so it cannot be clicked */
+body:has(dialog[open]) {
+  pointer-events: none;
+
+  /* Make sure content of the dialog and Help can be clicked */
+  .HelpButton,
+  dialog[open] {
+    pointer-events: all;
+  }
+}
+
+/* Remove outline on the root element since it's not clickable anyway and it's partially hidden away by sidebar */
+
+#root:focus-visible {
+  outline: none;
+}
+
+/* disable links when the help is open, so users cannot navigate
+to another page but still use the elements of the current page */
+#root:has(.HelpContent.open) {
+  & a {
+    pointer-events: none;
+  }
+  /* Make sure links in Help work */
+  .HelpContent a {
+    pointer-events: all;
+  }
+}
+
+.danger {
+  font-weight: var(--bold);
+  color: var(--text-danger, var(--danger));
+}
+
+.warning {
+  font-weight: var(--bold);
+  color: var(--text-warning, var(--warning));
+}
+
+.material-icons.is-primary {
+  /* I can't find any elements that use this, so idk what colour this should be */
+  color: var(--danger);
+}
+
+.material-icons.is-secondary {
+  color: var(--download-button);
+}
+
+.material-icons.is-success {
+  color: var(--success);
+}
+
+.material-icons.is-danger {
+  color: var(--danger);
+}
+
+.material-icons.is-danger:hover {
+  color: var(--danger-hover);
+}
+
+.material-icons.settings.folder {
+  cursor: pointer;
+  color: var(--text-default);
+}
+
+.icons > * {
+  cursor: pointer;
+}
+
+.smallMessage {
+  font-size: var(--text-md);
+  width: 100%;
+  max-width: 513px;
+  white-space: break-spaces;
+  padding-top: 4px;
+}
+
+svg.disabled {
+  color: var(--background);
+}
+
+img.loading {
+  opacity: 0.85;
+}
+
+img.loaded {
+  transition: opacity 0.1s ease-in;
+  opacity: 1;
+}
+
+.react-contextmenu--visible {
+  background-color: var(--input-background);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 6px;
+  z-index: 99;
+}
+
+.react-contextmenu-item {
+  color: var(--text-default);
+  font-size: var(--text-sm);
+  line-height: var(--space-lg);
+  font-family: var(--secondary-font-family);
+  cursor: pointer;
+  text-align: start;
+}
+
+.react-contextmenu-item:hover {
+  color: var(--download-button);
+}
+
+.react-contextmenu-item.disabled {
+  color: var(--icon-disabled);
+  cursor: initial;
+}
+
+.isRTL {
+  direction: rtl;
+}
+
+.App.sidebar-right {
+  grid-template-columns: 1fr min-content;
+  grid-template-areas: 'offline offline' 'content sidebar' 'controller sidebar';
+}
+
+.App.sidebar-right .Sidebar .resizer {
+  left: 0;
+  right: auto;
+}

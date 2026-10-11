@@ -1,4 +1,11 @@
 import { useState, useEffect, useContext, useMemo } from 'react'
+import classNames from 'classnames'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faTags,
+  faPenToSquare,
+  faClone
+} from '@fortawesome/free-solid-svg-icons'
 import LibrarySearchBar from '../LibrarySearchBar'
 import CategoryFilter from '../CategoryFilter'
 import LibraryFilters from '../LibraryFilters'
@@ -61,6 +68,32 @@ export default function Header() {
     return Number(localStorage.getItem('heroic_header_buttons_default_bg_opacity') || '0.05')
   })
 
+  // Sincronização e herança das configurações de ActionIcons (ícones da esquerda usados como modelo)
+  const [actionIconsGlowMode, setActionIconsGlowMode] = useState<string>(() => {
+    return localStorage.getItem('heroic_action_icons_glow_mode') || 'disabled'
+  })
+  const [actionIconsColor1, setActionIconsColor1] = useState<string>(() => {
+    return localStorage.getItem('heroic_action_icons_color1') || '#00ffff'
+  })
+  const [actionIconsColor2, setActionIconsColor2] = useState<string>(() => {
+    return localStorage.getItem('heroic_action_icons_color2') || '#38d9e6'
+  })
+  const [actionIconsGradient, setActionIconsGradient] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_action_icons_gradient') === 'true'
+  })
+  const [actionIconsOpacity, setActionIconsOpacity] = useState<number>(() => {
+    return Number(localStorage.getItem('heroic_action_icons_opacity') || '1')
+  })
+  const [actionIconsGlowStrength, setActionIconsGlowStrength] = useState<number>(() => {
+    return Number(localStorage.getItem('heroic_action_icons_glow_strength') || '8')
+  })
+  const [actionIconsGlowColor, setActionIconsGlowColor] = useState<string>(() => {
+    return localStorage.getItem('heroic_action_icons_glow_color') || '#00ffff'
+  })
+  const [actionIconsSyncGlowWithGradient, setActionIconsSyncGlowWithGradient] = useState<boolean>(() => {
+    return localStorage.getItem('heroic_action_icons_sync_glow_with_gradient') !== 'false'
+  })
+
   useEffect(() => {
     const handleDupChange = () => setDuplicatesVersion((v) => v + 1)
     const handleSettingsChange = () => {
@@ -74,6 +107,15 @@ export default function Header() {
       setHeaderButtonsSyncGlowWithGradient(localStorage.getItem('heroic_header_buttons_sync_glow_with_gradient') !== 'false')
       setHeaderButtonsDefaultBgColor(localStorage.getItem('heroic_header_buttons_default_bg_color') || '#ffffff')
       setHeaderButtonsDefaultBgOpacity(Number(localStorage.getItem('heroic_header_buttons_default_bg_opacity') || '0.05'))
+
+      setActionIconsGlowMode(localStorage.getItem('heroic_action_icons_glow_mode') || 'disabled')
+      setActionIconsColor1(localStorage.getItem('heroic_action_icons_color1') || '#00ffff')
+      setActionIconsColor2(localStorage.getItem('heroic_action_icons_color2') || '#38d9e6')
+      setActionIconsGradient(localStorage.getItem('heroic_action_icons_gradient') === 'true')
+      setActionIconsOpacity(Number(localStorage.getItem('heroic_action_icons_opacity') || '1'))
+      setActionIconsGlowStrength(Number(localStorage.getItem('heroic_action_icons_glow_strength') || '8'))
+      setActionIconsGlowColor(localStorage.getItem('heroic_action_icons_glow_color') || '#00ffff')
+      setActionIconsSyncGlowWithGradient(localStorage.getItem('heroic_action_icons_sync_glow_with_gradient') !== 'false')
     }
     window.addEventListener('heroicDuplicatesChanged', handleDupChange)
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
@@ -294,142 +336,111 @@ export default function Header() {
       : { r: 0, g: 255, b: 255 }
   }
 
-  const rgbHeader1 = hexToRgb(headerButtonsColor1)
-  const rgbHeader2 = hexToRgb(headerButtonsColor2)
-  const rgbHeaderGlow = hexToRgb(headerButtonsGlowColor)
+  // Paridade Absoluta: Adota as cores e modo do ActionIcons para garantir que ambos os lados repliquem exatamente o mesmo efeito
+  const isNeon = actionIconsGlowMode === 'neon' || headerButtonsGlowMode === 'neon'
+  const isGradient = actionIconsGradient || headerButtonsGradient
+
+  const effectiveColor1 = actionIconsGradient ? actionIconsColor1 : (headerButtonsColor1 || actionIconsColor1)
+  const effectiveColor2 = actionIconsGradient ? actionIconsColor2 : (headerButtonsColor2 || actionIconsColor2)
+  const effectiveGlowColor = actionIconsGlowColor || headerButtonsGlowColor
+  const effectiveOpacity = actionIconsOpacity || headerButtonsOpacity
+  const effectiveGlowStrength = actionIconsGlowStrength || headerButtonsGlowStrength
+  const effectiveSyncGlow = actionIconsSyncGlowWithGradient
+
+  const rgb1 = hexToRgb(effectiveColor1)
+  const rgb2 = hexToRgb(effectiveColor2)
+  const rgbGlow = hexToRgb(effectiveGlowColor)
   const rgbHeaderDefaultBg = hexToRgb(headerButtonsDefaultBgColor)
 
-  const effectiveHeaderGlow1 = headerButtonsSyncGlowWithGradient ? headerButtonsColor1 : headerButtonsGlowColor
-  const effectiveHeaderGlow2 = headerButtonsSyncGlowWithGradient ? headerButtonsColor2 : headerButtonsGlowColor
-  const effectiveRgbHeaderGlow1 = headerButtonsSyncGlowWithGradient ? rgbHeader1 : rgbHeaderGlow
-  const effectiveRgbHeaderGlow2 = headerButtonsSyncGlowWithGradient ? rgbHeader2 : rgbHeaderGlow
+  const effectiveGlow1 = effectiveSyncGlow ? effectiveColor1 : effectiveGlowColor
+  const effectiveGlow2 = effectiveSyncGlow ? effectiveColor2 : effectiveGlowColor
+  const effectiveRgbGlow1 = effectiveSyncGlow ? rgb1 : rgbGlow
+  const effectiveRgbGlow2 = effectiveSyncGlow ? rgb2 : rgbGlow
 
   return (
     <>
       <div className="Header" style={{ display: 'block' }}>
         <LibrarySearchBar isUnclassifiedActive={isUnclassifiedActive || isDuplicatesActive}>
           <span 
-            className={`Header__filters ${headerButtonsGlowMode === 'neon' ? 'header-buttons--neon' : ''} ${headerButtonsGradient ? 'header-buttons--gradient' : ''}`}
+            className={classNames('Header__filters', {
+              'header-buttons--neon': isNeon,
+              'header-buttons--gradient': isGradient,
+              'action-icons--neon': isNeon,
+              'action-icons--gradient': isGradient
+            })}
             style={{
-              '--header-btn-color-1': headerButtonsColor1,
-              '--header-btn-color-2': headerButtonsColor2,
-              '--header-btn-glow-color-1': effectiveHeaderGlow1,
-              '--header-btn-glow-color-2': effectiveHeaderGlow2,
-              '--header-btn-opacity': headerButtonsOpacity,
-              '--header-btn-glow-strength': `${headerButtonsGlowStrength}px`,
-              '--header-btn-glow-rgba-1': `rgba(${effectiveRgbHeaderGlow1.r}, ${effectiveRgbHeaderGlow1.g}, ${effectiveRgbHeaderGlow1.b}, ${Math.min(1, 0.9 * headerButtonsOpacity)})`,
-              '--header-btn-glow-rgba-2': `rgba(${effectiveRgbHeaderGlow2.r}, ${effectiveRgbHeaderGlow2.g}, ${effectiveRgbHeaderGlow2.b}, ${Math.min(1, 0.9 * headerButtonsOpacity)})`,
+              '--action-color-1': effectiveColor1,
+              '--action-color-2': effectiveColor2,
+              '--action-glow-color-1': effectiveGlow1,
+              '--action-glow-color-2': effectiveGlow2,
+              '--action-opacity': effectiveOpacity,
+              '--action-glow-strength': `${effectiveGlowStrength}px`,
+              '--action-glow-rgba-1': `rgba(${effectiveRgbGlow1.r}, ${effectiveRgbGlow1.g}, ${effectiveRgbGlow1.b}, ${Math.min(1, 0.9 * effectiveOpacity)})`,
+              '--action-glow-rgba-2': `rgba(${effectiveRgbGlow2.r}, ${effectiveRgbGlow2.g}, ${effectiveRgbGlow2.b}, ${Math.min(1, 0.9 * effectiveOpacity)})`,
+              '--header-btn-color-1': effectiveColor1,
+              '--header-btn-color-2': effectiveColor2,
+              '--header-btn-glow-color-1': effectiveGlow1,
+              '--header-btn-glow-color-2': effectiveGlow2,
+              '--header-btn-opacity': effectiveOpacity,
+              '--header-btn-glow-strength': `${effectiveGlowStrength}px`,
+              '--header-btn-glow-rgba-1': `rgba(${effectiveRgbGlow1.r}, ${effectiveRgbGlow1.g}, ${effectiveRgbGlow1.b}, ${Math.min(1, 0.9 * effectiveOpacity)})`,
+              '--header-btn-glow-rgba-2': `rgba(${effectiveRgbGlow2.r}, ${effectiveRgbGlow2.g}, ${effectiveRgbGlow2.b}, ${Math.min(1, 0.9 * effectiveOpacity)})`,
               '--header-btn-default-bg-color': `rgba(${rgbHeaderDefaultBg.r}, ${rgbHeaderDefaultBg.g}, ${rgbHeaderDefaultBg.b}, ${headerButtonsDefaultBgOpacity})`,
               '--header-btn-default-border-color': `rgba(${rgbHeaderDefaultBg.r}, ${rgbHeaderDefaultBg.g}, ${rgbHeaderDefaultBg.b}, ${Math.min(1, headerButtonsDefaultBgOpacity * 3)})`
             } as React.CSSProperties}
           >
+            {/* Definição Nativa de Gradiente para Ícones SVG do Header */}
+            <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden="true">
+              <defs>
+                <linearGradient id="headerIconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor={effectiveColor1} stopOpacity={effectiveOpacity} />
+                  <stop offset="100%" stopColor={effectiveColor2} stopOpacity={effectiveOpacity} />
+                </linearGradient>
+              </defs>
+            </svg>
+
             {hasDuplicateGames && (
               <button
+                type="button"
+                className={classNames('Header__actionBtn', {
+                  'is-active': isDuplicatesActive,
+                  'is-duplicates': true
+                })}
                 onClick={toggleDuplicatesFilter}
-                style={{
-                  background: isDuplicatesActive
-                    ? 'rgba(156, 39, 176, 0.85)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  color: '#fff',
-                  border: isDuplicatesActive
-                    ? '1px solid #ab47bc'
-                    : '1px solid rgba(255, 255, 255, 0.25)',
-                  padding: '0 18px',
-                  height: '42px',
-                  borderRadius: '20px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backdropFilter: 'blur(5px)',
-                  transition: 'all 0.2s',
-                  boxShadow: isDuplicatesActive
-                    ? '0 0 10px rgba(156, 39, 176, 0.4)'
-                    : 'none'
-                }}
+                title={isDuplicatesActive ? 'Sair da Edição (Duplicados Ativo)' : 'Jogos Duplicados'}
+                aria-label={isDuplicatesActive ? 'Sair da Edição' : 'Jogos Duplicados'}
               >
-                {isDuplicatesActive
-                  ? 'Sair da Edição'
-                  : 'Jogos Duplicados'}
+                <FontAwesomeIcon icon={faClone} className="Header__actionIcon" />
               </button>
             )}
 
             {hasUnclassifiedGames && !isDuplicatesActive && (
               <button
+                type="button"
+                className={classNames('Header__actionBtn', {
+                  'is-active': isUnclassifiedActive,
+                  'is-unclassified': true
+                })}
                 onClick={toggleUnclassifiedFilter}
-                style={{
-                  background: isUnclassifiedActive
-                    ? 'rgba(255, 152, 0, 0.8)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  color: '#fff',
-                  border: isUnclassifiedActive
-                    ? '1px solid rgba(255, 152, 0, 1)'
-                    : '1px solid rgba(255, 255, 255, 0.25)',
-                  padding: '0 18px',
-                  height: '42px',
-                  borderRadius: '20px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backdropFilter: 'blur(5px)',
-                  transition: 'all 0.2s'
-                }}
+                title={isUnclassifiedActive ? 'Sair da Edição (Sem Classificação Ativo)' : 'Jogos Sem Classificação'}
+                aria-label={isUnclassifiedActive ? 'Sair da Edição' : 'Jogos Sem Classificação'}
               >
-                {isUnclassifiedActive
-                  ? 'Sair da Edição'
-                  : 'Jogos Sem Classificação'}
+                <FontAwesomeIcon icon={faTags} className="Header__actionIcon" />
               </button>
             )}
 
             {!isUnclassifiedActive && !isDuplicatesActive && (
               <button
+                type="button"
+                className={classNames('Header__actionBtn', {
+                  'is-active': isMassEditMode,
+                  'is-mass-edit': true
+                })}
                 onClick={toggleMassEdit}
-                style={{
-                  background: isMassEditMode
-                    ? 'rgba(229, 57, 53, 0.85)'
-                    : 'rgba(255, 255, 255, 0.05)',
-                  color: '#fff',
-                  border: isMassEditMode
-                    ? '1px solid #ef5350'
-                    : '1px solid rgba(255, 255, 255, 0.15)',
-                  padding: '0 18px',
-                  height: '42px',
-                  borderRadius: '20px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backdropFilter: 'blur(5px)',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isMassEditMode
-                    ? '0 0 10px rgba(229, 57, 53, 0.4)'
-                    : 'none'
-                }}
-                onMouseOver={(e) => {
-                  if (!isMassEditMode) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
-                  } else {
-                    e.currentTarget.style.background = 'rgba(229, 57, 53, 0.95)'
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (!isMassEditMode) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
-                  } else {
-                    e.currentTarget.style.background = 'rgba(229, 57, 53, 0.85)'
-                  }
-                }}
+                title={isMassEditMode ? 'Cancelar Edição em Massa' : 'Edição em Massa'}
+                aria-label={isMassEditMode ? 'Cancelar Edição' : 'Edição em Massa'}
               >
-                {isMassEditMode ? 'Cancelar Edição' : 'Edição em Massa'}
+                <FontAwesomeIcon icon={faPenToSquare} className="Header__actionIcon" />
               </button>
             )}
 

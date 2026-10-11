@@ -9,6 +9,7 @@ export interface EngineRelease {
   url: string
   sha256: string
   executable: string
+  integrationRevision?: number
 }
 export interface EngineStatus {
   id: SourceEngineId
@@ -16,6 +17,8 @@ export interface EngineStatus {
   previous?: string
   available?: string
   upstream?: string
+  updateAvailable?: boolean
+  upstreamUpdateAvailable?: boolean
   enabled: boolean
   busy: boolean
   message?: string
@@ -23,10 +26,11 @@ export interface EngineStatus {
 export interface SourceEnginesState {
   automatic: boolean
   checkedAt?: number
+  catalogError?: string
   engines: EngineStatus[]
 }
 export type SourceEngineAction =
   | { type: 'check' }
   | { type: 'automatic'; enabled: boolean }
   | { type: 'enable'; id: SourceEngineId; enabled: boolean }
-  | { type: 'install' | 'restore'; id: SourceEngineId }
+  | { type: 'install' | 'verify' | 'restore'; id: SourceEngineId }

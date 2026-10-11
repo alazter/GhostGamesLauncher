@@ -1,0 +1,459 @@
+#alazterflix-page.alazterflixScreen
+  .catalog-home
+  .movies-grid:has(> .catalog-modern-card) {
+  --catalog-cover-min-width: 170px;
+}
+
+:is(#alazterflix-page, .alazter-plugin-settings-dialog) {
+  .catalog-modern-card {
+    container-type: inline-size;
+    min-width: 0;
+    align-self: start;
+    color: #eef1f6;
+    text-align: left;
+    isolation: isolate;
+    .catalog-modern-surface {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #283141;
+      border-radius: 10px !important;
+      background: #10151e;
+    }
+    .catalog-modern-poster {
+      position: relative;
+      aspect-ratio: 258 / 330;
+      overflow: hidden;
+    }
+    &--clean .catalog-modern-poster {
+      aspect-ratio: 2 / 3;
+    }
+    .catalog-modern-open {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      border-radius: 0 !important;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .poster-fallback {
+        display: grid;
+        place-items: center;
+        height: 100%;
+        font-size: 35px;
+        color: #a1acbc;
+      }
+    }
+    h4 {
+      margin: 5px 0 12px;
+      color: inherit;
+      font-size: 18px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .catalog-modern-caption {
+      padding: 16px 17px 17px;
+      transition: opacity 160ms ease;
+    }
+    &.is-open .catalog-modern-caption {
+      opacity: 0;
+    }
+    .catalog-modern-category {
+      display: block;
+      color: #b6c1d0;
+      text-transform: uppercase;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+    .catalog-modern-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 32px;
+      color: #46d8e7;
+      font-size: 13px;
+      font-weight: 600;
+      span {
+        color: #b6c1d0;
+        font-weight: 400;
+      }
+    }
+    .catalog-hover-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      z-index: 2;
+      width: 100%;
+      max-height: 100%;
+      overflow-y: auto;
+      padding: 32px 17px 18px;
+      background: linear-gradient(transparent, #090c12e8 26%, #090c12fc 65%);
+      color: #eef1f6;
+      animation: catalog-overlay-rise 280ms cubic-bezier(0.2, 0.7, 0.2, 1);
+      box-sizing: border-box;
+      scrollbar-width: thin;
+    }
+    .catalog-overlay-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .catalog-media-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .catalog-icon-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 1px solid #3d4959;
+      border-radius: 7px !important;
+      background: #202a38;
+      color: #eef1f6;
+      cursor: pointer;
+      &[aria-pressed='true'] {
+        background: #f5c518;
+        border-color: #f5c518;
+        color: #25200b;
+      }
+      &.catalog-watched-action[aria-pressed='true'] {
+        background: #46d8e7;
+        border-color: #46d8e7;
+        color: #09262a;
+      }
+    }
+    .catalog-card-ratings {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+      label {
+        min-width: 0;
+      }
+    }
+    .catalog-meta-label,
+    dt {
+      display: block;
+      margin: 0 0 3px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #b6c1d0;
+    }
+    .catalog-user-rating {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      font-size: 13px;
+      input {
+        width: 100%;
+        min-width: 0;
+        min-height: 32px;
+        padding: 3px 5px;
+        border: 1px solid #3d4959;
+        border-radius: 5px !important;
+        background: #202a38;
+        color: #eef1f6;
+        font: inherit;
+        &::placeholder {
+          color: #b6c1d0;
+        }
+        &[aria-invalid='true'] {
+          border-color: #ff8e98;
+        }
+      }
+    }
+    .catalog-card-facts {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 13px 15px;
+      margin: 0 0 19px;
+      div:nth-child(3) {
+        grid-column: 1 / -1;
+      }
+      dd {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+    }
+    .catalog-card-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 9px;
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 42px;
+        padding: 8px 4px;
+        border: 1px solid #3d4959;
+        border-radius: 7px !important;
+        background: #202a38;
+        color: #eef1f6;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .catalog-card-play {
+        background: #e50914;
+        border-color: #e50914;
+        color: white;
+      }
+    }
+    .catalog-clean-title {
+      margin: 10px 0 0;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      font-size: 18px;
+      font-family: inherit;
+      font-style: normal;
+      font-weight: 700;
+      color: #eef1f6;
+    }
+    .catalog-card-error {
+      display: block;
+      color: #ffadb4;
+      font-size: 11px;
+      margin: -8px 0 8px;
+    }
+    .catalog-card-feedback {
+      display: block;
+      margin-top: 8px;
+      font-size: 11px;
+      color: #b6c1d0;
+    }
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid #46d8e7;
+      outline-offset: -2px;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+  }
+  .catalog-card-settings {
+    padding: 20px;
+    border: 1px solid #283141;
+    border-radius: 12px;
+    background: #10151e;
+    color: #eef1f6;
+    h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+    > p {
+      color: #a1acbc;
+      font-size: 13px;
+      margin: 0 0 18px;
+    }
+    .catalog-card-previews {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+      align-items: start;
+      gap: 20px;
+    }
+    .catalog-card-option {
+      min-width: 0;
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      > .catalog-modern-card,
+      > .catalog-poster {
+        width: 100%;
+        max-width: 286px;
+      }
+    }
+    .catalog-style-choice {
+      width: 100%;
+      max-width: 286px;
+      padding: 10px;
+      border-radius: 7px !important;
+      border: 1px solid #3d4959;
+      background: #202a38;
+      color: #eef1f6;
+      text-align: center;
+      cursor: pointer;
+      &[aria-pressed='true'] {
+        border-color: #46d8e7;
+        background: #17363c;
+      }
+    }
+    .catalog-card-customization {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 18px;
+      margin-top: 22px;
+      label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      select {
+        padding: 8px;
+        border: 1px solid #3d4959;
+        border-radius: 7px;
+        background: #202a38;
+        color: #eef1f6;
+        font: inherit;
+      }
+    }
+    .catalog-poster {
+      min-width: 0;
+      background: transparent;
+      border: 0;
+      transform: none;
+      .poster-image-box {
+        position: relative;
+        aspect-ratio: 173 / 275;
+        height: auto;
+        border-radius: 10px;
+        overflow: hidden;
+        img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+      .catalog-poster-open {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: #10151e;
+        color: white;
+        cursor: pointer;
+      }
+      .catalog-poster-art-title {
+        position: absolute;
+        bottom: 12px;
+        left: 6px;
+        right: 6px;
+        color: white;
+        font:
+          700 19px Georgia,
+          serif;
+        text-align: center;
+        text-shadow: 0 2px 8px #000;
+      }
+      .catalog-poster-category {
+        position: absolute;
+        top: 8px;
+        left: 7px;
+        background: #090c12cc;
+        color: white;
+        padding: 3px 5px;
+        font-size: 11px;
+      }
+      .catalog-poster-save {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 50% !important;
+        background: #090c12cc;
+        border: 1px solid #3d4959;
+        color: white;
+      }
+      .movie-card-info {
+        padding: 0;
+        background: transparent;
+        h4 {
+          margin: 8px 0 3px;
+          font-size: 13px;
+        }
+        .movie-card-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          font-size: 11px;
+          color: #a1acbc;
+        }
+        .catalog-poster-rating {
+          color: #46d8e7;
+        }
+      }
+    }
+  }
+}
+@keyframes catalog-overlay-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@container (max-width: 230px) {
+  :is(#alazterflix-page, .alazter-plugin-settings-dialog) .catalog-modern-card {
+    .catalog-hover-panel {
+      padding: 22px 10px 12px;
+    }
+    .catalog-overlay-top {
+      margin-bottom: 8px;
+    }
+    .catalog-card-ratings {
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .catalog-card-facts {
+      gap: 8px;
+      margin-bottom: 12px;
+      dd {
+        font-size: 12px;
+      }
+    }
+    .catalog-card-actions button {
+      font-size: 12px;
+      gap: 5px;
+    }
+  }
+}
+@media (pointer: coarse) {
+  :is(#alazterflix-page, .alazter-plugin-settings-dialog) .catalog-modern-card {
+    .catalog-icon-action {
+      width: 44px;
+      height: 44px;
+    }
+    .catalog-user-rating input {
+      min-height: 44px;
+      font-size: 16px;
+    }
+    .catalog-card-actions button {
+      min-height: 44px;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(#alazterflix-page, .alazter-plugin-settings-dialog)
+    .catalog-modern-card
+    .catalog-hover-panel {
+    animation: none;
+  }
+}

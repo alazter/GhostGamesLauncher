@@ -1,0 +1,143 @@
+.NativeReleases .nr-card-actions .nr-drm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px;
+  width: 38px;
+  min-width: 38px;
+  flex-shrink: 0;
+  min-height: 30px;
+  font-size: 9px;
+  background: #19133188;
+  border: 1px solid #72639266;
+  color: #a1a9c0;
+}
+.nr-drm-badge svg {
+  font-size: 10px;
+}
+.NativeReleases .nr-card-actions .nr-drm--cracked,
+.NativeReleases .nr-card-actions .nr-drm--drm-free,
+.nr-drm-summary.nr-drm--cracked,
+.nr-drm-summary.nr-drm--drm-free {
+  color: #6fe29c;
+}
+.NativeReleases .nr-card-actions .nr-drm--uncracked,
+.nr-drm-summary.nr-drm--uncracked {
+  color: #ff9aac;
+}
+.NativeReleases .nr-card-actions .nr-drm--bypassed,
+.NativeReleases .nr-card-actions .nr-drm--conflicting,
+.nr-drm-summary.nr-drm--bypassed,
+.nr-drm-summary.nr-drm--conflicting {
+  color: #efc473;
+}
+.NativeReleases .nr-card-actions .nr-drm--unreleased,
+.nr-drm-summary.nr-drm--unreleased {
+  color: #8ba8e0;
+}
+.nr-workspace .nr-products--cards .nr-card-actions {
+  gap: 3px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.nr-workspace .nr-products--cards .nr-card-actions .nr-card-play {
+  width: 28px;
+  min-width: 28px;
+}
+.nr-workspace .nr-products--cards .nr-card-actions > button:not(.nr-drm-badge) {
+  padding: 4px 3px;
+  font-size: 10px;
+}
+.nr-workspace .nr-products--cards .nr-card--featured .nr-card-actions {
+  width: 100%;
+}
+.nr-drm-details {
+  border: 1px solid var(--nr-line);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 28px 0 22px;
+  background: #211d4044;
+}
+.nr-drm-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.nr-detail .nr-drm-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--nr-text);
+}
+.nr-drm-heading button {
+  min-height: 28px;
+  padding: 4px 7px;
+}
+.nr-drm-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  color: var(--nr-muted);
+  font-size: 14px;
+}
+.nr-drm-details dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  font-size: 12px;
+  margin: 14px 0;
+}
+.nr-drm-details dt {
+  color: var(--nr-muted);
+}
+.nr-drm-details dd {
+  margin: 0;
+}
+.nr-drm-source {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 14px;
+  margin: 7px 0;
+  font-size: 12px;
+}
+.nr-detail .nr-drm-source button {
+  padding: 0;
+  min-height: 24px;
+  color: #67dde4;
+  text-decoration: underline;
+  text-align: left;
+}
+.nr-drm-source small {
+  grid-column: 1 / -1;
+  color: var(--nr-muted);
+  overflow-wrap: anywhere;
+}
+.nr-drm-checked {
+  display: block;
+  color: var(--nr-muted);
+  margin: 12px 0 4px;
+  font-size: 11px;
+}
+.nr-drm-note,
+.nr-drm-warning {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--nr-muted);
+  line-height: 1.5;
+}
+.nr-drm-warning {
+  color: #efc473;
+}
+.NativeReleases--light .nr-card-actions .nr-drm-badge {
+  background: #e9e3f5;
+}
+.NativeReleases--light .nr-card-actions .nr-drm--cracked,
+.NativeReleases--light .nr-card-actions .nr-drm--drm-free {
+  color: #22763f;
+}
+.NativeReleases--light .nr-card-actions .nr-drm--uncracked {
+  color: #a52b47;
+}

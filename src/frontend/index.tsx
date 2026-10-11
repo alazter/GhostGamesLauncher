@@ -513,32 +513,19 @@ function applyGlobalPersonalizationStyles() {
   }
 
   // 2. Header Buttons
-  if (headerBtnGlowMode === 'neon') {
-    if (headerBtnGrad) {
-      css += `
-        .Header__filters button:hover, .Header__filters button:active,
-        .Header__filters .MuiButtonBase-root:hover {
-          border-color: ${headerBtnColor1} !important;
-          color: ${headerBtnColor1} !important;
-          opacity: ${headerBtnOpacity} !important;
-          box-shadow: -2px -2px calc(${headerBtnGlowStrength} * 0.8) ${headerGlowRgba1},
-                      2px 2px calc(${headerBtnGlowStrength} * 0.8) ${headerGlowRgba2} !important;
-          transform: scale(1.04) !important;
-        }
-      `
-    } else {
-      css += `
-        .Header__filters button:hover, .Header__filters button:active,
-        .Header__filters .MuiButtonBase-root:hover {
-          border-color: ${headerBtnColor1} !important;
-          color: ${headerBtnColor1} !important;
-          opacity: ${headerBtnOpacity} !important;
-          box-shadow: 0 0 calc(${headerBtnGlowStrength} * 0.5) ${headerGlowRgba1},
-                      0 0 ${headerBtnGlowStrength} ${headerGlowRgba1} !important;
-          transform: scale(1.04) !important;
-        }
-      `
-    }
+  if (headerBtnGlowMode === 'neon' || actionGlowMode === 'neon') {
+    css += `
+      .Header__filters button,
+      .Header__filters button:hover,
+      .Header__filters button:active,
+      .Header__filters .MuiButtonBase-root,
+      .Header__filters .MuiButtonBase-root:hover {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+      }
+    `
   } else {
     css += `
       .Header__filters button, .Header__filters .MuiButtonBase-root {

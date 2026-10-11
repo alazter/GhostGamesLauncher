@@ -1,0 +1,23 @@
+const fs=require('node:fs')
+const path=require('node:path')
+const assert=require('node:assert/strict')
+const ts=require('typescript')
+const Module=require('node:module')
+const filename=path.resolve('src/backend/plugins/pluginPacker.ts')
+const compiled=new Module(filename,module)
+compiled.paths=Module._nodeModulePaths(path.dirname(filename))
+compiled._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,filename)
+async function main(){
+  const output=path.resolve('plugins/alazterflix-v1.3.2.ghost')
+  const destination=path.join(__dirname,'package-audit')
+  assert(destination.startsWith(path.resolve('.system_generated/tasks/alazterflix-page-preferences')+path.sep))
+  const pack=await compiled.exports.PluginPacker.pack(path.resolve('plugins/alazterflix'),output)
+  assert(pack.success,JSON.stringify(pack))
+  const audit=compiled.exports.PluginPacker.unpack(output,destination)
+  assert.equal(audit.manifest.version,'1.3.2')
+  assert.equal(fs.readFileSync(path.join(destination,'index.js'),'utf8'),fs.readFileSync('plugins/alazterflix/index.js','utf8'))
+  fs.writeFileSync(path.join(__dirname,'package-result.json'),JSON.stringify({passed:true,output,version:audit.manifest.version,checksum:audit.checksum},null,2))
+  console.log('PASS: plugin v1.3.2 packaged; unpacked source matches; checksums validated.')
+}
+main().catch(error=>{console.error(error);process.exitCode=1})
+

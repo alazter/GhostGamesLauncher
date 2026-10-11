@@ -1,4 +1,10 @@
-import { promises as fsPromises, existsSync, writeFile, mkdirSync, readdirSync } from 'graceful-fs'
+import {
+  promises as fsPromises,
+  existsSync,
+  writeFile,
+  mkdirSync,
+  readdirSync
+} from 'graceful-fs'
 import { createHash } from 'crypto'
 import { join } from 'path'
 import { protocol, net, ipcMain } from 'electron'
@@ -19,6 +25,12 @@ interface MemoryCacheEntry {
 
 const memoryCache = new Map<string, MemoryCacheEntry>()
 const MAX_MEMORY_CACHE = 500
+
+export const invalidateLocalImage = (path: string) => {
+  for (const key of memoryCache.keys())
+    if (key === path || key.startsWith(`${path}?v=`)) memoryCache.delete(key)
+  failedUrls.delete(path)
+}
 
 const setMemoryCache = (key: string, entry: MemoryCacheEntry) => {
   if (memoryCache.size >= MAX_MEMORY_CACHE) {
@@ -54,16 +66,27 @@ export const initImagesCache = () => {
 
 const detectMimeType = (url: string, buffer?: Buffer): string => {
   if (buffer && buffer.length >= 8) {
-    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+    if (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    ) {
       return 'image/png'
     }
     if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
       return 'image/jpeg'
     }
-    if (buffer.subarray(0, 4).toString('latin1') === 'RIFF' && buffer.subarray(8, 12).toString('latin1') === 'WEBP') {
+    if (
+      buffer.subarray(0, 4).toString('latin1') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('latin1') === 'WEBP'
+    ) {
       return 'image/webp'
     }
-    if (buffer.subarray(0, 4).toString('utf8') === '<svg' || buffer.subarray(0, 5).toString('utf8') === '<?xml') {
+    if (
+      buffer.subarray(0, 4).toString('utf8') === '<svg' ||
+      buffer.subarray(0, 5).toString('utf8') === '<?xml'
+    ) {
       return 'image/svg+xml'
     }
   }
@@ -112,9 +135,11 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
   } else if (cleanUrl.startsWith('imagecache://')) {
     cleanUrl = cleanUrl.replace('imagecache://', '')
   }
-  const rawUrl = decodeURIComponent(cleanUrl)
+  const revision = cleanUrl.match(/\?v=(\d+)$/)?.[1]
+  const rawUrl = decodeURIComponent(cleanUrl.replace(/\?v=\d+$/, ''))
   // Strip any ?reconnect=N or &reconnect=N query params added by the reconnect engine
   const realUrl = rawUrl.replace(/[?&]reconnect=\d+/, '').replace(/\?$/, '')
+  const memoryKey = revision ? `${realUrl}?v=${revision}` : realUrl
 
   // 1. Instant negative cache check (0ms for known 404s)
   if (failedUrls.has(realUrl)) {
@@ -125,7 +150,7 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
   }
 
   // 2. Check ultra-fast in-memory RAM cache (0ms latency)
-  const memHit = memoryCache.get(realUrl)
+  const memHit = memoryCache.get(memoryKey)
   if (memHit) {
     const headers = new Headers()
     headers.set('Content-Type', memHit.mime)
@@ -146,6 +171,9 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     }
 
     let resolvedPath = localPath
+    if (/^\/([a-zA-Z]:[\\/])/.test(resolvedPath)) {
+      resolvedPath = resolvedPath.slice(1)
+    }
     if (!existsSync(resolvedPath)) {
       const winPath = resolvedPath.replace(/\//g, '\\')
       if (existsSync(winPath)) {
@@ -157,7 +185,7 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
       try {
         const buffer = await fsPromises.readFile(resolvedPath)
         const mime = detectMimeType(resolvedPath, buffer)
-        setMemoryCache(realUrl, { buffer, mime })
+        setMemoryCache(memoryKey, { buffer, mime })
 
         const headers = new Headers()
         headers.set('Content-Type', mime)
@@ -215,12 +243,14 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
 
-    const response = await net.fetch(realUrl, {
-      headers: getForwardHeaders(request),
-      method: request.method,
-      referrer: request.referrer,
-      signal: controller.signal
-    }).finally(() => clearTimeout(timeout))
+    const response = await net
+      .fetch(realUrl, {
+        headers: getForwardHeaders(request),
+        method: request.method,
+        referrer: request.referrer,
+        signal: controller.signal
+      })
+      .finally(() => clearTimeout(timeout))
 
     if (response.ok) {
       const arrayBuf = await response.arrayBuffer()
@@ -251,7 +281,10 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     }
     return new Response('Not found', {
       status: response.status || 404,
-      headers: { 'Cache-Control': response.status === 404 ? 'public, max-age=86400' : 'no-cache' }
+      headers: {
+        'Cache-Control':
+          response.status === 404 ? 'public, max-age=86400' : 'no-cache'
+      }
     })
   } catch (err) {
     // DO NOT blacklist transient timeouts or network interruptions in failedUrls!

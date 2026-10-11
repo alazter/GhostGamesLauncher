@@ -13,7 +13,7 @@ import {
   faCloudDownloadAlt
 } from '@fortawesome/free-solid-svg-icons'
 import useSetting from 'frontend/hooks/useSetting'
-import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
+import { syncLocalStorageToBackend, restoreLocalStorageBackup } from 'frontend/utils/localStorageBackup'
 import { configStore } from 'frontend/helpers/electronStores'
 
 export const BackupRestoreSettings: React.FC = () => {
@@ -58,10 +58,7 @@ export const BackupRestoreSettings: React.FC = () => {
     setMessage(null)
     try {
       // Sync latest localStorage values to backend settings store
-      syncLocalStorageToBackend()
-      
-      // Wait briefly for write to register in main thread
-      await new Promise(r => setTimeout(r, 100))
+      await syncLocalStorageToBackend()
 
       const res = await window.api.exportGhostBackup()
       if (res.success) {
@@ -84,9 +81,7 @@ export const BackupRestoreSettings: React.FC = () => {
       if (res.success) {
         // Restore returned localStorageData back to frontend localStorage
         if (res.localStorageData) {
-          Object.entries(res.localStorageData).forEach(([key, val]) => {
-            localStorage.setItem(key, val as string)
-          })
+          await restoreLocalStorageBackup(res.localStorageData)
           // Trigger a change event so UI updates immediately
           window.dispatchEvent(new Event('heroicSettingsChanged'))
           window.dispatchEvent(new Event('customBgChanged'))
@@ -137,8 +132,7 @@ export const BackupRestoreSettings: React.FC = () => {
     setMessage(null)
     window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: true } }))
     try {
-      syncLocalStorageToBackend()
-      await new Promise(r => setTimeout(r, 100))
+      await syncLocalStorageToBackend()
 
       const res = await window.api.uploadBackupToCloud()
       if (res.success) {
@@ -164,13 +158,11 @@ export const BackupRestoreSettings: React.FC = () => {
         const restoreRes = await window.api.importGhostBackup(JSON.stringify(res.data))
         if (restoreRes.success) {
           if (restoreRes.localStorageData) {
-            Object.entries(restoreRes.localStorageData).forEach(([key, val]) => {
-              localStorage.setItem(key, val as string)
-            })
+            await restoreLocalStorageBackup(restoreRes.localStorageData)
             window.dispatchEvent(new Event('heroicSettingsChanged'))
             window.dispatchEvent(new Event('customBgChanged'))
           }
-          ;(configStore as any).set('backup.lastSuccess', Date.now())
+          ;(configStore as any).set('backup.lastModified', Date.now())
           ;(configStore as any).delete('backup.lastError')
           window.dispatchEvent(new Event('backupStateChanged'))
           setMessage({ type: 'success', text: 'Backup baixado e restaurado com sucesso!' })

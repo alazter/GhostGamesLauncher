@@ -6,6 +6,7 @@ import { getBlacklist } from '../storeManagers/sideload/scanner'
 import { userDataPath } from '../constants/paths'
 import { join } from 'path'
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'graceful-fs'
+import { getReleaseArchive } from '../releases/archive'
 
 export async function getBackupPayload(): Promise<any> {
   const settings = (configStore.get_nodefault('settings') || {}) as any
@@ -103,6 +104,7 @@ export async function getBackupPayload(): Promise<any> {
     playtimes: tsStore.raw_store || {},
     // Get the synced localStorage data saved under settings
     localStorageData: settings.localStorageBackup || {},
+    releaseArchive: await (await getReleaseArchive()).export(),
     externalGames: externalGamesBackup
   }
 }

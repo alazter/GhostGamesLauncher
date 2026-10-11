@@ -31,6 +31,11 @@ import {
 } from 'frontend/helpers/newGamesTracker'
 
 import GamesList from './components/GamesList'
+import {
+  LIBRARY_GO_TO_END_EVENT,
+  LIBRARY_GO_TO_START_EVENT,
+  navigateVirtualLibrary
+} from './components/GamesList/libraryNavigation'
 import { FavouriteGame, GameInfo, HiddenGame, Runner } from 'common/types'
 import ErrorComponent from 'frontend/components/UI/ErrorComponent'
 import LibraryHeader from './components/LibraryHeader'
@@ -245,8 +250,7 @@ export default memo(function Library(): JSX.Element {
     loadBackupStatus()
 
     try {
-      syncLocalStorageToBackend()
-      await new Promise(r => setTimeout(r, 100))
+      await syncLocalStorageToBackend()
 
       const res = await window.api.uploadBackupToCloud()
       if (res.success) {
@@ -476,6 +480,8 @@ export default memo(function Library(): JSX.Element {
       )
       if (isMenuOpen && window.getComputedStyle(isMenuOpen).display !== 'none')
         return
+
+      if (navigateVirtualLibrary(e)) return
 
       const active = document.activeElement as HTMLElement
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key))
@@ -1495,6 +1501,7 @@ export default memo(function Library(): JSX.Element {
   const backToTop = () => {
     const scrollArea = document.getElementById('games-scroll-area')
     if (scrollArea) {
+      if (!scrollArea.dispatchEvent(new Event(LIBRARY_GO_TO_START_EVENT, { cancelable: true }))) return
       scrollArea.scrollTo({ top: 0, behavior: 'smooth' })
       setTimeout(() => {
         const firstCard = scrollArea.querySelector(
@@ -1510,6 +1517,8 @@ export default memo(function Library(): JSX.Element {
   const goToBottom = () => {
     const scrollArea = document.getElementById('games-scroll-area')
     if (scrollArea) {
+      // The virtual list jumps directly and mounts only the destination rows.
+      if (!scrollArea.dispatchEvent(new Event(LIBRARY_GO_TO_END_EVENT, { cancelable: true }))) return
       scrollArea.scrollTo({ top: scrollArea.scrollHeight, behavior: 'smooth' })
       setTimeout(() => {
         const cards = scrollArea.querySelectorAll(
@@ -2382,7 +2391,9 @@ export default memo(function Library(): JSX.Element {
             flexDirection: 'row',
             flex: 1,
             minHeight: 0,
-            paddingTop: '4px'
+            paddingTop: '4px',
+            position: 'relative',
+            zIndex: 1
           }}
         >
           {selectedInlineGame && (

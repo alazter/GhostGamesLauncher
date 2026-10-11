@@ -9,17 +9,32 @@ import {
   faFilterCircleXmark,
   faImage,
   faRotate,
-  faSkullCrossbones
+  faSkullCrossbones,
+  faGlobe,
+  faChevronDown,
+  faBolt,
+  faCheck
 } from '@fortawesome/free-solid-svg-icons'
 import { faHardDrive as hardDriveLight } from '@fortawesome/free-regular-svg-icons'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import React, { useContext, useState, useEffect, useCallback } from 'react'
+import React, { useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextProvider from 'frontend/state/ContextProvider'
 import FormControl from '../FormControl'
 import SteamGridBatchModal from '../SteamGridBatchModal'
-import { findPiratasStoreInfo, syncPiratasStoreAssignments, getDefaultDownloadStoreId } from 'frontend/helpers/autoStoreAssignments'
+import {
+  findPiratasStoreInfo,
+  findPiratasStoreId,
+  syncPiratasStoreAssignments,
+  getDefaultDownloadStoreId,
+  setDefaultDownloadStoreId,
+  getUpdateCheckScope,
+  setUpdateCheckScope,
+  getUpdateCheckScopeInfo,
+  getAvailableCustomStores,
+  UpdateCheckScopeInfo
+} from 'frontend/helpers/autoStoreAssignments'
 import './index.css'
 import classNames from 'classnames'
 import LibraryContext from 'frontend/screens/Library/LibraryContext'
@@ -39,11 +54,15 @@ export default React.memo(function ActionIcons({
   const [piratasUpdatesCount, setPiratasUpdatesCount] = useState(0)
   const [piratasStoreName, setPiratasStoreName] = useState(() => findPiratasStoreInfo().name)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null)
+  const [scopeInfo, setScopeInfo] = useState<UpdateCheckScopeInfo>(() => getUpdateCheckScopeInfo())
+  const [showScopeMenu, setShowScopeMenu] = useState(false)
+  const scopeMenuRef = useRef<HTMLDivElement>(null)
 
   const updatePiratasState = useCallback(async () => {
     try {
       const info = findPiratasStoreInfo()
       setPiratasStoreName(info.name)
+      setScopeInfo(getUpdateCheckScopeInfo())
       if (window.api?.externalGamesState) {
         const state = await window.api.externalGamesState()
         const count = (state?.installations || []).filter((i: any) => Boolean(i.availableUpdate)).length
@@ -52,12 +71,36 @@ export default React.memo(function ActionIcons({
     } catch {}
   }, [])
 
+  const gameCounts = useMemo(() => {
+    const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+    let currentAssignments: Record<string, string> = {}
+    try { currentAssignments = JSON.parse(rawAssignments) } catch {}
+
+    const counts: Record<string, number> = { all: 0 }
+    if (!sideloadedLibrary?.length) return counts
+
+    for (const game of sideloadedLibrary) {
+      counts.all++
+      const assigned = currentAssignments[game.app_name]
+      if (assigned) {
+        counts[assigned] = (counts[assigned] || 0) + 1
+      } else {
+        const defId = findPiratasStoreId()
+        counts[defId] = (counts[defId] || 0) + 1
+      }
+    }
+    return counts
+  }, [sideloadedLibrary])
+
   useEffect(() => {
     void updatePiratasState()
     const handleStoreChange = () => void updatePiratasState()
+    const handleScopeChange = () => setScopeInfo(getUpdateCheckScopeInfo())
+
     window.addEventListener('customStoresChanged', handleStoreChange)
     window.addEventListener('defaultDownloadStoreChanged', handleStoreChange)
     window.addEventListener('heroicExternalGamesChanged', handleStoreChange)
+    window.addEventListener('ghostUpdateCheckScopeChanged', handleScopeChange)
 
     let unsub: (() => void) | undefined
     if (window.api?.onExternalGamesUpdated) {
@@ -69,26 +112,77 @@ export default React.memo(function ActionIcons({
       window.removeEventListener('customStoresChanged', handleStoreChange)
       window.removeEventListener('defaultDownloadStoreChanged', handleStoreChange)
       window.removeEventListener('heroicExternalGamesChanged', handleStoreChange)
+      window.removeEventListener('ghostUpdateCheckScopeChanged', handleScopeChange)
       unsub?.()
     }
   }, [updatePiratasState])
+
+  useEffect(() => {
+    if (!showScopeMenu) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (scopeMenuRef.current && !scopeMenuRef.current.contains(e.target as Node)) {
+        setShowScopeMenu(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowScopeMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showScopeMenu])
+
+  const handleSelectScope = (newScope: string) => {
+    setUpdateCheckScope(newScope)
+    setScopeInfo(getUpdateCheckScopeInfo())
+    if (newScope !== 'all') {
+      setDefaultDownloadStoreId(newScope)
+    }
+    setShowScopeMenu(false)
+    const updated = getUpdateCheckScopeInfo()
+    setToast({
+      message: updated.isAll
+        ? '🎯 Escopo definido: Busca Completa (todos os jogos não-oficiais).'
+        : `🎯 Escopo definido: Loja ${updated.name}.`,
+      type: 'info'
+    })
+    setTimeout(() => {
+      setToast(null)
+    }, 3000)
+  }
 
   const handleCheckPiratasUpdates = async () => {
     if (isCheckingPiratas) return
     setIsCheckingPiratas(true)
     setToast(null)
+    setShowScopeMenu(false)
     try {
       void syncPiratasStoreAssignments()
 
-      if (window.api?.externalGamesGetOrCreateInstallation && sideloadedLibrary?.length) {
-        const targetStoreId = getDefaultDownloadStoreId()
-        const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
-        let currentAssignments: Record<string, string> = {}
-        try { currentAssignments = JSON.parse(rawAssignments) } catch {}
+      const currentScopeInfo = getUpdateCheckScopeInfo()
+      const isAll = currentScopeInfo.isAll
+      const targetStoreId = isAll ? null : currentScopeInfo.scope
 
+      const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
+      let currentAssignments: Record<string, string> = {}
+      try { currentAssignments = JSON.parse(rawAssignments) } catch {}
+
+      const eligibleAppNames: string[] = []
+
+      if (window.api?.externalGamesGetOrCreateInstallation && sideloadedLibrary?.length) {
         for (const game of sideloadedLibrary) {
           const assigned = currentAssignments[game.app_name]
-          if (!assigned || assigned === targetStoreId || assigned === 'piratas' || assigned.includes('pirata')) {
+          const isEligible = isAll
+            ? true
+            : (assigned === targetStoreId || (!assigned && (targetStoreId === findPiratasStoreId() || targetStoreId === 'piratas' || targetStoreId?.includes('pirata'))))
+
+          if (isEligible) {
+            eligibleAppNames.push(game.app_name)
             try {
               await window.api.externalGamesGetOrCreateInstallation(game.app_name, game)
             } catch {}
@@ -98,7 +192,10 @@ export default React.memo(function ActionIcons({
 
       let result: { success: boolean; message: string; updatesFound?: number } | undefined
       if (window.api?.externalGamesCheckPiratasUpdates) {
-        result = await window.api.externalGamesCheckPiratasUpdates(true)
+        result = await window.api.externalGamesCheckPiratasUpdates(true, {
+          scope: currentScopeInfo.scope,
+          appNames: isAll ? undefined : eligibleAppNames
+        })
       }
 
       await updatePiratasState()
@@ -106,29 +203,34 @@ export default React.memo(function ActionIcons({
       window.dispatchEvent(new Event('heroicExternalGamesChanged'))
 
       const count = result?.updatesFound ?? 0
-      const currentStoreName = findPiratasStoreInfo().name
       if (count > 0) {
         setToast({
-          message: `⚡ ${count} nova(s) atualização(ões) encontrada(s) na loja ${currentStoreName}!`,
+          message: isAll
+            ? `⚡ ${count} nova(s) atualização(ões) encontrada(s) em jogos não-oficiais!`
+            : `⚡ ${count} nova(s) atualização(ões) encontrada(s) na loja ${currentScopeInfo.name}!`,
           type: 'success'
         })
       } else {
         setToast({
-          message: `🛡️ Todos os jogos da loja ${currentStoreName} estão na versão mais recente.`,
+          message: isAll
+            ? `🛡️ Todos os jogos fora das lojas oficiais estão na versão mais recente.`
+            : `🛡️ Todos os jogos da loja ${currentScopeInfo.name} estão na versão mais recente.`,
           type: 'info'
         })
       }
     } catch (err) {
-      const currentStoreName = findPiratasStoreInfo().name
+      const currentScopeInfo = getUpdateCheckScopeInfo()
       setToast({
-        message: `Não foi possível consultar as atualizações da loja ${currentStoreName}.`,
+        message: currentScopeInfo.isAll
+          ? 'Não foi possível consultar as atualizações dos jogos não-oficiais.'
+          : `Não foi possível consultar as atualizações da loja ${currentScopeInfo.name}.`,
         type: 'error'
       })
     } finally {
       setIsCheckingPiratas(false)
       setTimeout(() => {
         setToast(null)
-      }, 4000)
+      }, 4500)
     }
   }
 
@@ -373,33 +475,187 @@ export default React.memo(function ActionIcons({
             icon={faSyncAlt}
           />
         </button>
-        <button
-          className={classNames('FormControl__button', 'FormControl__button--piratas-update', {
-            'is-checking': isCheckingPiratas,
-            'has-updates': piratasUpdatesCount > 0
-          })}
-          title={
-            isCheckingPiratas
-              ? `Buscando atualizações na loja ${piratasStoreName}...`
-              : piratasUpdatesCount > 0
-              ? `Buscar atualizações na loja ${piratasStoreName} (${piratasUpdatesCount} atualização disponível!)`
-              : `Buscar atualizações na loja ${piratasStoreName}`
-          }
-          onClick={handleCheckPiratasUpdates}
-          disabled={isCheckingPiratas}
-        >
-          <FontAwesomeIcon
-            className="FormControl__segmentedFaIcon ActionIcons__piratasFaIcon"
-            spin={isCheckingPiratas}
-            icon={faSkullCrossbones}
-            data-tour="library-piratas-updates"
-          />
-          {piratasUpdatesCount > 0 && !isCheckingPiratas && (
-            <span className="ActionIcons__piratasBadge">
-              {piratasUpdatesCount}
-            </span>
+        <div className="ActionIcons__updateGroup" ref={scopeMenuRef}>
+          <div className="ActionIcons__updateBtnWrapper">
+            <button
+              className={classNames('FormControl__button', 'FormControl__button--piratas-update', {
+                'is-checking': isCheckingPiratas,
+                'has-updates': piratasUpdatesCount > 0,
+                'is-all-scope': scopeInfo.isAll
+              })}
+              title={
+                isCheckingPiratas
+                  ? scopeInfo.isAll
+                    ? 'Buscando atualizações em todos os jogos fora das lojas oficiais...'
+                    : `Buscando atualizações na loja ${scopeInfo.name}...`
+                  : piratasUpdatesCount > 0
+                  ? scopeInfo.isAll
+                    ? `Buscar atualizações em todos os jogos não-oficiais (${piratasUpdatesCount} atualização disponível!) - Clique direito ou na seta para trocar`
+                    : `Buscar atualizações na loja ${scopeInfo.name} (${piratasUpdatesCount} atualização disponível!) - Clique direito ou na seta para trocar`
+                  : scopeInfo.isAll
+                  ? 'Buscar atualizações em todos os jogos fora das lojas oficiais (Busca Completa) - Clique direito ou na seta para trocar'
+                  : `Buscar atualizações na loja ${scopeInfo.name} - Clique direito ou na seta para trocar`
+              }
+              onClick={handleCheckPiratasUpdates}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setShowScopeMenu((prev) => !prev)
+              }}
+              disabled={isCheckingPiratas}
+            >
+              {scopeInfo.isAll ? (
+                <FontAwesomeIcon
+                  className={classNames('FormControl__segmentedFaIcon', 'ActionIcons__piratasFaIcon', {
+                    'ActionIcons__piratasFaIcon--globe': scopeInfo.isAll
+                  })}
+                  spin={isCheckingPiratas}
+                  icon={faGlobe}
+                  data-tour="library-piratas-updates"
+                />
+              ) : (
+                <svg
+                  className={classNames(
+                    'svg-inline--fa',
+                    'fa-skull-crossbones',
+                    'FormControl__segmentedFaIcon',
+                    'ActionIcons__piratasFaIcon',
+                    'ActionIcons__skullCrossbonesSvg'
+                  )}
+                  viewBox="0 0 448 512"
+                  fill="currentColor"
+                  data-tour="library-piratas-updates"
+                  aria-hidden="true"
+                  role="img"
+                  focusable="false"
+                >
+                  <g className={isCheckingPiratas ? 'ActionIcons__skullHead--inertia' : 'ActionIcons__skullHead'}>
+                    <path d="M368 128c0 44.4-25.4 83.5-64 106.4l0 21.6c0 17.7-14.3 32-32 32l-96 0c-17.7 0-32-14.3-32-32l0-21.6c-38.6-23-64-62.1-64-106.4C80 57.3 144.5 0 224 0s144 57.3 144 128zM168 176a32 32 0 1 0 0-64 32 32 0 1 0 0 64zm144-32a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z" />
+                  </g>
+                  <path
+                    className="ActionIcons__skullBones--static"
+                    d="M3.4 273.7c7.9-15.8 27.1-22.2 42.9-14.3L224 348.2l177.7-88.8c15.8-7.9 35-1.5 42.9 14.3s1.5 35-14.3 42.9L295.6 384l134.8 67.4c15.8 7.9 22.2 27.1 14.3 42.9s-27.1 22.2-42.9 14.3L224 419.8 46.3 508.6c-15.8 7.9-35 1.5-42.9-14.3s-1.5-35 14.3-42.9L152.4 384 17.7 316.6C1.9 308.7-4.5 289.5 3.4 273.7z"
+                  />
+                </svg>
+              )}
+            </button>
+            <button
+              type="button"
+              className={classNames('ActionIcons__scopeChevronBtn', {
+                'is-open': showScopeMenu
+              })}
+              title="Definir escopo da busca de atualizações (Loja específica ou Busca Completa)"
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowScopeMenu((prev) => !prev)
+              }}
+              disabled={isCheckingPiratas}
+            >
+              <FontAwesomeIcon icon={faChevronDown} />
+            </button>
+            {piratasUpdatesCount > 0 && !isCheckingPiratas && (
+              <span className="ActionIcons__piratasBadge">
+                {piratasUpdatesCount}
+              </span>
+            )}
+          </div>
+
+          {showScopeMenu && (
+            <div className="ActionIcons__scopePopover animate-popover">
+              <div className="ActionIcons__scopeHeader">
+                <span className="ActionIcons__scopeTitle">
+                  <FontAwesomeIcon icon={faBolt} style={{ color: '#00ffff', marginRight: 6 }} />
+                  Escopo de Atualizações
+                </span>
+                <span className="ActionIcons__scopeSubtitle">
+                  Defina onde o Ghost deve buscar novidades:
+                </span>
+              </div>
+
+              <div className="ActionIcons__scopeList">
+                {/* Opção 1: Busca Completa */}
+                <button
+                  type="button"
+                  className={classNames('ActionIcons__scopeItem', {
+                    'is-selected': scopeInfo.isAll
+                  })}
+                  onClick={() => handleSelectScope('all')}
+                >
+                  <div className="ActionIcons__scopeItemIcon ActionIcons__scopeItemIcon--globe">
+                    <FontAwesomeIcon icon={faGlobe} />
+                  </div>
+                  <div className="ActionIcons__scopeItemContent">
+                    <div className="ActionIcons__scopeItemTitle">
+                      <span>Busca Completa (Não-Oficiais)</span>
+                      {scopeInfo.isAll && (
+                        <span className="ActionIcons__scopeBadgeActive">
+                          <FontAwesomeIcon icon={faCheck} /> Ativo
+                        </span>
+                      )}
+                    </div>
+                    <div className="ActionIcons__scopeItemDesc">
+                      Varre todos os downloads e sideloads fora das contas oficiais {gameCounts.all ? `(${gameCounts.all} jogos)` : ''}
+                    </div>
+                  </div>
+                </button>
+
+                <div className="ActionIcons__scopeDivider" />
+                <div className="ActionIcons__scopeSectionLabel">Lojas Personalizadas:</div>
+
+                {/* Lojas customizadas */}
+                {getAvailableCustomStores().map((store) => {
+                  const isSelected = !scopeInfo.isAll && scopeInfo.scope === store.id
+                  const count = gameCounts[store.id] || 0
+                  return (
+                    <button
+                      key={store.id}
+                      type="button"
+                      className={classNames('ActionIcons__scopeItem', {
+                        'is-selected': isSelected
+                      })}
+                      onClick={() => handleSelectScope(store.id)}
+                    >
+                      <div className="ActionIcons__scopeItemIcon">
+                        {store.icon ? (
+                          <img src={store.icon} alt={store.name} className="ActionIcons__scopeStoreImg" />
+                        ) : (
+                          <FontAwesomeIcon icon={faSkullCrossbones} />
+                        )}
+                      </div>
+                      <div className="ActionIcons__scopeItemContent">
+                        <div className="ActionIcons__scopeItemTitle">
+                          <span>Loja {store.name}</span>
+                          {isSelected && (
+                            <span className="ActionIcons__scopeBadgeActive">
+                              <FontAwesomeIcon icon={faCheck} /> Ativo
+                            </span>
+                          )}
+                        </div>
+                        <div className="ActionIcons__scopeItemDesc">
+                          {count > 0 ? `${count} jogo(s) atribuído(s)` : 'Nenhum jogo atribuído'}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="ActionIcons__scopeFooter">
+                <button
+                  type="button"
+                  className="ActionIcons__scopeCheckNowBtn"
+                  onClick={() => {
+                    setShowScopeMenu(false)
+                    void handleCheckPiratasUpdates()
+                  }}
+                  disabled={isCheckingPiratas}
+                >
+                  <FontAwesomeIcon icon={faRotate} spin={isCheckingPiratas} />
+                  <span>Buscar Atualizações Agora</span>
+                </button>
+              </div>
+            </div>
           )}
-        </button>
+        </div>
       </FormControl>
 
       {toast && (

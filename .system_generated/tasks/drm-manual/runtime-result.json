@@ -1,0 +1,18 @@
+{
+  "parser": "passed",
+  "anker": {
+    "title": "Minecraft Dungeons II",
+    "availability": "listed",
+    "status": "unknown"
+  },
+  "hizLive": {
+    "requiresVerification": true,
+    "notice": "Clique em Liberar acesso ao HizSearch para confirmar a verificação no site."
+  },
+  "hizFixture": {
+    "verification": true,
+    "title": "Fixture Test",
+    "verdict": "unknown"
+  },
+  "passed": true
+}

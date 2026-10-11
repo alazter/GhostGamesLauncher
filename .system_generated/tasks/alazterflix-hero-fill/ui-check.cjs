@@ -1,0 +1,197 @@
+const fs = require('node:fs')
+const path = require('node:path')
+const esbuild = require('esbuild')
+const sass = require('sass')
+const { _electron, expect } = require('@playwright/test')
+
+async function main() {
+  const sections = path.resolve('.system_generated/tasks/alazterflix-sections')
+  const fixture = fs.readFileSync(path.join(sections, 'ui-fixture.tsx'), 'utf8')
+    .replace("  { ...base, id: 'film'", "  ...Array.from({ length: 7 }, (_, index) => ({ ...base, id: `random-${index}`, title: `Indicação ${index}`, cleanTitle: `Indicação ${index}`, showTitle: `Indicação ${index}`, showDirectory: `T:/Random/${index}`, isSeries: false, mediaCategory: 'movie', fileName: `${index}.mkv`, filePath: `T:/Random/${index}.mkv` })),\n  { ...base, id: 'film'")
+    .replace("const clone = (value: any) => JSON.parse(JSON.stringify(value))", "const clone = (value: any) => JSON.parse(JSON.stringify(value))\nconst wideArt = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(\"<svg xmlns=\\\"http://www.w3.org/2000/svg\\\" width=\\\"1920\\\" height=\\\"1080\\\"><rect width=\\\"1920\\\" height=\\\"1080\\\" fill=\\\"#16435a\\\"/><rect x=\\\"10\\\" y=\\\"10\\\" width=\\\"1900\\\" height=\\\"1060\\\" fill=\\\"none\\\" stroke=\\\"#60e2c0\\\" stroke-width=\\\"20\\\"/><circle cx=\\\"960\\\" cy=\\\"540\\\" r=\\\"280\\\" fill=\\\"#b15474\\\"/><text x=\\\"960\\\" y=\\\"550\\\" text-anchor=\\\"middle\\\" fill=\\\"white\\\" font-size=\\\"85\\\">IMAGEM INTEIRA</text></svg>\"); for (const movie of state.movies) movie.backdropUrl = wideArt; state.movies.find((movie: any) => movie.id === 'film').backdropUrl = undefined; state.movies.find((movie: any) => movie.id === 'random-0').backdropUrl = 'https://example.invalid/broken.jpg';\nconst originalMovies = clone(state.movies)")
+    .replace("updates: [], streams: [], state: () => clone(state)", "updates: [], streams: [], state: () => clone(state), setMovies: (ids: string[]) => { state.movies = originalMovies.filter((movie: any) => ids.includes(movie.id)); (window as any).smoke.reload() }")
+    .replace("onPluginsUpdated: () => () => {}", "onPluginsUpdated: (callback: any) => { (window as any).smoke.reload = callback; return () => {} }")
+  fs.writeFileSync(path.join(__dirname, 'ui-fixture.tsx'), fixture)
+  fs.appendFileSync(path.join(__dirname, 'ui-fixture.tsx'), '\n;(window as any).smoke.setArtwork = (id: string, url: string) => { originalMovies.find((movie: any) => movie.id === id).backdropUrl = url; (window as any).smoke.setMovies([id]) }\n')
+  fs.copyFileSync(path.join(sections, 'ui-main.cjs'), path.join(__dirname, 'ui-main.cjs'))
+  fs.copyFileSync(path.join(sections, 'ui.html'), path.join(__dirname, 'ui.html'))
+  await esbuild.build({
+    entryPoints: [path.join(__dirname, 'ui-fixture.tsx')], bundle: true,
+    outfile: path.join(__dirname, 'ui.js'), external: ['/heroic_background.jpg'],
+    loader: { '.png': 'dataurl', '.jpg': 'dataurl', '.svg': 'dataurl', '.woff2': 'dataurl', '.woff': 'dataurl' },
+    alias: { common: path.resolve('src/common'), frontend: path.resolve('src/frontend') },
+    plugins: [{ name: 'scss', setup(build) { build.onLoad({ filter: /\.scss$/ }, async args => ({ contents: sass.compile(args.path, { logger: sass.Logger.silent }).css, loader: 'css' })) } }]
+  })
+  const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE
+  let app
+  try {
+    app = await _electron.launch({ args: [path.join(__dirname, 'ui-main.cjs')], env })
+    const page = await app.firstWindow()
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.route('https://**', route => route.abort())
+    const start = new Date('2026-10-11T12:00:00Z')
+    await page.clock.install({ time: start })
+    await page.clock.pauseAt(new Date(start.getTime() + 1000))
+    await page.reload()
+    const navigation = page.getByRole('navigation', { name: 'Categorias do catálogo' })
+    await navigation.getByRole('button', { name: /^Para você \(/ }).click()
+    const hero = page.locator('.hero-banner')
+    const title = hero.locator('.hero-title')
+    const dots = hero.locator('.hero-pagination button:not(.hero-rotation-toggle)')
+    await expect(dots).toHaveCount(3)
+    expect(await page.evaluate(() => document.hidden)).toBe(false)
+    await expect(hero.locator('.hero-feature')).toHaveCount(0)
+    const surprise = hero.getByRole('button', { name: 'Surpreenda-me', exact: true })
+    const beforeSurprise = await dots.evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))
+    await surprise.click()
+    const afterSurprise = await dots.evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))
+    expect(afterSurprise.every(label => !beforeSurprise.includes(label))).toBe(true)
+    await expect(dots.first()).toHaveAttribute('aria-pressed', 'true')
+    expect(await page.evaluate(() => document.activeElement.textContent)).toContain('Surpreenda-me')
+    await page.mouse.move(1, 1)
+    await page.evaluate(() => document.activeElement.blur())
+    const initial = await dots.evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))
+    const seen = []
+    for (let index = 0; index < 9; index++) {
+      const current = await title.getAttribute('aria-label')
+      seen.push(current)
+      await page.clock.fastForward(7000)
+      await expect(title).not.toHaveAttribute('aria-label', current)
+    }
+    expect(new Set(seen).size).toBe(9)
+    expect(await dots.evaluateAll(elements => elements.map(element => element.getAttribute('aria-label')))).not.toEqual(initial)
+
+    const current = await title.getAttribute('aria-label')
+    await hero.hover()
+    await page.clock.fastForward(14000)
+    await expect(title).toHaveAttribute('aria-label', current)
+    await page.mouse.move(1, 1)
+    await page.clock.fastForward(7000)
+    await expect(title).not.toHaveAttribute('aria-label', current)
+
+    await dots.nth(1).click()
+    await expect(dots.nth(1)).toHaveAttribute('aria-pressed', 'true')
+    const manuallySelected = await title.getAttribute('aria-label')
+    await page.mouse.move(1, 1)
+    await page.clock.fastForward(14000)
+    await expect(title).toHaveAttribute('aria-label', manuallySelected)
+    await page.evaluate(() => document.activeElement.blur())
+    await page.clock.fastForward(7000)
+    await expect(title).not.toHaveAttribute('aria-label', manuallySelected)
+
+    await hero.getByRole('button', { name: 'Pausar rotação dos destaques' }).click()
+    await page.mouse.move(1, 1)
+    await page.evaluate(() => document.activeElement.blur())
+    const paused = await title.getAttribute('aria-label')
+    await page.clock.fastForward(14000)
+    await expect(title).toHaveAttribute('aria-label', paused)
+    await hero.getByRole('button', { name: 'Retomar rotação dos destaques' }).click()
+    await page.mouse.move(1, 1)
+    await page.evaluate(() => document.activeElement.blur())
+    await page.clock.fastForward(7000)
+    await expect(title).not.toHaveAttribute('aria-label', paused)
+
+    await page.evaluate(() => {
+      window.testHidden = true
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => window.testHidden })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    const hidden = await title.getAttribute('aria-label')
+    await page.clock.fastForward(14000)
+    await expect(title).toHaveAttribute('aria-label', hidden)
+    await page.evaluate(() => { window.testHidden = false; document.dispatchEvent(new Event('visibilitychange')) })
+    await page.clock.fastForward(7000)
+    await expect(title).not.toHaveAttribute('aria-label', hidden)
+
+    await hero.getByRole('button', { name: 'Saiba mais', exact: true }).click()
+    await expect(page.locator('.alazter-modal-overlay')).toBeVisible()
+    await page.mouse.move(1, 1)
+    await page.evaluate(() => document.activeElement.blur())
+    const detail = await title.getAttribute('aria-label')
+    await page.clock.fastForward(14000)
+    await expect(title).toHaveAttribute('aria-label', detail)
+    await page.locator('.alazter-modal-overlay .modal-close-btn').click()
+    await page.mouse.move(1, 1)
+    await page.clock.fastForward(7000)
+    await expect(title).not.toHaveAttribute('aria-label', detail)
+
+    expect(await hero.locator('.hero-artwork').evaluate(element => getComputedStyle(element).animationDuration)).toBe('0.55s')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    expect(await hero.locator('.hero-artwork').evaluate(element => getComputedStyle(element).animationName)).toBe('none')
+    await page.setViewportSize({ width: 390, height: 844 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    const mobile = await title.getAttribute('aria-label')
+    await page.clock.fastForward(7000)
+    await expect(title).not.toHaveAttribute('aria-label', mobile)
+    await navigation.getByRole('button', { name: /^Todos \(/ }).click()
+    await expect(hero).toHaveCount(0)
+    await page.clock.fastForward(14000)
+    await expect(hero).toHaveCount(0)
+    await navigation.getByRole('button', { name: /^Para você \(/ }).click()
+    await expect(hero).toBeVisible()
+
+    await page.evaluate(() => window.smoke.setMovies(['random-1']))
+    await expect(title).toHaveAttribute('aria-label', 'Indicação 1')
+    const image = hero.locator('.hero-artwork-image')
+    await expect.poll(() => image.evaluate(element => element.naturalWidth)).toBe(1920)
+    const layouts = []
+    for (const width of [1820, 1400, 390]) {
+      await page.setViewportSize({ width, height: 1000 })
+      await page.clock.fastForward(600)
+      const layout = await image.evaluate(element => {
+        const artwork = element.getBoundingClientRect()
+        const banner = element.closest('.hero-banner').getBoundingClientRect()
+        const css = getComputedStyle(element)
+        return { width: innerWidth, bannerWidth: banner.width, bannerHeight: banner.height, artworkWidth: artwork.width, artworkLeft: artwork.left - banner.left, fit: css.objectFit, position: css.objectPosition }
+      })
+      // Loaded landscape artwork fills the central area, rather than occupying
+      // only a narrow height-limited rectangle on the far right.
+      expect(layout.artworkWidth / layout.bannerWidth).toBeGreaterThan(0.8)
+      expect(layout.artworkLeft / layout.bannerWidth).toBeLessThan(0.2)
+      expect(layout.fit).toBe('cover')
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      layouts.push(layout)
+      await page.screenshot({ path: path.join(__dirname, `landscape-${width}.png`) })
+    }
+    await page.setViewportSize({ width: 1400, height: 1000 })
+    await page.evaluate(() => window.smoke.setMovies(['film']))
+    await expect(dots).toHaveCount(1)
+    await expect(title).toHaveAttribute('aria-label', 'Filme de teste')
+    await page.clock.fastForward(21000)
+    await expect(title).toHaveAttribute('aria-label', 'Filme de teste')
+    await expect.poll(() => image.evaluate(element => element.naturalWidth)).toBe(400)
+    expect(await image.evaluate(element => getComputedStyle(element).objectFit)).toBe('contain')
+    expect(await image.evaluate(element => getComputedStyle(element).objectPosition)).toBe('100% 50%')
+    expect(await image.evaluate(element => element.naturalHeight)).toBe(600)
+    await page.clock.fastForward(600)
+    await page.screenshot({ path: path.join(__dirname, 'portrait-fallback.png') })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.screenshot({ path: path.join(__dirname, 'mobile.png') })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.evaluate(() => window.smoke.setMovies(['random-0']))
+    await expect(title).toHaveAttribute('aria-label', 'Indicação 0')
+    await expect.poll(() => image.getAttribute('src')).toMatch(/^data:/)
+    await expect.poll(() => image.evaluate(element => element.naturalWidth)).toBe(400)
+    // Review the same artwork shown in the report, without changing the profile
+    // or any file in the user's media folders.
+    const profile = JSON.parse(fs.readFileSync(path.join(process.env.APPDATA, 'ghost/plugins_data/com.ghost.alazterflix.json'), 'utf8'))
+    const matrixPath = profile.movies.find(movie => movie.title === 'M4trix')?.localBackdropPath
+    if (matrixPath && fs.existsSync(matrixPath)) {
+      const matrix = 'data:image/jpeg;base64,' + fs.readFileSync(matrixPath).toString('base64')
+      await page.evaluate(url => window.smoke.setArtwork('random-1', url), matrix)
+      await expect.poll(() => image.evaluate(element => element.naturalWidth)).toBe(1920)
+      for (const width of [1820, 1400, 390]) {
+        await page.setViewportSize({ width, height: 1000 })
+        await page.clock.fastForward(600)
+        await page.screenshot({ path: path.join(__dirname, `matrix-${width}.png`) })
+      }
+    }
+    await page.evaluate(() => window.smoke.setMovies([]))
+    await expect(hero).toHaveCount(0)
+    expect(errors).toEqual([])
+    fs.writeFileSync(path.join(__dirname, 'result.json'), JSON.stringify({ passed: true, layouts, surprise: true, badgeRemoved: true, portraitPreserved: true, brokenImageFallback: true, intervalMs: 7000, firstNineTitles: seen, hoverPause: true, keyboardFocusPause: true, explicitPause: true, visibilityPause: true, detailsPause: true, mobile: true, reducedMotion: true, smallAndEmptyLibraries: true, pageErrors: errors }, null, 2))
+    console.log('PASS: carousel real, 7s, 9 títulos distintos, renovação dos 3 slots, pausas, mobile, movimento reduzido, biblioteca vazia/única.')
+  } finally { if (app) await app.close() }
+}
+main().catch(error => { console.error(error); process.exitCode = 1 })

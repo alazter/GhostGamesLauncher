@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-05T03:59:45.115Z",
+  "files": 5146,
+  "uniqueIdsBefore": 1,
+  "uniqueIdsAfter": 5146,
+  "pathsPreserved": true,
+  "titlesPreservedByCurrentImplementation": true,
+  "titlesChangedSinceBackupByManualEdits": 3,
+  "titlesChangedSinceBackupWithoutManualEdits": 0,
+  "coversPreserved": true,
+  "missingLocalCovers": 0,
+  "missingVideoFiles": 0,
+  "recoverySnapshot": true,
+  "works": 377,
+  "worksByCategory": {
+    "movie": 284,
+    "series": 21,
+    "anime": 54,
+    "cartoon": 11,
+    "documentary": 7
+  },
+  "tmdbConfigured": false,
+  "verifiedPortugueseCovers": 0,
+  "note": "Read-only audit. Existing local artwork language is unknown unless explicitly verified by the provider or chosen manually."
+}

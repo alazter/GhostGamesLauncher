@@ -1,0 +1,57 @@
+{
+  "passed": true,
+  "layouts": [
+    {
+      "width": 1820,
+      "bannerWidth": 1772,
+      "bannerHeight": 509.59375,
+      "artworkWidth": 1453.03125,
+      "artworkLeft": 318.96875,
+      "fit": "cover",
+      "position": "50% 0%"
+    },
+    {
+      "width": 1400,
+      "bannerWidth": 1352,
+      "bannerHeight": 392,
+      "artworkWidth": 1108.625,
+      "artworkLeft": 243.375,
+      "fit": "cover",
+      "position": "50% 0%"
+    },
+    {
+      "width": 390,
+      "bannerWidth": 358,
+      "bannerHeight": 335,
+      "artworkWidth": 358,
+      "artworkLeft": 0,
+      "fit": "cover",
+      "position": "50% 0%"
+    }
+  ],
+  "surprise": true,
+  "badgeRemoved": true,
+  "portraitPreserved": true,
+  "brokenImageFallback": true,
+  "intervalMs": 7000,
+  "firstNineTitles": [
+    "documentary",
+    "Indicação 5",
+    "Indicação 6",
+    "Indicação 0",
+    "Agent Aika",
+    "Indicação 1",
+    "Indicação 3",
+    "Indicação 2",
+    "Indicação 4"
+  ],
+  "hoverPause": true,
+  "keyboardFocusPause": true,
+  "explicitPause": true,
+  "visibilityPause": true,
+  "detailsPause": true,
+  "mobile": true,
+  "reducedMotion": true,
+  "smallAndEmptyLibraries": true,
+  "pageErrors": []
+}

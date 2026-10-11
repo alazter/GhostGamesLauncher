@@ -130,6 +130,9 @@ importers:
       sanitize-filename:
         specifier: ^1.6.3
         version: 1.6.3
+      htmlparser2:
+        specifier: 8.0.2
+        version: 8.0.2
       sanitize-html:
         specifier: ^2.16.0
         version: 2.16.0

@@ -1,0 +1,52 @@
+{
+  "passed": true,
+  "categories": [
+    [
+      "Todos",
+      "all",
+      4
+    ],
+    [
+      "Para você",
+      "forYou",
+      3
+    ],
+    [
+      "Animes",
+      "anime",
+      0
+    ],
+    [
+      "Séries",
+      "series",
+      1
+    ],
+    [
+      "Filmes",
+      "movie",
+      2
+    ],
+    [
+      "Documentários",
+      "documentary",
+      4
+    ],
+    [
+      "Desenhos",
+      "cartoon",
+      0
+    ]
+  ],
+  "legacyMigration": true,
+  "reload": true,
+  "backup": true,
+  "restore": true,
+  "allFourteenEntries": true,
+  "clearOnlyWhenExpanded": true,
+  "failedClearPreservesList": true,
+  "clearPersists": true,
+  "resumePreserved": true,
+  "newPlaybackRestoresEntry": true,
+  "mobile": true,
+  "pageErrors": []
+}

@@ -23,8 +23,13 @@ export async function engineProxy(manifest: PluginManifest) {
   server.on('connect', (request, client, head) => {
     void (async () => {
       try {
-        if (request.headers['proxy-authorization'] !== authorization)
-          throw new Error('Unauthorized')
+        if (request.headers['proxy-authorization'] !== authorization) {
+          // Chromium sends CONNECT first, then credentials after the proxy challenge.
+          client.end(
+            'HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm="Ghost"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'
+          )
+          return
+        }
         const url = new URL(`https://${request.url}`)
         if (url.port || !NetworkGuard.validateUrl(url.href, manifest).allowed)
           throw new Error('Host blocked')

@@ -1,0 +1,20 @@
+
+Running 1 test using 1 worker
+
+
+
+[1A[2K(node:34956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K(node:34956) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K[1/1] e2e\library_loading.spec.ts:217:5 › profile real library cards across the whole collection
+[1A[2Ke2e\library_loading.spec.ts:217:5 › profile real library cards across the whole collection
+[BABEL] Note: The code generator has deoptimised the styling of C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\unknown as it exceeds the max of 500KB.
+
+
+[1A[2K(node:34956) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+[1A[2K{"cards":23,"elements":541,"styles":0,"longTasks":{"count":2,"maximumMs":239,"totalMs":418}}
+
+[1A[2K  1 passed (12.8s)

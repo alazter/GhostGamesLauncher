@@ -1,0 +1,1 @@
+Um teste antigo empacotava a fonte Alazterflix 1.3.0 no nome fixo alazterflix-v1.2.0.ghost. O artefato resultante deste teste foi preservado aqui para evitar sua distribuição com versão incorreta. O teste agora usa uma pasta temporária e a versão do manifesto. O pacote oficial alazterflix-v1.3.0.ghost permanece em plugins.

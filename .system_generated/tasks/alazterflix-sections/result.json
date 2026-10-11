@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "category": "Todos",
+      "hero": false,
+      "continueWatching": false,
+      "catalogVisible": true
+    },
+    {
+      "category": "Animes",
+      "hero": false,
+      "continueWatching": false,
+      "catalogVisible": true
+    },
+    {
+      "category": "Séries",
+      "hero": false,
+      "continueWatching": false,
+      "catalogVisible": true
+    },
+    {
+      "category": "Filmes",
+      "hero": false,
+      "continueWatching": false,
+      "catalogVisible": true
+    },
+    {
+      "category": "Documentários",
+      "hero": false,
+      "continueWatching": false,
+      "catalogVisible": true
+    },
+    {
+      "category": "Desenhos",
+      "hero": false,
+      "continueWatching": false,
+      "catalogVisible": true
+    }
+  ],
+  "forYouRestored": true,
+  "mobileChecked": true,
+  "pageErrors": []
+}

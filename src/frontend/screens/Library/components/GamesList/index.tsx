@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState, useMemo, memo } from 'react'
+import { useContext, useEffect, useState, useMemo, memo } from 'react'
 import { GameInfo, Runner } from 'common/types'
 import cx from 'classnames'
 import GameCard from '../GameCard'
@@ -18,6 +18,7 @@ import fallBackImage from 'frontend/assets/heroic_card.jpg'
 import { getStoreName } from 'frontend/helpers'
 import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
+import useVirtualLibrary from './useVirtualLibrary'
 
 interface Props {
   library: GameInfo[]
@@ -47,7 +48,6 @@ const GamesList = ({
   const { gameOverrides } = useGlobalState.keys('gameOverrides')
   const { storesFilters, showPlaytestsAndDemos, filterText } = useContext(LibraryContext)
   const { t } = useTranslation()
-  const listRef = useRef<HTMLDivElement | null>(null)
   const { activeController } = useContext(ContextProvider)
 
   const [isMassEditMode, setIsMassEditMode] = useState(false)
@@ -301,29 +301,31 @@ const GamesList = ({
     )
   }, [library, isSearching, activeStoreFilter, assignments, customStores, storesFilters, showPlaytestsAndDemos])
 
-  const INITIAL_BATCH_SIZE = 80
-  const [renderLimit, setRenderLimit] = useState<number>(INITIAL_BATCH_SIZE)
-
-  useEffect(() => {
-    if (filteredLibrary.length > INITIAL_BATCH_SIZE) {
-      setRenderLimit(INITIAL_BATCH_SIZE)
-      const handle = requestAnimationFrame(() => {
-        setRenderLimit(filteredLibrary.length)
-      })
-      return () => {
-        cancelAnimationFrame(handle)
+  const renderableLibrary = useMemo(
+    () => filteredLibrary.filter((game) =>
+      (game.runner === 'sideload' || !game.install.is_dlc) &&
+      (!onlyInstalled || game.is_installed)
+    ),
+    [filteredLibrary, onlyInstalled]
+  )
+  const collectionKey = useMemo(
+    () => JSON.stringify(renderableLibrary.map((game) => [game.runner, game.app_name])),
+    [renderableLibrary]
+  )
+  const virtual = !isFirstLane && !isRecent && !isFavourite &&
+    !(isMassEditMode && massEditTab === 'hidden')
+  const { listRef, start, end, topSpace, bottomSpace, pinnedIndex, pinnedStyle } =
+    useVirtualLibrary(renderableLibrary.length, `${layout}:${collectionKey}`, virtual, layout)
+  const visibleLibrary = useMemo(
+    () => {
+      const visible = renderableLibrary.slice(start, end).map((gameInfo, offset) => ({ gameInfo, index: start + offset, pinned: false }))
+      if (pinnedIndex !== null && renderableLibrary[pinnedIndex]) {
+        visible.push({ gameInfo: renderableLibrary[pinnedIndex], index: pinnedIndex, pinned: true })
       }
-    }
-    setRenderLimit(filteredLibrary.length)
-    return () => {}
-  }, [filteredLibrary.length])
-
-  const visibleLibrary = useMemo(() => {
-    if (filteredLibrary.length <= renderLimit) {
-      return filteredLibrary
-    }
-    return filteredLibrary.slice(0, renderLimit)
-  }, [filteredLibrary, renderLimit])
+      return visible
+    },
+    [renderableLibrary, start, end, pinnedIndex]
+  )
 
   useEffect(() => {
     (window as any).heroicActiveLibrary = filteredLibrary
@@ -1035,9 +1037,12 @@ const GamesList = ({
         )
       ) : (
         <div
-          style={
-            !filteredLibrary.length ? { backgroundColor: 'transparent' } : {}
-          }
+          style={{
+            position: 'relative',
+            overflowAnchor: virtual ? 'none' : undefined,
+            ...(!filteredLibrary.length ? { backgroundColor: 'transparent' } : {})
+          }}
+          data-library-window={virtual ? '' : undefined}
           className={cx({
             gameList: layout === 'grid',
             gameListLayout: layout === 'list',
@@ -1055,8 +1060,9 @@ const GamesList = ({
               <span>{t('wine.actions', 'Action')}</span>
             </div>
           )}
+          {topSpace > 0 && <div className="libraryVirtualSpacer" aria-hidden="true" style={{ height: topSpace }} />}
           {!!visibleLibrary.length &&
-            visibleLibrary.map((gameInfo, index) => {
+            visibleLibrary.map(({ gameInfo, index, pinned }) => {
               const { app_name, is_installed, runner } = gameInfo
               const isJustPlayed = (isFavourite || isRecent) && index === 0
               let is_dlc = false
@@ -1076,12 +1082,15 @@ const GamesList = ({
               return (
                 <div
                   key={`${runner}_${app_name}${isFirstLane ? '_firstlane' : ''}`}
+                  data-library-index={index}
+                  data-library-pinned={pinned ? '' : undefined}
                   style={{
                     position: 'relative',
                     cursor: isMassEditMode ? 'pointer' : 'default',
                     display: 'flex',
                     width: '100%',
-                    height: '100%'
+                    height: '100%',
+                    ...(pinned ? pinnedStyle : {})
                   }}
                   onClickCapture={(e) => {
                     if (isMassEditMode) {
@@ -1148,12 +1157,13 @@ const GamesList = ({
                       isSelectedInline={isSelectedInline}
                       assignedCategory={assignedCategory}
                       shouldShowIcons={shouldShowIcons}
-                      priority={isFirstLane || isRecent || isFavourite || index < 60}
+                      priority={isFirstLane || isRecent || isFavourite || index < 20}
                     />
                   </div>
                 </div>
               )
             })}
+          {bottomSpace > 0 && <div className="libraryVirtualSpacer" aria-hidden="true" style={{ height: bottomSpace }} />}
         </div>
       )}
     </>

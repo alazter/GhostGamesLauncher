@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type {
   SourceEngineAction,
   SourceEnginesState
@@ -75,6 +75,7 @@ export default function SourceEnginesPanel() {
               Última consulta: {new Date(state.checkedAt).toLocaleString()}
             </small>
           )}
+          {state.catalogError && <p role="status">{state.catalogError}</p>}
           {state.engines.map((engine) => (
             <section key={engine.id}>
               <h3>
@@ -107,16 +108,41 @@ export default function SourceEnginesPanel() {
                   ? 'leitura adaptativa'
                   : 'navegação experimental'}
               </label>
-              <button
-                disabled={busy || engine.busy || !engine.available}
-                onClick={() => void action({ type: 'install', id: engine.id })}
-              >
-                {engine.installed === engine.available
-                  ? 'Verificar instalação'
-                  : engine.installed
-                    ? 'Atualizar'
-                    : 'Instalar'}
-              </button>
+              {(!engine.installed ||
+                engine.updateAvailable ||
+                engine.upstreamUpdateAvailable) && (
+                <button
+                  className="ghost-btn-primary"
+                  disabled={
+                    busy ||
+                    engine.busy ||
+                    !engine.available ||
+                    Boolean(engine.installed && !engine.updateAvailable)
+                  }
+                  onClick={() =>
+                    void action({ type: 'install', id: engine.id })
+                  }
+                >
+                  {engine.installed
+                    ? `Instalar atualização ${engine.updateAvailable ? engine.available : engine.upstream}`
+                    : `Instalar${engine.available ? ` ${engine.available}` : ''}`}
+                </button>
+              )}
+              {engine.installed && (
+                <button
+                  disabled={busy || engine.busy}
+                  onClick={() => void action({ type: 'verify', id: engine.id })}
+                >
+                  Verificar instalação
+                </button>
+              )}
+              {engine.upstreamUpdateAvailable && !engine.updateAvailable && (
+                <p role="status">
+                  A versão {engine.upstream} foi publicada, mas seu pacote
+                  compatível com o Ghost ainda não está disponível. Use
+                  Verificar atualizações para consultar novamente.
+                </p>
+              )}
               <button
                 disabled={busy || engine.busy || !engine.previous}
                 onClick={() => void action({ type: 'restore', id: engine.id })}

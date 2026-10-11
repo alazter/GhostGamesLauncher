@@ -12,6 +12,9 @@ export function validateEngineRelease(
     !['scrapling', 'obscura'].includes(value.id) ||
     !valid(value.version) ||
     value.protocol !== 1 ||
+    (value.integrationRevision !== undefined &&
+      (!Number.isSafeInteger(value.integrationRevision) ||
+        value.integrationRevision < 0)) ||
     value.platform !== platform ||
     value.arch !== arch ||
     !valid(value.minGhostVersion) ||

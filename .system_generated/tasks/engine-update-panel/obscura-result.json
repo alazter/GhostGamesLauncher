@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "version": "0.2.4",
+  "sha256": "8e5428bf8c101f1439c53a9dcb52d7d09bb22599206b49f6420028d93d01189b",
+  "bundle": "C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\engine-update-panel\\candidate-bundles",
+  "checks": [
+    "official SHA-256",
+    "--version",
+    "DOM/JavaScript fixture"
+  ]
+}

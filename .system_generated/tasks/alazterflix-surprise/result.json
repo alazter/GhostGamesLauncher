@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "surprise": true,
+  "badgeRemoved": true,
+  "fullImage": true,
+  "brokenImageFallback": true,
+  "intervalMs": 7000,
+  "firstNineTitles": [
+    "Indicação 4",
+    "Filme de teste",
+    "Indicação 5",
+    "Agent Aika",
+    "Indicação 1",
+    "Indicação 0",
+    "series",
+    "documentary",
+    "Indicação 6"
+  ],
+  "hoverPause": true,
+  "keyboardFocusPause": true,
+  "explicitPause": true,
+  "visibilityPause": true,
+  "detailsPause": true,
+  "mobile": true,
+  "reducedMotion": true,
+  "smallAndEmptyLibraries": true,
+  "pageErrors": []
+}

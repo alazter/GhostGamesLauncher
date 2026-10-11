@@ -80,10 +80,10 @@ function Root() {
 
   useEffect(() => {
     // Initial sync
-    syncLocalStorageToBackend()
+    void syncLocalStorageToBackend().catch((error) => console.error('Failed to synchronize backup preferences:', error))
 
     const handleSync = () => {
-      syncLocalStorageToBackend()
+      void syncLocalStorageToBackend().catch((error) => console.error('Failed to synchronize backup preferences:', error))
     }
 
     // Sync on unload or settings/background changes
@@ -323,6 +323,14 @@ const router = createHashRouter([
       {
         path: 'external-games',
         lazy: makeLazyFunc(import('./screens/ExternalGames'))
+      },
+      {
+        path: 'alazterflix',
+        lazy: makeLazyFunc(import('./screens/Alazterflix'))
+      },
+      {
+        path: 'cinema',
+        lazy: makeLazyFunc(import('./screens/Alazterflix'))
       },
       {
         path: 'console',

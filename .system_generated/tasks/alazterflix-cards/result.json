@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "styles": 3,
+  "alignment": 3,
+  "decimal": true,
+  "watchedAndFavoritesIndependent": true,
+  "widths": [
+    1400,
+    900,
+    600,
+    420,
+    320
+  ],
+  "pageErrors": []
+}

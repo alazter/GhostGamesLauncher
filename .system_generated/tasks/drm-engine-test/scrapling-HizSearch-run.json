@@ -1,0 +1,84 @@
+{
+  "engine": "Scrapling 0.4.15",
+  "site": "HizSearch",
+  "mode": "stealth-auto-verification",
+  "persistentProfile": true,
+  "status": 200,
+  "url": "https://hizsearch.pages.dev/",
+  "page": {
+    "title": "HizSearch - Game Search Engine",
+    "headings": [
+      "hiz/search"
+    ],
+    "matchedGame": false,
+    "hasSearch": false,
+    "challenge": false,
+    "turnstile": false,
+    "textLength": 149,
+    "frameHosts": []
+  },
+  "responses": [
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/assets/index-COV6EZG-.css",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/assets/index-LKQ3LNgm.js",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/site.webmanifest",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/static/chunks/app-ana",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/icons/kofi-logo.svg",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/favicon-32x32.png",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/icons/hw-cursor.svg",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/favicon-256x256.png",
+      "status": 200
+    },
+    {
+      "host": "hizapi.onrender.com",
+      "path": "/counts",
+      "status": 200
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "host": "hizsearch.pages.dev",
+      "path": "/static/chunks/v1/tel",
+      "status": 200
+    }
+  ],
+  "seconds": 18,
+  "diagnostics": "[2026-10-05 18:46:36] INFO: The turnstile version discovered is \"embedded\"\r\n[2026-10-05 18:46:37] INFO: Cloudflare captcha is solved\r\n[2026-10-05 18:46:44] INFO: Fetched (200) <GET https://hizsearch.pages.dev/> (referer: None)\r\n"
+}

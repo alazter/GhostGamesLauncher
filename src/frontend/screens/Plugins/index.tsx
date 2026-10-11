@@ -1,5 +1,6 @@
 import SourceEnginesPanel from './SourceEnginesPanel'
 import SourceSettingsDialog from './SourceSettingsDialog'
+import AlazterflixSettingsDialog from '../Alazterflix/AlazterflixSettingsDialog'
 import React, { useState, useEffect, useCallback } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -20,7 +21,8 @@ import {
   faSearch,
   faDownload,
   faExternalLinkAlt,
-  faSlidersH
+  faSlidersH,
+  faFilm
 } from '@fortawesome/free-solid-svg-icons'
 import type { PluginInfo, PluginType } from 'common/types/plugins'
 import './index.scss'
@@ -30,6 +32,7 @@ import '../ExternalGames/index.css'
 
 export default function PluginsScreen() {
   const [configuringSource, setConfiguringSource] = useState<{ id: string; name: string }>()
+  const [configuringAlazterflix, setConfiguringAlazterflix] = useState(false)
   const [activeTab, setActiveTab] = useState<'installed' | 'store' | 'dev'>('installed')
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -199,6 +202,8 @@ export default function PluginsScreen() {
         return faBolt
       case 'metadata':
         return faTag
+      case 'media':
+        return faFilm
       default:
         return faPuzzlePiece
     }
@@ -217,6 +222,8 @@ export default function PluginsScreen() {
         return 'Utilitário & Estabilidade'
       case 'metadata':
         return 'Metadados & Badges'
+      case 'media':
+        return 'Cinema & Filmes (Jellyfin + Stremio)'
       default:
         return 'Extensão Geral'
     }
@@ -233,6 +240,18 @@ export default function PluginsScreen() {
 
   // Curated Community Plugins catalog
   const curatedStorePlugins = [
+    {
+      id: 'com.ghost.cinema',
+      name: 'Ghost Cinema & Filmes (Jellyfin + Stremio)',
+      version: '1.0.0',
+      author: 'Ghost Community Media Labs',
+      type: 'media' as PluginType,
+      description:
+        'Catálogo completo de filmes ao estilo Jellyfin, player de vídeo acelerado por hardware e suporte integral a todos os Addons do Stremio Protocol v3.',
+      tier: 1,
+      permissions: ['ui:inject-css', 'network', 'storage', 'media'],
+      allowedDomains: ['v3-cinemeta.strem.io', '*.strem.io', '*.strem.fun', 'images.metahub.space']
+    },
     {
       id: 'com.ghost.cyber-neon-expanded',
       name: 'Cyber Neon Layout & Customizer',
@@ -323,7 +342,7 @@ export default function PluginsScreen() {
         <details className="externalPanel">
           <summary>Fontes de jogos disponíveis</summary>
           <p>Adaptadores experimentais: catálogo público e download pelo site. Instalação ZIP para Windows; fontes de Switch disponíveis para consulta.</p>
-          <div className="externalActions">{builtinGameSources.map((source) => <button key={source.id} className="ghost-btn-primary" disabled={loading || plugins.some((plugin) => plugin.id === source.id && plugin.version === '1.1.0')} onClick={async () => {
+          <div className="externalActions">{builtinGameSources.map((source) => <button key={source.id} className="ghost-btn-primary" disabled={loading || plugins.some((plugin) => plugin.id === source.id)} onClick={async () => {
             setLoading(true)
             try {
               const result = await window.api.pluginsInstallBuiltinSource(source.id)
@@ -331,7 +350,7 @@ export default function PluginsScreen() {
               else showFeedback('error', result.error || 'Não foi possível instalar a fonte.')
             } catch (error) { showFeedback('error', String(error)) }
             finally { setLoading(false) }
-          }}>{source.name}{plugins.some((plugin) => plugin.id === source.id && plugin.version === '1.1.0') ? ' · Instalado' : ' · Instalar'}</button>)}</div>
+          }}>{source.name}{plugins.some((plugin) => plugin.id === source.id) ? ' · Instalado' : ' · Instalar'}</button>)}</div>
         </details>
       {/* Navigation Tabs */}
       <div className="ghost-plugins-tabs-bar">
@@ -500,7 +519,16 @@ export default function PluginsScreen() {
                   )}
 
                   <div className="ghost-plugin-card-footer">
-                    {builtinGameSources.some(source => source.id === plugin.id) && <button className="ghost-btn-primary" onClick={() => setConfiguringSource({ id: plugin.id, name: plugin.name })}><FontAwesomeIcon icon={faSlidersH} /> Configurar</button>}
+                    {builtinGameSources.some(source => source.id === plugin.id) && (
+                      <button className="ghost-btn-primary" onClick={() => setConfiguringSource({ id: plugin.id, name: plugin.name })}>
+                        <FontAwesomeIcon icon={faSlidersH} /> Configurar
+                      </button>
+                    )}
+                    {(plugin.id === 'com.ghost.alazterflix' || plugin.id === 'com.ghost.cinema') && (
+                      <button className="ghost-btn-primary" onClick={() => setConfiguringAlazterflix(true)}>
+                        <FontAwesomeIcon icon={faSlidersH} /> Configurar
+                      </button>
+                    )}
                     <button
                       className="ghost-btn-danger"
                       onClick={() => handleUninstall(plugin)}
@@ -519,6 +547,7 @@ export default function PluginsScreen() {
 
       <SourceEnginesPanel />
       {configuringSource && <SourceSettingsDialog {...configuringSource} close={() => setConfiguringSource(undefined)} />}
+      {configuringAlazterflix && <AlazterflixSettingsDialog close={() => setConfiguringAlazterflix(false)} />}
 
       {/* TAB 2: COMMUNITY STORE */}
       {activeTab === 'store' && (

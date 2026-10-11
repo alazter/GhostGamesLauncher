@@ -1,4 +1,4 @@
-"""Ghost protocol 1: parse supplied HTML only; no browser, HTTP client or credentials."""
+"""Ghost protocol 1: HTML parsing plus an explicit, restricted manual DRM reader."""
 import json
 import re
 import sys
@@ -8,6 +8,7 @@ from urllib.parse import urljoin, urlparse
 from importlib.metadata import version
 from scrapling.parser import Selector
 from scrapling.core.storage import SQLiteStorageSystem
+from release_selectors import release_selectors, self_test as release_self_test
 
 
 class GhostStorage(SQLiteStorageSystem.__wrapped__):
@@ -26,6 +27,10 @@ class GhostStorage(SQLiteStorageSystem.__wrapped__):
 def parse(request):
     if request.get('protocol') != 1 or len(request.get('html', '')) > 8 * 1024 * 1024:
         raise ValueError('Invalid request')
+    if request.get('operation') == 'manual-drm-page-v1':
+        return manual_drm_page(request)
+    if request.get('operation') == 'release-selectors-v1':
+        return release_selectors(request, GhostStorage)
     base = request['base']
     provider = request.get('provider', 'com.ghost.ankergames-source')
     scope = request['scope']
@@ -58,6 +63,60 @@ def parse(request):
         return list(games.values())
     finally:
         database.close()
+
+
+def valid_manual_url(url):
+    parsed = urlparse(url)
+    return (parsed.scheme == 'https' and parsed.netloc == 'ankergames.net'
+            and not parsed.query and not parsed.fragment
+            and bool(re.fullmatch(r'/(?:game|search)/[^/]+/?', parsed.path)))
+
+
+def manual_drm_page(request):
+    # This operation is never used by adaptive parsers or automatic DRM checks.
+    from scrapling.fetchers import StealthySession
+    target = request.get('url', '')
+    proxy = urlparse(request.get('proxy', ''))
+    if not valid_manual_url(target) or proxy.scheme != 'http' or proxy.hostname != '127.0.0.1' or not proxy.port or not proxy.username or not proxy.password:
+        raise ValueError('Invalid manual DRM request')
+    storage = Path(request['storage'])
+    if not storage.is_absolute():
+        raise ValueError('Invalid session directory')
+    snapshot = {}
+
+    def setup(page):
+        def guard(route):
+            url = urlparse(route.request.url)
+            allowed = (url.scheme == 'https' and url.netloc in {'ankergames.net', 'challenges.cloudflare.com'}
+                       and not re.search(r'\.(?:zip|rar|7z|exe|msi|torrent)(?:$|/)', url.path, re.I)
+                       and not re.search(r'/(?:download|logout|login)(?:/|$)', url.path, re.I))
+            if allowed:
+                route.continue_()
+            else:
+                route.abort()
+        page.context.route('**/*', guard)
+        page.on('popup', lambda popup: popup.close())
+
+    def inspect(page):
+        if valid_manual_url(page.url):
+            html = page.content()
+            if len(html.encode('utf-8')) <= 2 * 1024 * 1024:
+                snapshot.update(html=html, url=page.url)
+
+    try:
+        with StealthySession(headless=True, real_chrome=True, solve_cloudflare=True,
+                             timeout=45000, retries=1, google_search=False, block_ads=True,
+                             dns_over_https=False, block_webrtc=True, proxy=request['proxy'],
+                             user_data_dir=str(storage), locale='pt-BR',
+                             additional_args={'accept_downloads': False}) as browser:
+            response = browser.fetch(target, page_setup=setup, page_action=inspect)
+            if response.status == 404:
+                return {'status': 404, 'url': target, 'html': ''}
+            if not snapshot:
+                return {'error': 'A fonte não forneceu uma página válida.'}
+            return {'status': response.status, **snapshot}
+    except Exception:
+        return {'error': 'Scrapling não conseguiu acessar a fonte. Verifique o Chrome instalado e tente novamente.'}
 
 
 def valid_url(url, base, provider='com.ghost.ankergames-source'):
@@ -93,7 +152,13 @@ def self_test():
             assert parse(request) == [{'url': 'https://example.com' + path, 'title': 'Test Game'}]
             request['html'] = f'<h2 class="changed-title"><a href="{path}">Test Game</a></h2><a href="/account">Account</a>'
             assert parse(request) == [{'url': 'https://example.com' + path, 'title': 'Test Game'}]
-    return {'protocol': 1, 'version': version('scrapling'), 'ok': True}
+    release_self_test(GhostStorage)
+    from scrapling.fetchers import StealthySession
+    assert callable(StealthySession)
+    assert valid_manual_url('https://ankergames.net/game/test')
+    for target in ['https://ankergames.net/game/test?download=1', 'http://ankergames.net/game/test', 'https://ankergames.net.evil.test/game/test', 'https://ankergames.net/login']:
+        assert not valid_manual_url(target)
+    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1']}
 
 
 if __name__ == '__main__':

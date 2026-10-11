@@ -1,0 +1,28 @@
+
+Running 3 tests using 1 worker
+
+[1A[2K(node:27184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+
+
+[1A[2K(node:27184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[1A[2K[1/3] e2e\library_loading.spec.ts:153:5 › real library cards remain bounded through scroll, filters, focus and menus
+[1A[2Ke2e\library_loading.spec.ts:153:5 › real library cards remain bounded through scroll, filters, focus and menus
+
+[BABEL] Note: The code generator has deoptimised the styling of C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\unknown as it exceeds the max of 500KB.
+
+[1A[2K(node:27184) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+[1A[2K[2/3] e2e\library_loading.spec.ts:324:5 › profile real library cards across the whole collection
+[1A[2Ke2e\library_loading.spec.ts:324:5 › profile real library cards across the whole collection
+[BABEL] Note: The code generator has deoptimised the styling of C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\unknown as it exceeds the max of 500KB.
+
+[1A[2K{"cards":23,"elements":541,"styles":0,"longTasks":{"count":2,"maximumMs":230,"totalMs":314}}
+
+[1A[2K[3/3] e2e\library_loading.spec.ts:376:5 › native scrolling works without IntersectionObserver and first lanes stay complete
+[1A[2Ke2e\library_loading.spec.ts:376:5 › native scrolling works without IntersectionObserver and first lanes stay complete
+[BABEL] Note: The code generator has deoptimised the styling of C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\unknown as it exceeds the max of 500KB.
+
+[1A[2K  3 passed (41.7s)

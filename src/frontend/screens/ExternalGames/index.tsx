@@ -1,4 +1,5 @@
 import { externalTitleKey, externalTitleGroupKey } from 'common/externalTitle'
+import { groupGamesByTitle, getCanonicalGameTitle } from 'common/externalGameGroups'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { sameExternalGameIdentity } from 'common/externalGameIdentity'
@@ -83,92 +84,7 @@ export function cleanTitle(title: string): string {
   return externalTitleKey(title)
 }
 
-export function getCanonicalGameTitle(title: string): string {
-  return title
-    .replace(/[\[\(].*?[\]\)]/g, ' ')
-    .replace(/\b(?:ofme|rune|tenoke|codex|skidrow|flt|reloaded|hoodlum|empress|cpy|elamigos|fitgirl|dodi|goldberg|clean steam files|own csf)\b/gi, ' ')
-    .replace(/\b(?:build\s*)?\d{5,}\b/gi, ' ')
-    .replace(/\b(?:v|ver|version)?\s*\d+(?:\.\d+)+\b/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-export interface GroupedGameResult {
-  key: string
-  canonicalTitle: string
-  mainGame: GhostSearchResult
-  allSources: GhostSearchResult[]
-  platform: 'windows' | 'switch'
-  coverUrl?: string
-  size?: string
-  installedSize?: string
-  releaseDate?: string
-  description?: string
-  youtubeVideoId?: string
-}
-
-export function groupGamesByTitle(games: GhostSearchResult[]): GroupedGameResult[] {
-  const groups = new Map<string, GroupedGameResult>()
-
-  for (const game of games) {
-    const key = cleanTitle(game.title)
-    if (!key) continue
-
-    const groupKey = externalTitleGroupKey(game.title, game.platform || 'windows')
-    const existing = groups.get(groupKey)
-
-    if (!existing) {
-      groups.set(groupKey, {
-        key,
-        canonicalTitle: getCanonicalGameTitle(game.title),
-        mainGame: game,
-        allSources: [game],
-        platform: game.platform || 'windows',
-        coverUrl: game.coverUrl,
-        size: game.size,
-        installedSize: game.installedSize,
-        releaseDate: game.releaseDate,
-        description: game.description
-      })
-    } else {
-      if (
-        !existing.allSources.some(
-          (s) => s.id === game.id && s.providerId === game.providerId
-        )
-      ) {
-        existing.allSources.push(game)
-      }
-      if (!existing.coverUrl && game.coverUrl) {
-        existing.coverUrl = game.coverUrl
-      }
-      if (!existing.size && game.size) {
-        existing.size = game.size
-      }
-      if (!existing.installedSize && game.installedSize) {
-        existing.installedSize = game.installedSize
-      }
-      if (!existing.releaseDate && game.releaseDate) {
-        existing.releaseDate = game.releaseDate
-      }
-      if (!existing.description && game.description) {
-        existing.description = game.description
-      }
-      const comp = isNewerGameRelease(existing.mainGame, game)
-      if (game.version && (!existing.mainGame.version || comp.isNewer)) {
-        existing.mainGame = {
-          ...game,
-          coverUrl: existing.coverUrl || game.coverUrl,
-          description: existing.description || game.description
-        }
-      }
-      if (game.title.length > existing.mainGame.title.length && !existing.canonicalTitle.includes(':')) {
-        existing.canonicalTitle = getCanonicalGameTitle(game.title)
-      }
-    }
-  }
-
-  return Array.from(groups.values())
-}
+export { groupGamesByTitle, getCanonicalGameTitle } from 'common/externalGameGroups'
 
 export function getCardVersion(src: GhostSearchResult): string {
   if (src.version && !src.version.toLowerCase().startsWith('build')) {
@@ -186,7 +102,7 @@ export function getCardVersion(src: GhostSearchResult): string {
   if (buildMatch) {
     return buildMatch[0]
   }
-  return 'v1.0'
+  return 'Versão não informada'
 }
 
 export function getCardBuildAndSize(src: GhostSearchResult): string {
@@ -1617,7 +1533,7 @@ export default function ExternalGamesScreen() {
       }
       return prev
     })
-    const key = cleanTitle(normalizedGame.title)
+    const key = externalTitleGroupKey(normalizedGame.title, normalizedGame.platform || 'windows')
     setSelectedGroupKey(key)
     setSelected(normalizedGame)
     void details(normalizedGame)
@@ -1942,13 +1858,14 @@ export default function ExternalGamesScreen() {
       const targetInst = state.installations?.find((i) => i.id === instParam)
       if (targetInst?.game?.title) {
         const cleanInstTitle = cleanTitle(targetInst.game.title)
-        const found = groupedGames.find((g) => g.key === cleanInstTitle)
+        const found = groupedGames.find((g) => cleanTitle(g.mainGame.title) === cleanInstTitle &&
+          g.platform === (targetInst.game.platform || 'windows'))
         if (found) return found
       }
     }
     if (query.trim()) {
       const cleanQ = cleanTitle(query.trim())
-      const exactMatch = groupedGames.find((g) => g.key === cleanQ)
+      const exactMatch = groupedGames.find((g) => cleanTitle(g.mainGame.title) === cleanQ)
       if (exactMatch) return exactMatch
     }
     return groupedGames[0]
@@ -2105,6 +2022,16 @@ export default function ExternalGamesScreen() {
         setShowDownloadOptions(false)
       }
     })
+  }
+
+  const selectSearchProvider = (nextProvider: string) => {
+    requestNumber.current++
+    setProvider(nextProvider)
+    setSelected(undefined)
+    setSelectedGroupKey('')
+    setSources([])
+    setShowDownloadOptions(false)
+    setBusy(false)
   }
 
   const lastProcessedUrlQueryRef = useRef<string | null>(null)
@@ -2445,7 +2372,7 @@ export default function ExternalGamesScreen() {
               <button
                 type="button"
                 className={`externalPill ${!provider ? 'active' : ''}`}
-                onClick={() => setProvider('')}
+                onClick={() => selectSearchProvider('')}
               >
                 <FontAwesomeIcon icon={faLayerGroup} style={{ fontSize: '13px' }} />
                 <span>Todos</span>
@@ -2461,7 +2388,7 @@ export default function ExternalGamesScreen() {
                     key={plugin.id}
                     type="button"
                     className={`externalPill ${isActive ? 'active' : ''}`}
-                    onClick={() => setProvider(isActive ? '' : plugin.id)}
+                    onClick={() => selectSearchProvider(isActive ? '' : plugin.id)}
                   >
                     {renderProviderIcon(
                       plugin.id,
@@ -2913,7 +2840,7 @@ export default function ExternalGamesScreen() {
                       {activeSource.genre ? activeSource.genre.split(',')[0].trim() : inferCategoryTag(activeGroup.canonicalTitle)}
                     </span>
                     <span className="externalMetaTag">
-                      <FontAwesomeIcon icon={faDownload} /> Download: {activeSource.size || activeGroup.size || '35 GB'}
+                      <FontAwesomeIcon icon={faDownload} /> Download: {activeSource.size || activeGroup.size || 'Não informado'}
                     </span>
                     {Boolean((activeSource.installedSize || activeGroup.installedSize) &&
                      (activeSource.installedSize || activeGroup.installedSize) !== (activeSource.size || activeGroup.size)) && (
@@ -2950,7 +2877,7 @@ export default function ExternalGamesScreen() {
                     {/* DATA EXPLÍCITA DE LANÇAMENTO */}
                     <span className="externalMetaTag">
                       <FontAwesomeIcon icon={faCalendarAlt} />{' '}
-                      Lançamento: {formatPublicationDate(activeSource.releaseDate || activeGroup.releaseDate) || '2024'}
+                      Lançamento: {formatPublicationDate(activeSource.releaseDate || activeGroup.releaseDate) || 'Não informado'}
                     </span>
                     {/* DATA EXPLÍCITA DE ATUALIZAÇÃO */}
                     <span className="externalMetaTag">
@@ -2962,11 +2889,11 @@ export default function ExternalGamesScreen() {
                   {/* AVALIAÇÃO & REVIEW (ESTILO ANKERGAMES) */}
                   <div className="ratingReviewRow">
                     <div className="starsGroup">
-                      <span>⭐⭐⭐⭐⭐</span>
-                      <strong style={{ color: '#fff', marginLeft: '4px' }}>{activeSource.rating || '5.0/5'}</strong>
+                      {activeSource.rating && <span>⭐</span>}
+                      <strong style={{ color: '#fff', marginLeft: '4px' }}>{activeSource.rating || 'Sem avaliação informada'}</strong>
                     </div>
                     <div className="recommendBadge">
-                      <FontAwesomeIcon icon={faThumbsUp} /> {activeSource.recommendPercent || '100%'} Recomendam
+                      <FontAwesomeIcon icon={faThumbsUp} /> {activeSource.recommendPercent ? `${activeSource.recommendPercent} Recomendam` : 'Recomendação não informada'}
                     </div>
                   </div>
 
@@ -2981,7 +2908,7 @@ export default function ExternalGamesScreen() {
                   <div className="richMetaGrid">
                     <div className="richMetaChip">
                       <span className="richMetaLabel">Download</span>
-                      <span className="richMetaValue">{activeSource.size || activeGroup.size || '35 GB'}</span>
+                      <span className="richMetaValue">{activeSource.size || activeGroup.size || 'Não informado'}</span>
                     </div>
                     {Boolean(activeSource.installedSize || activeGroup.installedSize) && (
                       <div className="richMetaChip">
@@ -2995,23 +2922,23 @@ export default function ExternalGamesScreen() {
                     </div>
                     <div className="richMetaChip">
                       <span className="richMetaLabel">Uploader</span>
-                      <span className="richMetaValue">{activeSource.uploader || 'SteamRIP / Ghost'}</span>
+                      <span className="richMetaValue">{activeSource.uploader || 'Não informado'}</span>
                     </div>
                     <div className="richMetaChip">
                       <span className="richMetaLabel">Desenvolvedor</span>
-                      <span className="richMetaValue">{activeSource.developer || 'Estúdio Oficial'}</span>
+                      <span className="richMetaValue">{activeSource.developer || 'Não informado'}</span>
                     </div>
                     <div className="richMetaChip">
                       <span className="richMetaLabel">Distribuidora</span>
-                      <span className="richMetaValue">{activeSource.publisher || 'Publisher'}</span>
+                      <span className="richMetaValue">{activeSource.publisher || 'Não informado'}</span>
                     </div>
                     <div className="richMetaChip">
                       <span className="richMetaLabel">Steam Deck</span>
-                      <span className="richMetaValue">{activeSource.deckCompatibility || 'Compatível (Verificado)'}</span>
+                      <span className="richMetaValue">{activeSource.deckCompatibility || 'Não informado'}</span>
                     </div>
                     <div className="richMetaChip">
                       <span className="richMetaLabel">Controle</span>
-                      <span className="richMetaValue">{activeSource.controllerSupport || 'Suporte Completo'}</span>
+                      <span className="richMetaValue">{activeSource.controllerSupport || 'Não informado'}</span>
                     </div>
                   </div>
 

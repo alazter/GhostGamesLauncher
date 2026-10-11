@@ -131,7 +131,9 @@ const CachedImage = (props: Props) => {
   return (
     <img
       ref={imgRef}
-      loading={props.loading || (props.priority ? 'eager' : 'lazy')}
+      // IntersectionObserver already gates requests. Once visible, avoid a second
+      // native lazy-loading delay inside the library's nested scroll container.
+      loading={isInView ? 'eager' : 'lazy'}
       decoding={decoding}
       {...rest}
       src={finalSrc}

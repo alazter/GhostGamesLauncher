@@ -1,4 +1,11 @@
-export type PluginType = 'ui' | 'theme' | 'layout' | 'game-source' | 'utility' | 'metadata'
+export type PluginType =
+  | 'ui'
+  | 'theme'
+  | 'layout'
+  | 'game-source'
+  | 'utility'
+  | 'metadata'
+  | 'media'
 
 export type PluginPermission =
   | 'ui:inject-css'
@@ -7,6 +14,7 @@ export type PluginPermission =
   | 'storage'
   | 'game-lifecycle'
   | 'game-sources'
+  | 'media'
 
 export interface PluginManifest {
   id: string
@@ -64,7 +72,12 @@ export interface GhostSearchResult {
   recommendPercent?: string
 }
 
-export type DownloadSourceType = 'direct' | 'torbox' | 'torrent' | 'magnet' | 'external'
+export type DownloadSourceType =
+  | 'direct'
+  | 'torbox'
+  | 'torrent'
+  | 'magnet'
+  | 'external'
 
 export interface GhostDownloadSource {
   id: string
@@ -109,12 +122,23 @@ export interface ExternalInstallation {
   updateMessage?: string
   backupError?: string
   linkedExisting?: boolean
-  history: Array<{ game: GhostSearchResult; changedAt: string; backupId?: string }>
+  history: Array<{
+    game: GhostSearchResult
+    changedAt: string
+    backupId?: string
+  }>
 }
 
 export interface SaveDiscoveryResult {
   path: string
-  detectionType: 'knowledge_base' | 'unity' | 'crack' | 'unreal' | 'godot' | 'internal' | 'user_profile'
+  detectionType:
+    | 'knowledge_base'
+    | 'unity'
+    | 'crack'
+    | 'unreal'
+    | 'godot'
+    | 'internal'
+    | 'user_profile'
   details: string
   existsOnDisk: boolean
   hasFiles: boolean
@@ -143,7 +167,17 @@ export interface PiratasSaveSyncResult {
   results: PiratasSaveSyncItem[]
 }
 
-export type ExternalJobStatus = 'queued' | 'downloading' | 'paused' | 'awaiting-file' | 'extracting' | 'ready' | 'installing' | 'completed' | 'cancelled' | 'error'
+export type ExternalJobStatus =
+  | 'queued'
+  | 'downloading'
+  | 'paused'
+  | 'awaiting-file'
+  | 'extracting'
+  | 'ready'
+  | 'installing'
+  | 'completed'
+  | 'cancelled'
+  | 'error'
 
 export interface ExternalSpacePlan {
   packageReady?: boolean
@@ -161,7 +195,15 @@ export interface ExternalDownloadJob {
   oldRemoved?: boolean
   spacePlan?: ExternalSpacePlan
   canResume?: boolean
-  directDiagnostic?: { event: string; host: string; bytes: number; total: number; canResume: boolean; attempts: number; at: string }
+  directDiagnostic?: {
+    event: string
+    host: string
+    bytes: number
+    total: number
+    canResume: boolean
+    attempts: number
+    at: string
+  }
   id: string
   game: GhostSearchResult
   installationId: string
@@ -186,7 +228,13 @@ export interface DownloadIntegrationsState {
 }
 
 export type DownloadIntegrationAction =
-  | { type: 'connect-anker' | 'disconnect-anker' | 'disconnect-torbox' | 'test-torbox' }
+  | {
+      type:
+        | 'connect-anker'
+        | 'disconnect-anker'
+        | 'disconnect-torbox'
+        | 'test-torbox'
+    }
   | { type: 'save-torbox'; apiKey: string }
 
 export interface ExternalSaveBackup {
@@ -220,7 +268,14 @@ export type ExternalGameAction =
   | { type: 'finish'; jobId: string; executable: string }
   | { type: 'browse-executable'; jobId: string }
   | { type: 'switch-source'; jobId: string; source: GhostDownloadSource }
-  | { type: 'configure-saves' | 'backup' | 'check-update' | 'auto-discover-saves'; installationId: string }
+  | {
+      type:
+        | 'configure-saves'
+        | 'backup'
+        | 'check-update'
+        | 'auto-discover-saves'
+      installationId: string
+    }
   | { type: 'set-save-path'; installationId: string; path: string }
   | { type: 'delete-backup'; installationId: string; backupId: string }
   | { type: 'auto-backup'; installationId: string; enabled: boolean }
@@ -286,4 +341,213 @@ export interface SourceSettings {
 export interface SourceAddressTest {
   status: 'available' | 'login' | 'unrecognized' | 'unavailable'
   message: string
+}
+
+export type GhostMediaCategory =
+  | 'movie'
+  | 'series'
+  | 'anime'
+  | 'cartoon'
+  | 'documentary'
+
+export interface GhostMovie {
+  id: string
+  title: string
+  originalTitle?: string
+  cleanTitle: string
+  year?: number
+  filePath: string
+  fileName: string
+  fileSize: string | number
+  fileSizeBytes: number
+  duration?: number
+  durationFormatted?: string
+  resolution?: string
+  codec?: string
+  container?: string
+  coverUrl?: string
+  backdropUrl?: string
+  synopsis?: string
+  genres?: string[]
+  rating?: string
+  imdbId?: string
+  addedAt: string
+  lastWatchedAt?: string
+  progressSeconds?: number
+  isWatched?: boolean
+  source: 'local' | 'stremio'
+  streamUrl?: string
+  season?: number
+  episode?: number
+  isSeries?: boolean
+  customTitle?: string
+  customCoverUrl?: string
+  mediaCategory?: GhostMediaCategory
+  showTitle?: string
+  isSpecial?: boolean
+  localCoverPath?: string
+  localBackdropPath?: string
+  hasLocalArtwork?: boolean
+  showDirectory?: string
+  customShowTitle?: string
+  customCategory?: GhostMediaCategory
+  customIsSeries?: boolean
+  customSeason?: number | null
+  customEpisode?: number | null
+  metadataLocked?: boolean
+  artworkLocked?: boolean
+  artworkRevision?: number
+  artworkMissing?: boolean
+  artworkLanguage?: 'pt' | 'local'
+  artworkScope?: 'show' | 'item'
+  portuguesePosterUnavailable?: boolean
+  metadataProvider?: 'tmdb' | 'cinemeta'
+  tmdbRating?: number | null
+  userRating?: number
+  manualWatched?: boolean
+  metadataId?: string
+  metadataStatus?: 'matched' | 'needs-identification' | 'error'
+  lastMetadataAttempt?: string
+}
+
+export interface CinemaMetadataCandidate {
+  provider: 'tmdb' | 'cinemeta'
+  id: string
+  type: 'movie' | 'series'
+  title: string
+  originalTitle?: string
+  year?: number
+  poster?: string
+  background?: string
+  description?: string
+  rating?: string
+  imdbId?: string
+  genres?: string[]
+  runtime?: string
+  posters?: string[]
+  posterLanguage?: 'pt'
+  backdrops?: string[]
+}
+
+export type MediaTitleSource = 'file' | 'folder'
+
+export interface CinemaMetadataSettings {
+  autoFetch: boolean
+  language: 'pt-BR' | 'en-US' | 'ja-JP'
+  tmdbConfigured: boolean
+  titleSource?: MediaTitleSource
+}
+
+export interface CinemaMetadataJob {
+  running: boolean
+  total: number
+  completed: number
+  matched: number
+  failed: number
+  unidentified: number
+  currentTitle?: string
+  lastError?: string
+  libraryRevision: number
+}
+
+export interface CinemaUpdateOptions {
+  applyToShow?: boolean
+}
+
+export interface CinemaMediaPreferences {
+  userRating?: number | null
+  isWatched?: boolean
+}
+
+export interface GhostShowSeason {
+  seasonNumber: number
+  seasonLabel: string
+  episodes: GhostMovie[]
+}
+
+export interface GhostShow {
+  id: string
+  showTitle: string
+  mediaCategory: GhostMediaCategory
+  coverUrl?: string
+  backdropUrl?: string
+  synopsis?: string
+  rating?: string
+  year?: number
+  resolution?: string
+  isSeries: boolean
+  seasonsCount: number
+  episodesCount: number
+  seasons: GhostShowSeason[]
+  sampleMovie: GhostMovie
+}
+
+export interface StremioAddonManifest {
+  id: string
+  name: string
+  version: string
+  description?: string
+  icon?: string
+  background?: string
+  manifestUrl: string
+  types: string[]
+  resources: Array<
+    string | { name: string; types?: string[]; idPrefixes?: string[] }
+  >
+  catalogs?: Array<{
+    type: string
+    id: string
+    name: string
+    extra?: Array<{ name: string; isRequired?: boolean; options?: string[] }>
+  }>
+  isEnabled?: boolean
+}
+
+export interface StremioMetaPreview {
+  id: string
+  type: string
+  name: string
+  poster?: string
+  background?: string
+  genres?: string[]
+  releaseInfo?: string
+  description?: string
+  imdbRating?: string
+  runtime?: string
+}
+
+export interface StremioStreamItem {
+  name?: string
+  title?: string
+  url?: string
+  infoHash?: string
+  fileIdx?: number
+  behaviorHints?: {
+    bingeGroup?: string
+    notWebReady?: boolean
+  }
+  quality?: string
+  details?: string
+  addonName?: string
+}
+
+export interface CinemaLibraryState {
+  isPluginActive: boolean
+  folders: string[]
+  movies: GhostMovie[]
+  addons: StremioAddonManifest[]
+  activeMovie?: GhostMovie
+  metadataSettings?: CinemaMetadataSettings
+  metadataJob?: CinemaMetadataJob
+  playbackHistory: Record<
+    string,
+    {
+      progressSeconds: number
+      durationSeconds: number
+      lastWatched: string
+      lastWatchedAt?: string
+      isWatched?: boolean
+      continueHidden?: boolean
+    }
+  >
 }

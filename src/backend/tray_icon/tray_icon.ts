@@ -117,7 +117,8 @@ const contextMenu = (
   const recentsMenu = recentGames.map((game) => {
     return {
       click: function () {
-        handleProtocol([`heroic://launch?appName=${game.appName}`])
+        const runnerParam = game.runner ? `&runner=${game.runner}` : ''
+        handleProtocol([`heroic://launch?appName=${game.appName}${runnerParam}`])
       },
       label: game.title
     }

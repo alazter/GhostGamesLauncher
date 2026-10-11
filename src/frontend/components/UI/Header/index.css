@@ -1,7 +1,7 @@
 .Header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 500;
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
@@ -15,68 +15,43 @@
   color: var(--text-secondary);
 }
 
-/* Customização do Modo Padrão nos Botões do Cabeçalho (Fundo e Borda Customizáveis) */
-.Header__filters:not(.header-buttons--neon) button,
-.Header__filters:not(.header-buttons--neon) .dropdown button,
-.Header__filters:not(.header-buttons--neon) .CategoryFilter button,
-.Header__filters:not(.header-buttons--neon) .LibraryFilters button {
+/* ========================================================
+   MODO PADRÃO (Sem Neon): Fundo Translúcido e Borda Suave
+   ======================================================== */
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__actionBtn,
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__dropdownBtn {
   background: var(--header-btn-default-bg-color, rgba(255, 255, 255, 0.05)) !important;
-  border-color: var(--header-btn-default-border-color, rgba(255, 255, 255, 0.15)) !important;
+  border: 1px solid var(--header-btn-default-border-color, rgba(255, 255, 255, 0.15)) !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  outline: none !important;
+  padding: 0 6px !important;
   transition: all 0.25s ease !important;
 }
 
-/* Efeito Neon Suave nos Botões do Cabeçalho (Sem Degradê) */
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) button:hover,
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .dropdown:hover button,
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .CategoryFilter:hover button,
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .LibraryFilters:hover button {
-  border-color: var(--header-btn-color-1, #38d9e6) !important;
-  box-shadow: 0 0 calc(var(--header-btn-glow-strength, 8px) * 0.5) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.4)),
-              0 0 var(--header-btn-glow-strength, 8px) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.3)) !important;
-  color: var(--header-btn-color-1, #38d9e6) !important;
-  opacity: var(--header-btn-opacity, 1) !important;
-  transform: scale(1.03);
-  transition: all 0.2s ease !important;
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__actionBtn:hover,
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__dropdownBtn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.15) !important;
 }
 
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) button:hover svg,
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .dropdown:hover button svg,
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .CategoryFilter:hover button svg,
-.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .LibraryFilters:hover button svg {
-  color: var(--header-btn-color-1, #38d9e6) !important;
-  fill: var(--header-btn-color-1, #38d9e6) !important;
-  filter: drop-shadow(0 0 2px var(--header-btn-glow-color-1, var(--header-btn-color-1, #00ffff))) 
-          drop-shadow(0 0 calc(var(--header-btn-glow-strength, 8px) * 0.5) var(--header-btn-glow-color-1, var(--header-btn-color-1, #00ffff))) 
-          drop-shadow(0 0 var(--header-btn-glow-strength, 8px) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.85))) !important;
-  transform: scale(1.05);
-  transition: all 0.2s ease !important;
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__actionBtn svg,
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__dropdownBtn svg {
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-size: 16px !important;
+  transition: transform 0.2s ease, color 0.2s ease !important;
 }
 
-/* Efeito Neon Suave nos Botões do Cabeçalho (Com Modo Degradê Direcional 135°) */
-.Header__filters.header-buttons--neon.header-buttons--gradient button:hover,
-.Header__filters.header-buttons--neon.header-buttons--gradient .dropdown:hover button,
-.Header__filters.header-buttons--neon.header-buttons--gradient .CategoryFilter:hover button,
-.Header__filters.header-buttons--neon.header-buttons--gradient .LibraryFilters:hover button {
-  border-color: var(--header-btn-color-1, #00ffff) !important;
-  box-shadow: -2px -2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.5)),
-              2px 2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-2, rgba(56, 217, 230, 0.5)) !important;
-  color: var(--header-btn-color-1, #00ffff) !important;
-  opacity: var(--header-btn-opacity, 1) !important;
-  transform: scale(1.03);
-  transition: all 0.2s ease !important;
-}
-
-.Header__filters.header-buttons--neon.header-buttons--gradient button:hover svg,
-.Header__filters.header-buttons--neon.header-buttons--gradient .dropdown:hover button svg,
-.Header__filters.header-buttons--neon.header-buttons--gradient .CategoryFilter:hover button svg,
-.Header__filters.header-buttons--neon.header-buttons--gradient .LibraryFilters:hover button svg {
-  color: var(--header-btn-color-1, #00ffff) !important;
-  fill: var(--header-btn-color-1, #00ffff) !important;
-  filter: drop-shadow(-2px -2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.85))) 
-          drop-shadow(2px 2px calc(var(--header-btn-glow-strength, 8px) * 0.8) var(--header-btn-glow-rgba-2, rgba(56, 217, 230, 0.85))) 
-          drop-shadow(0 0 2px var(--header-btn-glow-color-1, var(--header-btn-color-1, #00ffff))) !important;
-  transform: scale(1.05);
-  transition: all 0.2s ease !important;
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__actionBtn:hover svg,
+.Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__dropdownBtn:hover svg {
+  color: #ffffff !important;
+  transform: scale(1.08) !important;
 }
 
 .frameless:not(.fullscreen) .Header {
@@ -88,13 +63,222 @@
 .Header__filters {
   margin-left: auto; /* Empurra para a direita */
   display: flex;
-  gap: var(--space-md);
+  gap: 12px;
   align-items: center;
-  z-index: 20;
+  z-index: 501;
 }
 
-.Header__filters button:not(.selectStyle) {
-  border-radius: 20px !important;
+/* ========================================================
+   MODO NEON: 100% Transparente sem Moldura ou Fundo (Idêntico ao ActionIcons)
+   ======================================================== */
+.Header__filters.header-buttons--neon .Header__actionBtn,
+.Header__filters.header-buttons--neon .Header__actionBtn:hover,
+.Header__filters.header-buttons--neon .Header__actionBtn:focus,
+.Header__filters.header-buttons--neon .Header__actionBtn:active,
+.Header__filters.header-buttons--neon .Header__dropdownBtn,
+.Header__filters.header-buttons--neon .Header__dropdownBtn:hover,
+.Header__filters.header-buttons--neon .Header__dropdownBtn:focus,
+.Header__filters.header-buttons--neon .Header__dropdownBtn:active,
+.Header__filters.action-icons--neon .Header__actionBtn,
+.Header__filters.action-icons--neon .Header__actionBtn:hover,
+.Header__filters.action-icons--neon .Header__actionBtn:focus,
+.Header__filters.action-icons--neon .Header__actionBtn:active,
+.Header__filters.action-icons--neon .Header__dropdownBtn,
+.Header__filters.action-icons--neon .Header__dropdownBtn:hover,
+.Header__filters.action-icons--neon .Header__dropdownBtn:focus,
+.Header__filters.action-icons--neon .Header__dropdownBtn:active {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 4px !important;
+  width: auto !important;
+  min-width: auto !important;
+  height: auto !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+/* Ícones em Repouso no Modo Neon */
+.Header__filters.header-buttons--neon .Header__actionBtn svg,
+.Header__filters.header-buttons--neon .Header__dropdownBtn svg,
+.Header__filters.header-buttons--neon .Header__actionIcon,
+.Header__filters.action-icons--neon .Header__actionBtn svg,
+.Header__filters.action-icons--neon .Header__dropdownBtn svg,
+.Header__filters.action-icons--neon .Header__actionIcon {
+  font-size: 16px !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  fill: currentColor !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
+}
+
+.Header__filters .Header__dropdownTrigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  color: inherit !important;
+}
+
+.Header__filters.header-buttons--neon .Header__dropdownChevron,
+.Header__filters .Header__dropdownChevron {
+  font-size: 10px !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  fill: currentColor !important;
+  filter: none !important;
+  opacity: 0.7 !important;
+  margin-left: 1px !important;
+  transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
+}
+
+/* Hover sem degradê - Apenas o glifo do ícone acende com a cor escolhida */
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__actionBtn:hover:not(.is-active) svg,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__actionBtn:hover:not(.is-active) .Header__actionIcon,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__dropdownBtn:hover svg,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__dropdownBtn:hover .Header__actionIcon,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__dropdownBtn:hover .Header__dropdownChevron,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__actionBtn:hover:not(.is-active) svg,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__actionBtn:hover:not(.is-active) .Header__actionIcon,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__dropdownBtn:hover svg,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__dropdownBtn:hover .Header__actionIcon,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__dropdownBtn:hover .Header__dropdownChevron {
+  color: var(--action-color-1, var(--header-btn-color-1, #38d9e6)) !important;
+  fill: var(--action-color-1, var(--header-btn-color-1, #38d9e6)) !important;
+  opacity: var(--action-opacity, var(--header-btn-opacity, 1)) !important;
+  filter: drop-shadow(0 0 1.5px var(--action-glow-color-1, var(--header-btn-glow-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--action-glow-strength, var(--header-btn-glow-strength, 8px)) * 0.25) var(--action-glow-color-1, var(--header-btn-glow-color-1, #00ffff))) 
+          drop-shadow(0 0 calc(var(--action-glow-strength, var(--header-btn-glow-strength, 8px)) * 0.5) var(--action-glow-rgba-1, var(--header-btn-glow-rgba-1, rgba(0, 229, 255, 0.85)))) !important;
+  transform: scale(1.15) !important;
+}
+
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__actionBtn:hover:not(.is-active) svg path,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__actionBtn:hover:not(.is-active) .Header__actionIcon path,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__dropdownBtn:hover svg path,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__dropdownBtn:hover .Header__actionIcon path,
+.Header__filters.header-buttons--neon:not(.header-buttons--gradient) .Header__dropdownBtn:hover .Header__dropdownChevron path,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__actionBtn:hover:not(.is-active) svg path,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__actionBtn:hover:not(.is-active) .Header__actionIcon path,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__dropdownBtn:hover svg path,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__dropdownBtn:hover .Header__actionIcon path,
+.Header__filters.action-icons--neon:not(.action-icons--gradient) .Header__dropdownBtn:hover .Header__dropdownChevron path {
+  fill: var(--action-color-1, var(--header-btn-color-1, #38d9e6)) !important;
+}
+
+/* Hover com degradê - O glifo do ícone recebe o degradê e o glow direcional correspondente com raio reduzido e contorno nítido */
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__actionBtn:hover:not(.is-active) svg,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__actionBtn:hover:not(.is-active) .Header__actionIcon,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__dropdownBtn:hover svg,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__dropdownBtn:hover .Header__actionIcon,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__dropdownBtn:hover .Header__dropdownChevron,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__actionBtn:hover:not(.is-active) svg,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__actionBtn:hover:not(.is-active) .Header__actionIcon,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__dropdownBtn:hover svg,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__dropdownBtn:hover .Header__actionIcon,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__dropdownBtn:hover .Header__dropdownChevron {
+  color: transparent !important;
+  opacity: var(--action-opacity, var(--header-btn-opacity, 1)) !important;
+  filter: drop-shadow(-1px -1px calc(var(--action-glow-strength, var(--header-btn-glow-strength, 8px)) * 0.35) var(--action-glow-rgba-1, var(--header-btn-glow-rgba-1, rgba(230, 55, 81, 0.85)))) 
+          drop-shadow(1px 1px calc(var(--action-glow-strength, var(--header-btn-glow-strength, 8px)) * 0.35) var(--action-glow-rgba-2, var(--header-btn-glow-rgba-2, rgba(56, 217, 230, 0.85)))) 
+          drop-shadow(0 0 1.5px var(--action-glow-color-1, var(--header-btn-glow-color-1, #e63751))) !important;
+  transform: scale(1.15) !important;
+}
+
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__actionBtn:hover:not(.is-active) svg path,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__actionBtn:hover:not(.is-active) .Header__actionIcon path,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__dropdownBtn:hover svg path,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__dropdownBtn:hover .Header__actionIcon path,
+.Header__filters.header-buttons--neon.header-buttons--gradient .Header__dropdownBtn:hover .Header__dropdownChevron path,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__actionBtn:hover:not(.is-active) svg path,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__actionBtn:hover:not(.is-active) .Header__actionIcon path,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__dropdownBtn:hover svg path,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__dropdownBtn:hover .Header__actionIcon path,
+.Header__filters.action-icons--neon.action-icons--gradient .Header__dropdownBtn:hover .Header__dropdownChevron path {
+  fill: url(#actionIconGradient) !important;
+  fill: url(#headerIconGradient) !important;
+}
+
+/* ========================================================
+   Estados Ativos Específicos (Luminosos no Glifo com Raio Compacto)
+   ======================================================== */
+/* Edição em Massa Ativa: Vermelho Neon */
+.Header__actionBtn.is-active.is-mass-edit svg,
+.Header__actionBtn.is-active.is-mass-edit .Header__actionIcon {
+  color: #ef4444 !important;
+  fill: #ef4444 !important;
+  filter: drop-shadow(0 0 2px #ef4444) drop-shadow(0 0 4px rgba(239, 68, 68, 0.65)) !important;
+  transform: scale(1.1) !important;
+}
+.Header__actionBtn.is-active.is-mass-edit svg path,
+.Header__actionBtn.is-active.is-mass-edit .Header__actionIcon path {
+  fill: #ef4444 !important;
+}
+.Header__actionBtn.is-active.is-mass-edit:hover svg,
+.Header__actionBtn.is-active.is-mass-edit:hover .Header__actionIcon {
+  color: #ef4444 !important;
+  fill: #ef4444 !important;
+  filter: drop-shadow(0 0 3px #ef4444) drop-shadow(0 0 6px rgba(239, 68, 68, 0.85)) !important;
+  transform: scale(1.18) !important;
+}
+.Header__actionBtn.is-active.is-mass-edit:hover svg path,
+.Header__actionBtn.is-active.is-mass-edit:hover .Header__actionIcon path {
+  fill: #ef4444 !important;
+}
+
+/* Jogos Sem Classificação Ativo: Laranja / Âmbar Neon */
+.Header__actionBtn.is-active.is-unclassified svg,
+.Header__actionBtn.is-active.is-unclassified .Header__actionIcon {
+  color: #ff9800 !important;
+  fill: #ff9800 !important;
+  filter: drop-shadow(0 0 2px #ff9800) drop-shadow(0 0 4px rgba(255, 152, 0, 0.65)) !important;
+  transform: scale(1.1) !important;
+}
+.Header__actionBtn.is-active.is-unclassified svg path,
+.Header__actionBtn.is-active.is-unclassified .Header__actionIcon path {
+  fill: #ff9800 !important;
+}
+.Header__actionBtn.is-active.is-unclassified:hover svg,
+.Header__actionBtn.is-active.is-unclassified:hover .Header__actionIcon {
+  color: #ff9800 !important;
+  fill: #ff9800 !important;
+  filter: drop-shadow(0 0 3px #ff9800) drop-shadow(0 0 6px rgba(255, 152, 0, 0.85)) !important;
+  transform: scale(1.18) !important;
+}
+.Header__actionBtn.is-active.is-unclassified:hover svg path,
+.Header__actionBtn.is-active.is-unclassified:hover .Header__actionIcon path {
+  fill: #ff9800 !important;
+}
+
+/* Jogos Duplicados Ativo: Roxo / Violeta Neon */
+.Header__actionBtn.is-active.is-duplicates svg,
+.Header__actionBtn.is-active.is-duplicates .Header__actionIcon {
+  color: #a855f7 !important;
+  fill: #a855f7 !important;
+  filter: drop-shadow(0 0 2px #a855f7) drop-shadow(0 0 4px rgba(168, 85, 247, 0.65)) !important;
+  transform: scale(1.1) !important;
+}
+.Header__actionBtn.is-active.is-duplicates svg path,
+.Header__actionBtn.is-active.is-duplicates .Header__actionIcon path {
+  fill: #a855f7 !important;
+}
+.Header__actionBtn.is-active.is-duplicates:hover svg,
+.Header__actionBtn.is-active.is-duplicates:hover .Header__actionIcon {
+  color: #a855f7 !important;
+  fill: #a855f7 !important;
+  filter: drop-shadow(0 0 3px #a855f7) drop-shadow(0 0 6px rgba(168, 85, 247, 0.85)) !important;
+  transform: scale(1.18) !important;
+}
+.Header__actionBtn.is-active.is-duplicates:hover svg path,
+.Header__actionBtn.is-active.is-duplicates:hover .Header__actionIcon path {
+  fill: #a855f7 !important;
 }
 
 /* Garante que os botões flutuantes respeitem os controles da janela no Windows */

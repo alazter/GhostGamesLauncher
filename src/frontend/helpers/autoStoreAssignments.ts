@@ -116,6 +116,14 @@ export function syncAutoStoreAssignments(
 }
 
 export const DEFAULT_DOWNLOAD_STORE_KEY = 'ghost_default_download_store_id'
+export const UPDATE_CHECK_SCOPE_KEY = 'ghost_update_check_scope'
+
+export interface UpdateCheckScopeInfo {
+  scope: string
+  name: string
+  isAll: boolean
+  icon?: string | null
+}
 
 export function findPiratasStoreInfo(): { id: string; name: string } {
   try {
@@ -129,17 +137,17 @@ export function findPiratasStoreInfo(): { id: string; name: string } {
       if (match) return { id: match.id, name: match.name }
     }
 
-    // 2. Loja canônica "store-1781341519204" (mesmo se o usuário alterou seu nome na barra de filtros)
-    const canonical = customStores.find((s) => s.id === 'store-1781341519204')
-    if (canonical) return { id: canonical.id, name: canonical.name }
-
-    // 3. Loja por nome ou id contendo "pirata"
+    // 2. Loja por nome ou id contendo "pirata"
     const found = customStores.find((s) => {
       const nameLower = (s.name || '').toLowerCase()
       const idLower = (s.id || '').toLowerCase()
       return nameLower.includes('pirata') || idLower === 'piratas'
     })
     if (found) return { id: found.id, name: found.name }
+
+    // 3. Loja canônica "store-1781341526849" (Piratas em DEFAULT_GHOST_CUSTOM_STORES)
+    const canonical = customStores.find((s) => s.id === 'store-1781341526849')
+    if (canonical) return { id: canonical.id, name: canonical.name }
 
     // 4. Se houver alguma loja customizada
     if (customStores.length > 0) {
@@ -172,6 +180,70 @@ export function setDefaultDownloadStoreId(storeId: string): void {
     window.dispatchEvent(new Event('gameAssignmentsChanged'))
   } catch (e) {
     console.error('Error setting default download store id:', e)
+  }
+}
+
+export function getAvailableCustomStores(): Array<{ id: string; name: string; icon?: string | null }> {
+  try {
+    const rawCustomStores = localStorage.getItem('heroic_custom_stores') || '[]'
+    const customStores = JSON.parse(rawCustomStores)
+    if (Array.isArray(customStores) && customStores.length > 0) {
+      return customStores
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
+export function getUpdateCheckScope(): string {
+  try {
+    const saved = localStorage.getItem(UPDATE_CHECK_SCOPE_KEY)
+    if (saved) return saved
+    // Por padrão, 'all' (Busca Completa em todos os jogos não-oficiais) para máxima cobertura e conveniência
+    return 'all'
+  } catch {
+    return 'all'
+  }
+}
+
+export function setUpdateCheckScope(scope: string): void {
+  try {
+    localStorage.setItem(UPDATE_CHECK_SCOPE_KEY, scope)
+    window.dispatchEvent(new CustomEvent('ghostUpdateCheckScopeChanged', { detail: { scope } }))
+  } catch (e) {
+    console.error('Error setting update check scope:', e)
+  }
+}
+
+export function getUpdateCheckScopeInfo(): UpdateCheckScopeInfo {
+  const scope = getUpdateCheckScope()
+  if (scope === 'all') {
+    return {
+      scope: 'all',
+      name: 'Todos os Jogos Fora das Lojas Oficiais',
+      isAll: true,
+      icon: null
+    }
+  }
+
+  const stores = getAvailableCustomStores()
+  const match = stores.find((s) => s.id === scope)
+  if (match) {
+    return {
+      scope: match.id,
+      name: match.name,
+      isAll: false,
+      icon: match.icon
+    }
+  }
+
+  const piratas = findPiratasStoreInfo()
+  return {
+    scope: piratas.id,
+    name: piratas.name,
+    isAll: false,
+    icon: null
   }
 }
 

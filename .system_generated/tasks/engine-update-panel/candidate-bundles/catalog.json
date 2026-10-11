@@ -1,0 +1,67 @@
+{
+  "releases": [
+    {
+      "id": "scrapling",
+      "version": "0.4.15",
+      "integrationRevision": 2,
+      "url": "https://github.com/alazter/GhostGamesLauncher/releases/download/engines-scrapling-0.4.15/184012ed21129c351ffef97cc780b32a9c2032a88940f48d8846bd5d97a0c3d5.zip",
+      "sha256": "184012ed21129c351ffef97cc780b32a9c2032a88940f48d8846bd5d97a0c3d5",
+      "executable": "ghost-scrapling.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "minGhostVersion": "0.3.0-beta",
+      "protocol": 1
+    },
+    {
+      "id": "obscura",
+      "version": "0.2.4",
+      "url": "https://github.com/h4ckf0r0day/obscura/releases/download/v0.2.4/obscura-x86_64-windows.zip",
+      "sha256": "8e5428bf8c101f1439c53a9dcb52d7d09bb22599206b49f6420028d93d01189b",
+      "executable": "obscura.exe",
+      "platform": "win32",
+      "arch": "x64",
+      "minGhostVersion": "0.3.0-beta",
+      "protocol": 1
+    }
+  ],
+  "rules": [
+    {
+      "id": "com.ghost.ankergames-source",
+      "version": 1,
+      "catalogPath": "/games-list",
+      "gamePathPrefix": "/game/",
+      "selector": ".post-title a"
+    },
+    {
+      "id": "com.ghost.online-fix-source",
+      "version": 1,
+      "catalogPath": "/",
+      "selector": "h2 a"
+    },
+    {
+      "id": "com.ghost.steamrip-source",
+      "version": 1,
+      "catalogPath": "/",
+      "selector": ".entry-title a"
+    },
+    {
+      "id": "com.ghost.nxbrew-source",
+      "version": 1,
+      "catalogPath": "/",
+      "selector": ".entry-title a"
+    },
+    {
+      "id": "com.ghost.nswgf-source",
+      "version": 1,
+      "catalogPath": "/",
+      "selector": ".entry-title a"
+    },
+    {
+      "id": "com.ghost.romslab-source",
+      "version": 1,
+      "catalogPath": "/",
+      "selector": ".entry-title a"
+    }
+  ],
+  "integration": "local-manual-drm-v2"
+}

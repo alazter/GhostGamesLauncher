@@ -12,7 +12,14 @@ import { Path } from './schemas'
 import { isCLINoGui } from './constants/environment'
 import { GlobalConfig } from './config'
 
-const RUNNERS = z.enum(['legendary', 'gog', 'nile', 'sideload'])
+const RUNNERS = z.enum([
+  'legendary',
+  'gog',
+  'nile',
+  'sideload',
+  'zoom',
+  'steam'
+])
 
 function parseHeroicUrl(args: string[]): URL | undefined {
   const urlStr = args.find((arg) => arg.startsWith('heroic://'))
@@ -185,14 +192,31 @@ function findGame(
   if (!appName) return
 
   // If a runner is specified, search for the game in that runner and return it (if found)
-  if (runner) return libraryManagerMap[runner].getGame(appName).getGameInfo()
+  if (runner) {
+    const manager = libraryManagerMap[runner]
+    if (!manager) return undefined
+    const info: GameInfo | undefined = manager.getGame(appName)?.getGameInfo()
+    if (info && info.app_name && info.app_name === appName && info.title) {
+      return info
+    }
+    return undefined
+  }
 
   // If no runner is specified, search for the game in all runners and return the first one found
-  for (const runner of RUNNERS.options) {
-    const maybeGameInfo = libraryManagerMap[runner]
+  for (const r of RUNNERS.options) {
+    const manager = libraryManagerMap[r]
+    if (!manager) continue
+    const maybeGameInfo: GameInfo | undefined = manager
       .getGame(appName)
-      .getGameInfo()
-    if (maybeGameInfo.app_name) return maybeGameInfo
+      ?.getGameInfo()
+    if (
+      maybeGameInfo &&
+      maybeGameInfo.app_name &&
+      maybeGameInfo.app_name === appName &&
+      maybeGameInfo.title
+    ) {
+      return maybeGameInfo
+    }
   }
   return
 }

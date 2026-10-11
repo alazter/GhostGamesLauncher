@@ -1,0 +1,55 @@
+const fs = require('node:fs/promises')
+const path = require('node:path')
+const {createHash} = require('node:crypto')
+const {execFile} = require('node:child_process')
+const {promisify} = require('node:util')
+const http = require('node:http')
+const extractZip = require('extract-zip')
+const execute = promisify(execFile)
+;(async () => {
+  const response = await fetch('https://api.github.com/repos/h4ckf0r0day/obscura/releases/tags/v0.2.4', {signal: AbortSignal.timeout(30000), headers:{'User-Agent':'Ghost-engine-validation'}})
+  if (!response.ok) throw new Error('Release HTTP ' + response.status)
+  const release = await response.json()
+  const asset = release.assets.find(a => a.name === 'obscura-x86_64-windows.zip')
+  if (!asset || !/^sha256:[a-f0-9]{64}$/.test(asset.digest || '')) throw new Error('Official digest unavailable')
+  const target = new URL(asset.browser_download_url)
+  if (target.origin !== 'https://github.com' || !target.pathname.startsWith('/h4ckf0r0day/obscura/releases/download/v0.2.4/')) throw new Error('Unexpected package URL')
+  const downloaded = await fetch(target, {signal: AbortSignal.timeout(180000)})
+  if (!downloaded.ok) throw new Error('Package HTTP ' + downloaded.status)
+  const bytes = Buffer.from(await downloaded.arrayBuffer())
+  if (bytes.length > 250 * 1024 * 1024) throw new Error('Package too large')
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
+  if ('sha256:' + sha256 !== asset.digest) throw new Error('Official digest mismatch')
+  const zip = path.join(__dirname, sha256 + '.zip')
+  await fs.writeFile(zip, bytes)
+  const content = path.join(__dirname, 'obscura-0.2.4')
+  await extractZip(zip, {dir:content, onEntry(entry){ if (((entry.externalFileAttributes >>> 16) & 0o170000) === 0o120000) throw new Error('Archive link forbidden') }})
+  const find = async dir => {
+    for (const item of await fs.readdir(dir, {withFileTypes:true})) {
+      const file = path.join(dir, item.name)
+      if (item.isDirectory()) { const result = await find(file); if (result) return result }
+      else if (item.name === 'obscura.exe') return file
+    }
+  }
+  const binary = await find(content)
+  if (!binary) throw new Error('Executable missing')
+  const version = await execute(binary, ['--version'], {timeout:20000,windowsHide:true})
+  if (!version.stdout.includes('0.2.4')) throw new Error('Binary version mismatch')
+  const server = http.createServer((_req, res) => {res.setHeader('Content-Type','text/html');res.end('<html><body><div id="result"></div><script>document.getElementById("result").textContent="GHOST_ENGINE_OK"</script></body></html>')})
+  await new Promise(resolve => server.listen(0,'127.0.0.1',resolve))
+  try {
+    const result = await execute(binary, ['fetch','http://127.0.0.1:' + server.address().port + '/fixture.html','--allow-private-network','--eval','document.getElementById("result").textContent'], {timeout:30000,windowsHide:true})
+    if (!result.stdout.includes('GHOST_ENGINE_OK')) throw new Error('JavaScript/DOM compatibility failed')
+  } finally {await new Promise(resolve => server.close(resolve))}
+  const repository = path.resolve(__dirname,'../../..')
+  const catalog = JSON.parse(await fs.readFile(path.join(repository,'public/engine-bundles/catalog.json'),'utf8'))
+  const updated = {...catalog.releases.find(item=>item.id==='obscura'),version:'0.2.4',url:asset.browser_download_url,sha256,executable:path.relative(content,binary).replaceAll('\\','/')}
+  catalog.releases = catalog.releases.map(item=>item.id==='obscura'?updated:item)
+  const bundle = path.join(__dirname,'candidate-bundles')
+  await fs.mkdir(bundle,{recursive:true})
+  await fs.writeFile(path.join(bundle,'catalog.json'),JSON.stringify(catalog,null,2)+'\n')
+  await fs.copyFile(zip,path.join(bundle,sha256+'.zip'))
+  for (const item of catalog.releases.filter(item=>item.id!=='obscura')) await fs.copyFile(path.join(repository,'public/engine-bundles',item.sha256+'.zip'),path.join(bundle,item.sha256+'.zip'))
+  await fs.writeFile(path.join(__dirname,'obscura-result.json'),JSON.stringify({passed:true,version:'0.2.4',sha256,bundle,checks:['official SHA-256','--version','DOM/JavaScript fixture']},null,2))
+  console.log('PASS: official Obscura 0.2.4 hash, version and DOM/JavaScript. Candidate bundle ready for Ghost runtime validation.')
+})().catch(error => {console.error(error.message);process.exitCode=1})

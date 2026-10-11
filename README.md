@@ -1,62 +1,41 @@
-# <img src="public/logo.png" width="40" height="40" align="center" /> Ghost Games Launcher
+# 🚀 Kit de Consistência com IA para Projetos em Andamento (Brownfield Edition)
 
-[![GitHub release](https://img.shields.io/github/v/release/alazter/GhostGamesLauncher?include_prereleases&style=for-the-badge)](https://github.com/alazter/GhostGamesLauncher/releases/latest)
-[![GitHub all releases](https://img.shields.io/github/downloads-pre/alazter/GhostGamesLauncher/total?style=for-the-badge&color=00B000)](https://github.com/alazter/GhostGamesLauncher/releases/)
-[![GPLv3 license](https://img.shields.io/github/license/alazter/GhostGamesLauncher?style=for-the-badge&color=blue)](https://github.com/alazter/GhostGamesLauncher/blob/main/COPYING)  
+Este kit foi desenvolvido especificamente para ser acoplado em **projetos já existentes e em andamento** sem travar o time, sem quebrar builds e sem a necessidade de parar as entregas para "documentar o passado".
 
-Ghost Games Launcher is an Open Source Game Launcher for Windows based on [Heroic Games Launcher](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher).  
-  
-## Features available right now
+---
 
-- Login with an existing Epic Games, GOG or Amazon account
-- Install, uninstall, update, repair and move Games
-- Import an already installed game
-- Play Epic games online [AntiCheat on macOS and on Linux depends on the game]
-- Play games using Wine or Proton [Linux]
-- Play games using Crossover [macOS]
-- Download custom Wine and Proton versions [Linux]
-- Access to Epic, GOG and Amazon Games stores directly from Heroic
-- Search for the game on ProtonDB for compatibility information [Linux]
-- Show ProtonDB and Steam Deck compatibility information [Linux]
-- Sync installed games with an existing Epic Games Store installation
-- Sync saves with the cloud
-- Custom Theming Support
-- Download queue
-- Add Games and Applications outside GOG, Epic Games and Amazon Games
-- Define your categories to organize your collection
-- Games release date
+## ⚡ Setup Rápido (Menos de 10 minutos)
 
-- English
-- Portuguese (Brazil)
+1. **Extraia esta pasta na raiz do seu repositório atual**:
+   Copie os arquivos `.skills/`, `PROJECT_STANDARDS.md`, `PROMPTS_PRONTOS.md` e `GUIA_MIGRACAO_INCREMENTAL.md` para a raiz do seu projeto.
 
-## Credits
+2. **Eleja seu "Módulo Modelo" (Padrão Ouro Retrospectivo)**:
+   * Escolha o arquivo ou módulo mais bem escrito do seu projeto existente.
+   * Abra o arquivo [PROMPTS_PRONTOS.md](PROMPTS_PRONTOS.md), copie o **Prompt 1 (Engenharia Reversa)** e execute em uma conversa descartável com a IA.
+   * Salve a saída aprovada substituindo `.skills/project-documentation/references/GOLDEN_EXAMPLE.md`.
 
-[![jump](https://img.shields.io/badge/Back%20to%20top-%20?style=flat&color=grey&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAwIDI0IDI0IiB3aWR0aD0iMjRweCIgZmlsbD0iI0ZGRkZGRiI+PHBhdGggZD0iTTAgMGgyNHYyNEgwVjB6IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQgMTJsMS40MSAxLjQxTDExIDcuODNWMjBoMlY3LjgzbDUuNTggNS41OUwyMCAxMmwtOC04LTggOHoiLz48L3N2Zz4=)](#heroic-games-launcher)
+3. **Preencha as restrições reais em [PROJECT_STANDARDS.md](PROJECT_STANDARDS.md)**:
+   * Declare a versão real da sua stack, as convenções de pastas já existentes e as bibliotecas antigas que a IA **não** deve utilizar.
 
-### Tools We Use
+4. **Trabalhe sob a "Regra do Escoteiro"**:
+   * O código legado antigo continua funcionando normalmente.
+   * Toda nova feature, refatoração ou alteração significativa que for tocada a partir de hoje é documentada e padronizada usando a Skill.
 
-Ghost Games Launcher would not be possible without the work done in many other projects:
+---
 
-- Heroic Games Launcher - https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher
-- Localization platform - https://weblate.org/en/
-- Gamepad prompts images - https://thoseawesomeguys.com/prompts/
-- Release.com - https://www.releases.com/
-- Heroic Games Launcher: https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher
-- Legendary: https://github.com/derrod/legendary (we use [a fork of it](https://github.com/Heroic-Games-Launcher/legendary))
-- GOGdl: https://github.com/Heroic-Games-Launcher/heroic-gogdl
-- Nile: https://github.com/imLinguin/nile
-- Comet: https://github.com/imLinguin/comet
-- GE-Proton: https://github.com/GloriousEggroll/proton-ge-custom
-- Proton-cachyos: https://github.com/CachyOS/proton-cachyos
-- umu-launcher: https://github.com/Open-Wine-Components/umu-launcher
-- DXVK: https://github.com/doitsujin/dxvk
-- VKD3D: https://github.com/HansKristian-Work/vkd3d-proton
-- Game-Porting-Toolkit: https://github.com/Gcenx/game-porting-toolkit
-- Wine-Staging: https://github.com/Gcenx/macOS_Wine_builds
-- Wine-Crossover: https://github.com/Gcenx/winecx
-- DXVK-MacOS: https://github.com/Gcenx/DXVK-macOS
-- DXMT: https://github.com/3Shain/dxmt
-- Heroic-Epic integration exe: https://github.com/Etaash-mathamsetty/heroic-epic-integration
-- vulkan helper: https://github.com/imLinguin/vulkan-helper-rs
+## 📂 Conteúdo Deste Kit
 
-So be sure to follow and support those projects too!
+```text
+├── README.md                          # Este arquivo de inicialização rápida
+├── GUIA_MIGRACAO_INCREMENTAL.md       # O roteiro detalhado de adoção sem atrito
+├── PROJECT_STANDARDS.md               # Padrões do projeto (com seções para isolar legados)
+├── PROMPTS_PRONTOS.md                 # 4 Prompts prontos para copiar e colar no dia a dia
+└── .skills/
+    └── project-documentation/
+        ├── SKILL.md                   # Skill da IA configurada com travas de legado
+        ├── templates/
+        │   ├── SPEC_TEMPLATE.md       # Molde de documentação de módulos/features
+        │   └── ADR_TEMPLATE.md        # Molde para registrar decisões arquiteturais
+        └── references/
+            └── GOLDEN_EXAMPLE.md      # Espaço para o seu Módulo Modelo
+```

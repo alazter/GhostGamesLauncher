@@ -30,7 +30,7 @@ import {
 } from '../../utils/aborthandler/aborthandler'
 import { BrowserWindow, dialog, Menu } from 'electron'
 import { sendGameStatusUpdate } from 'backend/utils'
-import { isLinux, isMac } from 'backend/constants/environment'
+import { isLinux, isMac, isWindows } from 'backend/constants/environment'
 import { windowIcon } from 'backend/constants/paths'
 
 import type LogWriter from 'backend/logger/log_writer'
@@ -261,7 +261,7 @@ export async function launchGame(
           wrappers,
           logWriters: [logWriter],
           logMessagePrefix: LogPrefix.Backend,
-          directSpawn: gameInfo.install.romPlatform === 'switch'
+          directSpawn: isWindows || gameInfo.install.romPlatform === 'switch'
         }
       )
 

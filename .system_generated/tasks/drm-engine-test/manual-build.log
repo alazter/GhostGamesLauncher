@@ -1,0 +1,136 @@
+[2026-10-05 19:05:48] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 34.72%). Lower `percentage` if this is the right element.
+[2026-10-05 19:05:48] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 38.1%). Lower `percentage` if this is the right element.
+[2026-10-05 19:05:48] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 10.71%). Lower `percentage` if this is the right element.
+[2026-10-05 19:05:48] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 12.18%). Lower `percentage` if this is the right element.
+{"protocol": 1, "version": "0.4.15", "ok": true, "capabilities": ["release-selectors-v1", "manual-drm-page-v1"]}
+549 INFO: PyInstaller: 6.19.0, contrib hooks: 2026.8
+550 INFO: Python: 3.13.3
+695 INFO: Platform: Windows-11-10.0.26300-SP0
+696 INFO: Python environment: C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\.system_generated\tasks\drm-engine-test\venv
+697 INFO: wrote C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\ghost-scrapling.spec
+711 INFO: Removing temporary files and cleaning cache in C:\Users\alazt\AppData\Local\pyinstaller
+570 WARNING: Failed to collect submodules for 'browserforge.injectors.undetected_playwright' because importing 'browserforge.injectors.undetected_playwright' raised: ModuleNotFoundError: No module named 'undetected_playwright'
+16918 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher',
+ 'C:\\Program Files\\Python313\\python313.zip',
+ 'C:\\Program Files\\Python313\\DLLs',
+ 'C:\\Program Files\\Python313\\Lib',
+ 'C:\\Program Files\\Python313',
+ 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv',
+ 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages',
+ 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\scripts\\engines']
+18349 INFO: Appending 'datas' from .spec
+18552 INFO: checking Analysis
+18553 INFO: Building Analysis because Analysis-00.toc is non existent
+18553 INFO: Looking for Python shared library...
+18553 INFO: Using Python shared library: C:\Program Files\Python313\python313.dll
+18553 INFO: Running Analysis Analysis-00.toc
+18553 INFO: Target bytecode optimization level: 0
+18554 INFO: Initializing module dependency graph...
+18556 INFO: Initializing module graph hook caches...
+18590 INFO: Analyzing modules for base_library.zip ...
+23173 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+23183 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+30184 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+33732 INFO: Caching module dependency graph...
+33825 INFO: Analyzing C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\scripts\engines\scrapling_worker.py
+34046 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+34055 INFO: Processing standard module hook 'hook-lxml.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+35934 INFO: Processing standard module hook 'hook-lxml.etree.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+36068 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+36073 INFO: SetuptoolsInfo: initializing cached setuptools info...
+39677 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+40435 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+41204 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+43004 INFO: Processing standard module hook 'hook-orjson.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+43416 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+45956 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+46809 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+50653 INFO: Processing standard module hook 'hook-playwright.sync_api.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\patchright\\_impl\\__pyinstaller'
+53401 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+54763 INFO: Processing standard module hook 'hook-playwright.async_api.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\patchright\\_impl\\__pyinstaller'
+57211 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+59260 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+59261 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+59277 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+59358 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+59481 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+59498 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+59499 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+59525 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+59526 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+60109 INFO: Processing standard module hook 'hook-_osx_support.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+60251 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+61496 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+61500 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+61516 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+61517 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+65063 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+65064 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+69590 INFO: Analyzing hidden import 'scrapling.cli'
+70799 INFO: Analyzing hidden import 'scrapling.integrations'
+70800 INFO: Analyzing hidden import 'scrapling.integrations.scrapy'
+70812 INFO: Analyzing hidden import 'patchright.__main__'
+70815 INFO: Analyzing hidden import 'patchright._impl.__pyinstaller'
+70819 INFO: Analyzing hidden import 'patchright._impl._path_utils'
+70825 INFO: Analyzing hidden import 'playwright.__main__'
+70835 INFO: Analyzing hidden import 'playwright._impl.__pyinstaller'
+70838 INFO: Analyzing hidden import 'playwright._impl._path_utils'
+70846 INFO: Analyzing hidden import 'browserforge.__main__'
+70852 INFO: Analyzing hidden import 'browserforge.download'
+70855 INFO: Analyzing hidden import 'browserforge.fingerprints'
+70904 INFO: Analyzing hidden import 'browserforge.injectors'
+70913 INFO: Analyzing hidden import 'browserforge.injectors.data'
+70915 INFO: Analyzing hidden import 'browserforge.injectors.playwright'
+70943 INFO: Analyzing hidden import 'curl_cffi.__main__'
+71194 INFO: Processing module hooks (post-graph stage)...
+73878 INFO: Processing standard module hook 'hook-lxml.isoschematron.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+74085 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+74225 WARNING: Hidden import "tzdata" not found!
+74969 INFO: Processing standard module hook 'hook-lxml.objectify.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+74991 INFO: Performing binary vs. data reclassification (535 entries)
+75437 INFO: Looking for ctypes DLLs
+75545 INFO: Analyzing run-time hooks ...
+75551 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75565 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75571 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75576 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+75616 INFO: Creating base_library.zip...
+75668 INFO: Looking for dynamic libraries
+78485 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\HeroicGamesLauncher\\.system_generated\\tasks\\drm-engine-test\\venv\\Lib\\site-packages\\curl_cffi.libs']
+78486 INFO: Extra DLL search directories (PATH): []
+82224 INFO: Warnings written to C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\work\ghost-scrapling\warn-ghost-scrapling.txt
+82444 INFO: Graph cross-reference written to C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\work\ghost-scrapling\xref-ghost-scrapling.html
+82756 INFO: checking PYZ
+82757 INFO: Building PYZ because PYZ-00.toc is non existent
+82757 INFO: Building PYZ (ZlibArchive) C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\work\ghost-scrapling\PYZ-00.pyz
+84330 INFO: Building PYZ (ZlibArchive) C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\work\ghost-scrapling\PYZ-00.pyz completed successfully.
+84396 INFO: checking PKG
+84397 INFO: Building PKG because PKG-00.toc is non existent
+84397 INFO: Building PKG (CArchive) ghost-scrapling.pkg
+84532 INFO: Building PKG (CArchive) ghost-scrapling.pkg completed successfully.
+84590 INFO: Bootloader C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\.system_generated\tasks\drm-engine-test\venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+84590 INFO: checking EXE
+84590 INFO: Building EXE because EXE-00.toc is non existent
+84590 INFO: Building EXE from EXE-00.toc
+84591 INFO: Copying bootloader EXE to C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\work\ghost-scrapling\ghost-scrapling.exe
+84604 INFO: Copying icon to EXE
+84617 INFO: Copying 0 resources to EXE
+84617 INFO: Embedding manifest in EXE
+84633 INFO: Appending PKG archive to EXE
+84647 INFO: Fixing EXE headers
+84960 INFO: Building EXE from EXE-00.toc completed successfully.
+85014 INFO: checking COLLECT
+85014 INFO: Building COLLECT because COLLECT-00.toc is non existent
+85015 INFO: Building COLLECT COLLECT-00.toc
+92859 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+92912 INFO: Build complete! The results are available in: C:\Users\alazt\AppData\Local\Temp\ghost-engines-fc55p40i\dist
+[2026-10-05 19:07:30] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 34.72%). Lower `percentage` if this is the right element.
+[2026-10-05 19:07:30] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 38.1%). Lower `percentage` if this is the right element.
+[2026-10-05 19:07:30] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 10.71%). Lower `percentage` if this is the right element.
+[2026-10-05 19:07:30] WARNING: Adaptive relocation found no element above the 80% threshold (top score: 12.18%). Lower `percentage` if this is the right element.
+{"protocol": 1, "version": "0.4.15", "ok": true, "capabilities": ["release-selectors-v1", "manual-drm-page-v1"]}
+Fetching http://127.0.0.1:53833/fixture.html...
+127.0.0.1 - - [05/Oct/2026 19:08:25] "GET /fixture.html HTTP/1.1" 200 -
+Page loaded: http://127.0.0.1:53833/fixture.html - ""
+Verified engine bundles: C:\Users\alazt\Documents\GitHub\Projetos\HeroicGamesLauncher\public\engine-bundles

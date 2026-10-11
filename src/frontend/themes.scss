@@ -941,3 +941,23 @@ button.is-close,
   border-color: rgba(255, 255, 255, 0.3) !important;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.1) !important;
 }
+
+.Header__filters .Header__dropdownBtn {
+  height: 32px !important;
+  min-width: 36px !important;
+  width: auto !important;
+  border-radius: 6px !important;
+  background-image: none !important;
+  padding: 0 6px !important;
+  text-indent: 0 !important;
+  padding-inline-end: 6px !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+}
+
+.Header__filters.header-buttons--neon .Header__dropdownBtn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+

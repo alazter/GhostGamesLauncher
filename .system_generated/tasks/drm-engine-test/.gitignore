@@ -1,0 +1,4 @@
+venv/
+obscura-*/
+scrapling-profile-*/
+__pycache__/

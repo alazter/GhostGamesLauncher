@@ -47,7 +47,9 @@ export function directDownloadManifest(steamrip: boolean): PluginManifest {
     allowedDomains: [
       ...baseDirectManifest.allowedDomains!,
       ...sourceDomains(steamrip ? STEAMRIP_SOURCE_ID : ANKER_SOURCE_ID),
-      ...(steamrip ? [] : ['tunnel5.dlproxy.uk'])
+      // Observed in the user's BALL x PIT SteamRIP download attempt. Keep
+      // this additional relay scoped to the SteamRIP browser session.
+      ...(steamrip ? ['blehpooffileditch.org'] : ['tunnel5.dlproxy.uk'])
     ]
   }
 }
@@ -72,7 +74,7 @@ export class AnkerAccount {
   private static getSession(
     direct = false,
     steamrip = false,
-    onBlocked?: (host: string) => void,
+    onBlocked?: (host: string, resourceType?: string) => void,
     romProvider?: string
   ) {
     const directManifest = romProvider ? romManifest(romProvider) : directDownloadManifest(steamrip)
@@ -96,8 +98,8 @@ export class AnkerAccount {
               url.hostname.endsWith('.cloudflare.com') ||
               (direct &&
                 NetworkGuard.validateUrl(url.href, directManifest).allowed)))
-        if (!allowed && details.resourceType === 'mainFrame')
-          onBlocked?.(url.hostname)
+        if (!allowed)
+          onBlocked?.(url.hostname || url.protocol, details.resourceType)
         callback({ cancel: !allowed })
       } catch {
         callback({ cancel: true })
@@ -109,8 +111,9 @@ export class AnkerAccount {
     show: boolean,
     direct = false,
     steamrip = false,
-    onBlocked?: (host: string) => void,
-    romProvider?: string
+    onBlocked?: (host: string, resourceType?: string) => void,
+    romProvider?: string,
+    onNavigation?: (event: string, url: string) => void
   ) {
     const directManifest = romProvider ? romManifest(romProvider) : directDownloadManifest(steamrip)
     const window = new BrowserWindow({
@@ -143,7 +146,7 @@ export class AnkerAccount {
             NetworkGuard.validateUrl(target, directManifest).allowed
           )
         ) {
-          onBlocked?.(new URL(target).hostname)
+          onBlocked?.(new URL(target).hostname, 'navigation')
           event.preventDefault()
         }
       } catch {
@@ -176,7 +179,7 @@ export class AnkerAccount {
         }
         if (direct) {
           try {
-            onBlocked?.(new URL(url).hostname)
+            onBlocked?.(new URL(url).hostname || new URL(url).protocol, 'popup')
           } catch {
             /* Remains blocked. */
           }
@@ -185,6 +188,14 @@ export class AnkerAccount {
       })
       member.webContents.on('will-navigate', guard)
       member.webContents.on('will-redirect', guard)
+      member.webContents.on('did-navigate', (_event, url, status) => {
+        onNavigation?.(`navigation-status-${status}`, url)
+      })
+      member.webContents.on('did-fail-load', (_event, code, _description, url, mainFrame) => {
+        // ERR_ABORTED is normal when a navigation becomes a native download.
+        if (code !== -3)
+          onNavigation?.(`navigation-failed-${mainFrame ? 'main' : 'frame'}-${code}`, url)
+      })
       member.webContents.on('did-create-window', (child) => {
         family.add(child)
         configure(child)
@@ -222,10 +233,26 @@ export class AnkerAccount {
       throw new Error('Conclua a janela de download aberta antes de continuar.')
     await mkdir(directory, { recursive: true })
     let blockedHost = ''
-    const window = this.window(true, true, provider === 'steamrip', (host) => {
+    const reported = new Set<string>()
+    let observing = true
+    const reportNavigation = (event: string, host: string) => {
+      if (!observing || !/^[a-z0-9.:-]{1,253}$/i.test(host)) return
+      const key = `${event}:${host}`
+      if (reported.has(key) || reported.size >= 40) return
+      reported.add(key)
+      try {
+        diagnostic({ event, host, bytes: 0, total: 0, canResume: false,
+          attempts: 0, at: new Date().toISOString() })
+      } catch { /* Diagnostics must not interrupt browser requests. */ }
+    }
+    const window = this.window(true, true, provider === 'steamrip', (host, resourceType) => {
       // Keep waiting: rejected popups may be ads, not the chosen file host.
-      if (/^[a-z0-9.-]{1,253}$/i.test(host)) blockedHost = host
-    }, rom ? provider : undefined)
+      if ((!resourceType || ['mainFrame', 'navigation', 'popup'].includes(resourceType)) &&
+          /^[a-z0-9.-]{1,253}$/i.test(host)) blockedHost = host
+      reportNavigation(`request-blocked-${resourceType || 'unknown'}`, host)
+    }, rom ? provider : undefined, (event, target) => {
+      try { reportNavigation(event, new URL(target).hostname) } catch { /* Invalid URL. */ }
+    })
     this.busy = true
     const isolated = window.webContents.session
     const family = this.families.get(window)!
@@ -401,6 +428,7 @@ export class AnkerAccount {
         ).catch(reject)
       })
     } finally {
+      observing = false
       accelerationController.abort()
       await acceleration?.catch(() => undefined)
       recovery?.stop()

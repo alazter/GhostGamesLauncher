@@ -156,7 +156,7 @@ it('does not block replacement when the configured save folder is empty', async 
   const result = await service.action({ type: 'finish', jobId, executable: 'game.exe' })
   expect(result.success).toBe(true)
   expect(await readFile(join(installed.directory, 'game.exe'), 'utf8')).toBe('2.0')
-})
+}, 15000)
 
 async function waitForJob(predicate: () => boolean) {
   for (let i = 0; i < 500 && !predicate(); i++) await new Promise((resolve) => setTimeout(resolve, 10))

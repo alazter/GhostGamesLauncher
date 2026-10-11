@@ -126,12 +126,19 @@ export const REVERSE_GAME_ACRONYMS: Record<string, string> = Object.fromEntries(
   Object.entries(KNOWN_GAME_ACRONYMS).map(([k, v]) => [v, k])
 )
 
+// A conservative spelling fallback: one repeated final consonant in a
+// multi-word query ("Ball x Pitt" -> "Ball x Pit"). Keep the original first.
+function finalLetterVariant(query: string): string {
+  return query.replace(/(\s+[a-z]{2,})([bcdfghjklmnpqrstvwxyz])\2$/i, '$1$2')
+}
+
 export function generateSearchQueryVariants(query: string): string[] {
   const variants = new Set<string>()
   const trimmed = query.trim()
   if (!trimmed) return []
 
   variants.add(trimmed)
+  variants.add(finalLetterVariant(trimmed))
 
   // 1. Dotted to undotted (ex: s.t.a.l.k.e.r. 2 -> stalker 2)
   const undotted = normalizeAcronyms(trimmed)
@@ -215,7 +222,8 @@ export function matchesQuery(title: string, query: string): boolean {
     if (titleAcronym === noSpaceQ || titleAcronym.includes(noSpaceQ)) return true
   }
 
-  return false
+  const spellingVariant = finalLetterVariant(query.trim())
+  return spellingVariant !== query.trim() && matchesQuery(title, spellingVariant)
 }
 
 export interface ExtractedGameMetadata {
@@ -437,7 +445,7 @@ export function extractGameMetadataFromHtml(
 
   // 12. Rating & Recommendation (AnkerGames / WordPress)
   const ratingMatch = content.match(/(\d+(?:\.\d+)?)\s*\/\s*5/)
-  if (ratingMatch) {
+  if (ratingMatch && Number(ratingMatch[1]) <= 5) {
     rating = `${ratingMatch[1]}/5`
   }
   const recMatch = content.match(/(\d{1,3}%)\s*(?:recommend|recomendam)/i)
@@ -626,7 +634,10 @@ export function parseWebsiteGames(
   }
 
   // 2. ESTRATÉGIA B: Links <a> avulsos com contexto circundante (SteamRIP, Online-Fix, etc.)
-  if (results.size === 0) {
+  // A page can mix article cards and ordinary links. Preserve atomic article
+  // metadata, but do not let one recommendation hide all other game links.
+  const articleUrls = new Set(results.keys())
+  {
     for (const match of html.matchAll(
       /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
     )) {
@@ -638,7 +649,8 @@ export function parseWebsiteGames(
       }
       if (
         url.origin !== new URL(base).origin ||
-        url.pathname === '/'
+        url.pathname === '/' ||
+        articleUrls.has(url.href)
       )
         continue
 
@@ -881,9 +893,11 @@ export function websiteSource(
       // 1. Gera variantes inteligentes da consulta (ex: stalker 2 -> stalker 2, s.t.a.l.k.e.r. 2, stalker ii)
       const variants = generateSearchQueryVariants(query).slice(0, 4)
       const gamesMap = new Map<string, GhostSearchResult>()
+      let readAnyPage = false
+      let lastError: unknown
 
       for (const v of variants) {
-        signal.throwIfAborted()
+        if (signal.aborted) break
         const searchTargets: string[] = []
         if (/ankergames\.net/i.test(base)) {
           searchTargets.push(new URL(`/search/${encodeURIComponent(v)}`, base).href)
@@ -895,42 +909,48 @@ export function websiteSource(
         }
 
         for (const target of searchTargets) {
+          if (signal.aborted) break
           try {
             const html = await page(target, true, signal)
+            readAnyPage = true
             const parsed = await parseCatalog(html)
-            if (parsed.length) {
-              for (const g of parsed) {
+            const matching = parsed.filter(game => matchesQuery(game.title, query))
+            if (matching.length) {
+              for (const g of matching) {
                 if (!gamesMap.has(g.id)) {
                   gamesMap.set(g.id, g)
                 }
               }
               break
             }
-          } catch {
-            // Continua para o próximo alvo
+          } catch (error) {
+            lastError = error
           }
         }
       }
 
       // Se nenhum alvo de busca encontrou jogos, tenta o catálogo geral como fallback
-      if (gamesMap.size === 0) {
+      if (gamesMap.size === 0 && !signal.aborted) {
         try {
           const html = await page(new URL(config.catalogPath, base).href, true, signal)
+          readAnyPage = true
           const parsed = await parseCatalog(html)
           for (const g of parsed) {
-            if (!gamesMap.has(g.id)) {
+            if (matchesQuery(g.title, query) && !gamesMap.has(g.id)) {
               gamesMap.set(g.id, g)
             }
           }
-        } catch {
-          // ignore
+        } catch (error) {
+          lastError = error
         }
       }
 
-      if (gamesMap.size === 0)
-        throw new Error(
+      if (gamesMap.size === 0) {
+        signal.throwIfAborted()
+        if (!readAnyPage) throw lastError || new Error(
           'Não foi possível ler o catálogo desta fonte. Abra o site e vincule a página do jogo.'
         )
+      }
 
       const allFound = Array.from(gamesMap.values())
       return allFound

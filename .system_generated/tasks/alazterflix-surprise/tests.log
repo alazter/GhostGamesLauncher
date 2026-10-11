@@ -1,0 +1,99 @@
+PASS Backend src/backend/plugins/__tests__/alazterflixCatalog.test.ts
+PASS Backend src/backend/plugins/__tests__/cinemaPlugin.test.ts (12.375 s)
+  ● Console
+
+    console.log
+      [TEST] DBZ Subs detected: [
+        {
+          "name": "Dragon.Ball.Z.O.Renascimento.de.Freeza.2015.1080p.BluRay.DUAL-LAPUMiA",
+          "filePath": "T:\\Alazter Multimídia\\Animes\\Dragon Ball\\Filmes\\Filme 2 - Dragon Ball Z - O Renascimento de Freeza\\Dragon.Ball.Z.O.Renascimento.de.Freeza.2015.1080p.BluRay.DUAL-LAPUMiA.srt",
+          "lang": "Português",
+          "streamUrl": "http://127.0.0.1:47814/subtitle?file=T%3A%5CAlazter%20Multim%C3%ADdia%5CAnimes%5CDragon%20Ball%5CFilmes%5CFilme%202%20-%20Dragon%20Ball%20Z%20-%20O%20Renascimento%20de%20Freeza%5CDragon.Ball.Z.O.Renascimento.de.Freeza.2015.1080p.BluRay.DUAL-LAPUMiA.srt",
+          "isDefault": true,
+          "isEmbedded": false
+        }
+      ]
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:199:15)
+
+    console.log
+      [TEST] DBZ VTT Snippet (first 5 lines):
+       WEBVTT
+      
+      1
+      00:02:14.649 --> 00:02:17.038 line:78%,end
+      - Sr. Sorbet.
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:209:15)
+
+    console.log
+      [TEST] DBZ parsed cues count: 945
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:212:15)
+
+    console.log
+      [TEST] DBZ cue at 2m15s (135s): {
+        startTime: 134.649,
+        endTime: 137.038,
+        text: '- Sr. Sorbet.\n- O quê?'
+      }
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:215:15)
+
+    console.log
+      [TEST] Boss Level Subs detected: [
+        {
+          "name": "[Embutida] PT-BR FORCED",
+          "filePath": "T:\\Alazter Multimídia\\Filmes\\Boss Level\\Mate ou Morra 2021 1080p BluRay DUAL 2.0.mkv",
+          "lang": "Português (Brasil) (Forçada)",
+          "streamUrl": "http://127.0.0.1:47814/subtitle/embedded?file=T%3A%5CAlazter%20Multim%C3%ADdia%5CFilmes%5CBoss%20Level%5CMate%20ou%20Morra%202021%201080p%20BluRay%20DUAL%202.0.mkv&trackIndex=0",
+          "isDefault": false,
+          "isEmbedded": true
+        },
+        {
+          "name": "[Embutida] PT-BR FULL",
+          "filePath": "T:\\Alazter Multimídia\\Filmes\\Boss Level\\Mate ou Morra 2021 1080p BluRay DUAL 2.0.mkv",
+          "lang": "Português (Brasil)",
+          "streamUrl": "http://127.0.0.1:47814/subtitle/embedded?file=T%3A%5CAlazter%20Multim%C3%ADdia%5CFilmes%5CBoss%20Level%5CMate%20ou%20Morra%202021%201080p%20BluRay%20DUAL%202.0.mkv&trackIndex=1",
+          "isDefault": false,
+          "isEmbedded": true
+        }
+      ]
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:221:15)
+
+    console.log
+      [TEST] Boss Level VTT Snippet (first 8 lines):
+       WEBVTT
+      
+      00:36.483 --> 00:37.776 line:78%,end
+      SR. BOM DIA
+      
+      00:37.860 --> 00:40.195 line:78%,end
+      APERTE INICIAR
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:232:15)
+
+    console.log
+      [TEST] Boss Level parsed cues count: 1347
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:235:15)
+
+    console.log
+      [TEST] Boss Level cue at 37s: { startTime: 36.483, endTime: 37.776, text: 'SR. BOM DIA' }
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:238:15)
+
+    console.log
+      [TEST] Boss Level exact keyframe at 1159.4s: 1151.83
+
+      at Object.<anonymous> (src/backend/plugins/__tests__/cinemaPlugin.test.ts:387:15)
+
+PASS Backend src/backend/plugins/__tests__/mediaArtwork.test.ts
+PASS Backend src/backend/plugins/__tests__/alazterflixFeaturedCatalog.test.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       53 passed, 53 total
+Snapshots:   0 total
+Time:        16.757 s, estimated 18 s
+Ran all test suites matching /src\\backend\\plugins\\__tests__\\alazterflixCatalog.test.ts|src\\backend\\plugins\\__tests__\\alazterflixFeaturedCatalog.test.ts|src\\backend\\plugins\\__tests__\\mediaArtwork.test.ts|src\\backend\\plugins\\__tests__\\cinemaPlugin.test.ts/i.

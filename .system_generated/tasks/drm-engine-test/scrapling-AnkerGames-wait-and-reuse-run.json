@@ -1,0 +1,209 @@
+{
+  "engine": "Scrapling 0.4.15",
+  "site": "AnkerGames",
+  "mode": "stealth-auto-verification",
+  "run": "wait-and-reuse",
+  "persistentProfile": true,
+  "status": 200,
+  "url": "https://ankergames.net/game/minecraft-dungeons-ii",
+  "page": {
+    "title": "Minecraft Dungeons II Free Download (v1.1.1.0) | AnkerGames",
+    "headings": [
+      "Minecraft Dungeons II",
+      "Minecraft Dungeons II\n                            Free Download - Game Review",
+      "Installation Guide",
+      "System Requirements",
+      "More from the Minecraft Series",
+      "Player perspectives"
+    ],
+    "matchedGame": true,
+    "hasSearch": false,
+    "challenge": false,
+    "turnstile": false,
+    "textLength": 6616,
+    "frameHosts": [],
+    "browserFrameHosts": [
+      "ankergames.net"
+    ],
+    "inputs": [
+      {
+        "type": "search",
+        "disabled": false,
+        "visible": false,
+        "placeholder": "Search genres"
+      },
+      {
+        "type": "search",
+        "disabled": false,
+        "visible": false,
+        "placeholder": "Search genres"
+      },
+      {
+        "type": "search",
+        "disabled": false,
+        "visible": false,
+        "placeholder": "Search games by title or Steam App ID (SteamDB)..."
+      }
+    ],
+    "needsVerification": false
+  },
+  "responses": [
+    {
+      "host": "ankergames.net",
+      "path": "/game/minecraft-dungeons-ii",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/build/assets/app-BgaMvNjh.css",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/09-2026/cover-s4a7fUJQqB.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/build/assets/Inter.var.latin-BWIXVnmT.woff2",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/build/assets/app-634BNfI8.js",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/static/img/flags/en.svg",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/user/HQ5JGV478E.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/user/KDNkFYlWTu.webp",
+      "status": 404
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/user/hzZwy0PEZp.webp",
+      "status": 404
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/static/sprite/sprite.svg",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/09-2026/minecraft-dungeons-ii-poster_Owi5nf_1790661661.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/static/img/dark-logo-1770061259.svg",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/screenshots/09-2026/minecraft-dungeons-ii-screenshot-2_RDsr4h_1790661663.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/screenshots/09-2026/minecraft-dungeons-ii-screenshot-1_yAGk3M_1790661663.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/screenshots/09-2026/minecraft-dungeons-ii-screenshot-3_68dHRa_1790661663.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/screenshots/09-2026/minecraft-dungeons-ii-screenshot-4_flZAUg_1790661663.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/02-2025/Mhbhq22x6l.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/04-2026/minecraft-legends-poster_MtrgWT_1775459285.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/site.webmanifest",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/03-2025/IFJSyqMpuC.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/08-2026/cat-quest-ii-poster_iSwECg_1785832499.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/10-2024/LDIIyrBvGv.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/04-2026/darwins-paradox-poster_PzHtfU.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/04-2026/skull-horde-poster_6P18wR.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/uploads/poster/02-2026/YaQqPUav7R.webp",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/build/assets/vendor-livewire-BFbAtwy1.js",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/build/assets/vendor-tippy-9AVLGm-p.js",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/build/assets/vendor-axios-DszI0Opz.js",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/cdn-cgi/zaraz/s.js",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/favicon/android-chrome-192x192.png",
+      "status": 200
+    },
+    {
+      "host": "ankergames.net",
+      "path": "/csrf-token",
+      "status": 200
+    }
+  ],
+  "seconds": 17.5,
+  "diagnostics": "[2026-10-05 18:48:50] ERROR: No Cloudflare challenge found.\r\n[2026-10-05 18:49:00] INFO: Fetched (200) <GET https://ankergames.net/game/minecraft-dungeons-ii> (referer: None)\r\n"
+}

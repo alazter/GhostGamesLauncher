@@ -8,6 +8,7 @@ import * as DownloadManager from './downloadmanager'
 import * as Zoom from './zoom'
 import * as Steam from './steam'
 import * as Plugins from './plugins'
+import * as Releases from './releases'
 
 export default {
   ...Misc,
@@ -19,5 +20,6 @@ export default {
   ...DownloadManager,
   ...Zoom,
   ...Steam,
-  ...Plugins
+  ...Plugins,
+  ...Releases
 }

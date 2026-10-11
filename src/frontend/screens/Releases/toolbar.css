@@ -1,0 +1,316 @@
+.nr-workspace .nr-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  padding: 7px 22px;
+  min-height: 52px;
+  gap: 14px;
+  background: #19172f;
+  border-bottom: 1px solid #28233f;
+  box-shadow: 0 2px 5px #0003;
+  z-index: 5;
+}
+.nr-toolbar-date,
+.nr-toolbar-modes,
+.nr-toolbar-context,
+.nr-hot-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.nr-toolbar-date {
+  gap: 12px;
+}
+.nr-toolbar-modes {
+  gap: 7px;
+  justify-content: center;
+}
+.nr-toolbar-context {
+  justify-content: flex-end;
+  gap: 10px;
+}
+.nr-workspace .nr-context-title {
+  display: block;
+  color: #91a4c4;
+  font-size: 13px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+.nr-workspace .nr-tabs,
+.nr-workspace .nr-layout {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  border: 2px solid #100c24;
+  border-radius: 10px;
+  background: #15122a;
+  margin: 0;
+}
+.nr-workspace .nr-tabs button,
+.nr-workspace .nr-layout button {
+  min-height: 30px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #91a4c4;
+}
+.nr-workspace .nr-tabs button[aria-pressed='true'],
+.nr-workspace .nr-layout button[aria-pressed='true'] {
+  background: #4c169e;
+  color: #fff;
+  box-shadow: inset 0 1px 0 #ffffff10;
+}
+.nr-workspace .nr-layout button {
+  width: 30px;
+  padding: 5px;
+}
+.nr-layout-cover {
+  display: block;
+  margin: auto;
+  width: 11px;
+  height: 16px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.nr-hot-control {
+  gap: 0;
+}
+.nr-hot-control > button {
+  border-radius: 6px 0 0 6px;
+}
+.nr-date-picker,
+.nr-hot-picker {
+  position: relative;
+}
+.nr-date-picker {
+  min-width: 0;
+}
+.nr-current-day,
+.nr-hot-picker > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.nr-current-day::-webkit-details-marker,
+.nr-hot-picker > summary::-webkit-details-marker {
+  display: none;
+}
+.nr-current-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--nr-date);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.nr-current-day > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nr-current-day.is-past {
+  color: #67e979;
+}
+.nr-current-day small {
+  color: #91a4c4;
+  font-size: 13px;
+  font-weight: 400;
+}
+.nr-current-day > svg:last-child {
+  color: #7890b8;
+  font-size: 10px;
+}
+.nr-current-day:focus-visible,
+.nr-hot-picker > summary:focus-visible {
+  outline: 2px solid #a889ff;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.nr-hot-picker > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  width: 24px;
+  color: #91a4c4;
+  font-size: 10px;
+}
+.nr-hot-picker > summary:hover {
+  background: #211d40;
+  border-radius: 4px;
+}
+.nr-workspace .nr-today-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 8px;
+  min-height: 30px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #7890b8;
+}
+.nr-today-button > span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.nr-workspace .nr-toolbar-context > button {
+  color: #7890b8;
+  font-size: 12px;
+  min-height: 30px;
+  padding: 5px;
+  flex-shrink: 0;
+}
+.nr-toolbar-popup {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 12px);
+  width: 260px;
+  padding: 14px;
+  border: 1px solid var(--nr-line);
+  border-radius: 12px;
+  background: #211d40;
+  color: var(--nr-text);
+  box-shadow: 0 12px 36px #0006;
+  z-index: 10;
+}
+.nr-workspace .nr-toolbar-context > .nr-drm-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  white-space: nowrap;
+  border: 1px solid #403354;
+  border-radius: 6px;
+  color: #bca7e6;
+}
+.nr-workspace .nr-drm-check:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.NativeReleases--light .nr-toolbar-context > .nr-drm-check {
+  color: #654698;
+  border-color: #c4b5dd;
+}
+.nr-hot-picker .nr-toolbar-popup {
+  width: 180px;
+  left: auto;
+  right: 0;
+  padding: 5px;
+}
+.nr-hot-picker .nr-toolbar-popup > button {
+  width: 100%;
+  text-align: left;
+}
+.nr-month-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.nr-month-navigation strong {
+  font-size: 14px;
+}
+.nr-toolbar-popup form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nr-toolbar-popup label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--nr-muted);
+  font-size: 12px;
+}
+.nr-toolbar-popup input {
+  width: 100%;
+  font-size: 15px;
+}
+.nr-workspace .nr-popup-today {
+  width: 100%;
+  margin-top: 8px;
+  color: var(--nr-date);
+}
+.NativeReleases--expanded {
+  grid-template-columns: minmax(0, 1fr);
+}
+.NativeReleases--expanded > .nr-navigation {
+  display: none;
+}
+.NativeReleases--light .nr-toolbar {
+  background: #e5e1f0;
+  border-color: #d4cee3;
+}
+.NativeReleases--light .nr-tabs,
+.NativeReleases--light .nr-layout {
+  background: #ece8f5;
+  border-color: #d4cee3;
+}
+.NativeReleases--light .nr-toolbar-popup {
+  background: #f5f2fc;
+}
+.NativeReleases--light .nr-current-day.is-past {
+  color: #207c3c;
+}
+.NativeReleases--light .nr-toolbar-context h1,
+.NativeReleases--light .nr-current-day small,
+.NativeReleases--light .nr-tabs button,
+.NativeReleases--light .nr-layout button {
+  color: #665f80;
+}
+.NativeReleases--light .nr-tabs button[aria-pressed='true'],
+.NativeReleases--light .nr-layout button[aria-pressed='true'] {
+  color: #fff;
+}
+@media (max-width: 1320px) {
+  .nr-workspace .nr-toolbar {
+    gap: 10px;
+  }
+  .nr-toolbar-context h1 {
+    max-width: 150px;
+  }
+}
+@media (max-width: 980px) {
+  .nr-current-day small {
+    display: none;
+  }
+  .nr-workspace .nr-toolbar {
+    padding: 7px 12px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+  .nr-toolbar-date {
+    gap: 3px;
+  }
+  .nr-workspace .nr-toolbar-context h1 {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .nr-workspace .nr-toolbar {
+    grid-template-columns: 1fr auto;
+  }
+  .nr-toolbar-modes {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .nr-current-day small {
+    display: inline;
+  }
+}
+.nr-toolbar-context:has(.nr-drm-unlock) {
+  flex-wrap: wrap;
+}
+.nr-drm-unlock {
+  font-size: 11px;
+  max-width: 190px;
+  white-space: normal;
+}

@@ -1,0 +1,4 @@
+src/frontend/screens/Alazterflix/coverSizes.ts 115ms
+src/frontend/screens/Alazterflix/useCinemaCoverSize.ts 40ms
+src/backend/plugins/__tests__/alazterflixCoverSizes.test.ts 21ms
+src/preload/api/plugins.ts 57ms (unchanged)

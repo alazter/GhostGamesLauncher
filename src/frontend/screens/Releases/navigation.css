@@ -1,0 +1,293 @@
+.NativeReleases .nr-navigation {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  min-width: 280px;
+  height: 100%;
+  padding: 18px 0 0;
+  overflow: hidden;
+  font-family: Roboto, 'Segoe UI', Arial, sans-serif;
+}
+.NativeReleases .nr-brand {
+  display: flex;
+  padding: 0 19px 18px;
+  gap: 10px;
+  flex-shrink: 0;
+  font-size: 23px;
+}
+.nr-nav-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 14px;
+  scrollbar-width: thin;
+}
+.NativeReleases .nr-navigation .nr-nav-button {
+  padding: 9px 12px;
+  gap: 10px;
+  margin: 1px 0;
+  min-height: 38px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+.NativeReleases .nr-navigation .nr-nav-button.active {
+  background: #6724da;
+  color: #fff;
+}
+.nr-navigation .nr-nav-button > svg {
+  color: #a773e4;
+}
+.nr-navigation .nr-nav-button .nr-nav-chevron {
+  margin-left: auto;
+  width: 11px;
+  color: #b79add;
+}
+.nr-navigation .nr-nav-separator {
+  margin: 10px 12px;
+}
+.nr-category {
+  border-radius: 6px;
+  margin: 3px 0;
+}
+.nr-category--active {
+  background: #5920b9;
+  color: #fff;
+}
+.nr-category--active > .nr-nav-button > svg {
+  color: #fff;
+}
+.NativeReleases .nr-category--active .nr-platforms {
+  padding: 0 5px 6px;
+  gap: 1px;
+}
+.NativeReleases .nr-category--active .nr-platforms button {
+  font-size: 13px;
+  line-height: 20px;
+  min-height: 28px;
+  padding: 3px 9px;
+  color: #e9dfff;
+  background: transparent;
+  border-radius: 4px;
+}
+.NativeReleases .nr-category--active .nr-platforms > button {
+  width: 100%;
+}
+.NativeReleases .nr-category--active .nr-platforms button:hover {
+  background: #32116a55;
+}
+.NativeReleases .nr-category--active .nr-platforms button[aria-pressed='true'],
+.NativeReleases .nr-category--active .nr-platforms button[aria-checked='true'] {
+  background: #36107199;
+  color: #fff;
+}
+.nr-platform-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+.nr-platform-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.NativeReleases .nr-platform-row .nr-platform-follows {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  gap: 4px;
+  font-size: 11px;
+  color: #c09eea;
+}
+.nr-platform-follows span {
+  font-size: 10px;
+}
+.nr-filter-check {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  border: 1px solid #ae8ed966;
+  background: #e9d6ff1a;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 8px;
+}
+.NativeReleases .nr-category-follows {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nr-category-follows span {
+  margin-left: auto;
+  color: #d3b8fa;
+}
+.NativeReleases .nr-navigation .nr-nav-more {
+  font-size: 12px;
+  color: var(--nr-muted);
+}
+.NativeReleases .nr-category--active .nr-nav-more {
+  color: #cfb7f0;
+}
+.NativeReleases .nr-navigation .nr-nav-filters {
+  width: auto;
+  min-width: 0;
+  margin: 12px 11px 4px;
+  border-top: 1px solid var(--nr-line);
+  padding-top: 12px;
+  text-align: left;
+}
+.NativeReleases .nr-navigation .nr-nav-filters summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 8px;
+  padding: 0;
+  font-size: 14px;
+  color: #b978ed;
+  list-style: none;
+}
+.nr-nav-filters summary::-webkit-details-marker {
+  display: none;
+}
+.nr-nav-filters summary > svg:last-child {
+  margin-left: auto;
+  margin-right: 2px;
+  flex-shrink: 0;
+  width: 11px;
+  transition: transform 0.15s;
+}
+.nr-nav-filters[open] summary > svg:last-child {
+  transform: rotate(180deg);
+}
+.NativeReleases .nr-navigation .nr-genre-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 7px;
+  margin: 12px 0 8px;
+  color: var(--nr-muted);
+  font-size: 12px;
+  text-align: left;
+}
+.NativeReleases .nr-navigation .nr-genre-search input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  font-size: 12px;
+  background: #191429;
+}
+.NativeReleases--light .nr-navigation .nr-genre-search input {
+  background: #e3dfef;
+}
+.NativeReleases .nr-navigation .nr-genre-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
+}
+.NativeReleases .nr-navigation .nr-genre-options button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  gap: 7px;
+  padding: 5px 4px;
+  min-height: 30px;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  overflow-wrap: anywhere;
+  color: var(--nr-muted);
+}
+.NativeReleases .nr-genre-options button[aria-pressed='true'] {
+  color: #bd98f7;
+  background: transparent;
+}
+.NativeReleases--light .nr-genre-options button[aria-pressed='true'] {
+  color: #6333a8;
+}
+.NativeReleases .nr-genre-options button[aria-pressed='true'] .nr-filter-check {
+  color: #fff;
+  background: #6724da;
+}
+.NativeReleases .nr-navigation .nr-clear-filters {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  max-width: 100%;
+  font-size: 12px;
+  margin-top: 10px;
+  color: var(--nr-muted);
+  padding: 5px 4px;
+  text-align: left;
+}
+.NativeReleases .nr-navigation .nr-nav-footer {
+  flex-shrink: 0;
+  margin-top: 0;
+  padding: 10px 18px;
+  gap: 8px;
+  border-top: 1px solid var(--nr-line);
+  background: var(--nr-panel);
+}
+.NativeReleases .nr-navigation .nr-region {
+  width: 100%;
+  gap: 10px;
+  color: #a68cc5;
+}
+.NativeReleases .nr-navigation .nr-region select {
+  flex: 1;
+  width: 100%;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+  padding: 5px 0;
+}
+.nr-theme-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: space-between;
+}
+.NativeReleases .nr-theme-controls button {
+  font-size: 11px;
+  padding: 4px 0;
+  min-height: 25px;
+  white-space: nowrap;
+}
+.nr-theme-controls small {
+  font-size: 10px;
+}
+@media (max-width: 820px) {
+  .NativeReleases .nr-navigation {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 0 0;
+    max-height: 220px;
+    border-bottom: 1px solid var(--nr-line);
+    gap: 0;
+  }
+  .NativeReleases .nr-brand {
+    display: none;
+  }
+  .NativeReleases .nr-nav-scroll {
+    width: 100%;
+  }
+  .NativeReleases .nr-platforms {
+    display: grid;
+  }
+  .NativeReleases .nr-navigation .nr-nav-footer {
+    padding: 4px 14px;
+  }
+  .NativeReleases .nr-navigation .nr-theme-controls {
+    display: none;
+  }
+}

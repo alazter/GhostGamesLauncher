@@ -4,6 +4,7 @@
   width: 100%;
   overflow: hidden;
   position: relative;
+  isolation: isolate;
   transition: transform 0.18s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.18s ease;
   box-shadow: 0px 0px 12px 4px #00000055;
   display: flex;
@@ -52,7 +53,7 @@
 
 .gameCard .gameCardUpdateBadge {
   position: absolute;
-  z-index: 10;
+  z-index: 6;
   top: 8px;
   left: 8px;
   right: auto;
@@ -101,7 +102,7 @@
   box-shadow: 0 2px 10px rgba(255, 60, 0, 0.55);
   border-top: 1px solid rgba(255, 255, 255, 0.45);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 10;
+  z-index: 6;
   pointer-events: none;
   text-transform: uppercase;
   user-select: none;
@@ -138,7 +139,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
   border-top: 1px solid rgba(255, 255, 255, 0.4);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 10;
+  z-index: 6;
   pointer-events: none;
   text-transform: uppercase;
   user-select: none;
@@ -296,19 +297,31 @@
   display: none;
 }
 
+.bottom-store-logo > * {
+  position: static !important;
+  width: 45px !important;
+  height: 45px !important;
+  margin: 0 !important;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.bottom-store-logo:hover > * {
+  opacity: 1;
+}
+
 .gameListItem {
   display: grid;
   grid-template-columns: 90% 10%;
   grid-template-areas: 'link action';
   align-items: center;
   position: relative;
+  isolation: isolate;
   cursor: default;
   place-self: center;
   width: 100%;
   padding: var(--space-xs-fixed) 0;
   border-bottom: 1px solid gray;
-  content-visibility: auto;
-  contain-intrinsic-height: 45px;
 }
 
 .gameListItem > a > * {

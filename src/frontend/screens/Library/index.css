@@ -7,6 +7,16 @@
   margin: 0 0 var(--space-md);
 }
 
+.gameList > div {
+  isolation: isolate;
+}
+
+.libraryVirtualSpacer {
+  grid-column: 1 / -1;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 .gameList > div:hover,
 .gameList > div:focus-within {
   z-index: 10;
@@ -51,7 +61,7 @@
   background: var(--gradient-body-background, var(--body-background));
   position: sticky;
   top: var(--header-height, 82px);
-  z-index: 9;
+  z-index: 200;
 }
 
 .libraryHeaderWrapper {

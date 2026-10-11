@@ -145,19 +145,72 @@
 }
 
 /* ========================================================
-   Botão Exclusivo: Busca de Updates na Loja Piratas
+   Botão Exclusivo: Busca de Updates na Loja Piratas / Busca Completa
    ======================================================== */
-.FormControl__button--piratas-update {
+.ActionIcons__updateGroup {
   position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
-/* Ícone Pirata Exclusivo em repouso - Cyber Neon Âmbar/Ouro #ffb703 */
+.ActionIcons__updateBtnWrapper {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 1px 3px;
+  transition: all 0.25s ease;
+}
+
+.ActionIcons.action-icons--neon .ActionIcons__updateBtnWrapper {
+  position: relative !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  gap: 2px !important;
+}
+
+.ActionIcons__updateBtnWrapper:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 255, 255, 0.35);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+}
+
+.ActionIcons.action-icons--neon .ActionIcons__updateBtnWrapper:hover {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.FormControl__button--piratas-update {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+/* Ícone de Busca de Updates em repouso - Segue rigorosamente a mesma cor, opacidade e ausência de filtro dos demais ícones da barra */
 .FormControl__segmentedFaIcon.ActionIcons__piratasFaIcon {
-  color: #ffb703 !important;
-  fill: #ffb703 !important;
-  opacity: 0.95 !important;
-  filter: drop-shadow(0 0 3px rgba(255, 183, 3, 0.6)) !important;
-  transition: transform 0.25s ease, filter 0.25s ease, color 0.25s ease !important;
+  color: inherit;
+  fill: currentColor;
+  opacity: inherit;
+  filter: none !important;
+  transition: transform 0.25s ease, filter 0.25s ease, color 0.25s ease, opacity 0.25s ease !important;
+}
+
+.ActionIcons.action-icons--neon .FormControl__segmentedFaIcon.ActionIcons__piratasFaIcon {
+  color: rgba(255, 255, 255, 0.6) !important;
+  fill: currentColor !important;
+  filter: none !important;
+}
+
+.ActionIcons.action-icons--neon .FormControl__segmentedFaIcon.ActionIcons__piratasFaIcon.ActionIcons__piratasFaIcon--globe {
+  color: rgba(255, 255, 255, 0.6) !important;
+  fill: currentColor !important;
+  filter: none !important;
 }
 
 /* Hover no botão exclusivo - Glow intenso e expansão */
@@ -169,17 +222,63 @@
   filter: drop-shadow(0 0 6px #ffb703) 
           drop-shadow(0 0 12px rgba(255, 183, 3, 0.85)) 
           drop-shadow(0 0 18px rgba(255, 183, 3, 0.45)) !important;
-  transform: scale(1.22) !important;
+  transform: scale(1.2) !important;
 }
 
-/* Modo não-neon: toque sutil dourado no botão para exclusividade elegante */
+.FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon.ActionIcons__piratasFaIcon--globe,
+.ActionIcons.action-icons--neon .FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon.ActionIcons__piratasFaIcon--globe {
+  color: #80ffff !important;
+  fill: #80ffff !important;
+  filter: drop-shadow(0 0 6px #00ffff) 
+          drop-shadow(0 0 14px rgba(0, 255, 255, 0.85)) 
+          drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)) !important;
+  transform: scale(1.2) !important;
+}
+
+/* Modo não-neon: botão neutro em repouso */
 .ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update {
-  background: rgba(255, 183, 3, 0.08) !important;
+  background: transparent !important;
   border-radius: 4px;
 }
 
+.ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update.is-all-scope {
+  background: transparent !important;
+}
+
 .ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update:hover {
-  background: rgba(255, 183, 3, 0.18) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Botão Chevron para abrir seletor de escopo */
+.ActionIcons__scopeChevronBtn {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 10px !important;
+  cursor: pointer !important;
+  padding: 4px 3px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 3px !important;
+  transition: all 0.2s ease !important;
+}
+
+.ActionIcons__scopeChevronBtn:hover {
+  color: #00ffff !important;
+  filter: drop-shadow(0 0 4px #00ffff) !important;
+  transform: scale(1.15) !important;
+}
+
+.ActionIcons__scopeChevronBtn.is-open {
+  color: #00ffff !important;
+  transform: rotate(180deg) !important;
+}
+
+.ActionIcons__scopeChevronBtn:disabled {
+  opacity: 0.3 !important;
+  pointer-events: none !important;
 }
 
 /* Animação quando está checando updates */
@@ -189,27 +288,294 @@
   filter: drop-shadow(0 0 8px #00ffff) drop-shadow(0 0 14px rgba(0, 255, 255, 0.75)) !important;
 }
 
-/* Badge neon com contagem de atualizações disponíveis */
+/* Estrutura SVG desacoplada da caveira (Cabeça móvel + Base de ossos estática) */
+.ActionIcons__skullCrossbonesSvg {
+  height: 1em;
+  width: auto;
+  overflow: visible;
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+
+/* Base de ossos cruzados: sempre 100% estática e firme */
+.ActionIcons__skullBones--static {
+  transform: none !important;
+}
+
+/* Opção C (Aprovada pelo Usuário): Giro 2D com inércia / aceleração elástica no crânio */
+@keyframes spinSkullInertia {
+  0% {
+    transform: rotate(0deg);
+  }
+  65% {
+    transform: rotate(380deg);
+  }
+  80% {
+    transform: rotate(355deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.ActionIcons__skullHead--inertia {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spinSkullInertia 1.5s cubic-bezier(0.2, 0.8, 0.3, 1) infinite;
+}
+
+/* Badge neon com contagem de atualizações - Opção 2: Flutuante no Topo Externo com Efeito Original (Zero borda preta) */
 .ActionIcons__piratasBadge {
-  position: absolute;
-  top: 1px;
-  right: -2px;
-  min-width: 15px;
-  height: 15px;
+  position: absolute !important;
+  top: -9px !important;
+  right: -7px !important;
+  z-index: 10 !important;
+  min-width: 14px;
+  height: 14px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: 7px;
   background: linear-gradient(135deg, #ffb703 0%, #ff8500 100%);
   color: #000000;
   font-size: 9px;
   font-weight: 800;
-  line-height: 15px;
+  line-height: 14px;
   text-align: center;
   box-shadow: 0 0 6px #ffb703, 0 0 10px rgba(255, 183, 3, 0.5);
+  border: none !important;
   pointer-events: none;
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ========================================================
+   Popover Cyber Neon: Seleção do Escopo de Atualizações
+   ======================================================== */
+.ActionIcons__scopePopover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 330px;
+  background: #131a20;
+  border: 1.5px solid rgba(0, 255, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95), 0 0 20px rgba(0, 255, 255, 0.25);
+  z-index: 10000;
+  padding: 14px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: actionIconsScopeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  user-select: none;
+}
+
+@keyframes actionIconsScopeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ActionIcons__scopeHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.ActionIcons__scopeTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.3px;
+}
+
+.ActionIcons__scopeSubtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.ActionIcons__scopeList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Custom Scrollbar */
+.ActionIcons__scopeList::-webkit-scrollbar {
+  width: 5px;
+}
+.ActionIcons__scopeList::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+.ActionIcons__scopeList::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.4);
+  border-radius: 4px;
+}
+.ActionIcons__scopeList::-webkit-scrollbar-thumb:hover {
+  background: #00ffff;
+  box-shadow: 0 0 6px #00ffff;
+}
+
+.ActionIcons__scopeDivider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.05) 100%);
+  margin: 4px 0;
+}
+
+.ActionIcons__scopeSectionLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.ActionIcons__scopeItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ActionIcons__scopeItem:hover {
+  background: rgba(0, 255, 255, 0.08);
+  border-color: rgba(0, 255, 255, 0.45);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+  transform: translateX(2px);
+}
+
+.ActionIcons__scopeItem.is-selected {
+  background: rgba(0, 255, 255, 0.14);
+  border-color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+}
+
+.ActionIcons__scopeItemIcon {
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: #ffb703;
+}
+
+.ActionIcons__scopeItemIcon--globe {
+  color: #00ffff;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.7));
+}
+
+.ActionIcons__scopeStoreImg {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.ActionIcons__scopeItemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ActionIcons__scopeItemTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ActionIcons__scopeItemDesc {
+  font-size: 10.5px;
+  color: #94a3b8;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.ActionIcons__scopeBadgeActive {
+  background: rgba(0, 255, 255, 0.18);
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+}
+
+.ActionIcons__scopeFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.ActionIcons__scopeCheckNowBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(255, 183, 3, 0.15) 100%);
+  border: 1px solid #00ffff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+.ActionIcons__scopeCheckNowBtn:hover {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.3) 0%, rgba(255, 183, 3, 0.3) 100%);
+  border-color: #00ffff;
+  box-shadow: 0 0 14px rgba(0, 255, 255, 0.5), 0 0 20px rgba(255, 183, 3, 0.3);
+  transform: translateY(-1px);
+}
+
+.ActionIcons__scopeCheckNowBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Floating Toast Cyber Neon */

@@ -1,5 +1,7 @@
 # Guia Definitivo: Expansão da Barra Lateral Esquerda do Releases.com
 
+> Histórico da implementação em webview. A página atual usa componentes nativos; veja [RELEASES_NATIVE.md](RELEASES_NATIVE.md). A largura de 280px e o padrão visual continuam aplicados no desktop, sem injeção de CSS na fonte externa.
+
 Este documento serve como referência definitiva para a expansão e formatação da barra lateral esquerda na tela do Releases (`src/frontend/screens/Releases/index.tsx`).
 
 ---

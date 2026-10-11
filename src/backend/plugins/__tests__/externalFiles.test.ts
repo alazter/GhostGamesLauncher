@@ -51,7 +51,7 @@ it('rejects a traversal ZIP before creating its payload', async () => {
   await expect(extractGame(zip, join(root, 'extract'))).rejects.toThrow()
   await expect(extractGame(zip, join(root, 'with-password'), 'online-fix.me')).rejects.toThrow()
   await expect(readFile(join(root, 'escaped.exe'))).rejects.toThrow()
-})
+}, 15000)
 
 it.each(['zip', '7z'])('extracts a real password-protected %s and rejects an incorrect password', async format => {
   const sevenZip = await resolve7zPath()

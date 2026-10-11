@@ -38,17 +38,17 @@
       }
 
       /* 1.2 e 1.3: Arredondamento e Brilho (Glow) global para botões e interações */
-      button,
-      .btn,
-      [role='button'],
-      .game-card {
+      button:not(.NativeReleases button),
+      .btn:not(.NativeReleases .btn),
+      [role='button']:not(.NativeReleases [role='button']),
+      .game-card:not(.NativeReleases .game-card) {
         border-radius: 12px !important;
         transition: all 0.3s ease !important;
       }
 
-      button:hover,
-      .btn:hover,
-      .game-card:hover {
+      button:hover:not(.NativeReleases button),
+      .btn:hover:not(.NativeReleases .btn),
+      .game-card:hover:not(.NativeReleases .game-card) {
         box-shadow: 0 0 12px rgba(0, 255, 255, 0.6) !important;
         border-color: #00ffff !important;
       }

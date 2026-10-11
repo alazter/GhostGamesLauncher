@@ -1,8 +1,19 @@
-import { initializeSourceSettings, canonicalSourceUrl, sourceDomains } from './sourceSettings'
+import {
+  initializeSourceSettings,
+  canonicalSourceUrl,
+  sourceDomains
+} from './sourceSettings'
 import { initializeSourceEngines } from './sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
-import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync, statSync } from 'graceful-fs'
-import { join } from 'path'
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  rmSync,
+  statSync
+} from 'graceful-fs'
+import { join, resolve } from 'path'
 import { app, dialog, shell } from 'electron'
 import { userDataPath } from 'backend/constants/paths'
 import { logError, logInfo, logWarning, LogPrefix } from 'backend/logger'
@@ -20,13 +31,37 @@ import type {
   SourceSearchResponse
 } from 'common/types/plugins'
 import { PluginPacker } from './pluginPacker'
-import { PluginHost } from './pluginHost'
+import {
+  archivePluginInstallation,
+  comparePluginVersions,
+  pluginInstallPath,
+  preferredPluginInstallations,
+  readPluginInstallations,
+  reconcilePluginInstallations
+} from './pluginInstallations'
+import { PluginHost, type MediaProvider } from './pluginHost'
 import { ExternalGames } from './externalGames'
 import { romSource, romPageUrl, ROM_DIRECT_ID } from './romSources'
-import { ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID, steamripGameUrl, ankerGameUrl } from './ankerAccount'
+import {
+  ANKER_SOURCE_ID,
+  ANKER_TORRENT_ID,
+  ANKER_DIRECT_ID,
+  STEAMRIP_SOURCE_ID,
+  STEAMRIP_DIRECT_ID,
+  steamripGameUrl,
+  ankerGameUrl
+} from './ankerAccount'
 import { NetworkGuard } from './networkGuard'
-import { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
-import { isNewerRelease, isNewerGameRelease, parseDateToIso } from './externalPolicy'
+import {
+  ONLINE_FIX_SOURCE_ID,
+  ONLINE_FIX_TORRENT_ID,
+  onlineFixGameUrl
+} from './onlineFixAccount'
+import {
+  isNewerRelease,
+  isNewerGameRelease,
+  parseDateToIso
+} from './externalPolicy'
 import { builtinGameSources } from 'common/builtinGameSources'
 import { GlobalConfig } from 'backend/config'
 import { EXCLUDED_PIRATAS_APP_NAMES } from './piratasSaveKnowledge'
@@ -68,7 +103,10 @@ export function resolveBestDownloadSource(
     if (preferredTransport) {
       if (preferredTransport === 'torbox' && hasTorbox) {
         source = options.find((o) => o.type === 'torbox')
-      } else if (preferredTransport.includes('direct') || preferredTransport === 'external') {
+      } else if (
+        preferredTransport.includes('direct') ||
+        preferredTransport === 'external'
+      ) {
         source = options.find((o) => o.type !== 'torbox')
       }
     }
@@ -89,18 +127,30 @@ export class PluginManager {
   private pluginsDir: string
   private dataRootDir: string
   private stateFilePath: string
+  private installationBackupsDir: string
   private hosts: Map<string, PluginHost> = new Map()
   private sourceResults = new Map<string, GhostSearchResult>()
   private updateMonitor?: ReturnType<typeof setInterval>
   private checkingUpdates = false
 
-  private async pollExternalUpdates(force = false): Promise<{ success: boolean; message: string; updatesFound: number }> {
+  private async pollExternalUpdates(
+    force = false,
+    options?: { scope?: string; appNames?: string[] }
+  ): Promise<{ success: boolean; message: string; updatesFound: number }> {
     if (this.checkingUpdates) {
-      return { success: false, message: 'Verificação já em andamento.', updatesFound: 0 }
+      return {
+        success: false,
+        message: 'Verificação já em andamento.',
+        updatesFound: 0
+      }
     }
     const settings = GlobalConfig.get().getSettings()
     if (!force && settings.checkPirataUpdatesDaily === false) {
-      return { success: false, message: 'Verificação diária desativada.', updatesFound: 0 }
+      return {
+        success: false,
+        message: 'Verificação diária desativada.',
+        updatesFound: 0
+      }
     }
 
     const service = ExternalGames.getInstance()
@@ -109,16 +159,39 @@ export class PluginManager {
     const ONE_DAY_MS = 24 * 60 * 60 * 1000
 
     if (!force && now - lastCheck < ONE_DAY_MS) {
-      return { success: true, message: 'Verificação recente já realizada.', updatesFound: 0 }
+      return {
+        success: true,
+        message: 'Verificação recente já realizada.',
+        updatesFound: 0
+      }
     }
 
     this.checkingUpdates = true
     try {
-      logInfo('[PluginManager] Iniciando verificação de updates da Loja Piratas...', LogPrefix.Backend)
-      const installations = service.snapshot(true).installations.filter((item) => {
-        if (!item.appName || EXCLUDED_PIRATAS_APP_NAMES.has(item.appName)) return false
-        return Boolean(item.game?.providerId) || Boolean(item.game?.pageUrl) || Boolean(item.game?.title)
-      })
+      const scope = options?.scope || 'all'
+      const isAll = scope === 'all'
+      logInfo(
+        `[PluginManager] Iniciando verificação de updates (escopo: ${scope})...`,
+        LogPrefix.Backend
+      )
+      let installations = service
+        .snapshot(true)
+        .installations.filter((item) => {
+          if (!item.appName || EXCLUDED_PIRATAS_APP_NAMES.has(item.appName))
+            return false
+          return (
+            Boolean(item.game?.providerId) ||
+            Boolean(item.game?.pageUrl) ||
+            Boolean(item.game?.title)
+          )
+        })
+
+      if (!isAll && options?.appNames && Array.isArray(options.appNames)) {
+        const allowed = new Set(options.appNames)
+        installations = installations.filter((item) =>
+          allowed.has(item.appName)
+        )
+      }
 
       let updatesFound = 0
       for (const installation of installations) {
@@ -126,7 +199,10 @@ export class PluginManager {
           const result = await this.checkExternalUpdate(installation.id)
           if (result?.update) {
             updatesFound++
-            logInfo(`[PluginManager] Update identificado para "${installation.game?.title}": ${result.update.version || 'Nova versão'}`, LogPrefix.Backend)
+            logInfo(
+              `[PluginManager] Update identificado para "${installation.game?.title}": ${result.update.version || 'Nova versão'}`,
+              LogPrefix.Backend
+            )
           }
         } catch {
           // Falha individual silenciada
@@ -135,81 +211,178 @@ export class PluginManager {
       }
 
       service.setLastUpdateCheckTime(now)
-      logInfo(`[PluginManager] Verificação da Loja Piratas concluída. (${updatesFound} atualização(ões) encontrada(s))`, LogPrefix.Backend)
+      logInfo(
+        `[PluginManager] Verificação concluída (${updatesFound} atualização(ões) encontrada(s)).`,
+        LogPrefix.Backend
+      )
       sendFrontendMessage('external-games-updated', service.snapshot())
       return {
         success: true,
-        message: updatesFound > 0
-          ? `${updatesFound} atualização(ões) encontrada(s) na Loja Piratas!`
-          : 'Todos os jogos da Loja Piratas estão atualizados.',
+        message:
+          updatesFound > 0
+            ? `${updatesFound} atualização(ões) encontrada(s)!`
+            : 'Todos os jogos verificados estão atualizados.',
         updatesFound
       }
     } catch (err) {
-      logError(['[PluginManager] Erro na verificação de updates da Loja Piratas:', err], LogPrefix.Backend)
-      return { success: false, message: 'Erro na verificação de updates da Loja Piratas.', updatesFound: 0 }
+      logError(
+        ['[PluginManager] Erro na verificação de updates:', err],
+        LogPrefix.Backend
+      )
+      return {
+        success: false,
+        message: 'Erro na verificação de updates.',
+        updatesFound: 0
+      }
     } finally {
       this.checkingUpdates = false
     }
   }
 
-  public async checkPiratasUpdates(force = false): Promise<{ success: boolean; message: string; updatesFound?: number }> {
-    return await this.pollExternalUpdates(force)
+  public async checkPiratasUpdates(
+    force = false,
+    options?: { scope?: string; appNames?: string[] }
+  ): Promise<{ success: boolean; message: string; updatesFound?: number }> {
+    return await this.pollExternalUpdates(force, options)
   }
 
   public async installBuiltinSource(id: string): Promise<PluginInstallResult> {
     const source = builtinGameSources.find((item) => item.id === id)
     if (!source) return { success: false, error: 'Fonte desconhecida.' }
-    const allowedDomains = Array.from(new Set([
-      source.domain,
-      `*.${source.domain}`,
-      ...COMMON_GAME_FILE_HOSTS
-    ]))
-    const manifest: PluginManifest = { id, name: source.name, version: '1.2.0', author: 'Ghost Community',
-      description: 'Catálogo público experimental e download nativo pelo Ghost. Suporte a ZIP, RAR e 7Z para Windows.',
-      type: 'game-source', entrypoint: 'index.js', permissions: ['network', 'game-sources'], tier: 2,
-      allowedDomains, homepage: `https://${source.domain}`, minGhostVersion: '0.2.7-beta' }
+    const allowedDomains = Array.from(
+      new Set([source.domain, `*.${source.domain}`, ...COMMON_GAME_FILE_HOSTS])
+    )
+    const manifest: PluginManifest = {
+      id,
+      name: source.name,
+      version: '1.2.0',
+      author: 'Ghost Community',
+      description:
+        'Catálogo público experimental e download nativo pelo Ghost. Suporte a ZIP, RAR e 7Z para Windows.',
+      type: 'game-source',
+      entrypoint: 'index.js',
+      permissions: ['network', 'game-sources'],
+      tier: 2,
+      allowedDomains,
+      homepage: `https://${source.domain}`,
+      minGhostVersion: '0.2.7-beta'
+    }
     const archive = PluginPacker.createZipBuffer([
       { name: 'plugin.json', content: Buffer.from(JSON.stringify(manifest)) },
-      { name: 'index.js', content: Buffer.from(`ghost.registerWebsiteSource(${JSON.stringify(source.config)})`) }
+      {
+        name: 'index.js',
+        content: Buffer.from(
+          `ghost.registerWebsiteSource(${JSON.stringify(source.config)})`
+        )
+      }
     ])
     return this.installFromBuffer(`${id}.ghost`, archive.toString('base64'))
   }
 
-  private remember(game: GhostSearchResult, plugin: PluginInfo): GhostSearchResult {
-    const normalized = { ...game, id: canonicalSourceUrl(plugin.id, game.id), pageUrl: game.pageUrl ? canonicalSourceUrl(plugin.id, game.pageUrl) : undefined, providerId: plugin.id, providerName: plugin.name, providerIcon: plugin.homepage ? new URL('/favicon.ico', plugin.homepage).href : undefined }
-    this.sourceResults.set(JSON.stringify([plugin.id, normalized.id]), normalized)
-    if (this.sourceResults.size > 2000) this.sourceResults.delete(this.sourceResults.keys().next().value!)
+  private remember(
+    game: GhostSearchResult,
+    plugin: PluginInfo
+  ): GhostSearchResult {
+    const normalized = {
+      ...game,
+      id: canonicalSourceUrl(plugin.id, game.id),
+      pageUrl: game.pageUrl
+        ? canonicalSourceUrl(plugin.id, game.pageUrl)
+        : undefined,
+      providerId: plugin.id,
+      providerName: plugin.name,
+      providerIcon: plugin.homepage
+        ? new URL('/favicon.ico', plugin.homepage).href
+        : undefined
+    }
+    this.sourceResults.set(
+      JSON.stringify([plugin.id, normalized.id]),
+      normalized
+    )
+    if (this.sourceResults.size > 2000)
+      this.sourceResults.delete(this.sourceResults.keys().next().value!)
     return normalized
   }
 
-  public async searchExternalGames(query: string): Promise<SourceSearchResponse> {
+  public async searchExternalGames(
+    query: string
+  ): Promise<SourceSearchResponse> {
     const response: SourceSearchResponse = { games: [], errors: [] }
     if (!query.trim()) return response
-    await Promise.all(this.getPlugins().filter((plugin) => plugin.isEnabled && plugin.type === 'game-source').map(async (plugin) => {
-      const provider = this.hosts.get(plugin.id)?.getSourceProvider()
-      if (!provider) return
-      try {
-        const games = await Promise.race([provider.search(query.trim()), new Promise<never>((_, reject) => { const timer = setTimeout(() => reject(new Error('A fonte demorou demais para responder.')), 25000); timer.unref() })])
-        for (const item of games) response.games.push(this.remember(item, plugin))
-      } catch (error) {
-        response.errors.push({ providerId: plugin.id, providerName: plugin.name, message: error instanceof Error ? error.message : String(error) })
-      }
-    }))
+    await Promise.all(
+      this.getPlugins()
+        .filter((plugin) => plugin.isEnabled && plugin.type === 'game-source')
+        .map(async (plugin) => {
+          const provider = this.hosts.get(plugin.id)?.getSourceProvider()
+          if (!provider) return
+          try {
+            const games = await Promise.race([
+              provider.search(query.trim()),
+              new Promise<never>((_, reject) => {
+                const timer = setTimeout(
+                  () =>
+                    reject(new Error('A fonte demorou demais para responder.')),
+                  25000
+                )
+                timer.unref()
+              })
+            ])
+            for (const item of games)
+              response.games.push(this.remember(item, plugin))
+          } catch (error) {
+            response.errors.push({
+              providerId: plugin.id,
+              providerName: plugin.name,
+              message: error instanceof Error ? error.message : String(error)
+            })
+          }
+        })
+    )
     return response
   }
 
-  public addExternalPage(providerId: string, pageUrl: string, title: string, version?: string): GhostSearchResult {
-    const plugin = this.getPlugins().find((item) => item.id === providerId && item.isEnabled && item.type === 'game-source')
-    if (!plugin || !this.hosts.get(providerId)?.getSourceProvider()) throw new Error('Ative a fonte antes de vincular uma página.')
+  public addExternalPage(
+    providerId: string,
+    pageUrl: string,
+    title: string,
+    version?: string
+  ): GhostSearchResult {
+    const plugin = this.getPlugins().find(
+      (item) =>
+        item.id === providerId && item.isEnabled && item.type === 'game-source'
+    )
+    if (!plugin || !this.hosts.get(providerId)?.getSourceProvider())
+      throw new Error('Ative a fonte antes de vincular uma página.')
     const check = NetworkGuard.validateUrl(pageUrl, plugin)
-    if (!check.allowed || !title.trim()) throw new Error(check.reason || 'Informe o nome do jogo.')
-    const platform = /nxbrew|nswgf|romslab/i.test(providerId) ? 'switch' : 'windows'
-    return this.remember({ id: pageUrl, pageUrl, title: title.trim(), version: version?.trim() || undefined, providerId, providerName: plugin.name, platform }, plugin)
+    if (!check.allowed || !title.trim())
+      throw new Error(check.reason || 'Informe o nome do jogo.')
+    const platform = /nxbrew|nswgf|romslab/i.test(providerId)
+      ? 'switch'
+      : 'windows'
+    return this.remember(
+      {
+        id: pageUrl,
+        pageUrl,
+        title: title.trim(),
+        version: version?.trim() || undefined,
+        providerId,
+        providerName: plugin.name,
+        platform
+      },
+      plugin
+    )
   }
 
-  public async getGameDetails(providerId: string, gameId: string): Promise<GhostSearchResult | undefined> {
+  public async getGameDetails(
+    providerId: string,
+    gameId: string
+  ): Promise<GhostSearchResult | undefined> {
     const plugin = this.getPlugins().find(
-      (item) => (item.id === providerId || item.id.includes(providerId) || providerId.includes(item.id)) && item.isEnabled
+      (item) =>
+        (item.id === providerId ||
+          item.id.includes(providerId) ||
+          providerId.includes(item.id)) &&
+        item.isEnabled
     )
     const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
     if (!plugin || !provider || !provider.getDetails) return undefined
@@ -224,9 +397,17 @@ export class PluginManager {
   public async getCatalog(
     providerId: string,
     options?: { letter?: string; page?: number; theme?: string }
-  ): Promise<{ games: GhostSearchResult[]; hasMore: boolean; totalEstimated?: number }> {
+  ): Promise<{
+    games: GhostSearchResult[]
+    hasMore: boolean
+    totalEstimated?: number
+  }> {
     const plugin = this.getPlugins().find(
-      (item) => (item.id === providerId || item.id.includes(providerId) || providerId.includes(item.id)) && item.isEnabled
+      (item) =>
+        (item.id === providerId ||
+          item.id.includes(providerId) ||
+          providerId.includes(item.id)) &&
+        item.isEnabled
     )
     const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
     if (!plugin || !provider) {
@@ -236,20 +417,28 @@ export class PluginManager {
     if (provider.getCatalog) {
       try {
         const result = await provider.getCatalog(options)
-        const rememberedGames = result.games.map((g) => this.remember(g, plugin))
+        const rememberedGames = result.games.map((g) =>
+          this.remember(g, plugin)
+        )
         return {
           games: rememberedGames,
           hasMore: result.hasMore,
           totalEstimated: result.totalEstimated
         }
       } catch (err) {
-        logWarning(`[PluginManager] getCatalog failed for ${providerId}: ${err}`, LogPrefix.Backend)
+        logWarning(
+          `[PluginManager] getCatalog failed for ${providerId}: ${err}`,
+          LogPrefix.Backend
+        )
       }
     }
 
     // Fallback gracioso: busca jogos gerais
     try {
-      const q = options?.letter && options.letter !== 'All' ? options.letter : (options?.theme || 'a')
+      const q =
+        options?.letter && options.letter !== 'All'
+          ? options.letter
+          : options?.theme || 'a'
       const games = await provider.search(q)
       const rememberedGames = games.map((g) => this.remember(g, plugin))
       return {
@@ -262,33 +451,53 @@ export class PluginManager {
     }
   }
 
-  public async installExternalGame(request: ExternalInstallRequest): Promise<ExternalActionResult> {
+  public async installExternalGame(
+    request: ExternalInstallRequest
+  ): Promise<ExternalActionResult> {
     try {
       const plugin = this.getPlugins().find(
-        (item) => (item.id === request.game.providerId || item.id.includes(request.game.providerId) || request.game.providerId.includes(item.id)) && item.isEnabled
+        (item) =>
+          (item.id === request.game.providerId ||
+            item.id.includes(request.game.providerId) ||
+            request.game.providerId.includes(item.id)) &&
+          item.isEnabled
       )
       const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
-      let game = this.sourceResults.get(JSON.stringify([request.game.providerId, request.game.id])) ||
-        (plugin ? this.remember(request.game, plugin) : request.game)
-      if (!plugin || !provider || !game) throw new Error('Busque o jogo novamente com a fonte habilitada.')
+      let game =
+        this.sourceResults.get(
+          JSON.stringify([request.game.providerId, request.game.id])
+        ) || (plugin ? this.remember(request.game, plugin) : request.game)
+      if (!plugin || !provider || !game)
+        throw new Error('Busque o jogo novamente com a fonte habilitada.')
       if (provider.getDetails) {
-        game = this.remember(await refreshExternalRelease(game, id => provider.getDetails!(id)), plugin)
+        game = this.remember(
+          await refreshExternalRelease(game, (id) => provider.getDetails!(id)),
+          plugin
+        )
       }
       const officialAnker = plugin.id === ANKER_SOURCE_ID
-      const options = await this.getDownloadSources(plugin.id, game.pageUrl || game.id)
+      const options = await this.getDownloadSources(
+        plugin.id,
+        game.pageUrl || game.id
+      )
       let preferredTransport: string | undefined
       let targetDirectory = request.targetDirectory
       if (request.replaceInstallationId) {
         const extSnap = ExternalGames.getInstance().snapshot()
         const prevJob = extSnap.jobs.find(
-          (j) => (j.installationId === request.replaceInstallationId || j.id === request.replaceInstallationId) && (j.status === 'completed' || j.bytes > 0)
+          (j) =>
+            (j.installationId === request.replaceInstallationId ||
+              j.id === request.replaceInstallationId) &&
+            (j.status === 'completed' || j.bytes > 0)
         )
         if (prevJob?.transport) {
           preferredTransport = prevJob.transport
         }
         if (!targetDirectory) {
           const inst = extSnap.installations.find(
-            (i) => i.id === request.replaceInstallationId || i.appName === request.replaceInstallationId
+            (i) =>
+              i.id === request.replaceInstallationId ||
+              i.appName === request.replaceInstallationId
           )
           if (inst?.directory) {
             targetDirectory = inst.directory
@@ -296,16 +505,33 @@ export class PluginManager {
         }
       }
       const hasTorbox = await TorboxClient.configured().catch(() => false)
-      let source = resolveBestDownloadSource(options, request.sourceId, hasTorbox, preferredTransport)
-      if (!officialAnker && !romSource(plugin.id) && plugin.id !== STEAMRIP_SOURCE_ID && plugin.id !== ONLINE_FIX_SOURCE_ID && !source && request.sourceId) {
+      let source = resolveBestDownloadSource(
+        options,
+        request.sourceId,
+        hasTorbox,
+        preferredTransport
+      )
+      if (
+        !officialAnker &&
+        !romSource(plugin.id) &&
+        plugin.id !== STEAMRIP_SOURCE_ID &&
+        plugin.id !== ONLINE_FIX_SOURCE_ID &&
+        !source &&
+        request.sourceId
+      ) {
         source = {
           id: request.sourceId,
           name: request.game.title,
-          type: request.sourceId.includes('.torrent') || request.sourceId.startsWith('magnet:') ? 'torrent' : 'direct',
+          type:
+            request.sourceId.includes('.torrent') ||
+            request.sourceId.startsWith('magnet:')
+              ? 'torrent'
+              : 'direct',
           url: request.sourceId
         }
       }
-      if (!source) throw new Error('Esta opção de download não está mais disponível.')
+      if (!source)
+        throw new Error('Esta opção de download não está mais disponível.')
       const finalGame = {
         ...game,
         coverUrl: request.game.coverUrl || game.coverUrl
@@ -321,25 +547,51 @@ export class PluginManager {
         Boolean(request.confirmed),
         Boolean(request.chooseDirectory)
       )
-    } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
   }
 
-  public async linkExternalGame(appName: string, selected: GhostSearchResult): Promise<ExternalActionResult> {
-    const game = this.sourceResults.get(JSON.stringify([selected.providerId, selected.id]))
-    if (!game || !this.hosts.has(game.providerId)) return { success: false, error: 'Busque o jogo novamente com a fonte habilitada.' }
+  public async linkExternalGame(
+    appName: string,
+    selected: GhostSearchResult
+  ): Promise<ExternalActionResult> {
+    const game = this.sourceResults.get(
+      JSON.stringify([selected.providerId, selected.id])
+    )
+    if (!game || !this.hosts.has(game.providerId))
+      return {
+        success: false,
+        error: 'Busque o jogo novamente com a fonte habilitada.'
+      }
     return ExternalGames.getInstance().linkExisting(appName, game)
   }
 
-  public async checkExternalUpdate(installationId: string): Promise<ExternalActionResult> {
+  public async checkExternalUpdate(
+    installationId: string
+  ): Promise<ExternalActionResult> {
     try {
-      const installation = ExternalGames.getInstance().snapshot().installations.find((item) => item.id === installationId)
+      const installation = ExternalGames.getInstance()
+        .snapshot()
+        .installations.find((item) => item.id === installationId)
       if (!installation) throw new Error('Instalação externa não encontrada.')
 
-      let plugin = this.getPlugins().find((item) => item.id === installation.game.providerId && item.isEnabled)
+      let plugin = this.getPlugins().find(
+        (item) => item.id === installation.game.providerId && item.isEnabled
+      )
       let provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
       let details: GhostSearchResult | undefined
 
-      if (provider?.getDetails && plugin && installation.game.id && !installation.game.id.startsWith('external-') && !installation.game.id.startsWith('account-')) {
+      if (
+        provider?.getDetails &&
+        plugin &&
+        installation.game.id &&
+        !installation.game.id.startsWith('external-') &&
+        !installation.game.id.startsWith('account-')
+      ) {
         try {
           const direct = await provider.getDetails(installation.game.id)
           if (direct && direct.id === installation.game.id) {
@@ -359,27 +611,43 @@ export class PluginManager {
           const cleanTarget = norm(titleToSearch)
           const matches = searchRes.games.filter((g) => {
             const cleanG = norm(g.title)
-            return cleanG === cleanTarget || cleanG.includes(cleanTarget) || cleanTarget.includes(cleanG)
+            return (
+              cleanG === cleanTarget ||
+              cleanG.includes(cleanTarget) ||
+              cleanTarget.includes(cleanG)
+            )
           })
           if (matches.length > 0) {
             let best = matches[0]
             for (const m of matches) {
               const comp = isNewerGameRelease(
-                { version: best.version, sourceDate: best.sourceDate, uploadDate: best.uploadDate },
-                { version: m.version, sourceDate: m.sourceDate, uploadDate: m.uploadDate }
+                {
+                  version: best.version,
+                  sourceDate: best.sourceDate,
+                  uploadDate: best.uploadDate
+                },
+                {
+                  version: m.version,
+                  sourceDate: m.sourceDate,
+                  uploadDate: m.uploadDate
+                }
               )
               if (comp.isNewer) {
                 best = m
               }
             }
             details = best
-            plugin = this.getPlugins().find((p) => p.id === best.providerId && p.isEnabled)
+            plugin = this.getPlugins().find(
+              (p) => p.id === best.providerId && p.isEnabled
+            )
           }
         }
       }
 
       if (!details) {
-        throw new Error('Nenhuma fonte ativa encontrou correspondência para este jogo. Tente buscar na página Buscar Jogos.')
+        throw new Error(
+          'Nenhuma fonte ativa encontrou correspondência para este jogo. Tente buscar na página Buscar Jogos.'
+        )
       }
 
       const currentVersion = installation.game.version
@@ -394,9 +662,19 @@ export class PluginManager {
         uploadDate: details.uploadDate
       }
 
-      if (!currentVersion && !currentCandidate.sourceDate && !details.version && !remoteCandidate.sourceDate) {
-        const message = 'A versão ou data de publicação não foram informadas para comparar updates.'
-        ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
+      if (
+        !currentVersion &&
+        !currentCandidate.sourceDate &&
+        !details.version &&
+        !remoteCandidate.sourceDate
+      ) {
+        const message =
+          'A versão ou data de publicação não foram informadas para comparar updates.'
+        ExternalGames.getInstance().recordUpdate(
+          installation.id,
+          undefined,
+          message
+        )
         return { success: false, error: message }
       }
 
@@ -404,7 +682,11 @@ export class PluginManager {
       const isNewer = comparison.isNewer
 
       if (!isNewer && comparison.reason !== 'date') {
-        const normalized = (value: string) => value.trim().toLowerCase().replace(/^v(?:ersion|er)?[ ._-]*/, '')
+        const normalized = (value: string) =>
+          value
+            .trim()
+            .toLowerCase()
+            .replace(/^v(?:ersion|er)?[ ._-]*/, '')
         if (
           currentVersion &&
           details.version &&
@@ -414,39 +696,62 @@ export class PluginManager {
           !currentCandidate.sourceDate &&
           !remoteCandidate.sourceDate
         ) {
-          const message = 'As versões instalada e disponível usam formatos diferentes. Confira a versão na página da fonte.'
-          ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
+          const message =
+            'As versões instalada e disponível usam formatos diferentes. Confira a versão na página da fonte.'
+          ExternalGames.getInstance().recordUpdate(
+            installation.id,
+            undefined,
+            message
+          )
           return { success: false, error: message }
         }
       }
 
-      const update = isNewer && plugin ? this.remember(details, plugin) : undefined
-      const dateInfo = details.uploadDate ? ` (Atualizado na fonte em ${details.uploadDate})` : ''
+      const update =
+        isNewer && plugin ? this.remember(details, plugin) : undefined
+      const dateInfo = details.uploadDate
+        ? ` (Atualizado na fonte em ${details.uploadDate})`
+        : ''
       const message = update
         ? `Atualização disponível: ${update.version || 'Nova versão'}${dateInfo}`
         : 'Jogo já está na versão mais recente da fonte.'
 
       // Se a instalação local não possuía sourceDate e está na mesma versão da loja, auto-atrela a data oficial
-      if (!installation.game.sourceDate && (details.sourceDate || details.uploadDate) && currentVersion) {
+      if (
+        !installation.game.sourceDate &&
+        (details.sourceDate || details.uploadDate) &&
+        currentVersion
+      ) {
         const clean = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '')
         if (clean(currentVersion) === clean(details.version || '')) {
           const iso = details.sourceDate || parseDateToIso(details.uploadDate)
           if (iso) {
-            ExternalGames.getInstance().attachSourceDate(installation.id, iso, details.uploadDate)
+            ExternalGames.getInstance().attachSourceDate(
+              installation.id,
+              iso,
+              details.uploadDate
+            )
           }
         }
       }
 
       ExternalGames.getInstance().recordUpdate(installation.id, update, message)
       return { success: true, update }
-    } catch (error) { return { success: false, error: error instanceof Error ? error.message : String(error) } }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      }
+    }
   }
-  private pluginStates: Record<string, { enabled: boolean; isDev?: boolean }> = {}
+  private pluginStates: Record<string, { enabled: boolean; isDev?: boolean }> =
+    {}
 
   private constructor() {
     this.pluginsDir = join(userDataPath, 'plugins')
     this.dataRootDir = join(userDataPath, 'plugins_data')
     this.stateFilePath = join(userDataPath, 'plugins_state.json')
+    this.installationBackupsDir = join(userDataPath, 'plugin_installation_backups')
   }
 
   public static getInstance(): PluginManager {
@@ -458,13 +763,87 @@ export class PluginManager {
 
   public async init(): Promise<void> {
     initializeSourceSettings(userDataPath)
-    await initializeSourceEngines(userDataPath, app.isPackaged ? join(process.resourcesPath, 'engine-bundles') : join(app.getAppPath(), 'public', 'engine-bundles'), app.getVersion())
+    await initializeSourceEngines(
+      userDataPath,
+      app.isPackaged
+        ? join(process.resourcesPath, 'engine-bundles')
+        : join(app.getAppPath(), 'public', 'engine-bundles'),
+      app.getVersion()
+    )
     ExternalGames.getInstance()
     mkdirSync(this.pluginsDir, { recursive: true })
     mkdirSync(this.dataRootDir, { recursive: true })
-    this.loadStates()
 
-    logInfo('[PluginManager] Initializing plugins subsystem...', LogPrefix.Backend)
+    this.loadStates()
+    try {
+      reconcilePluginInstallations(this.pluginsDir, this.installationBackupsDir)
+    } catch (error) {
+      logWarning(
+        `[PluginManager] Falha ao unificar instalações: ${String(error)}`,
+        LogPrefix.Backend
+      )
+    }
+
+    // Sincroniza plugins bundled para a pasta de plugins do usuário
+    try {
+      const bundledDir = app.isPackaged
+        ? join(process.resourcesPath, 'plugins')
+        : join(app.getAppPath(), 'plugins')
+      if (existsSync(bundledDir)) {
+        const bundled = preferredPluginInstallations(
+          readPluginInstallations(bundledDir)
+        )
+        for (const { manifest, installedPath: srcPath } of bundled) {
+          if (this.pluginStates[manifest.id]?.isDev) continue
+          const destPath = pluginInstallPath(this.pluginsDir, manifest.id)
+          let shouldCopy = !existsSync(destPath)
+          if (!shouldCopy) {
+            try {
+              const destManifestPath = join(destPath, 'plugin.json')
+              if (!existsSync(destManifestPath)) {
+                shouldCopy = true
+              } else {
+                const dstRaw = PluginPacker.validateManifest(
+                  JSON.parse(readFileSync(destManifestPath, 'utf8'))
+                )
+                const comparison = comparePluginVersions(
+                  manifest.version,
+                  dstRaw.version
+                )
+                if (comparison > 0) {
+                  shouldCopy = true
+                } else if (manifest.version === dstRaw.version) {
+                  const srcIndex = join(srcPath, 'index.js')
+                  const dstIndex = join(destPath, 'index.js')
+                  if (existsSync(srcIndex) && existsSync(dstIndex)) {
+                    if (
+                      statSync(srcIndex).mtimeMs > statSync(dstIndex).mtimeMs
+                    ) {
+                      shouldCopy = true
+                    }
+                  }
+                }
+              }
+            } catch {
+              shouldCopy = true
+            }
+          }
+          if (shouldCopy) {
+            PluginPacker.loadUnpacked(srcPath, destPath)
+          }
+        }
+      }
+    } catch (err) {
+      logWarning(
+        `[PluginManager] Falha ao sincronizar plugins bundled: ${err}`,
+        LogPrefix.Backend
+      )
+    }
+
+    logInfo(
+      '[PluginManager] Initializing plugins subsystem...',
+      LogPrefix.Backend
+    )
     const plugins = this.getPlugins()
 
     for (const p of plugins) {
@@ -472,16 +851,25 @@ export class PluginManager {
         try {
           await this.startPluginHost(p)
         } catch (err) {
-          logError([`[PluginManager] Failed to start plugin "${p.id}":`, err], LogPrefix.Backend)
+          logError(
+            [`[PluginManager] Failed to start plugin "${p.id}":`, err],
+            LogPrefix.Backend
+          )
         }
       }
     }
 
     this.broadcastUpdates()
     if (!this.updateMonitor) {
-      const initialCheck = setTimeout(() => void this.pollExternalUpdates(), 20000)
+      const initialCheck = setTimeout(
+        () => void this.pollExternalUpdates(),
+        20000
+      )
       initialCheck.unref()
-      this.updateMonitor = setInterval(() => void this.pollExternalUpdates(), 60 * 60 * 1000)
+      this.updateMonitor = setInterval(
+        () => void this.pollExternalUpdates(),
+        60 * 60 * 1000
+      )
       this.updateMonitor.unref()
     }
   }
@@ -498,48 +886,64 @@ export class PluginManager {
 
   private saveStates(): void {
     try {
-      writeFileSync(this.stateFilePath, JSON.stringify(this.pluginStates, null, 2), 'utf8')
+      writeFileSync(
+        this.stateFilePath,
+        JSON.stringify(this.pluginStates, null, 2),
+        'utf8'
+      )
     } catch (err) {
-      logError(['[PluginManager] Failed to save states:', err], LogPrefix.Backend)
+      logError(
+        ['[PluginManager] Failed to save states:', err],
+        LogPrefix.Backend
+      )
     }
   }
 
   public getPlugins(): PluginInfo[] {
-    if (!existsSync(this.pluginsDir)) return []
-    const results: PluginInfo[] = []
+    const installations = preferredPluginInstallations(
+      readPluginInstallations(this.pluginsDir, (folder, error) => {
+        logWarning(
+          `[PluginManager] Skipping invalid plugin in ${folder}: ${String(error)}`,
+          LogPrefix.Backend
+        )
+      })
+    )
+    return installations.map(({ manifest, installedPath: pDir }) => {
+      const isDev = Boolean(this.pluginStates[manifest.id]?.isDev)
+      const isEnabled = this.pluginStates[manifest.id]?.enabled ?? true
 
-    const entries = readdirSync(this.pluginsDir)
-    for (const entry of entries) {
-      const pDir = join(this.pluginsDir, entry)
-      if (!statSync(pDir).isDirectory()) continue
+      const styleFile = manifest.style || 'theme.css'
+      const hasCss = existsSync(join(pDir, styleFile))
 
-      const manifestPath = join(pDir, 'plugin.json')
-      if (!existsSync(manifestPath)) continue
+      return {
+        ...manifest,
+        allowedDomains: [
+          ...new Set([
+            ...(manifest.allowedDomains || []),
+            ...sourceDomains(manifest.id)
+          ])
+        ],
+        isEnabled,
+        installedPath: pDir,
+        isDev,
+        hasCss
+      }
+    })
+  }
 
-      try {
-        const raw = JSON.parse(readFileSync(manifestPath, 'utf8'))
-        const manifest = PluginPacker.validateManifest(raw)
-
-        const isDev = Boolean(this.pluginStates[manifest.id]?.isDev)
-        const isEnabled = this.pluginStates[manifest.id]?.enabled ?? true
-
-        const styleFile = manifest.style || 'theme.css'
-        const hasCss = existsSync(join(pDir, styleFile))
-
-        results.push({
-          ...manifest,
-          allowedDomains: [...new Set([...(manifest.allowedDomains || []), ...sourceDomains(manifest.id)])],
-          isEnabled,
-          installedPath: pDir,
-          isDev,
-          hasCss
-        })
-      } catch (err: any) {
-        logWarning(`[PluginManager] Skipping invalid plugin in ${entry}: ${err.message}`, LogPrefix.Backend)
+  private archiveOtherInstallations(id: string, keepPath: string): void {
+    for (const installation of readPluginInstallations(this.pluginsDir)) {
+      if (
+        installation.manifest.id === id &&
+        resolve(installation.installedPath) !== resolve(keepPath)
+      ) {
+        archivePluginInstallation(
+          this.pluginsDir,
+          this.installationBackupsDir,
+          installation.installedPath
+        )
       }
     }
-
-    return results
   }
 
   private async startPluginHost(info: PluginInfo): Promise<void> {
@@ -553,7 +957,10 @@ export class PluginManager {
     await host.start()
   }
 
-  public async togglePlugin(id: string, enabled: boolean): Promise<{ success: boolean; error?: string }> {
+  public async togglePlugin(
+    id: string,
+    enabled: boolean
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const plugins = this.getPlugins()
       const target = plugins.find((p) => p.id === id)
@@ -580,7 +987,10 @@ export class PluginManager {
       this.broadcastUpdates()
       return { success: true }
     } catch (err: any) {
-      logError([`[PluginManager] Toggle failed for ${id}:`, err], LogPrefix.Backend)
+      logError(
+        [`[PluginManager] Toggle failed for ${id}:`, err],
+        LogPrefix.Backend
+      )
       return { success: false, error: err.message || String(err) }
     }
   }
@@ -592,7 +1002,12 @@ export class PluginManager {
         const win = getMainWindow()
         const res = await dialog.showOpenDialog(win!, {
           title: 'Instalar Plugin Ghost (*.ghost)',
-          filters: [{ name: 'Ghost Plugin (*.ghost, *.zip)', extensions: ['ghost', 'zip'] }],
+          filters: [
+            {
+              name: 'Ghost Plugin (*.ghost, *.zip)',
+              extensions: ['ghost', 'zip']
+            }
+          ],
           properties: ['openFile']
         })
         if (res.canceled || res.filePaths.length === 0) {
@@ -602,9 +1017,12 @@ export class PluginManager {
       }
 
       const tempExtractDir = join(this.pluginsDir, '__temp_unpacking__')
-      const { manifest, checksum } = PluginPacker.unpack(targetPath, tempExtractDir)
+      const { manifest, checksum } = PluginPacker.unpack(
+        targetPath,
+        tempExtractDir
+      )
 
-      const finalDir = join(this.pluginsDir, manifest.id)
+      const finalDir = pluginInstallPath(this.pluginsDir, manifest.id)
       if (existsSync(finalDir)) {
         const host = this.hosts.get(manifest.id)
         if (host) host.dispose()
@@ -612,6 +1030,7 @@ export class PluginManager {
       }
 
       PluginPacker.unpack(targetPath, finalDir)
+      this.archiveOtherInstallations(manifest.id, finalDir)
       rmSync(tempExtractDir, { recursive: true, force: true })
 
       this.pluginStates[manifest.id] = { enabled: true, isDev: false }
@@ -635,13 +1054,19 @@ export class PluginManager {
     }
   }
 
-  public async installFromBuffer(fileName: string, bufferBase64: string): Promise<PluginInstallResult> {
+  public async installFromBuffer(
+    fileName: string,
+    bufferBase64: string
+  ): Promise<PluginInstallResult> {
     try {
       const buffer = Buffer.from(bufferBase64, 'base64')
       const tempExtractDir = join(this.pluginsDir, '__temp_unpacking__')
-      const { manifest, checksum } = PluginPacker.unpackFromBuffer(buffer, tempExtractDir)
+      const { manifest, checksum } = PluginPacker.unpackFromBuffer(
+        buffer,
+        tempExtractDir
+      )
 
-      const finalDir = join(this.pluginsDir, manifest.id)
+      const finalDir = pluginInstallPath(this.pluginsDir, manifest.id)
       if (existsSync(finalDir)) {
         const host = this.hosts.get(manifest.id)
         if (host) host.dispose()
@@ -649,6 +1074,7 @@ export class PluginManager {
       }
 
       PluginPacker.unpackFromBuffer(buffer, finalDir)
+      this.archiveOtherInstallations(manifest.id, finalDir)
       rmSync(tempExtractDir, { recursive: true, force: true })
 
       this.pluginStates[manifest.id] = { enabled: true, isDev: false }
@@ -667,7 +1093,10 @@ export class PluginManager {
 
       return { success: true, plugin: info }
     } catch (err: any) {
-      logError(['[PluginManager] Buffer installation failed:', err], LogPrefix.Backend)
+      logError(
+        ['[PluginManager] Buffer installation failed:', err],
+        LogPrefix.Backend
+      )
       return { success: false, error: err.message || String(err) }
     }
   }
@@ -687,11 +1116,16 @@ export class PluginManager {
         sourceDir = res.filePaths[0]
       }
 
-      const raw = JSON.parse(readFileSync(join(sourceDir, 'plugin.json'), 'utf8'))
+      const raw = JSON.parse(
+        readFileSync(join(sourceDir, 'plugin.json'), 'utf8')
+      )
       const manifest = PluginPacker.validateManifest(raw)
 
-      const finalDir = join(this.pluginsDir, manifest.id)
-      PluginPacker.loadUnpacked(sourceDir, finalDir)
+      const finalDir = pluginInstallPath(this.pluginsDir, manifest.id)
+      if (resolve(sourceDir) !== finalDir) {
+        PluginPacker.loadUnpacked(sourceDir, finalDir)
+      }
+      this.archiveOtherInstallations(manifest.id, finalDir)
 
       this.pluginStates[manifest.id] = { enabled: true, isDev: true }
       this.saveStates()
@@ -709,12 +1143,17 @@ export class PluginManager {
 
       return { success: true, plugin: info }
     } catch (err: any) {
-      logError(['[PluginManager] Load unpacked failed:', err], LogPrefix.Backend)
+      logError(
+        ['[PluginManager] Load unpacked failed:', err],
+        LogPrefix.Backend
+      )
       return { success: false, error: err.message || String(err) }
     }
   }
 
-  public async uninstallPlugin(id: string): Promise<{ success: boolean; error?: string }> {
+  public async uninstallPlugin(
+    id: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const host = this.hosts.get(id)
       if (host) {
@@ -722,9 +1161,16 @@ export class PluginManager {
         this.hosts.delete(id)
       }
 
-      const pDir = join(this.pluginsDir, id)
-      if (existsSync(pDir)) {
-        rmSync(pDir, { recursive: true, force: true })
+      pluginInstallPath(this.pluginsDir, id)
+      // Match by manifest ID, including legacy folder names. Preserve plugin data.
+      for (const installation of readPluginInstallations(this.pluginsDir)) {
+        if (installation.manifest.id === id) {
+          archivePluginInstallation(
+            this.pluginsDir,
+            this.installationBackupsDir,
+            installation.installedPath
+          )
+        }
       }
 
       delete this.pluginStates[id]
@@ -733,12 +1179,18 @@ export class PluginManager {
       this.broadcastUpdates()
       return { success: true }
     } catch (err: any) {
-      logError([`[PluginManager] Uninstall failed for ${id}:`, err], LogPrefix.Backend)
+      logError(
+        [`[PluginManager] Uninstall failed for ${id}:`, err],
+        LogPrefix.Backend
+      )
       return { success: false, error: err.message || String(err) }
     }
   }
 
-  public async packPlugin(sourceDir?: string, outputDir?: string): Promise<PluginPackResult> {
+  public async packPlugin(
+    sourceDir?: string,
+    outputDir?: string
+  ): Promise<PluginPackResult> {
     try {
       let src = sourceDir
       if (!src) {
@@ -804,7 +1256,10 @@ export class PluginManager {
 
       tasks.push(
         provider.search(cleanQuery).catch((err) => {
-          logError([`[PluginManager] Search error in provider "${id}":`, err], LogPrefix.Backend)
+          logError(
+            [`[PluginManager] Search error in provider "${id}":`, err],
+            LogPrefix.Backend
+          )
           return []
         })
       )
@@ -822,46 +1277,99 @@ export class PluginManager {
     return combined
   }
 
-    public async getDownloadSources(providerId: string, gameId: string): Promise<GhostDownloadSource[]> {
-      const normProviderId = providerId === 'ankergames'
+  public async getDownloadSources(
+    providerId: string,
+    gameId: string
+  ): Promise<GhostDownloadSource[]> {
+    const normProviderId =
+      providerId === 'ankergames'
         ? ANKER_SOURCE_ID
         : providerId === 'steamrip'
-        ? STEAMRIP_SOURCE_ID
-        : providerId === 'onlinefix'
-        ? ONLINE_FIX_SOURCE_ID
-        : providerId
+          ? STEAMRIP_SOURCE_ID
+          : providerId === 'onlinefix'
+            ? ONLINE_FIX_SOURCE_ID
+            : providerId
 
-      const rom = romSource(normProviderId)
-      const isSourceEnabled = (id: string) =>
-        this.getPlugins().some((plugin) => (plugin.id === id || plugin.id === providerId) && plugin.isEnabled) ||
-        this.pluginStates[id]?.enabled !== false
+    const rom = romSource(normProviderId)
+    const isSourceEnabled = (id: string) =>
+      this.getPlugins().some(
+        (plugin) =>
+          (plugin.id === id || plugin.id === providerId) && plugin.isEnabled
+      ) || this.pluginStates[id]?.enabled !== false
 
-      if (rom && isSourceEnabled(normProviderId)) {
-        return [{ id: ROM_DIRECT_ID, name: `${rom.name} · Download da ROM · Confirmar no site`, type: 'external', url: romPageUrl(normProviderId, gameId) }]
-      }
-      if (normProviderId === ONLINE_FIX_SOURCE_ID && isSourceEnabled(normProviderId)) {
-        const existing = await this.hosts.get(normProviderId)?.getSourceProvider()?.getSources(gameId).catch(() => []) || []
-        return [{ id: ONLINE_FIX_TORRENT_ID, name: 'Online-Fix · Torrent via TorBox', type: 'torbox', url: onlineFixGameUrl(gameId) }, ...existing.filter(item => item.id !== ONLINE_FIX_TORRENT_ID)]
-      }
-      if (normProviderId === STEAMRIP_SOURCE_ID && isSourceEnabled(normProviderId)) {
-        return [{ id: STEAMRIP_DIRECT_ID, name: 'SteamRIP · Download direto', type: 'external', url: steamripGameUrl(gameId) }]
-      }
-      if (normProviderId === ANKER_SOURCE_ID && isSourceEnabled(normProviderId)) {
-        return [
-          { id: ANKER_TORRENT_ID, name: 'TorBox · Torrent', type: 'torbox', url: ankerGameUrl(gameId) },
-          { id: ANKER_DIRECT_ID, name: 'Download direto · Confirmar no site', type: 'external', url: ankerGameUrl(gameId) }
-        ]
-      }
+    if (rom && isSourceEnabled(normProviderId)) {
+      return [
+        {
+          id: ROM_DIRECT_ID,
+          name: `${rom.name} · Download da ROM · Confirmar no site`,
+          type: 'external',
+          url: romPageUrl(normProviderId, gameId)
+        }
+      ]
+    }
+    if (
+      normProviderId === ONLINE_FIX_SOURCE_ID &&
+      isSourceEnabled(normProviderId)
+    ) {
+      const existing =
+        (await this.hosts
+          .get(normProviderId)
+          ?.getSourceProvider()
+          ?.getSources(gameId)
+          .catch(() => [])) || []
+      return [
+        {
+          id: ONLINE_FIX_TORRENT_ID,
+          name: 'Online-Fix · Torrent via TorBox',
+          type: 'torbox',
+          url: onlineFixGameUrl(gameId)
+        },
+        ...existing.filter((item) => item.id !== ONLINE_FIX_TORRENT_ID)
+      ]
+    }
+    if (
+      normProviderId === STEAMRIP_SOURCE_ID &&
+      isSourceEnabled(normProviderId)
+    ) {
+      return [
+        {
+          id: STEAMRIP_DIRECT_ID,
+          name: 'SteamRIP · Download direto',
+          type: 'external',
+          url: steamripGameUrl(gameId)
+        }
+      ]
+    }
+    if (normProviderId === ANKER_SOURCE_ID && isSourceEnabled(normProviderId)) {
+      return [
+        {
+          id: ANKER_TORRENT_ID,
+          name: 'TorBox · Torrent',
+          type: 'torbox',
+          url: ankerGameUrl(gameId)
+        },
+        {
+          id: ANKER_DIRECT_ID,
+          name: 'Download direto · Confirmar no site',
+          type: 'external',
+          url: ankerGameUrl(gameId)
+        }
+      ]
+    }
     let host = this.hosts.get(providerId)
     if (!host) {
-      const match = [...this.hosts.entries()].find(([id]) =>
-        id.toLowerCase().includes(providerId.toLowerCase()) ||
-        providerId.toLowerCase().includes(id.toLowerCase())
+      const match = [...this.hosts.entries()].find(
+        ([id]) =>
+          id.toLowerCase().includes(providerId.toLowerCase()) ||
+          providerId.toLowerCase().includes(id.toLowerCase())
       )
       if (match) host = match[1]
     }
     if (!host) {
-      logWarning(`[PluginManager] Provider host "${providerId}" not found.`, LogPrefix.Backend)
+      logWarning(
+        `[PluginManager] Provider host "${providerId}" not found.`,
+        LogPrefix.Backend
+      )
       return []
     }
 
@@ -871,7 +1379,10 @@ export class PluginManager {
     try {
       return await provider.getSources(gameId)
     } catch (err) {
-      logError([`[PluginManager] getSources error in provider "${providerId}":`, err], LogPrefix.Backend)
+      logError(
+        [`[PluginManager] getSources error in provider "${providerId}":`, err],
+        LogPrefix.Backend
+      )
       return []
     }
   }
@@ -882,29 +1393,48 @@ export class PluginManager {
     coverUrl?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      logInfo(`[PluginManager] Starting download for "${gameTitle}" via ${source.name} (${source.type})`, LogPrefix.Backend)
+      logInfo(
+        `[PluginManager] Starting download for "${gameTitle}" via ${source.name} (${source.type})`,
+        LogPrefix.Backend
+      )
 
-      if (source.type === 'magnet' || source.type === 'torrent' || source.type === 'external') {
+      if (
+        source.type === 'magnet' ||
+        source.type === 'torrent' ||
+        source.type === 'external'
+      ) {
         // Handover to external torrent client or default browser
         await shell.openExternal(source.url)
         return { success: true }
       }
 
       // For direct or torbox HTTP/HTTPS download link
-      if (source.url.startsWith('http://') || source.url.startsWith('https://')) {
+      if (
+        source.url.startsWith('http://') ||
+        source.url.startsWith('https://')
+      ) {
         // Can open external or queue with shell.openExternal
         await shell.openExternal(source.url)
         return { success: true }
       }
 
-      return { success: false, error: `Tipo de fonte desconhecido: ${source.type}` }
+      return {
+        success: false,
+        error: `Tipo de fonte desconhecido: ${source.type}`
+      }
     } catch (err: any) {
-      logError(['[PluginManager] startDownload failed:', err], LogPrefix.Backend)
+      logError(
+        ['[PluginManager] startDownload failed:', err],
+        LogPrefix.Backend
+      )
       return { success: false, error: err.message || String(err) }
     }
   }
 
-  private suggestionsCache = new Map<string, { timestamp: number; items: string[] }>()
+  private suggestionsCache = new Map<
+    string,
+    { timestamp: number; items: string[] }
+  >()
 
   public async getGameSuggestions(query: string): Promise<string[]> {
     const trimmed = query.trim()
@@ -924,7 +1454,10 @@ export class PluginManager {
       const normQ = normalizeAcronyms(trimmed).toLowerCase()
       for (const item of this.sourceResults.values()) {
         const normT = normalizeAcronyms(item.title).toLowerCase()
-        if (normT.includes(normQ) || item.title.toLowerCase().includes(cacheKey)) {
+        if (
+          normT.includes(normQ) ||
+          item.title.toLowerCase().includes(cacheKey)
+        ) {
           suggestions.add(item.title)
           if (suggestions.size >= 8) break
         }
@@ -938,14 +1471,21 @@ export class PluginManager {
       const timer = setTimeout(() => controller.abort(), 2500)
       const res = await fetch(url, {
         signal: controller.signal,
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
       })
       clearTimeout(timer)
       if (res.ok) {
         const data: any = await res.json()
         if (Array.isArray(data?.items)) {
           for (const item of data.items) {
-            if (item.name && typeof item.name === 'string' && item.name.length < 70) {
+            if (
+              item.name &&
+              typeof item.name === 'string' &&
+              item.name.length < 70
+            ) {
               suggestions.add(item.name)
             }
           }
@@ -956,11 +1496,64 @@ export class PluginManager {
     }
 
     const result = Array.from(suggestions).slice(0, 8)
-    this.suggestionsCache.set(cacheKey, { timestamp: Date.now(), items: result })
+    this.suggestionsCache.set(cacheKey, {
+      timestamp: Date.now(),
+      items: result
+    })
     if (this.suggestionsCache.size > 500) {
       this.suggestionsCache.delete(this.suggestionsCache.keys().next().value!)
     }
     return result
+  }
+
+  public getMediaProvider(): MediaProvider | undefined {
+    const plugin = this.getPlugins().find(
+      (p) =>
+        p.isEnabled &&
+        (p.id === 'com.ghost.alazterflix' || p.id === 'com.ghost.cinema')
+    )
+    if (!plugin) return undefined
+    return this.hosts.get(plugin.id)?.getMediaProvider()
+  }
+
+  public isCinemaPluginActive(): boolean {
+    const plugin = this.getPlugins().find(
+      (p) => p.id === 'com.ghost.alazterflix' || p.id === 'com.ghost.cinema'
+    )
+    return Boolean(plugin && plugin.isEnabled)
+  }
+
+  public async cinemaPickFolder(): Promise<string | null> {
+    const mainWindow = getMainWindow()
+    const result = await dialog.showOpenDialog(
+      mainWindow || (undefined as any),
+      {
+        title: 'Selecionar pasta de filmes locais (Jellyfin Style)',
+        properties: ['openDirectory']
+      }
+    )
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  }
+
+  public async cinemaPickCoverImage(): Promise<string | null> {
+    const mainWindow = getMainWindow()
+    const result = await dialog.showOpenDialog(
+      mainWindow || (undefined as any),
+      {
+        title: 'Selecionar imagem de capa (Pôster)',
+        properties: ['openFile'],
+        filters: [
+          {
+            name: 'Imagens (JPG, PNG, WebP)',
+            extensions: ['jpg', 'jpeg', 'png', 'webp']
+          }
+        ]
+      }
+    )
+    if (result.canceled || result.filePaths.length === 0) return null
+    const filePath = result.filePaths[0]
+    return `imagecache://localhost/${encodeURIComponent(filePath)}`
   }
 
   public broadcastUpdates(): void {

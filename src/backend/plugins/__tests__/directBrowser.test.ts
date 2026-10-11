@@ -149,16 +149,25 @@ it('scopes the observed Download Now relay to Anker without trusting lookalike h
     ).toBe(false)
 })
 
-it.each(['anker', 'steamrip', ...ROM_SOURCES.map(source => source.id)])(
+it('permits the observed FileDitch relay only in the SteamRIP download manifest', () => {
+  const file = 'https://blehpooffileditch.org/balpha4/fixture/Ball-x-Pit-SteamRIP.com.rar'
+  expect(NetworkGuard.validateUrl(file, directDownloadManifest(true)).allowed).toBe(true)
+  expect(NetworkGuard.validateUrl(file, directDownloadManifest(false)).allowed).toBe(false)
+  expect(NetworkGuard.validateUrl('https://blehpooffileditch.org.evil.test/game.rar',
+    directDownloadManifest(true)).allowed).toBe(false)
+})
+
+it.each(['anker', 'steamrip', 'steamrip-fileditch', ...ROM_SOURCES.map(source => source.id)])(
   'captures a %s file from a permitted child window without replacing POST navigation',
   async (provider) => {
+    const actualProvider = provider === 'steamrip-fileditch' ? 'steamrip' : provider
     const directory = await mkdtemp(join(tmpdir(), 'ghost-direct-test-'))
     const controller = new AbortController()
     const constructor = jest.mocked(BrowserWindow)
     const before = constructor.mock.results.length
     const progress = jest.fn()
     const rom = romSource(provider)
-    const extension = rom ? 'nsp' : 'zip'
+    const extension = rom ? 'nsp' : provider === 'steamrip-fileditch' ? 'rar' : 'zip'
     const task = AnkerAccount.direct(
       rom ? `https://${rom.domain}/test-game/` : provider === 'anker'
         ? 'https://ankergames.net/game/test'
@@ -166,7 +175,7 @@ it.each(['anker', 'steamrip', ...ROM_SOURCES.map(source => source.id)])(
       directory,
       controller.signal,
       progress,
-      provider
+      actualProvider
     )
     try {
       for (
@@ -181,7 +190,9 @@ it.each(['anker', 'steamrip', ...ROM_SOURCES.map(source => source.id)])(
       const fileUrl =
         provider === 'anker'
           ? 'https://tunnel5.dlproxy.uk/game.zip'
-          : 'https://store1.gofile.io/game.zip'
+          : provider === 'steamrip-fileditch'
+            ? 'https://blehpooffileditch.org/balpha4/fixture/Ball-x-Pit-SteamRIP.com.rar'
+            : 'https://store1.gofile.io/game.zip'
       const options = handler({
         url: fileUrl,
         postBody: { data: [] }
@@ -235,6 +246,53 @@ it.each(['anker', 'steamrip', ...ROM_SOURCES.map(source => source.id)])(
     }
   }
 )
+
+it('records blocked host dependencies and navigation failures without recording private URLs', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ghost-direct-diagnostics-'))
+  const controller = new AbortController()
+  const constructor = jest.mocked(BrowserWindow)
+  const before = constructor.mock.results.length
+  const diagnostic = jest.fn()
+  const task = AnkerAccount.direct('https://steamrip.com/test/', directory,
+    controller.signal, jest.fn(), 'steamrip', diagnostic).catch(error => error)
+  try {
+    for (let i = 0; i < 100 && constructor.mock.results.length === before; i++)
+      await new Promise(resolve => setTimeout(resolve, 5))
+    const parent = constructor.mock.results[before].value as BrowserWindow
+    const requestGuard = jest.mocked(session.fromPartition('unused').webRequest.onBeforeRequest)
+      .mock.calls.at(-1)![0] as unknown as (details: object, callback: (result: object) => void) => void
+    const decision = jest.fn()
+    const blocked = { url: 'https://blocked.test/script.js?token=private', resourceType: 'script' }
+    requestGuard(blocked, decision)
+    requestGuard(blocked, decision)
+    expect(decision).toHaveBeenLastCalledWith({ cancel: true })
+    expect(diagnostic).toHaveBeenCalledTimes(1)
+    expect(diagnostic).toHaveBeenCalledWith(expect.objectContaining({
+      event: 'request-blocked-script', host: 'blocked.test'
+    }))
+    requestGuard({ url: 'https://megadb.net/file', resourceType: 'mainFrame' }, decision)
+    expect(decision).toHaveBeenLastCalledWith({ cancel: false })
+    parent.webContents.emit('did-fail-load', {}, -3, 'aborted', 'https://megadb.net/file', true)
+    expect(diagnostic).toHaveBeenCalledTimes(1)
+    parent.webContents.emit('did-fail-load', {}, -105, 'private description', 'https://megadb.net/file?secret=private', true)
+    expect(diagnostic).toHaveBeenLastCalledWith(expect.objectContaining({
+      event: 'navigation-failed-main--105', host: 'megadb.net'
+    }))
+    expect(JSON.stringify(diagnostic.mock.calls)).not.toMatch(/private|secret|token|https:/)
+    diagnostic.mockImplementation(() => { throw new Error('logger failed') })
+    expect(() => requestGuard({ url: 'https://other.test/file', resourceType: 'xhr' }, decision)).not.toThrow()
+    expect(decision).toHaveBeenLastCalledWith({ cancel: true })
+    controller.abort()
+    await task
+    const calls = diagnostic.mock.calls.length
+    requestGuard({ url: 'https://late.test/file', resourceType: 'script' }, decision)
+    expect(diagnostic).toHaveBeenCalledTimes(calls)
+  } finally {
+    controller.abort()
+    await task
+    await rm(directory, { recursive: true, force: true })
+  }
+})
 
 it.each([true, false, 'error'])('preserves the native download until the range attempt succeeds (%s)', async (supported) => {
   const directory = await mkdtemp(join(tmpdir(), 'ghost-direct-range-test-'))

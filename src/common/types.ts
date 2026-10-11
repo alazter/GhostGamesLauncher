@@ -573,6 +573,7 @@ export type RuntimeName = 'eac_runtime' | 'battleye_runtime' | 'umu'
 export type RecentGame = {
   appName: string
   title: string
+  runner?: Runner
 }
 
 export type HiddenGame = {

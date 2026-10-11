@@ -1,0 +1,3 @@
+(node:72600) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+PASS: carousel real, 7s, 9 títulos distintos, renovação dos 3 slots, pausas, mobile, movimento reduzido, biblioteca vazia/única.

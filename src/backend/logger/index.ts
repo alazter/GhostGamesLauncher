@@ -14,16 +14,16 @@ let heroicLogWriter: LogWriter
 const runnerLogWriters = new Map<RunnerOrComet, LogWriter>()
 
 const logDebug = (...params: Parameters<LogWriter['logDebug']>) => {
-  heroicLogWriter.logDebug(...params)
+  heroicLogWriter?.logDebug(...params)
 }
 const logInfo = (...params: Parameters<LogWriter['logInfo']>) => {
-  heroicLogWriter.logInfo(...params)
+  heroicLogWriter?.logInfo(...params)
 }
 const logWarning = (...params: Parameters<LogWriter['logWarning']>) => {
-  heroicLogWriter.logWarning(...params)
+  heroicLogWriter?.logWarning(...params)
 }
 const logError = (...params: Parameters<LogWriter['logError']>) => {
-  heroicLogWriter.logError(...params)
+  heroicLogWriter?.logError(...params)
 }
 
 function getRunnerLogWriter(runner: RunnerOrComet) {

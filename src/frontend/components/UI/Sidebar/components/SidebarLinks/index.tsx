@@ -11,7 +11,8 @@ import {
   faPaintBrush,
   faClock,
   faPuzzlePiece,
-  faSearch
+  faSearch,
+  faFilm
 } from '@fortawesome/free-solid-svg-icons'
 import { useLocation } from 'react-router-dom'
 import { useContext, useState, useEffect } from 'react'
@@ -39,6 +40,34 @@ type PathSplit = [a: undefined, b: undefined, type: string]
 export default function SidebarLinks() {
   const { t } = useTranslation()
   const [currentDMElement, setCurrentDMElement] = useState<DMQueueElement>()
+  const [isCinemaActive, setIsCinemaActive] = useState<boolean>(false)
+
+  useEffect(() => {
+    let isMounted = true
+    const checkCinema = () => {
+      window.api
+        ?.cinemaIsActive?.()
+        .then((active) => {
+          if (isMounted) setIsCinemaActive(Boolean(active))
+        })
+        .catch(() => {})
+    }
+
+    checkCinema()
+
+    let removePluginsListener: (() => void) | undefined
+    if (window.api?.onPluginsUpdated) {
+      removePluginsListener = window.api.onPluginsUpdated((_e, plugins) => {
+        const cinema = plugins?.find((p) => p.id === 'com.ghost.alazterflix' || p.id === 'com.ghost.cinema')
+        if (isMounted) setIsCinemaActive(Boolean(cinema && cinema.isEnabled))
+      })
+    }
+
+    return () => {
+      isMounted = false
+      if (typeof removePluginsListener === 'function') removePluginsListener()
+    }
+  }, [])
 
   useEffect(() => {
     window.api
@@ -112,6 +141,7 @@ export default function SidebarLinks() {
       'personalization',
       'plugins',
       'external-games',
+      'alazterflix',
       'login',
       'stores',
       'divider-1',
@@ -154,6 +184,18 @@ export default function SidebarLinks() {
                 return
               }
             }
+            if (id === 'cinema') {
+              const egIdx = orderedList.indexOf('external-games')
+              if (egIdx !== -1) {
+                orderedList.splice(egIdx + 1, 0, id)
+                return
+              }
+              const plIdx = orderedList.indexOf('plugins')
+              if (plIdx !== -1) {
+                orderedList.splice(plIdx + 1, 0, id)
+                return
+              }
+            }
             orderedList.push(id)
           }
         })
@@ -178,6 +220,13 @@ export default function SidebarLinks() {
     const timer = setTimeout(() => {
       checkTodayReleases()
     }, 3000)
+    const refreshReleases = () => { void checkTodayReleases() }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshReleases()
+    }
+    const interval = setInterval(refreshReleases, 30 * 60 * 1000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    window.addEventListener('ghostReleaseTrackingChanged', refreshReleases)
 
     const handleBadgeChange = () => {
       const count = parseInt(localStorage.getItem('ghost_releases_badge_count') || '0', 10) || 0
@@ -186,6 +235,9 @@ export default function SidebarLinks() {
     window.addEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
     return () => {
       clearTimeout(timer)
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+      window.removeEventListener('ghostReleaseTrackingChanged', refreshReleases)
       window.removeEventListener('ghostReleasesBadgeChanged', handleBadgeChange)
     }
   }, [])
@@ -333,6 +385,19 @@ export default function SidebarLinks() {
             {...dragProps}
           />
         )
+      case 'alazterflix':
+      case 'cinema':
+        if (!isCinemaActive) return null
+        return (
+          <SidebarItem
+            key="alazterflix"
+            url="/alazterflix"
+            icon={faFilm}
+            label="Alazterflix"
+            dataTour="sidebar-alazterflix"
+            {...dragProps}
+          />
+        )
       case 'login':
         return (
           <SidebarItem
@@ -436,7 +501,7 @@ export default function SidebarLinks() {
           <SidebarItem
             key="releases"
             url="/releases"
-            state={releasesBadgeCount > 0 ? { targetUrl: 'https://www.releases.com/tracking' } : undefined}
+            state={releasesBadgeCount > 0 ? { view: 'tracking' } : undefined}
             icon={faClock}
             label={t('sidebar.releases', 'Lançamentos')}
             dataTour="sidebar-releases"

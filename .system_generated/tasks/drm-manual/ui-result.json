@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "checked": [
+    "keep-driving",
+    "minecraft-dungeons-ii",
+    "monitored-only",
+    "persona-3-reload"
+  ],
+  "headerPosition": "beside-calendar-expand",
+  "responsiveWidths": [
+    1500,
+    1100,
+    900,
+    650
+  ],
+  "manualIndividual": true,
+  "sourcesShown": 3,
+  "errors": []
+}

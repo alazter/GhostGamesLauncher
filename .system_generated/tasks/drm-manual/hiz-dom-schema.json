@@ -1,0 +1,32 @@
+[
+  {
+    "tag": "span",
+    "className": "suggest-name",
+    "titleField": "name"
+  },
+  {
+    "tag": "h3",
+    "className": "",
+    "titleField": "title"
+  },
+  {
+    "tag": "span",
+    "className": "text-sm transition-colors",
+    "titleField": "name"
+  },
+  {
+    "tag": "div",
+    "className": "text-xs font-medium leading-snug",
+    "titleField": "name"
+  },
+  {
+    "tag": "span",
+    "className": "text-xs font-medium",
+    "titleField": "name"
+  },
+  {
+    "tag": "p",
+    "className": "text-sm truncate",
+    "titleField": "game_name"
+  }
+]

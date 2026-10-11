@@ -1729,6 +1729,13 @@ async function callRunner(
   // macOS/Linux: `spawn`ing an executable in the current working directory
   // requires a "./"
   if (!isWindows && !isAbsolute(bin) && runner.dir) bin = './' + bin
+  if (isWindows && !isAbsolute(bin) && runner.dir) bin = fullRunnerPath
+
+  // On Windows: Sideload native games must use direct spawn to avoid
+  // PowerShell -NoNewWindow breaking DirectX device allocation (D3DERR_INVALIDCALL)
+  if (isWindows && runner.name === 'sideload') {
+    options.directSpawn = true
+  }
 
   // On Windows: Use PowerShell's `Start-Process` to wait for the process and
   // its children to exit, provided PowerShell is available

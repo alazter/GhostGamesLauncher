@@ -13,7 +13,7 @@ export interface Item {
 
 interface Props {
   children: React.ReactNode
-  items: Item[]
+  items: Item[] | (() => Item[])
 }
 
 function ContextMenu({ children, items }: Props) {
@@ -21,6 +21,11 @@ function ContextMenu({ children, items }: Props) {
     mouseX: number
     mouseY: number
   } | null>(null)
+  const menuItems = contextMenu
+    ? typeof items === 'function'
+      ? items()
+      : items
+    : []
 
   const handleContextMenu = (event: React.MouseEvent) => {
     event.preventDefault()
@@ -44,52 +49,54 @@ function ContextMenu({ children, items }: Props) {
   }
 
   // Descobre qual é a primeira opção visível para puxar o foco do Gamepad pra ela
-  const firstVisibleIndex = items.findIndex((item) => item.show)
+  const firstVisibleIndex = menuItems.findIndex((item) => item.show)
 
   return (
     <div onContextMenu={handleContextMenu} style={{ cursor: 'context-menu' }}>
       {children}
-      <Menu
-        open={contextMenu !== null}
-        onClose={handleClose}
-        anchorReference="anchorPosition"
-        className="contextMenu"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : { top: 0, left: 0 }
-        }
-        onKeyDown={(e) => {
-          // ESCUDO: Impede que o nosso interceptador global do Library.tsx
-          // roube o foco se você apertar esquerda/direita aqui dentro!
-          if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-            e.stopPropagation()
+      {contextMenu && (
+        <Menu
+          open={contextMenu !== null}
+          onClose={handleClose}
+          anchorReference="anchorPosition"
+          className="contextMenu"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : { top: 0, left: 0 }
           }
-        }}
-      >
-        {items.map(
-          ({ label, onclick, show, icon }, i) =>
-            show && (
-              <MenuItem
-                key={i}
-                onClick={() => handleClick(onclick)}
-                data-sn-focusable="true" // Torna o item visível para o D-Pad
-                tabIndex={0}
-                autoFocus={i === firstVisibleIndex} // Imã de foco ao abrir o menu
-                onKeyDown={(e) => {
-                  // Garante que o botão 'A' do controle execute o clique
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    handleClick(onclick)
-                  }
-                }}
-              >
-                <ListItemIcon>{icon}</ListItemIcon>
-                {label}
-              </MenuItem>
-            )
-        )}
-      </Menu>
+          onKeyDown={(e) => {
+            // ESCUDO: Impede que o nosso interceptador global do Library.tsx
+            // roube o foco se você apertar esquerda/direita aqui dentro!
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+              e.stopPropagation()
+            }
+          }}
+        >
+          {menuItems.map(
+            ({ label, onclick, show, icon }, i) =>
+              show && (
+                <MenuItem
+                  key={i}
+                  onClick={() => handleClick(onclick)}
+                  data-sn-focusable="true" // Torna o item visível para o D-Pad
+                  tabIndex={0}
+                  autoFocus={i === firstVisibleIndex} // Imã de foco ao abrir o menu
+                  onKeyDown={(e) => {
+                    // Garante que o botão 'A' do controle execute o clique
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleClick(onclick)
+                    }
+                  }}
+                >
+                  <ListItemIcon>{icon}</ListItemIcon>
+                  {label}
+                </MenuItem>
+              )
+          )}
+        </Menu>
+      )}
     </div>
   )
 }

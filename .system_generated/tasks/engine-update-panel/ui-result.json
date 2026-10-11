@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "checks": [
+    "manual install for both",
+    "verify distinct from install",
+    "published without package",
+    "already current",
+    "first installation",
+    "same-version revision",
+    "busy",
+    "390px layout"
+  ]
+}

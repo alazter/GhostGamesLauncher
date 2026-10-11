@@ -1,0 +1,102 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "width": 1024,
+      "style": "pills",
+      "overflow": false,
+      "searchLeft": 25,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 1024,
+      "style": "segmented",
+      "overflow": false,
+      "searchLeft": 25,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 1024,
+      "style": "tiles",
+      "overflow": false,
+      "searchLeft": 25,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 736,
+      "style": "pills",
+      "overflow": false,
+      "searchLeft": 25,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 736,
+      "style": "segmented",
+      "overflow": false,
+      "searchLeft": 25,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 736,
+      "style": "tiles",
+      "overflow": false,
+      "searchLeft": 25,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 390,
+      "style": "pills",
+      "overflow": false,
+      "searchLeft": 17,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 390,
+      "style": "segmented",
+      "overflow": false,
+      "searchLeft": 17,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 390,
+      "style": "tiles",
+      "overflow": false,
+      "searchLeft": 17,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 320,
+      "style": "pills",
+      "overflow": false,
+      "searchLeft": 17,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 320,
+      "style": "segmented",
+      "overflow": false,
+      "searchLeft": 17,
+      "labelsFit": true,
+      "icons": 1
+    },
+    {
+      "width": 320,
+      "style": "tiles",
+      "overflow": false,
+      "searchLeft": 17,
+      "labelsFit": true,
+      "icons": 1
+    }
+  ],
+  "pageErrors": []
+}

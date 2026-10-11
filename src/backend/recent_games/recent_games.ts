@@ -34,7 +34,11 @@ const addRecentGame = async (game: GameInfo) => {
   const updatedList = games.filter(
     (a) => a.appName && a.appName !== game.app_name
   )
-  updatedList.unshift({ appName: game.app_name, title: game.title })
+  updatedList.unshift({
+    appName: game.app_name,
+    title: game.title,
+    runner: game.runner
+  })
   setRecentGames(updatedList)
 }
 

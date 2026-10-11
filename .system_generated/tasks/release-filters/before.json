@@ -1,0 +1,266 @@
+{
+  "box": {
+    "x": 19,
+    "y": 557,
+    "width": 231,
+    "height": 313,
+    "top": 557,
+    "right": 250,
+    "bottom": 870,
+    "left": 19
+  },
+  "input": {
+    "x": 19,
+    "y": 620,
+    "width": 231,
+    "height": 30,
+    "top": 620,
+    "right": 250,
+    "bottom": 650,
+    "left": 19
+  },
+  "buttons": [
+    {
+      "label": "Ação",
+      "box": {
+        "x": 19,
+        "y": 658,
+        "width": 111.5,
+        "height": 30,
+        "top": 658,
+        "right": 130.5,
+        "bottom": 688,
+        "left": 19
+      },
+      "check": {
+        "x": 24,
+        "y": 667,
+        "width": 12,
+        "height": 12,
+        "top": 667,
+        "right": 36,
+        "bottom": 679,
+        "left": 24
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Aventura",
+      "box": {
+        "x": 138.5,
+        "y": 658,
+        "width": 111.5,
+        "height": 30,
+        "top": 658,
+        "right": 250,
+        "bottom": 688,
+        "left": 138.5
+      },
+      "check": {
+        "x": 143.5,
+        "y": 667,
+        "width": 12,
+        "height": 12,
+        "top": 667,
+        "right": 155.5,
+        "bottom": 679,
+        "left": 143.5
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Um jogador",
+      "box": {
+        "x": 19,
+        "y": 692,
+        "width": 111.5,
+        "height": 30,
+        "top": 692,
+        "right": 130.5,
+        "bottom": 722,
+        "left": 19
+      },
+      "check": {
+        "x": 24,
+        "y": 701,
+        "width": 12,
+        "height": 12,
+        "top": 701,
+        "right": 36,
+        "bottom": 713,
+        "left": 24
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Indie",
+      "box": {
+        "x": 138.5,
+        "y": 692,
+        "width": 111.5,
+        "height": 30,
+        "top": 692,
+        "right": 250,
+        "bottom": 722,
+        "left": 138.5
+      },
+      "check": {
+        "x": 143.5,
+        "y": 701,
+        "width": 12,
+        "height": 12,
+        "top": 701,
+        "right": 155.5,
+        "bottom": 713,
+        "left": 143.5
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "RPG",
+      "box": {
+        "x": 19,
+        "y": 726,
+        "width": 111.5,
+        "height": 30,
+        "top": 726,
+        "right": 130.5,
+        "bottom": 756,
+        "left": 19
+      },
+      "check": {
+        "x": 24,
+        "y": 735,
+        "width": 12,
+        "height": 12,
+        "top": 735,
+        "right": 36,
+        "bottom": 747,
+        "left": 24
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Estratégia",
+      "box": {
+        "x": 138.5,
+        "y": 726,
+        "width": 111.5,
+        "height": 30,
+        "top": 726,
+        "right": 250,
+        "bottom": 756,
+        "left": 138.5
+      },
+      "check": {
+        "x": 143.5,
+        "y": 735,
+        "width": 12,
+        "height": 12,
+        "top": 735,
+        "right": 155.5,
+        "bottom": 747,
+        "left": 143.5
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Simulação",
+      "box": {
+        "x": 19,
+        "y": 760,
+        "width": 111.5,
+        "height": 30,
+        "top": 760,
+        "right": 130.5,
+        "bottom": 790,
+        "left": 19
+      },
+      "check": {
+        "x": 24,
+        "y": 769,
+        "width": 12,
+        "height": 12,
+        "top": 769,
+        "right": 36,
+        "bottom": 781,
+        "left": 24
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Multijogador",
+      "box": {
+        "x": 138.5,
+        "y": 760,
+        "width": 111.5,
+        "height": 30,
+        "top": 760,
+        "right": 250,
+        "bottom": 790,
+        "left": 138.5
+      },
+      "check": {
+        "x": 143.5,
+        "y": 769,
+        "width": 12,
+        "height": 12,
+        "top": 769,
+        "right": 155.5,
+        "bottom": 781,
+        "left": 143.5
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Tiro",
+      "box": {
+        "x": 19,
+        "y": 794,
+        "width": 111.5,
+        "height": 30,
+        "top": 794,
+        "right": 130.5,
+        "bottom": 824,
+        "left": 19
+      },
+      "check": {
+        "x": 24,
+        "y": 803,
+        "width": 12,
+        "height": 12,
+        "top": 803,
+        "right": 36,
+        "bottom": 815,
+        "left": 24
+      },
+      "justify": "flex-start"
+    },
+    {
+      "label": "Fantasia",
+      "box": {
+        "x": 138.5,
+        "y": 794,
+        "width": 111.5,
+        "height": 30,
+        "top": 794,
+        "right": 250,
+        "bottom": 824,
+        "left": 138.5
+      },
+      "check": {
+        "x": 143.5,
+        "y": 803,
+        "width": 12,
+        "height": 12,
+        "top": 803,
+        "right": 155.5,
+        "bottom": 815,
+        "left": 143.5
+      },
+      "justify": "flex-start"
+    }
+  ],
+  "scrollWidth": 231,
+  "clientWidth": 231
+}

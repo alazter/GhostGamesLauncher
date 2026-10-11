@@ -1473,8 +1473,7 @@ class GlobalState extends PureComponent<Props> {
               window.api.logInfo('[Cloud Backup] Running daily automatic background backup upload...')
               window.dispatchEvent(new CustomEvent('backupStateChanged', { detail: { uploading: true } }))
               
-              syncLocalStorageToBackend()
-              await new Promise(r => setTimeout(r, 100))
+              await syncLocalStorageToBackend()
 
               const res = await window.api.uploadBackupToCloud()
               if (res.success) {

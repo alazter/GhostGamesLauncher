@@ -39,8 +39,8 @@ export default class SteamGame implements Game {
     if (!info) {
       return {
         runner: 'steam',
-        app_name: this.id,
-        title: this.id,
+        app_name: '',
+        title: '',
         art_cover: '',
         art_square: '',
         is_installed: false,

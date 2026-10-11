@@ -1,4 +1,6 @@
 import { useContext } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTags, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import ContextProvider from 'frontend/state/ContextProvider'
 import { useTranslation } from 'react-i18next'
 import ToggleSwitch from '../ToggleSwitch'
@@ -71,11 +73,17 @@ export default function CategoryFilter() {
 
   return (
     <Dropdown
-      buttonClass="selectStyle"
-      className="categoriesFilter"
+      buttonClass="Header__dropdownBtn"
+      className="Header__dropdownWrapper categoriesFilter"
       data-tour="library-categories"
-      title={t('header.categories', 'Categories')}
+      title={
+        <span className="Header__dropdownTrigger" title={t('header.categories', 'Categorias')}>
+          <FontAwesomeIcon icon={faTags} className="Header__actionIcon" />
+          <FontAwesomeIcon icon={faChevronDown} className="Header__dropdownChevron" />
+        </span>
+      }
       popUpOnHover
+      closeDelay={500}
     >
       {categoriesList.length === 0 && (
         <>

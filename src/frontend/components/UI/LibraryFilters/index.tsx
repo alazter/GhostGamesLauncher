@@ -1,4 +1,6 @@
 import { useContext, useState, useEffect } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faFilter, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import ToggleSwitch from '../ToggleSwitch'
 import { useTranslation } from 'react-i18next'
 import LibraryContext from 'frontend/screens/Library/LibraryContext'
@@ -247,11 +249,17 @@ export default function LibraryFilters() {
 
   return (
     <Dropdown
-      buttonClass="selectStyle"
-      title={t('header.filters', 'Filters')}
-      className="libraryFilters"
+      buttonClass="Header__dropdownBtn"
+      title={
+        <span className="Header__dropdownTrigger" title={t('header.filters', 'Filtros')}>
+          <FontAwesomeIcon icon={faFilter} className="Header__actionIcon" />
+          <FontAwesomeIcon icon={faChevronDown} className="Header__dropdownChevron" />
+        </span>
+      }
+      className="Header__dropdownWrapper libraryFilters"
       data-tour="library-filters"
       popUpOnHover
+      closeDelay={500}
     >
       {customStores
         .filter((store) => store.isVisible !== false)

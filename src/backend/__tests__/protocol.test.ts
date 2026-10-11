@@ -63,6 +63,12 @@ jest.mock('../storeManagers', () => ({
     },
     sideload: {
       getGame: jest.fn()
+    },
+    zoom: {
+      getGame: jest.fn()
+    },
+    steam: {
+      getGame: jest.fn()
     }
   }
 }))
@@ -140,6 +146,12 @@ describe('protocol.ts --no-gui behavior', () => {
       emptyGameInfoMock
     )
     ;(libraryManagerMap.sideload.getGame as jest.Mock).mockReturnValue(
+      emptyGameInfoMock
+    )
+    ;(libraryManagerMap.zoom.getGame as jest.Mock).mockReturnValue(
+      emptyGameInfoMock
+    )
+    ;(libraryManagerMap.steam.getGame as jest.Mock).mockReturnValue(
       emptyGameInfoMock
     )
   })
@@ -226,6 +238,61 @@ describe('protocol.ts --no-gui behavior', () => {
       // Should not show dialog for installed games
       expect(dialog.showMessageBox).not.toHaveBeenCalled()
       expect(app.quit).not.toHaveBeenCalled()
+    })
+
+    test('should find and launch Steam game when runner=steam is in URL', async () => {
+      const mockSteamGameInfo = {
+        app_name: '4126040',
+        title: 'Aniimo',
+        is_installed: true,
+        runner: 'steam' as const,
+        art_cover: '',
+        art_square: '',
+        install: { is_dlc: false }
+      }
+      ;(libraryManagerMap.steam.getGame as jest.Mock).mockReturnValue({
+        getGameInfo: () => mockSteamGameInfo,
+        getSettings: () => ({ ignoreGameUpdates: false })
+      })
+
+      await handleProtocol(['heroic://launch?appName=4126040&runner=steam'])
+
+      expect(dialog.showMessageBox).not.toHaveBeenCalled()
+    })
+
+    test('should find and launch Steam game via all-runners search when no runner is in URL', async () => {
+      const mockSteamGameInfo = {
+        app_name: '4126040',
+        title: 'Aniimo',
+        is_installed: true,
+        runner: 'steam' as const,
+        art_cover: '',
+        art_square: '',
+        install: { is_dlc: false }
+      }
+      ;(libraryManagerMap.legendary.getGame as jest.Mock).mockReturnValue(
+        emptyGameInfoMock
+      )
+      ;(libraryManagerMap.gog.getGame as jest.Mock).mockReturnValue(
+        emptyGameInfoMock
+      )
+      ;(libraryManagerMap.nile.getGame as jest.Mock).mockReturnValue(
+        emptyGameInfoMock
+      )
+      ;(libraryManagerMap.sideload.getGame as jest.Mock).mockReturnValue(
+        emptyGameInfoMock
+      )
+      ;(libraryManagerMap.zoom.getGame as jest.Mock).mockReturnValue(
+        emptyGameInfoMock
+      )
+      ;(libraryManagerMap.steam.getGame as jest.Mock).mockReturnValue({
+        getGameInfo: () => mockSteamGameInfo,
+        getSettings: () => ({ ignoreGameUpdates: false })
+      })
+
+      await handleProtocol(['heroic://launch?appName=4126040'])
+
+      expect(dialog.showMessageBox).not.toHaveBeenCalled()
     })
   })
 

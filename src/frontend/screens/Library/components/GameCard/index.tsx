@@ -430,7 +430,7 @@ const GameCard = ({
     })
   }
 
-  const items: Item[] = [
+  const items = (): Item[] => [
     {
       label: t('button.queue.remove'),
       onclick: () => handleRemoveFromQueue(),
@@ -821,22 +821,6 @@ const GameCard = ({
             </span>
           )}
 
-          {/* ========================================================= */}
-          {/* CSS INJETADO (SEMPRE RENDERIZADO)                         */}
-          {/* ========================================================= */}
-          <style>{`
-            .bottom-store-logo > * {
-              position: static !important;
-              width: 45px !important;      
-              height: 45px !important;     
-              margin: 0 !important;
-              opacity: 0.85;
-              transition: opacity 0.2s ease;
-            }
-            .bottom-store-logo:hover > * {
-              opacity: 1;
-            }
-          `}</style>
         </div>
       </ContextMenu>
     </div>

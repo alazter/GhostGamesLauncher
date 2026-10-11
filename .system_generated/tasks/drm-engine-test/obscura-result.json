@@ -1,0 +1,86 @@
+[
+  {
+    "engine": "Obscura 0.2.3",
+    "site": "AnkerGames",
+    "mode": "normal",
+    "seconds": 10.6,
+    "exitCode": 0,
+    "timedOut": false,
+    "page": {
+      "title": "Just a moment...",
+      "headings": [
+        "ankergames.net",
+        "Performing security verification",
+        "Verification successful. Waiting for ankergames.net to respond"
+      ],
+      "hasSearch": false,
+      "challenge": true,
+      "turnstile": false,
+      "matchedGame": false,
+      "textLength": 4006
+    },
+    "diagnostics": ""
+  },
+  {
+    "engine": "Obscura 0.2.3",
+    "site": "AnkerGames",
+    "mode": "stealth",
+    "seconds": 9.5,
+    "exitCode": 0,
+    "timedOut": false,
+    "page": {
+      "title": "Just a moment...",
+      "headings": [
+        "ankergames.net",
+        "Performing security verification",
+        "Verification successful. Waiting for ankergames.net to respond"
+      ],
+      "hasSearch": false,
+      "challenge": true,
+      "turnstile": false,
+      "matchedGame": false,
+      "textLength": 4006
+    },
+    "diagnostics": ""
+  },
+  {
+    "engine": "Obscura 0.2.3",
+    "site": "HizSearch",
+    "mode": "normal",
+    "seconds": 11.1,
+    "exitCode": 0,
+    "timedOut": false,
+    "page": {
+      "title": "HizSearch - Game Search Engine",
+      "headings": [
+        "hiz/search"
+      ],
+      "hasSearch": false,
+      "challenge": true,
+      "turnstile": false,
+      "matchedGame": false,
+      "textLength": 975
+    },
+    "diagnostics": ""
+  },
+  {
+    "engine": "Obscura 0.2.3",
+    "site": "HizSearch",
+    "mode": "stealth",
+    "seconds": 9.6,
+    "exitCode": 0,
+    "timedOut": false,
+    "page": {
+      "title": "HizSearch - Game Search Engine",
+      "headings": [
+        "hiz/search"
+      ],
+      "hasSearch": false,
+      "challenge": true,
+      "turnstile": false,
+      "matchedGame": false,
+      "textLength": 975
+    },
+    "diagnostics": ""
+  }
+]

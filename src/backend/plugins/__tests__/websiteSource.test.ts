@@ -75,6 +75,15 @@ it('uses an explicit interactive source when the website requires verification',
 })
 
 describe('cleanGameTitle and matchesQuery', () => {
+  it('accepts a repeated final letter without confusing unrelated games or sequel numbers', () => {
+    expect(generateSearchQueryVariants('Ball x Pitt')).toEqual(['Ball x Pitt', 'Ball x Pit'])
+    expect(matchesQuery('BALL x PIT (v1.2)', 'Ball x Pitt')).toBe(true)
+    expect(matchesQuery('HELLCARD Free Download', 'hellcard')).toBe(true)
+    expect(matchesQuery('HELL CARD', 'hellcard')).toBe(true)
+    expect(matchesQuery('Ball', 'Ball x Pitt')).toBe(false)
+    expect(matchesQuery('Pit People', 'Ball x Pitt')).toBe(false)
+    expect(matchesQuery('Transport Fever 2', 'Transport Fever 3')).toBe(false)
+  })
   it('requires the requested sequel instead of matching another game in the franchise', () => {
     for (const title of ['Transport Fever', 'Transport Fever 2', 'Transport Fever 30', 'Transport Fever (v3.0)']) {
       expect(matchesQuery(title, 'Transport Fever 3')).toBe(false)
@@ -123,6 +132,70 @@ describe('cleanGameTitle and matchesQuery', () => {
 
     const fearVariants = generateSearchQueryVariants('fear 3')
     expect(fearVariants).toContain('f.e.a.r. 3')
+  })
+})
+
+describe('source search fallbacks', () => {
+  const anker = { ...manifest, homepage: 'https://ankergames.net', allowedDomains: ['ankergames.net'] }
+  it.each(['HELLCARD', 'BALL x PIT'])(
+    'finds %s on a SteamRIP page mixing article cards and ordinary search links', async title => {
+      const steamrip = { ...manifest, homepage: 'https://steamrip.com', allowedDomains: ['steamrip.com'] }
+      const request = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async () => new Response(
+        '<article><h2><a href="/other-free-download/">Other Game</a></h2></article>' +
+        `<div class="search-result"><a href="/target-free-download/">${title} Free Download</a></div>`))
+      try {
+        const games = await websiteSource(steamrip, { catalogPath: '/', platform: 'windows' }).search(title.toLowerCase())
+        expect(games.map(game => game.title)).toEqual([title])
+        expect(games[0].id).toBe('https://steamrip.com/target-free-download/')
+      } finally { request.mockRestore() }
+    })
+  it('preserves article metadata when also scanning ordinary links', () => {
+    const games = parseWebsiteGames('<article><h2>HELLCARD</h2><a href="/game/hellcard">Wrong link label</a></article>' +
+      '<a href="/game/ball-x-pit">BALL x PIT</a>', manifest.homepage!, config, manifest)
+    expect(games.map(game => game.title)).toEqual(['HELLCARD', 'BALL x PIT'])
+  })
+  it('consults the next search route when the first page contains only unrelated games', async () => {
+    const request = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async url =>
+      new Response(String(url).includes('/games-list?')
+        ? '<a href="/game/hellcard">HELLCARD</a>'
+        : '<a href="/game/unrelated">Unrelated Game</a>'))
+    try {
+      const games = await websiteSource(anker, config).search('hellcard')
+      expect(games.map(game => game.title)).toEqual(['HELLCARD'])
+      expect(request.mock.calls.map(call => call[0])).toEqual([
+        'https://ankergames.net/search/hellcard', 'https://ankergames.net/games-list?q=hellcard'
+      ])
+    } finally { request.mockRestore() }
+  })
+  it('queries the spelling variant and returns only game URLs actually present on the page', async () => {
+    const request = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async url =>
+      new Response(decodeURIComponent(String(url)).includes('Ball x Pit') && !String(url).includes('Pitt')
+        ? '<a href="/game/ball-x-pit">BALL x PIT</a>' : '<p>No results</p>'))
+    try {
+      const games = await websiteSource(anker, config).search('Ball x Pitt')
+      expect(games.map(game => game.id)).toEqual(['https://ankergames.net/game/ball-x-pit'])
+    } finally { request.mockRestore() }
+  })
+  it('returns an empty list for a readable search with no matches', async () => {
+    const request = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async () => new Response('<p>No results</p>'))
+    try {
+      await expect(websiteSource(anker, config).search('hellcard')).resolves.toEqual([])
+    } finally { request.mockRestore() }
+  })
+  it('keeps matching results when the search deadline expires before another variant', async () => {
+    const controller = new AbortController()
+    const originalTimeout = AbortSignal.timeout.bind(AbortSignal)
+    const timeout = jest.spyOn(AbortSignal, 'timeout').mockImplementation(ms =>
+      ms === 22000 ? controller.signal : originalTimeout(ms))
+    const request = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async () => {
+      controller.abort(new Error('Search timed out'))
+      return new Response('<a href="/game/ball-x-pit">BALL x PIT</a>')
+    })
+    try {
+      const games = await websiteSource(anker, config).search('Ball x Pitt')
+      expect(games.map(game => game.title)).toEqual(['BALL x PIT'])
+      expect(request).toHaveBeenCalledTimes(1)
+    } finally { request.mockRestore(); timeout.mockRestore() }
   })
 })
 
@@ -190,6 +263,10 @@ describe('windows-1251 decoding in websiteSource', () => {
 })
 
 describe('extractGameMetadataFromHtml', () => {
+  it('does not interpret a specification number as a review score', () => {
+    expect(extractGameMetadataFromHtml('<p>1600/5</p>', 'source').rating).toBeUndefined()
+    expect(extractGameMetadataFromHtml('<p>4.8/5</p>', 'source').rating).toBe('4.8/5')
+  })
   it('extracts metadata from SteamRIP game page', () => {
     const steamRipHtml = `
       <span class="date meta-item tie-icon"><span class="fa fa-clock-o"></span>March 29, 2025</span>

@@ -37,7 +37,7 @@ export class PluginPacker {
     if (!raw.version || typeof raw.version !== 'string') {
       throw new Error('Plugin manifest must contain a valid "version".')
     }
-    const validTypes = ['ui', 'theme', 'layout', 'game-source', 'utility', 'metadata']
+    const validTypes = ['ui', 'theme', 'layout', 'game-source', 'utility', 'metadata', 'media']
     if (!validTypes.includes(raw.type)) {
       throw new Error(`Invalid plugin type "${raw.type}". Valid types: ${validTypes.join(', ')}`)
     }

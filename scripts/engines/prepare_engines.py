@@ -22,7 +22,7 @@ def get(url):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--scrapling', default='0.4.15')
-    parser.add_argument('--obscura', default='0.2.3')
+    parser.add_argument('--obscura', default='0.2.4')
     parser.add_argument('--out', default='public/engine-bundles')
     args = parser.parse_args()
     if sys.platform != 'win32' or os.environ.get('PROCESSOR_ARCHITECTURE', '').lower() != 'amd64':
@@ -42,7 +42,10 @@ def main():
         temporary = Path(folder)
         subprocess.run([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir',
                         '--name', 'ghost-scrapling', '--copy-metadata', 'scrapling',
-                        '--collect-all', 'scrapling', '--distpath', str(temporary / 'dist'),
+                        '--collect-all', 'scrapling', '--collect-all', 'patchright',
+                        '--collect-all', 'playwright', '--collect-all', 'browserforge',
+                        '--collect-all', 'apify_fingerprint_datapoints',
+                        '--collect-all', 'curl_cffi', '--distpath', str(temporary / 'dist'),
                         '--workpath', str(temporary / 'work'), '--specpath', str(temporary), str(worker)], check=True)
         binary_root = temporary / 'dist' / 'ghost-scrapling'
         subprocess.run([str(binary_root / 'ghost-scrapling.exe'), '--self-test'], check=True)
@@ -60,7 +63,7 @@ def main():
         zip_path = Path(shutil.make_archive(str(temporary / 'scrapling'), 'zip', binary_root))
         digest = hashlib.sha256(zip_path.read_bytes()).hexdigest()
         shutil.copy2(zip_path, output / (digest + '.zip'))
-        releases.append({'id': 'scrapling', 'version': args.scrapling,
+        releases.append({'id': 'scrapling', 'version': args.scrapling, 'integrationRevision': 2,
                          'url': f'https://github.com/alazter/GhostGamesLauncher/releases/download/engines-scrapling-{args.scrapling}/{digest}.zip',
                          'sha256': digest, 'executable': 'ghost-scrapling.exe'})
 

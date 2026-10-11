@@ -1,5 +1,16 @@
 import type { OpenDialogOptions, TitleBarOverlay } from 'electron'
-import type { AccountProvider, AccountResult, ConnectedAccountStatus } from './connectedAccounts'
+import type {
+  ReleaseCatalog,
+  ReleaseProduct,
+  ReleaseQuery,
+  ReleaseRegion
+} from './releases'
+import type { ReleaseDrmReport } from '../releaseDrm'
+import type {
+  AccountProvider,
+  AccountResult,
+  ConnectedAccountStatus
+} from './connectedAccounts'
 
 import type { SystemInformation } from 'backend/utils/systeminfo'
 
@@ -70,7 +81,17 @@ import type {
   ExternalInstallRequest,
   ExternalGameAction,
   LocalCandidateGame,
-  SourceSearchResponse
+  SourceSearchResponse,
+  GhostMovie,
+  StremioAddonManifest,
+  StremioMetaPreview,
+  StremioStreamItem,
+  CinemaLibraryState,
+  CinemaMetadataCandidate,
+  CinemaMetadataSettings,
+  CinemaMetadataJob,
+  CinemaUpdateOptions,
+  CinemaMediaPreferences
 } from './plugins'
 
 // ts-prune-ignore-next
@@ -157,13 +178,18 @@ interface SyncIPCFunctions {
     art_background?: string
     is_manual?: boolean
   }) => void
-  setAllGameOverrides: (overrides: Record<string, {
-    title?: string
-    art_cover?: string
-    art_square?: string
-    art_background?: string
-    is_manual?: boolean
-  }>) => void
+  setAllGameOverrides: (
+    overrides: Record<
+      string,
+      {
+        title?: string
+        art_cover?: string
+        art_square?: string
+        art_background?: string
+        is_manual?: boolean
+      }
+    >
+  ) => void
 }
 
 /*
@@ -205,8 +231,15 @@ interface AsyncIPCFunctions {
   getAvailableStorageDrives: (runner?: Runner) => Promise<StorageDrive[]>
   steamLoginWebView: () => Promise<boolean>
   steamLogout: () => Promise<void>
-  steamGetConfig: () => Promise<{ syncMode: string; apiKey?: string; hasSession: boolean }>
-  steamSaveConfig: (config: { syncMode?: string; apiKey?: string }) => Promise<void>
+  steamGetConfig: () => Promise<{
+    syncMode: string
+    apiKey?: string
+    hasSession: boolean
+  }>
+  steamSaveConfig: (config: {
+    syncMode?: string
+    apiKey?: string
+  }) => Promise<void>
   callTool: (args: Tools) => Promise<void>
   runWineCommand: (
     args: WineCommandArgs
@@ -233,6 +266,24 @@ interface AsyncIPCFunctions {
     assets: any[]
   ) => Promise<{ success: boolean; destPath?: string; error?: string }>
   checkTodayTrackedReleases: () => Promise<{ count: number; titles: string[] }>
+  releasesCatalog: (query: ReleaseQuery) => Promise<ReleaseCatalog>
+  releasesProduct: (
+    id: string,
+    region: ReleaseRegion
+  ) => Promise<ReleaseProduct>
+  releasesDrm: (query: {
+    id: string
+    title: string
+    refresh?: boolean
+    priority?: boolean
+    manual?: 'general' | 'hiz'
+  }) => Promise<ReleaseDrmReport>
+  releasesDrmVerifyHiz: () => Promise<boolean>
+  releasesDrmEndManual: () => Promise<void>
+  releasesNotifyToday: (
+    entries: Array<{ id: string; title: string }>
+  ) => Promise<void>
+  syncLocalStorageBackup: (data: Record<string, string>) => Promise<void>
   getGameInfo: (appName: string, runner: Runner) => Promise<GameInfo | null>
   getAchievements: (
     appName: string,
@@ -477,7 +528,10 @@ interface AsyncIPCFunctions {
     message?: string
   }>
   discoverInstalledGames: () => Promise<GameCandidate[]>
-  discoverAllGames: (searchTitles?: string[], selectedDrives?: string[]) => Promise<GameCandidate[]>
+  discoverAllGames: (
+    searchTitles?: string[],
+    selectedDrives?: string[]
+  ) => Promise<GameCandidate[]>
   abortScan: () => Promise<void>
   getLogicalDrives: () => Promise<string[]>
   importSelectedGames: (args: {
@@ -485,70 +539,293 @@ interface AsyncIPCFunctions {
     gamesToBlacklist: GameCandidate[]
   }) => Promise<string[]>
   undoImport: (appNames: string[]) => Promise<void>
-  addGameToBlacklist: (args: { title: string; executable: string }) => Promise<void>
+  addGameToBlacklist: (args: {
+    title: string
+    executable: string
+  }) => Promise<void>
   exportScanLog: (text: string) => Promise<boolean>
   scanInstalledGames: () => Promise<{ count: number; games: string[] }>
   clearBlacklist: () => Promise<void>
   getBlacklist: () => Promise<Array<{ title: string; executable: string }>>
   removeGameFromBlacklist: (executable: string) => Promise<void>
-  exportGhostBackup: (frontendData?: { localStorageData?: Record<string, string> }) => Promise<{ success: boolean; filePath?: string; error?: string }>
-  importGhostBackup: (fileContent?: string) => Promise<{ success: boolean; error?: string; localStorageData?: Record<string, string> }>
-  connectCloudProvider: (provider: 'google' | 'onedrive' | 'dropbox') => Promise<{ success: boolean; error?: string; accountName?: string }>
+  exportGhostBackup: (frontendData?: {
+    localStorageData?: Record<string, string>
+  }) => Promise<{ success: boolean; filePath?: string; error?: string }>
+  importGhostBackup: (fileContent?: string) => Promise<{
+    success: boolean
+    error?: string
+    localStorageData?: Record<string, string>
+  }>
+  connectCloudProvider: (
+    provider: 'google' | 'onedrive' | 'dropbox'
+  ) => Promise<{ success: boolean; error?: string; accountName?: string }>
   disconnectCloudProvider: () => Promise<void>
-  getCloudProviderStatus: () => Promise<{ connected: boolean; provider?: string; accountName?: string }>
-  getGoogleCredentials: () => Promise<{ clientId: string; clientSecret: string }>
-  setGoogleCredentials: (clientId: string, clientSecret: string) => Promise<void>
-  uploadBackupToCloud: (frontendData?: { localStorageData?: Record<string, string> }) => Promise<{ success: boolean; error?: string }>
-  downloadBackupFromCloud: () => Promise<{ success: boolean; data?: any; error?: string }>
+  getCloudProviderStatus: () => Promise<{
+    connected: boolean
+    provider?: string
+    accountName?: string
+  }>
+  getGoogleCredentials: () => Promise<{
+    clientId: string
+    clientSecret: string
+  }>
+  setGoogleCredentials: (
+    clientId: string,
+    clientSecret: string
+  ) => Promise<void>
+  uploadBackupToCloud: (frontendData?: {
+    localStorageData?: Record<string, string>
+  }) => Promise<{ success: boolean; error?: string }>
+  downloadBackupFromCloud: () => Promise<{
+    success: boolean
+    data?: any
+    error?: string
+  }>
   preCacheImages: (urls: string[]) => Promise<void>
   clearImageCacheNegative: () => Promise<boolean>
   detectGameVersion: (game: GameInfo) => Promise<DetectedVersionResult | null>
-  resolveDateVersionOnline: (title: string, dateStr: string) => Promise<DetectedVersionResult>
-  setGameVersion: (appName: string, version: string) => Promise<{ success: boolean; version: string }>
+  resolveDateVersionOnline: (
+    title: string,
+    dateStr: string
+  ) => Promise<DetectedVersionResult>
+  setGameVersion: (
+    appName: string,
+    version: string
+  ) => Promise<{ success: boolean; version: string }>
   pluginsGetList: () => Promise<PluginInfo[]>
-  pluginsSourceSettings: (id: string, value?: import('./plugins').SourceSettings) => Promise<import('./plugins').SourceSettings>
-  pluginsTestSourceAddress: (id: string, address: string) => Promise<import('./plugins').SourceAddressTest>
-  pluginsSourceEnginesState: () => Promise<import('./sourceEngines').SourceEnginesState>
-  pluginsSourceEngineAction: (action: import('./sourceEngines').SourceEngineAction) => Promise<{ success: boolean; error?: string; state: import('./sourceEngines').SourceEnginesState }>
+  pluginsSourceSettings: (
+    id: string,
+    value?: import('./plugins').SourceSettings
+  ) => Promise<import('./plugins').SourceSettings>
+  pluginsTestSourceAddress: (
+    id: string,
+    address: string
+  ) => Promise<import('./plugins').SourceAddressTest>
+  pluginsSourceEnginesState: () => Promise<
+    import('./sourceEngines').SourceEnginesState
+  >
+  pluginsSourceEngineAction: (
+    action: import('./sourceEngines').SourceEngineAction
+  ) => Promise<{
+    success: boolean
+    error?: string
+    state: import('./sourceEngines').SourceEnginesState
+  }>
   externalGamesState: () => Promise<ExternalGamesState>
   downloadIntegrationsState: () => Promise<DownloadIntegrationsState>
-  downloadIntegrationsAction: (action: DownloadIntegrationAction) => Promise<ExternalActionResult>
+  downloadIntegrationsAction: (
+    action: DownloadIntegrationAction
+  ) => Promise<ExternalActionResult>
   externalGamesLocalCandidates: () => Promise<LocalCandidateGame[]>
-  externalGamesLink: (appName: string, game: GhostSearchResult) => Promise<ExternalActionResult>
+  externalGamesLink: (
+    appName: string,
+    game: GhostSearchResult
+  ) => Promise<ExternalActionResult>
   pluginsInstallBuiltinSource: (id: string) => Promise<PluginInstallResult>
   externalGamesSearch: (query: string) => Promise<SourceSearchResponse>
   externalGamesGetCatalog: (
     providerId: string,
     options?: { letter?: string; page?: number; theme?: string }
-  ) => Promise<{ games: GhostSearchResult[]; hasMore: boolean; totalEstimated?: number }>
-  externalGamesAddPage: (providerId: string, pageUrl: string, title: string, version?: string) => Promise<GhostSearchResult>
-  externalGamesInstall: (request: ExternalInstallRequest) => Promise<ExternalActionResult>
+  ) => Promise<{
+    games: GhostSearchResult[]
+    hasMore: boolean
+    totalEstimated?: number
+  }>
+  externalGamesAddPage: (
+    providerId: string,
+    pageUrl: string,
+    title: string,
+    version?: string
+  ) => Promise<GhostSearchResult>
+  externalGamesInstall: (
+    request: ExternalInstallRequest
+  ) => Promise<ExternalActionResult>
   externalGamesInstallLocal: () => Promise<ExternalActionResult>
-  externalGamesAction: (action: ExternalGameAction) => Promise<ExternalActionResult>
-  externalGamesGetOrCreateInstallation: (appName: string, gameInfo?: any) => Promise<ExternalInstallation | null>
-  externalGamesSyncPiratasSaves: (options?: { autoBackup?: boolean }) => Promise<import('common/types/plugins').PiratasSaveSyncResult>
-  externalGamesDeleteGame: (appName: string, deleteFiles: boolean) => Promise<ExternalActionResult>
+  externalGamesAction: (
+    action: ExternalGameAction
+  ) => Promise<ExternalActionResult>
+  externalGamesGetOrCreateInstallation: (
+    appName: string,
+    gameInfo?: any
+  ) => Promise<ExternalInstallation | null>
+  externalGamesSyncPiratasSaves: (options?: {
+    autoBackup?: boolean
+  }) => Promise<import('common/types/plugins').PiratasSaveSyncResult>
+  externalGamesDeleteGame: (
+    appName: string,
+    deleteFiles: boolean
+  ) => Promise<ExternalActionResult>
   externalGamesRemoveInstallation: (installationId: string) => Promise<boolean>
-  externalGamesCheckPiratasUpdates: (force?: boolean) => Promise<{ success: boolean; message: string; updatesFound?: number }>
-  pluginsToggle: (pluginId: string, enabled: boolean) => Promise<{ success: boolean; error?: string }>
+  externalGamesCheckPiratasUpdates: (
+    force?: boolean,
+    options?: { scope?: string; appNames?: string[] }
+  ) => Promise<{ success: boolean; message: string; updatesFound?: number }>
+  pluginsToggle: (
+    pluginId: string,
+    enabled: boolean
+  ) => Promise<{ success: boolean; error?: string }>
   pluginsInstall: (filePath?: string) => Promise<PluginInstallResult>
-  pluginsInstallFromBuffer: (fileName: string, bufferBase64: string) => Promise<PluginInstallResult>
-  pluginsUninstall: (pluginId: string) => Promise<{ success: boolean; error?: string }>
+  pluginsInstallFromBuffer: (
+    fileName: string,
+    bufferBase64: string
+  ) => Promise<PluginInstallResult>
+  pluginsUninstall: (
+    pluginId: string
+  ) => Promise<{ success: boolean; error?: string }>
   pluginsLoadUnpacked: (dirPath?: string) => Promise<PluginInstallResult>
-  pluginsPack: (sourceDir?: string, outputDir?: string) => Promise<PluginPackResult>
+  pluginsPack: (
+    sourceDir?: string,
+    outputDir?: string
+  ) => Promise<PluginPackResult>
   pluginsSearchSources: (query: string) => Promise<GhostSearchResult[]>
-  pluginsGetDownloadSources: (providerId: string, gameId: string) => Promise<GhostDownloadSource[]>
-  pluginsGetGameDetails: (providerId: string, gameId: string) => Promise<GhostSearchResult | undefined>
-  pluginsStartDownload: (source: GhostDownloadSource, gameTitle: string, coverUrl?: string) => Promise<{ success: boolean; error?: string }>
+  pluginsGetDownloadSources: (
+    providerId: string,
+    gameId: string
+  ) => Promise<GhostDownloadSource[]>
+  pluginsGetGameDetails: (
+    providerId: string,
+    gameId: string
+  ) => Promise<GhostSearchResult | undefined>
+  pluginsStartDownload: (
+    source: GhostDownloadSource,
+    gameTitle: string,
+    coverUrl?: string
+  ) => Promise<{ success: boolean; error?: string }>
   pluginsGetActiveCSS: () => Promise<Record<string, string>>
-  pluginsGetPortugueseDescription: (canonicalTitle: string, rawEnglishDesc?: string) => Promise<string>
+  pluginsGetPortugueseDescription: (
+    canonicalTitle: string,
+    rawEnglishDesc?: string
+  ) => Promise<string>
   pluginsGetGameTrailer: (canonicalTitle: string) => Promise<string | null>
   pluginsGetGameSuggestions: (query: string) => Promise<string[]>
+  cinemaIsActive: () => Promise<boolean>
+  cinemaGetState: () => Promise<CinemaLibraryState>
+  cinemaPickFolder: () => Promise<string | null>
+  cinemaAddFolder: (folderPath: string) => Promise<CinemaLibraryState>
+  cinemaRemoveFolder: (folderPath: string) => Promise<CinemaLibraryState>
+  cinemaScanFolders: (folders?: string[]) => Promise<GhostMovie[]>
+  cinemaSaveProgress: (
+    movieId: string,
+    progressSeconds: number,
+    durationSeconds: number
+  ) => Promise<void>
+  cinemaClearContinueWatching: () => Promise<CinemaLibraryState>
+  cinemaGetStreamUrl: (filePath: string) => Promise<string>
+  cinemaGetTranscodeStreamUrl: (
+    filePath: string,
+    audioIndex?: number,
+    startTime?: number
+  ) => Promise<string>
+  cinemaProbeMedia: (filePath: string) => Promise<{
+    duration: number
+    formatName?: string
+    audioTracks: Array<{
+      index: number
+      streamIndex: number
+      title: string
+      language: string
+      codec: string
+      channels: number
+      isSupported: boolean
+    }>
+    subtitleTracks: Array<{
+      index: number
+      streamIndex: number
+      title: string
+      language: string
+      codec: string
+      isDefault: boolean
+      isForced: boolean
+      streamUrl: string
+    }>
+  }>
+  cinemaGetSubtitles: (
+    filePath: string,
+    imdbId?: string,
+    season?: number,
+    episode?: number
+  ) => Promise<{
+    local: Array<{
+      name: string
+      filePath: string
+      lang: string
+      streamUrl: string
+      isDefault?: boolean
+      isEmbedded?: boolean
+    }>
+    remote: Array<{
+      id: string
+      name: string
+      lang: string
+      streamUrl: string
+      format?: string
+    }>
+  }>
+  cinemaStremioGetAddons: () => Promise<StremioAddonManifest[]>
+  cinemaStremioAddAddon: (manifestUrl: string) => Promise<{
+    success: boolean
+    addon?: StremioAddonManifest
+    error?: string
+  }>
+  cinemaStremioRemoveAddon: (addonId: string) => Promise<{ success: boolean }>
+  cinemaStremioGetCatalog: (
+    addonId: string,
+    type: string,
+    catalogId: string,
+    skip?: number,
+    search?: string
+  ) => Promise<{ metas: StremioMetaPreview[]; hasMore?: boolean }>
+  cinemaStremioGetMeta: (
+    addonId: string,
+    type: string,
+    id: string
+  ) => Promise<any>
+  cinemaStremioGetStreams: (
+    type: string,
+    id: string
+  ) => Promise<StremioStreamItem[]>
+  cinemaUpdateMovie: (
+    movie: GhostMovie,
+    options?: CinemaUpdateOptions
+  ) => Promise<GhostMovie>
+  cinemaUpdateMediaPreferences: (
+    movieIds: string[],
+    preferences: CinemaMediaPreferences
+  ) => Promise<CinemaLibraryState>
+  cinemaPickCoverImage: () => Promise<string | null>
+  cinemaEnrichMovie: (movieId: string) => Promise<GhostMovie | null>
+  cinemaAutoCatalog: () => Promise<GhostMovie[]>
+  cinemaSearchMetadata: (
+    query: string,
+    type: 'movie' | 'series'
+  ) => Promise<CinemaMetadataCandidate[]>
+  cinemaMetadataDetails: (
+    candidate: CinemaMetadataCandidate
+  ) => Promise<CinemaMetadataCandidate>
+  cinemaRefreshMetadata: (
+    mode: 'missing' | 'all' | 'portuguese'
+  ) => Promise<CinemaMetadataJob>
+  cinemaGetMetadataStatus: () => Promise<CinemaMetadataJob>
+  cinemaCancelMetadataRefresh: () => Promise<CinemaMetadataJob>
+  cinemaUpdateMetadataSettings: (
+    settings: Omit<CinemaMetadataSettings, 'tmdbConfigured'> & {
+      tmdbToken?: string
+    }
+  ) => Promise<CinemaMetadataSettings>
 }
 
 export interface DetectedVersionResult {
   version: string
-  source: 'override' | 'ankergames' | 'folder' | 'title' | 'manifest' | 'pe_header' | 'online_date' | 'date' | 'manual'
+  source:
+    | 'override'
+    | 'ankergames'
+    | 'folder'
+    | 'title'
+    | 'manifest'
+    | 'pe_header'
+    | 'online_date'
+    | 'date'
+    | 'manual'
   rawDate?: string
   isDate?: boolean
   details?: string
@@ -558,7 +835,12 @@ interface FrontendMessages {
   'plugins-updated': (plugins: PluginInfo[]) => void
   'external-games-updated': (state: ExternalGamesState) => void
   'external-games-assign-piratas': (data: { appName: string }) => void
-  'external-games-piratas-sync-progress': (progress: { current: number; total: number; gameTitle: string; status: string }) => void
+  'external-games-piratas-sync-progress': (progress: {
+    current: number
+    total: number
+    gameTitle: string
+    status: string
+  }) => void
   'plugins-css-changed': (cssMap: Record<string, string>) => void
   gameStatusUpdate: (status: GameStatus) => void
   wineVersionsUpdated: () => void

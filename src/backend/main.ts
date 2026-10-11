@@ -31,6 +31,9 @@ import { cpus } from 'os'
 import { existsSync, watch, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'graceful-fs'
 import 'source-map-support/register'
 import { registerPluginsIPC } from './plugins/ipcHandler'
+import { registerReleasesIPC } from './releases/ipc'
+import { createBackupPreferenceSync } from './backup/preferenceSync'
+import { getReleaseArchive, validateReleaseArchive } from './releases/archive'
 import { PluginManager } from './plugins/pluginManager'
 
 import Backend from 'i18next-fs-backend'
@@ -52,6 +55,10 @@ if (process.platform === 'win32') {
   app.setName('Ghost Games Launcher')
   app.setAppUserModelId('com.ghostgameslauncher.ghost')
 }
+
+// Habilita suporte nativo a múltiplas faixas de áudio (Dual Áudio / Multi Áudio) e Spatial Navigation no Chromium
+app.commandLine.appendSwitch('enable-blink-features', 'AudioVideoTracks')
+app.commandLine.appendSwitch('enable-spatial-navigation')
 import {
   clearCache,
   isEpicServiceOffline,
@@ -421,6 +428,7 @@ if (!gotTheLock) {
     initStoreManagers()
     initImagesCache()
     registerPluginsIPC()
+    registerReleasesIPC()
     await PluginManager.getInstance().init()
 
     // Add User-Agent Client hints to behave like Windows
@@ -1159,6 +1167,14 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
   }
 })
 
+const syncBackupPreferences = createBackupPreferenceSync((snapshot) => {
+  GlobalConfig.get().setSetting('localStorageBackup', snapshot)
+})
+
+addHandler('syncLocalStorageBackup', async (_event, data) => {
+  await syncBackupPreferences(data)
+})
+
 addHandler('exportGhostBackup', async (event, frontendData?: { localStorageData?: Record<string, string> }) => {
   const mainWindow = getMainWindow()
   const now = new Date()
@@ -1184,7 +1200,7 @@ addHandler('exportGhostBackup', async (event, frontendData?: { localStorageData?
 
   try {
     if (frontendData?.localStorageData) {
-      (configStore as any).set('settings.localStorageBackup', frontendData.localStorageData)
+      await syncBackupPreferences(frontendData.localStorageData)
     }
     const backupData = await getBackupPayload()
 
@@ -1224,6 +1240,11 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
       backupData = JSON.parse(rawContent)
     }
 
+    // Validate and merge protected release history before changing any other settings.
+    if (backupData.releaseArchive !== undefined) {
+      validateReleaseArchive(backupData.releaseArchive)
+      await (await getReleaseArchive()).merge(backupData.releaseArchive)
+    }
     if (backupData.settings) {
       configStore.set('settings', backupData.settings)
     }
@@ -1345,7 +1366,7 @@ addHandler('setGoogleCredentials', async (event, clientId, clientSecret) => {
 addHandler('uploadBackupToCloud', async (event, frontendData?: { localStorageData?: Record<string, string> }) => {
   try {
     if (frontendData?.localStorageData) {
-      (configStore as any).set('settings.localStorageBackup', frontendData.localStorageData)
+      await syncBackupPreferences(frontendData.localStorageData)
     }
     const backupData = await getBackupPayload()
     return await uploadBackupToCloud(backupData)

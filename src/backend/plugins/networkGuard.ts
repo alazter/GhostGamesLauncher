@@ -197,11 +197,12 @@ export class NetworkGuard {
     }
 
     const allowedDomains = [...(manifest.allowedDomains || []), ...sourceDomains(manifest.id)]
-    if (allowedDomains.length === 0 && !manifest.permissions.includes('game-sources')) {
+    if (allowedDomains.length === 0 && !manifest.permissions.includes('game-sources') && !manifest.permissions.includes('media')) {
       return { allowed: false, reason: `Plugin has not declared any allowed domains in "allowedDomains".` }
     }
 
     const isDomainAllowed =
+      manifest.permissions.includes('media') ||
       allowedDomains.some((domain) => {
         const cleanDomain = domain.toLowerCase().replace(/^\*\./, '')
         return hostname === cleanDomain || hostname.endsWith(`.${cleanDomain}`)
