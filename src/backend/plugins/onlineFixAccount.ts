@@ -1,38 +1,11 @@
-import { isSourceUrl, canonicalSourceUrl } from './sourceSettings'
 import { BrowserWindow, session, type DownloadItem } from 'electron'
 import { mkdir, readFile, rm } from 'fs/promises'
 import { dirname } from 'path'
 import { torrentInfoHash } from './torrentMetadata'
-import { loadAnkerPage } from './ankerNavigation'
-
-export const ONLINE_FIX_SOURCE_ID = 'com.ghost.online-fix-source'
-export const ONLINE_FIX_TORRENT_ID = 'online-fix-official-torrent'
-export function onlineFixGameUrl(value: string): string {
-  const url = new URL(value)
-  if (
-    !isSourceUrl(ONLINE_FIX_SOURCE_ID, value) ||
-    url.username ||
-    url.password ||
-    !/^\/games\/.+\.html$/.test(url.pathname)
-  )
-    throw new Error('Página de jogo Online-Fix inválida.')
-  url.search = ''
-  url.hash = ''
-  return canonicalSourceUrl(ONLINE_FIX_SOURCE_ID, url.href)
-}
-export function onlineFixDownloadUrl(value: string): boolean {
-  try {
-    const url = new URL(value)
-    return (
-      url.protocol === 'https:' &&
-      !url.username &&
-      !url.password &&
-      isSourceUrl(ONLINE_FIX_SOURCE_ID, value, true)
-    )
-  } catch {
-    return false
-  }
-}
+import { loadAnkerPage, evaluateAnkerPage } from './ankerNavigation'
+import { onlineFixGameUrl, onlineFixDownloadUrl, isOnlineFixTorrentUrl } from './onlineFixUrls'
+import { resolveOnlineFixTorrentLink } from './onlineFixTorrent'
+export { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl, onlineFixDownloadUrl } from './onlineFixUrls'
 
 export class OnlineFixAccount {
   private static busy = false
@@ -74,7 +47,44 @@ export class OnlineFixAccount {
     })
     this.busy = true
     const family = new Set<BrowserWindow>([window])
+    let item: DownloadItem | undefined
+    let active = true
+    const resolving = new Set<number>()
+    const followed = new Set<string>()
+    const automate = async (member: BrowserWindow) => {
+      if (!active || item || member.isDestroyed() || resolving.has(member.webContents.id)) return
+      resolving.add(member.webContents.id)
+      let navigated = false
+      try {
+        const snapshot = await evaluateAnkerPage(member,
+          `({ url: location.href, html: document.documentElement.outerHTML.slice(0, 8388608) })`)
+        if (!snapshot || typeof snapshot !== 'object' ||
+            !('url' in snapshot) || typeof snapshot.url !== 'string' ||
+            !('html' in snapshot) || typeof snapshot.html !== 'string') return
+        const target = await resolveOnlineFixTorrentLink(snapshot.html, snapshot.url)
+        if (!target || !active || item || member.isDestroyed() || signal.aborted ||
+            followed.has(target) || followed.size >= 3) return
+        if (member.webContents.getURL() !== snapshot.url) return
+        followed.add(target)
+        // Navigate to the observed official href. A site's click handler can
+        // replace an otherwise valid anchor with an advertising/task gateway.
+        // Preserve the existing session and referrer without executing it.
+        await member.loadURL(target, { httpReferrer: snapshot.url })
+        navigated = true
+      } catch {
+        // Keep the official window usable for login or an ambiguous choice.
+      } finally {
+        resolving.delete(member.webContents.id)
+        // dom-ready can fire while loadURL is still pending. Resolve the newly
+        // loaded directory after releasing the per-window operation lock.
+        if (navigated && active && !item && !member.isDestroyed() && !signal.aborted) {
+          void automate(member)
+        }
+      }
+    }
     const configure = (member: BrowserWindow) => {
+      member.webContents.on('dom-ready', () => { void automate(member) })
+      member.webContents.on('did-finish-load', () => { void automate(member) })
       member.webContents.setWindowOpenHandler(({ url: target }) =>
         onlineFixDownloadUrl(target)
           ? {
@@ -102,7 +112,6 @@ export class OnlineFixAccount {
       })
     }
     configure(window)
-    let item: DownloadItem | undefined
     let verified = false
     let rejectTask: (error: Error) => void = () => undefined
     const abort = () =>
@@ -138,7 +147,7 @@ export class OnlineFixAccount {
             return
           if (
             item ||
-            !onlineFixDownloadUrl(download.getURL()) ||
+            !isOnlineFixTorrentUrl(download.getURLChain?.().at(-1) || download.getURL()) ||
             !/\.torrent$/i.test(download.getFilename()) ||
             download.getTotalBytes() > 16 * 1024 * 1024
           ) {
@@ -196,6 +205,7 @@ export class OnlineFixAccount {
       verified = true
       return file
     } finally {
+      active = false
       clearTimeout(timer)
       signal.removeEventListener('abort', abort)
       isolated.removeListener('will-download', onDownload)

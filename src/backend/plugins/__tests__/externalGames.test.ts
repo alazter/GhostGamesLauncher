@@ -136,6 +136,31 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
+it('publishes the cleared update only after the replacement is installed', async () => {
+  const installed = await install()
+  const update = { ...game, version: '2.0' }
+  service.recordUpdate(installed.id, update)
+  const jobId = await prepare(update, installed.id)
+  expect(service.snapshot().installations[0].availableUpdate?.version).toBe('2.0')
+
+  expect(await service.action({ type: 'finish', jobId, executable: 'game.exe' }))
+    .toEqual({ success: true })
+  const next = service.snapshot().installations[0]
+  expect(next.appName).toBe(installed.appName)
+  expect(next.game.version).toBe('2.0')
+  expect(next.availableUpdate).toBeUndefined()
+
+  const { sendFrontendMessage } = await import('backend/ipc')
+  expect(sendFrontendMessage).toHaveBeenCalledWith(
+    'external-games-updated',
+    expect.objectContaining({
+      installations: expect.arrayContaining([
+        expect.objectContaining({ appName: installed.appName, game: update })
+      ])
+    })
+  )
+})
+
 it('keeps progress snapshots free of installation healing and filesystem checks', async () => {
   await install()
   games = []
@@ -970,6 +995,34 @@ it('keeps manual version corrections in the same record used for update checks',
   expect(libraryStore.get('games', []).find(item => item.app_name === installed.appName)?.version).toBe('v0.10.4')
 })
 
+
+it('submits an Online-Fix torrent and waits for TorBox completion before local transfer', async () => {
+  const { client, remote } = torboxFixture()
+  client.list.mockResolvedValue([])
+  jest.spyOn(OnlineFixAccount, 'torrent').mockResolvedValue(Buffer.from('d4:infod6:lengthi1e4:name8:game.zipee'))
+  const result = await service.enqueue(
+    { ...game, providerId: ONLINE_FIX_SOURCE_ID, id: 'https://online-fix.me/games/strategy/18267-uno-online.html' },
+    { id: ONLINE_FIX_TORRENT_ID, name: 'Torrent', type: 'torbox', url: 'https://online-fix.me/games/strategy/18267-uno-online.html' },
+    { ...manifest, id: ONLINE_FIX_SOURCE_ID }, undefined, false, false, root)
+  await waitForJob(() => service.snapshot().jobs[0]?.remoteStatus?.startsWith('Aguardando o TorBox') === true)
+  expect(client.create).toHaveBeenCalledTimes(1)
+  expect(client.link).not.toHaveBeenCalled()
+  expect(NetworkGuard.fetchResponse).not.toHaveBeenCalled()
+  await service.action({ type: 'pause', jobId: result.jobId! })
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  client.list.mockResolvedValue([{ ...remote, download_finished: false, download_present: false, progress: 0.4, download_state: 'downloading' }])
+  await service.action({ type: 'resume', jobId: result.jobId! })
+  await waitForJob(() => service.snapshot().jobs[0]?.remoteProgress === 0.4)
+  expect(client.link).not.toHaveBeenCalled()
+  await service.action({ type: 'pause', jobId: result.jobId! })
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  client.list.mockResolvedValue([remote])
+  await service.action({ type: 'resume', jobId: result.jobId! })
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'ready')
+  expect(client.create).toHaveBeenCalledTimes(1)
+  expect(OnlineFixAccount.torrent).toHaveBeenCalledTimes(1)
+  expect(client.link).toHaveBeenCalledWith(42, expect.any(AbortSignal), 7)
+})
 
 it('captures Online-Fix torrents using its own session and reuses them after cancellation', async () => {
   const { client, remote } = torboxFixture()

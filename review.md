@@ -1,4 +1,4 @@
-# Review das Alterações - 11/10/2026
+# Review das Alterações - 13/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -719,17 +719,14 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Indicador Local de Remoção/Deleção no GameCard (Conquista 94/Regras 61 e 62)**: Store reativo não-bloqueante (`removingGamesStore.ts`) acionado em 0ms. Overlay interno ao card (`.gameCardRemovalOverlay`) com blur, bordas pulsantes neon e spinner sem alterar o tamanho, largura, altura ou proporção `aspect-ratio: 173/275` do card (Regra 62), permitindo navegar pela biblioteca enquanto a remoção roda em background (Regra 61).
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros no TypeScript (`tsc --noEmit`) e 160/160 testes unitários Jest aprovados.
 
-### 44. Escolha Inteligente de Loja no Modal de Download, Alazterflix Cinema Player de Alta Fidelidade, Blindagem Visual da Biblioteca e Suporte Universal no System Tray
-* **Problema:** Usuários precisavam de alternância rápida de loja dentro do modal "Escolha como baixar"; o player Alazterflix apresentava desafios de sincronização de legendas/áudio e controle de origem dos títulos; menus suspensos de filtros fechavam rápido demais ao mover o mouse; e títulos da Steam acionados pela bandeja do sistema falhavam na inicialização.
+### 45. Janela Ampliada de Adicionar Jogo (1240px × 800px / 85vh), Reconciliação Reativa de Updates na Biblioteca, Resolução de Torrents Online-Fix e Desbloqueio MegaDB
+* **Problema:** O formulário da janela de adicionar jogo manualmente ficava apertado exigindo rolagem constante; jogos permaneciam indevidamente na lista e no filtro de atualizações após serem atualizados; torrents do Online-Fix falhavam ou ficavam em timeout devido à porta não convencional (2053); e downloads diretos de espelhos MegaDB no SteamRIP eram bloqueados no servidor final (`fs4.megadb.xyz`).
 * **Solução:**
-  - **Escolha de Loja Dinâmica no Modal "Escolha como baixar" (Conquista 133)**: Pílula de loja interativa e botão `[ 🔁 Trocar loja ]` abrindo gaveta Cyber Neon com grade de todas as lojas disponíveis para o jogo, com logotipo HD, badges de versão e seleção em 0ms via `switchChooseDownloadStore`.
-  - **Origem Inteligente de Títulos no Alazterflix (Pasta vs Arquivo) com Motor Heurístico Resiliente (Conquista 168/Regra 134)**: Campo `titleSource` ('file' | 'folder') com motor heurístico que ignora subpastas intermediárias e proteção inteligente ativa que previne erros com fallbacks mútuos automáticos e re-catalogação imediata.
-  - **Janela de Tolerância de 500ms (Grace Period) no Fechamento de Filtros e Categorias (Conquista 167/Regra 133)**: Retardo suave de 500ms no fechamento de dropdowns ao mover o cursor para a janela expandida, cancelamento imediato ao reentrar e fechamento ágil ao clicar fora ou pressionar ESC.
-  - **Suporte Universal a Jogos Steam e Zoom no System Tray e Protocol Handler (Conquista 166/Regra 132)**: Enum de runners expandido com `steam` e `zoom`, persistência de runner em `RecentGame` e inicialização direta em O(1) a partir da bandeja do Windows (`heroic://launch`).
-  - **Blindagem de Empilhamento Visual na Biblioteca (Conquista 165/Regra 131)**: `isolation: isolate` em cards e itens de lista, rebaixamento de badges para nível 6 e elevação do cabeçalho fixo para `z-index: 500`, erradicando transposição de tags e fitas por cima de cabeçalhos e popovers.
-  - **Alazterflix Cinema Player: Sincronização Absoluta A/V, Legendas Frame-Accurate e Subtitle Studio (Conquistas 153 a 164)**: Alinhamento de keyframes em O(1) no backend (`mediaStreamServer.ts`), posicionamento vertical livre até o rodapé (2% da base), controle milimétrico de volume de 1 em 1 (step 0.01) e persistência automática de preferências.
-  - **Vínculo Nativo e Minimalista de Lojas em Adicionar Jogo Manualmente (Conquista 169/Regra 135)**: Campo `3. Loja de Origem` via `SelectField` do Ghost listando lojas criadas pelo usuário e checkbox de persistência automática para vincular próximos jogos adicionados à mesma loja, sem alterar layout ou dimensões das capas.
-  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 339/339 testes unitários Jest aprovados (36/36 suítes) e Regra Canônica 62 (aspect-ratio 173/275) 100% preservada.
+  - **Dimensões Confortáveis e Arejadas do SideloadDialog (Conquista 170/Regra 136)**: Largura expandida de 1.120px para 1.240px (+120px de área útil) e altura de 80vh (máx 720px) para 85vh (máx 800px, mín 540px), eliminando a necessidade de rolagem para visualizar executável, argumentos e loja, mantendo o HeroPanel esquerdo fixo em 280px com capa vertical em 420px.
+  - **Reconciliação Reativa do Filtro de Atualizações da Biblioteca (`GlobalState.gameUpdates`)**: Sincronização atômica ao evento `external-games-updated` e reconciliação com o backend, impedindo que títulos já atualizados sejam reinseridos no filtro e eliminando o erro crônico de jogos desatualizados fantasmas.
+  - **Automação e Resolução de Torrents Online-Fix com Scrapling Worker v3 e Porta HTTPS 2053**: Liberação da porta 2053 estritamente para `uploads.online-fix.me`, captura automática do arquivo `.torrent` via Scrapling e exibição de telemetria transparente no card de downloads durante a espera pela nuvem TorBox (*"Aguardando o TorBox concluir o download para iniciar a transferência para o PC"*).
+  - **Desbloqueio de Servidores Finais MegaDB no SteamRIP (`fs4.megadb.xyz`)**: Inclusão de `fs4.megadb.xyz` no manifesto de download assistido do SteamRIP em `ankerAccount.ts`, permitindo que os downloads via MegaDB completem a navegação e entreguem o arquivo ao gerenciador sem bloqueios de segurança.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), novos testes Jest aprovados em `gameUpdateState`, `externalDownloadStatus` e `onlineFixTorrent`, e conformidade estrita com a Regra Canônica 62.
 
 ---
 

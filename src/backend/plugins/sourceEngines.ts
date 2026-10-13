@@ -202,7 +202,10 @@ async function smoke(release: EngineRelease, folder: string) {
     if (
       result.protocol !== 1 ||
       result.version !== release.version ||
-      result.ok !== true
+      result.ok !== true ||
+      ((release.integrationRevision || 0) >= 3 &&
+        (!Array.isArray(result.capabilities) ||
+          !result.capabilities.includes('online-fix-torrent-links-v1')))
     )
       throw new Error('O teste do Scrapling falhou.')
   } else if (!output.includes(release.version))

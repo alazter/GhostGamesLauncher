@@ -31,6 +31,20 @@ def parse(request):
         return manual_drm_page(request)
     if request.get('operation') == 'release-selectors-v1':
         return release_selectors(request, GhostStorage)
+    if request.get('operation') == 'online-fix-torrent-links-v1':
+        page = Selector(request['html'], url=request['base'])
+        links = []
+        for element in page.css('a[href]'):
+            target = urljoin(request['base'], element.attrib.get('href', ''))
+            parsed = urlparse(target)
+            if (parsed.scheme == 'https' and parsed.hostname == 'uploads.online-fix.me'
+                    and parsed.port in (None, 443, 2053) and not parsed.username
+                    and not parsed.password and not parsed.fragment
+                    and parsed.path.startswith('/torrents/')):
+                links.append({'url': target, 'title': ' '.join(element.get_all_text().split())[:200]})
+            if len(links) == 200:
+                break
+        return links
     base = request['base']
     provider = request.get('provider', 'com.ghost.ankergames-source')
     scope = request['scope']
@@ -158,7 +172,11 @@ def self_test():
     assert valid_manual_url('https://ankergames.net/game/test')
     for target in ['https://ankergames.net/game/test?download=1', 'http://ankergames.net/game/test', 'https://ankergames.net.evil.test/game/test', 'https://ankergames.net/login']:
         assert not valid_manual_url(target)
-    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1']}
+    torrent_request = {'protocol': 1, 'operation': 'online-fix-torrent-links-v1',
+                      'base': 'https://uploads.online-fix.me:2053/torrents/Test/',
+                      'html': '<a href="Test.torrent">Test.torrent</a><a href="https://evil.test/Test.torrent">Ad</a>'}
+    assert parse(torrent_request) == [{'url': 'https://uploads.online-fix.me:2053/torrents/Test/Test.torrent', 'title': 'Test.torrent'}]
+    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1']}
 
 
 if __name__ == '__main__':

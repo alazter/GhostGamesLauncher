@@ -44,4 +44,5 @@ playwright-report
 /public/engine-bundles/
 /scripts/engines/__pycache__/
 /.engine-build/
+/.system_generated/
 

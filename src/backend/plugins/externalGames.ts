@@ -1870,6 +1870,9 @@ export class ExternalGames {
       if (existsSync(torrentPath)) torrent = await readFile(torrentPath)
       else torrent = await provider.torrent(provider.page, torrentPath, signal)
       job.torrentHash = torrentInfoHash(torrent)
+      job.transferPhase = 'remote'
+      job.remoteStatus = 'Verificando o torrent na conta TorBox'
+      job.remoteProgress = undefined
       this.state.torboxReferences[key] = { hash: job.torrentHash, recordedAt: Date.now() }
       this.save()
       const existing = (await client.list(signal)).find((item) => item.hash?.toLowerCase() === job.torrentHash)
@@ -1878,6 +1881,7 @@ export class ExternalGames {
         if (job.torboxSubmissionPending)
           throw new Error('O envio anterior ao TorBox não foi confirmado. Aguarde e tente novamente para evitar duplicar o torrent.')
         job.torboxSubmissionPending = true
+        job.remoteStatus = 'Enviando o torrent ao TorBox'
         this.save()
         // Persist uncertainty before the mutation; retries reconcile by info hash.
         try { job.torboxId = await client.create(torrent, signal) }
@@ -1893,6 +1897,8 @@ export class ExternalGames {
       this.state.torboxReferences[key] = { hash: job.torrentHash, id: job.torboxId, recordedAt: Date.now() }
     }
     job.transferPhase = 'remote'
+    job.remoteStatus = 'Aguardando o TorBox concluir o download para iniciar a transferência para o PC'
+    job.remoteProgress = undefined
     this.save()
     let missingSince: number | undefined
     while (true) {

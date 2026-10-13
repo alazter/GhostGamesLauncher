@@ -52,4 +52,15 @@ O workflow precisa estar publicado na branch padrão, com GitHub Actions e permi
 
 ## Limites da validação
 
-Testes locais não comprovam compatibilidade com todos os estados de autenticação e todos os sites reais. Não foi solicitado nenhum torrent nem iniciado download de jogo para validar esta implementação. Mudanças grandes nos sites ainda podem exigir confirmação manual ou ajuste das regras.
+Testes locais não comprovam compatibilidade com todos os estados de autenticação e todos os sites reais. Na validação inicial descrita acima, não foi solicitado nenhum torrent nem iniciado download de jogo. O teste posterior de captura Online-Fix está registrado abaixo. Mudanças grandes nos sites ainda podem exigir confirmação manual ou ajuste das regras.
+
+## Automação de torrents Online-Fix — 13/10/2026
+
+A pedido do usuário, a integração 3 do Scrapling acrescenta leitura dos links
+de pastas e arquivos `.torrent` (`online-fix-torrent-links-v1`). O Ghost revalida
+origem, porta e pasta, e a sessão Electron captura o arquivo automaticamente.
+Obscura pode ajudar na leitura da página pública quando habilitado; sessões de
+login continuam no Electron. Não há regras por título nem seleção automática
+entre arquivos ambíguos. A captura real do UNO, com o novo pacote e perfil
+isolado, entregou 95.261 bytes de torrent válido. O jogo completo e a API TorBox
+pessoal não foram usados nesse teste. Detalhes: [ONLINE_FIX_TORRENT_DOWNLOAD.md](ONLINE_FIX_TORRENT_DOWNLOAD.md).

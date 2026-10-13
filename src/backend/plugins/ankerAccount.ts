@@ -47,9 +47,11 @@ export function directDownloadManifest(steamrip: boolean): PluginManifest {
     allowedDomains: [
       ...baseDirectManifest.allowedDomains!,
       ...sourceDomains(steamrip ? STEAMRIP_SOURCE_ID : ANKER_SOURCE_ID),
-      // Observed in the user's BALL x PIT SteamRIP download attempt. Keep
-      // this additional relay scoped to the SteamRIP browser session.
-      ...(steamrip ? ['blehpooffileditch.org'] : ['tunnel5.dlproxy.uk'])
+      // Observed in the user's BALL x PIT (FileDitch) and iRacing Arcade
+      // (MegaDB) downloads. Scope these hosts to the SteamRIP session.
+      ...(steamrip
+        ? ['blehpooffileditch.org', 'fs4.megadb.xyz']
+        : ['tunnel5.dlproxy.uk'])
     ]
   }
 }

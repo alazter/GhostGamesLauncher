@@ -48,6 +48,7 @@ import {
 import { IpcRendererEvent } from 'electron'
 import { NileRegisterData } from 'common/types/nile'
 import useGlobalState from './GlobalStateV2'
+import type { ExternalGamesState } from 'common/types/plugins'
 
 const storage: Storage = window.localStorage
 const globalSettings = configStore.get_nodefault('settings')
@@ -166,7 +167,63 @@ const applyGameOverrides = (
   overrides: Record<string, GameOverride> = currentOverrides()
 ) => attachGameOverrides(lib, overrides)
 
-class GlobalState extends PureComponent<Props> {
+export class GlobalState extends PureComponent<Props> {
+  private updateCheckRequest = 0
+  private externalSnapshotRevision = 0
+  private externalUpdateAvailability = new Map<string, boolean>()
+  private removeExternalGamesListener?: () => void
+
+  private mergeExternalGameUpdates = (updates: string[]): string[] => {
+    const merged = new Set(
+      updates.filter(
+        (appName) => this.externalUpdateAvailability.get(appName) !== false
+      )
+    )
+    for (const [appName, available] of this.externalUpdateAvailability) {
+      if (available) merged.add(appName)
+    }
+    return [...merged]
+  }
+
+  handleExternalGamesUpdated = (snapshot: ExternalGamesState): void => {
+    this.externalSnapshotRevision++
+    // Retain removed IDs so an older in-flight check cannot resurrect them.
+    for (const appName of this.externalUpdateAvailability.keys()) {
+      this.externalUpdateAvailability.set(appName, false)
+    }
+    for (const installation of snapshot.installations) {
+      if (installation.appName) {
+        this.externalUpdateAvailability.set(
+          installation.appName,
+          Boolean(installation.availableUpdate)
+        )
+      }
+    }
+    this.setState((previous: StateProps) => {
+      const gameUpdates = this.mergeExternalGameUpdates(previous.gameUpdates)
+      if (
+        gameUpdates.length === previous.gameUpdates.length &&
+        gameUpdates.every(
+          (appName, index) => appName === previous.gameUpdates[index]
+        )
+      ) {
+        return null
+      }
+      return { gameUpdates }
+    })
+  }
+
+  refreshGameUpdates = async (): Promise<void> => {
+    const request = ++this.updateCheckRequest
+    try {
+      const updates = await window.api.checkGameUpdates()
+      if (request !== this.updateCheckRequest) return
+      this.setState({ gameUpdates: this.mergeExternalGameUpdates(updates) })
+    } catch (error) {
+      window.api.logError(`Game update check failed: ${String(error)}`)
+    }
+  }
+
   loadLegendaryLibrary = (
     overrides: Record<string, GameOverride> = currentOverrides()
   ): Array<GameInfo> => {
@@ -958,17 +1015,12 @@ class GlobalState extends PureComponent<Props> {
   ): Promise<void> => {
     console.log('refreshing')
 
-    const { epic, gog, amazon, zoom, steam, gameUpdates } = this.state
+    const { epic, gog, amazon, zoom, steam } = this.state
 
     const overrides = overridesArg || currentOverrides()
 
-    let updates = gameUpdates
     if (checkUpdates) {
-      try {
-        updates = await window.api.checkGameUpdates()
-      } catch (error) {
-        window.api.logError(`Game update check failed: ${String(error)}`)
-      }
+      await this.refreshGameUpdates()
     }
 
     const currentLibraryLength = epic.library?.length
@@ -1043,7 +1095,6 @@ class GlobalState extends PureComponent<Props> {
         user_id: amazon.user_id,
         username: amazon.username
       },
-      gameUpdates: updates,
       refreshing: false,
       refreshingInTheBackground: true,
       sideloadedLibrary: applyGameOverrides(updatedSideload, overrides)
@@ -1097,8 +1148,28 @@ class GlobalState extends PureComponent<Props> {
     progress,
     runner
   }: GameStatus) => {
-    const { libraryStatus, gameUpdates } = this.state
+    const { libraryStatus } = this.state
     const currentApp = libraryStatus.find((game) => game.appName === appName)
+
+    if (['error', 'done'].includes(status)) {
+      this.setState((previous: StateProps) => ({
+        libraryStatus: previous.libraryStatus.filter(
+          (game) => game.appName !== appName
+        )
+      }))
+      if (
+        !currentApp ||
+        ['queued', 'installing', 'updating', 'extracting'].includes(
+          currentApp.status
+        )
+      ) {
+        // A terminal status can also mean cancellation. Ask the backend instead
+        // of hiding an update that is still pending. This runs even during refresh.
+        void this.refreshGameUpdates()
+      }
+      void this.refreshLibrary({ runInBackground: true, library: runner })
+      return
+    }
 
     // add app to libraryStatus if it was not present
     if (!currentApp) {
@@ -1141,32 +1212,6 @@ class GlobalState extends PureComponent<Props> {
         progress,
         runner
       })
-      this.setState({ libraryStatus: newLibraryStatus })
-    }
-
-    // when error or done we remove it from the status info
-    if (['error', 'done'].includes(status)) {
-      // also remove from updates if it was updating
-      if (currentApp.status === 'updating') {
-        const updatedGamesUpdates = gameUpdates.filter(
-          (game) => game !== appName
-        )
-        // This avoids calling legendary again before the previous process is killed when canceling
-        this.refreshLibrary({
-          checkForUpdates: true,
-          runInBackground: true,
-          library: runner
-        })
-
-        storage.setItem('updates', JSON.stringify(updatedGamesUpdates))
-        return this.setState({
-          gameUpdates: updatedGamesUpdates,
-          libraryStatus: newLibraryStatus
-        })
-      }
-
-      this.refreshLibrary({ runInBackground: true, library: runner })
-
       this.setState({ libraryStatus: newLibraryStatus })
     }
   }
@@ -1397,12 +1442,23 @@ class GlobalState extends PureComponent<Props> {
       this.setState({ gameUpdates: storedGameUpdates })
     }
 
-    window.api.checkGameUpdates().then((updates) => {
-      if (Array.isArray(updates)) {
-        this.setState({ gameUpdates: updates })
-        storage.setItem('updates', JSON.stringify(updates))
+    this.removeExternalGamesListener = window.api.onExternalGamesUpdated(
+      (_event, snapshot) => {
+        this.handleExternalGamesUpdated(snapshot)
       }
-    }).catch(() => {})
+    )
+    const snapshotRevision = this.externalSnapshotRevision
+    void window.api
+      .externalGamesState()
+      .then((snapshot) => {
+        if (snapshotRevision === this.externalSnapshotRevision) {
+          this.handleExternalGamesUpdated(snapshot)
+        }
+      })
+      .catch((error) => {
+        window.api.logError(`External game update state failed: ${String(error)}`)
+      })
+    void this.refreshGameUpdates()
 
     if (legendaryUser || gogUser || amazonUser || (zoom.enabled && zoomUser) || steamUser) {
       this.refreshLibrary({
@@ -1499,6 +1555,12 @@ class GlobalState extends PureComponent<Props> {
     }, 120000)
 
     window.api.frontendReady()
+  }
+
+  componentWillUnmount() {
+    this.removeExternalGamesListener?.()
+    this.updateCheckRequest++
+    this.externalSnapshotRevision++
   }
 
   componentDidUpdate() {

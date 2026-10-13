@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { torboxTransferMessage } from 'common/externalDownloadStatus'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -146,7 +147,7 @@ export default function ExternalDownloads({
               )}
               {job.status === 'downloading' && job.transferPhase === 'torrent' && <p role="status">Obtendo o torrent de {job.game.providerName}… Na janela do site, entre na conta se necessário e escolha Torrent.</p>}
               {job.status === 'downloading' && job.transferPhase === 'remote' && <>
-                <p role="status">Preparando no TorBox{job.remoteProgress !== undefined ? ` · ${Math.round(job.remoteProgress * 100)}%` : ''}{job.remoteStatus ? ` · ${job.remoteStatus}` : ''}</p>
+                <p role="status">{torboxTransferMessage(job)}{job.remoteProgress !== undefined ? ` · ${Math.round(job.remoteProgress * 100)}%` : ''}{job.remoteStatus ? ` · ${job.remoteStatus}` : ''}</p>
                 <progress aria-label="Preparação no TorBox" max={1} value={job.remoteProgress} />
               </>}
               {job.status === 'downloading' && (!job.transferPhase || job.transferPhase === 'local') && (

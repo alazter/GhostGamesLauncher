@@ -1,4 +1,5 @@
 import { externalErrorMessage } from 'common/externalErrors'
+import { torboxTransferMessage } from 'common/externalDownloadStatus'
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -215,6 +216,7 @@ export default function ExternalActiveCard({
 
   const isRemoteTorbox = job.transport === 'torbox' && job.transferPhase === 'remote'
   const isLocalTorbox = job.transport === 'torbox' && job.transferPhase === 'local'
+  const transferMessage = torboxTransferMessage(job)
 
   const progress = isRemoteTorbox
     ? (job.remoteProgress !== undefined ? Math.min(100, Math.round(job.remoteProgress * 100)) : 0)
@@ -567,6 +569,7 @@ export default function ExternalActiveCard({
                   Instalação antiga removida. O jogo ficará indisponível até reinstalar. <span className="dmHighlightText">Backup dos saves preservado</span>.
                   {isRemoteTorbox && (
                     <>
+                      {' · '}{transferMessage}
                       {' · '}
                       <button
                         type="button"
@@ -588,7 +591,7 @@ export default function ExternalActiveCard({
                   title="O TorBox está baixando o torrent na nuvem. Você pode trocar para download direto a qualquer momento se houver fonte direta disponível."
                 >
                   <FontAwesomeIcon icon={faCloud} style={{ color: '#00ffff', marginRight: '6px' }} />
-                  Baixando na nuvem TorBox. Preferir alta velocidade imediata?{' '}
+                  {transferMessage}{' '}
                   <button
                     type="button"
                     className="dmActiveMigrateLinkBtn"
@@ -638,7 +641,7 @@ export default function ExternalActiveCard({
                   className="dmExternalNoticeBanner"
                   title={`Obtendo torrent de ${job.game.providerName}. Na janela do site, entre na conta se necessário e escolha Torrent.`}
                 >
-                  Obtendo torrent de {job.game.providerName}. Na janela do site, escolha Torrent.
+                  Obtendo automaticamente o torrent de {job.game.providerName}. Entre na conta na janela do site se necessário.
                 </p>
               )}
               {job.status === 'downloading' && ['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && !job.transferPhase && (

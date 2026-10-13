@@ -5,7 +5,8 @@ import { join } from 'path'
 import { BrowserWindow, session } from 'electron'
 import { AnkerAccount, directDownloadManifest } from '../ankerAccount'
 import { NetworkGuard } from '../networkGuard'
-import { loadAnkerPage } from '../ankerNavigation'
+import { loadAnkerPage, evaluateAnkerPage } from '../ankerNavigation'
+import { resolveOnlineFixTorrentLink } from '../onlineFixTorrent'
 import { ROM_SOURCES, romSource } from '../romSources'
 import * as rangeTransfer from '../rangedDownload'
 import {
@@ -15,8 +16,10 @@ import {
 } from '../onlineFixAccount'
 
 jest.mock('../ankerNavigation', () => ({
-  loadAnkerPage: jest.fn().mockResolvedValue(undefined)
+  loadAnkerPage: jest.fn().mockResolvedValue(undefined),
+  evaluateAnkerPage: jest.fn().mockResolvedValue(undefined)
 }))
+jest.mock('../onlineFixTorrent', () => ({ resolveOnlineFixTorrentLink: jest.fn() }))
 jest.mock('electron', () => {
   const { EventEmitter } = jest.requireActual<typeof import('events')>('events')
   const isolated = Object.assign(new EventEmitter(), {
@@ -31,7 +34,9 @@ jest.mock('electron', () => {
       webContents: Object.assign(new EventEmitter(), {
         id: ++id,
         session: isolated,
-        setWindowOpenHandler: jest.fn()
+        setWindowOpenHandler: jest.fn(),
+        executeJavaScript: jest.fn(),
+        getURL: jest.fn()
       }),
       isDestroyed: () => destroyed,
       destroy: jest.fn(() => {
@@ -53,6 +58,61 @@ beforeEach(() => {
     .mocked(BrowserWindow)
     .mockImplementation(jest.requireMock('electron').makeWindow)
   jest.mocked(loadAnkerPage).mockResolvedValue(undefined)
+  jest.mocked(evaluateAnkerPage).mockResolvedValue(undefined)
+})
+
+it('automatically follows the Online-Fix torrent directory on port 2053 and captures its file', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ghost-onlinefix-auto-'))
+  const destination = join(directory, 'source.torrent')
+  const controller = new AbortController()
+  const constructor = jest.mocked(BrowserWindow)
+  const before = constructor.mock.results.length
+  const page = 'https://online-fix.me/games/strategy/18267-uno-online.html'
+  const folder = 'https://uploads.online-fix.me:2053/torrents/UNO/'
+  const file = `${folder}UNO.Build.12012023-OFME.torrent`
+  const task = OnlineFixAccount.torrent(page, destination, controller.signal)
+  const outcome = task.catch(error => error as Error)
+  try {
+    for (let i = 0; i < 100 && constructor.mock.results.length === before; i++)
+      await new Promise(resolve => setTimeout(resolve, 5))
+    const parent = constructor.mock.results[before].value as BrowserWindow
+    jest.mocked(parent.webContents.getURL).mockReturnValue(page)
+    jest.mocked(evaluateAnkerPage).mockResolvedValue({ url: page, html: `<a href="${folder}">Torrent</a>` })
+    jest.mocked(resolveOnlineFixTorrentLink).mockResolvedValue(folder)
+    parent.webContents.emit('dom-ready')
+    for (let i = 0; i < 100 && !jest.mocked(parent.loadURL).mock.calls.length; i++)
+      await new Promise(resolve => setTimeout(resolve, 5))
+    expect(parent.loadURL).toHaveBeenCalledWith(folder, { httpReferrer: page })
+    expect(parent.webContents.executeJavaScript).not.toHaveBeenCalled()
+    const popup = jest.mocked(parent.webContents.setWindowOpenHandler).mock.calls[0][0]
+    expect(popup({ url: folder } as Electron.HandlerDetails).action).toBe('allow')
+    const gateway = 'https://loot-reward.com/t?cc=fixture'
+    expect(popup({ url: gateway } as Electron.HandlerDetails).action).toBe('deny')
+    const navigation = { preventDefault: jest.fn() }
+    parent.webContents.emit('will-navigate', navigation, gateway)
+    expect(navigation.preventDefault).toHaveBeenCalled()
+    const decision = jest.fn()
+    const request = jest.mocked(session.fromPartition('unused').webRequest.onBeforeRequest).mock.calls.at(-1)![0]
+    expect(request).not.toBeNull()
+    request!({ url: folder } as Electron.OnBeforeRequestListenerDetails, decision)
+    expect(decision).toHaveBeenCalledWith({ cancel: false })
+    request!({ url: gateway } as Electron.OnBeforeRequestListenerDetails, decision)
+    expect(decision).toHaveBeenLastCalledWith({ cancel: true })
+    const download = Object.assign(new EventEmitter(), {
+      getFilename: () => 'UNO.torrent', getURL: () => page,
+      getURLChain: () => [page, file], getTotalBytes: () => 100,
+      getReceivedBytes: () => 100, setSavePath: jest.fn(), cancel: jest.fn()
+    })
+    session.fromPartition('unused').emit('will-download', {}, download, parent.webContents)
+    await writeFile(destination, 'd4:infod6:lengthi1e4:name8:game.zipee')
+    download.emit('done', {}, 'completed')
+    expect(Buffer.isBuffer(await outcome)).toBe(true)
+    expect(download.setSavePath).toHaveBeenCalledWith(destination)
+  } finally {
+    controller.abort()
+    await outcome
+    await rm(directory, { recursive: true, force: true })
+  }
 })
 
 it('restricts Online-Fix pages and torrent hosts', () => {
@@ -101,7 +161,7 @@ it.each([true, false])(
       parent.webContents.emit('did-create-window', child)
       const download = Object.assign(new EventEmitter(), {
         getFilename: () => 'game.torrent',
-        getURL: () => 'https://uploads.online-fix.me/game.torrent',
+        getURL: () => 'https://uploads.online-fix.me:2053/torrents/Test/game.torrent',
         getTotalBytes: () => 100,
         getReceivedBytes: () => 100,
         setSavePath: jest.fn(),
@@ -157,17 +217,36 @@ it('permits the observed FileDitch relay only in the SteamRIP download manifest'
     directDownloadManifest(true)).allowed).toBe(false)
 })
 
-it.each(['anker', 'steamrip', 'steamrip-fileditch', ...ROM_SOURCES.map(source => source.id)])(
+it('permits the observed MegaDB file server only in the SteamRIP download manifest', () => {
+  const file = 'https://fs4.megadb.xyz/files/fixture/iRacing-Arcade.rar'
+  expect(
+    NetworkGuard.validateUrl(file, directDownloadManifest(true)).allowed
+  ).toBe(true)
+  expect(
+    NetworkGuard.validateUrl(file, directDownloadManifest(false)).allowed
+  ).toBe(false)
+  for (const url of [
+    'https://fs4.megadb.xyz.evil.test/game.rar',
+    'https://fs5.megadb.xyz/game.rar',
+    'https://megadb.xyz/game.rar'
+  ]) {
+    expect(
+      NetworkGuard.validateUrl(url, directDownloadManifest(true)).allowed
+    ).toBe(false)
+  }
+})
+
+it.each(['anker', 'steamrip', 'steamrip-fileditch', 'steamrip-megadb', ...ROM_SOURCES.map(source => source.id)])(
   'captures a %s file from a permitted child window without replacing POST navigation',
   async (provider) => {
-    const actualProvider = provider === 'steamrip-fileditch' ? 'steamrip' : provider
+    const actualProvider = provider.startsWith('steamrip-') ? 'steamrip' : provider
     const directory = await mkdtemp(join(tmpdir(), 'ghost-direct-test-'))
     const controller = new AbortController()
     const constructor = jest.mocked(BrowserWindow)
     const before = constructor.mock.results.length
     const progress = jest.fn()
     const rom = romSource(provider)
-    const extension = rom ? 'nsp' : provider === 'steamrip-fileditch' ? 'rar' : 'zip'
+    const extension = rom ? 'nsp' : provider.startsWith('steamrip-') ? 'rar' : 'zip'
     const task = AnkerAccount.direct(
       rom ? `https://${rom.domain}/test-game/` : provider === 'anker'
         ? 'https://ankergames.net/game/test'
@@ -192,7 +271,9 @@ it.each(['anker', 'steamrip', 'steamrip-fileditch', ...ROM_SOURCES.map(source =>
           ? 'https://tunnel5.dlproxy.uk/game.zip'
           : provider === 'steamrip-fileditch'
             ? 'https://blehpooffileditch.org/balpha4/fixture/Ball-x-Pit-SteamRIP.com.rar'
-            : 'https://store1.gofile.io/game.zip'
+            : provider === 'steamrip-megadb'
+              ? 'https://fs4.megadb.xyz/files/fixture/iRacing-Arcade.rar'
+              : 'https://store1.gofile.io/game.zip'
       const options = handler({
         url: fileUrl,
         postBody: { data: [] }
@@ -207,6 +288,18 @@ it.each(['anker', 'steamrip', 'steamrip-fileditch', ...ROM_SOURCES.map(source =>
       const decision = jest.fn()
       requestGuard({ url: fileUrl, resourceType: 'mainFrame' }, decision)
       expect(decision).toHaveBeenCalledWith({ cancel: false })
+      if (provider === 'steamrip-megadb') {
+        const navigation = { preventDefault: jest.fn() }
+        parent.webContents.emit('will-navigate', navigation, fileUrl)
+        parent.webContents.emit('will-redirect', navigation, fileUrl)
+        expect(navigation.preventDefault).not.toHaveBeenCalled()
+        const httpUrl = fileUrl.replace('https:', 'http:')
+        expect(handler({ url: httpUrl } as Electron.HandlerDetails).action).toBe(
+          'deny'
+        )
+        requestGuard({ url: httpUrl, resourceType: 'mainFrame' }, decision)
+        expect(decision).toHaveBeenLastCalledWith({ cancel: true })
+      }
       expect(parent.loadURL).not.toHaveBeenCalled()
       expect(
         handler({
