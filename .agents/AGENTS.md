@@ -1,9 +1,5 @@
 # Custom Rules & Active Reminders
 
-## 📌 Lembrete Ativo Amanhã (Primeira Mensagem da Próxima Sessão)
-- **Criação de Plugin de Download de Jogos**: Lembrar o usuário logo no início da próxima sessão sobre a **criação do plugin para baixar jogos**, utilizando as regras oficiais e o SDK da Sandbox do Ghost para testarmos se todo o ecossistema (manifesto, busca de jogos, resolução de fontes Direta/TorBox/Magnet, sandbox GhostShield e download) está 100% correto e funcional.
-- **Validação do Plano da Biblioteca**: Lembrar o usuário logo no início da conversa de amanhã sobre o plano de validação da Biblioteca: testar a navegação fluida (scroll da roda do mouse, barra de rolagem, teclado e controle de videogame) nos 1.463+ jogos para comprovar a eliminação definitiva do lag (60-120 FPS constante) e o carregamento 100% automático das capas via `IntersectionObserver` nativo em C++ sem layout thrashing.
-
 ## Central Skills & Chronic Error Protocol (`C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher`)
 - **Intocabilidade do Tamanho das Capas da Biblioteca (Regra Canônica 62)**: NUNCA alterar o tamanho, largura, altura ou proporção (`aspect-ratio: 173/275`) das capas da Biblioteca. Qualquer alteração só pode ser feita se for **explicitamente solicitada pelo usuário**, e o assistente DEVE **confirmar a ação com o usuário antes de aplicar qualquer alteração** no tamanho das capas.
 - **Pre-Implementation Consultation**: Before creating, refactoring, or modifying ANY feature, UI element, or backend logic, ALWAYS consult the skills directory `C:\Users\alazt\Documents\GitHub\Skills\Ghost Games Launcher\` (specifically `regras.md`, `erros_corrigidos.md`, `conquistas_e_solucoes.md`, `sistema_update.md`, `sistema_scaneamento.md`, `designer_interface.md`, `relatorios_bugs.md`) to verify that no existing rules, design preferences, or chronic bug prevention patterns are violated.
