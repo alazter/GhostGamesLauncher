@@ -7,6 +7,12 @@ import { onlineFixGameUrl, onlineFixDownloadUrl, isOnlineFixTorrentUrl } from '.
 import { resolveOnlineFixTorrentLink } from './onlineFixTorrent'
 export { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl, onlineFixDownloadUrl } from './onlineFixUrls'
 
+function requiresOnlineFixInteraction(html: string): boolean {
+  return /challenges\.cloudflare\.com|cf-turnstile|Just a moment\.\.\.|Verify you are human|<form[^>]+(?:name="login"|action*="login")|Login required|Faça login para baixar/i.test(
+    html
+  )
+}
+
 export class OnlineFixAccount {
   private static busy = false
   static async torrent(
@@ -49,8 +55,14 @@ export class OnlineFixAccount {
     const family = new Set<BrowserWindow>([window])
     let item: DownloadItem | undefined
     let active = true
+    let verified = false
     const resolving = new Set<number>()
     const followed = new Set<string>()
+    const reveal = setTimeout(() => {
+      if (!verified && !window.isDestroyed() && !item) {
+        window.show()
+      }
+    }, 8000)
     const automate = async (member: BrowserWindow) => {
       if (!active || item || member.isDestroyed() || resolving.has(member.webContents.id)) return
       resolving.add(member.webContents.id)
@@ -65,9 +77,15 @@ export class OnlineFixAccount {
         if (!active || item || member.isDestroyed() || signal.aborted) return
         if (member.webContents.getURL() !== snapshot.url) return
         if (!target) {
-          // Keep successful captures silent. Show only the official page that
-          // needs login, a challenge, or a file choice by the user.
-          if (onlineFixDownloadUrl(snapshot.url) && !member.isVisible()) member.show()
+          // Keep successful captures silent. Show only when manual interaction
+          // (such as a captcha, cloudflare challenge, or explicit login form) is required.
+          if (
+            onlineFixDownloadUrl(snapshot.url) &&
+            !member.isVisible() &&
+            requiresOnlineFixInteraction(snapshot.html)
+          ) {
+            member.show()
+          }
           return
         }
         if (followed.has(target) || followed.size >= 3) return
@@ -120,7 +138,6 @@ export class OnlineFixAccount {
       })
     }
     configure(window)
-    let verified = false
     let rejectTask: (error: Error) => void = () => undefined
     const abort = () =>
       rejectTask(new Error('Obtenção do torrent Online-Fix interrompida.'))
@@ -214,6 +231,7 @@ export class OnlineFixAccount {
       return file
     } finally {
       active = false
+      clearTimeout(reveal)
       clearTimeout(timer)
       signal.removeEventListener('abort', abort)
       isolated.removeListener('will-download', onDownload)

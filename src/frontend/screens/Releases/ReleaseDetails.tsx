@@ -11,6 +11,7 @@ import {
   faGamepad,
   faGlobe,
   faPlay,
+  faSearch,
   faTv,
   faXmark
 } from '@fortawesome/free-solid-svg-icons'
@@ -36,6 +37,7 @@ interface Props {
     region: ReleaseRegion
   ) => boolean
   onMonitor: (product: ReleaseProduct, platform?: string | null) => void
+  onSearchExternal?: (title: string) => void
   onClose: () => void
   onExpand: () => void
   onRegion: (region: ReleaseRegion) => void
@@ -161,20 +163,33 @@ export default function ReleaseDetails(props: Props) {
                     </span>
                   )}
                 </div>
-                <button
-                  className="nr-product-follow"
-                  aria-pressed={followed}
-                  aria-label={`${followed ? 'Deixar de monitorar' : 'Monitorar'} todas as plataformas de ${product.title}`}
-                  title={
-                    followed
-                      ? 'Deixar de monitorar todas as plataformas'
-                      : 'Monitorar todas as plataformas'
-                  }
-                  onClick={() => props.onMonitor(product)}
-                >
-                  <Icon icon={followed ? faCheck : faBell} />{' '}
-                  {product.popularity || (followed ? 'Salvo' : 'Seguir')}
-                </button>
+                <div className="nr-product-actions">
+                  <button
+                    className="nr-product-follow"
+                    aria-pressed={followed}
+                    aria-label={`${followed ? 'Deixar de monitorar' : 'Monitorar'} todas as plataformas de ${product.title}`}
+                    title={
+                      followed
+                        ? 'Deixar de monitorar todas as plataformas'
+                        : 'Monitorar todas as plataformas'
+                    }
+                    onClick={() => props.onMonitor(product)}
+                  >
+                    <Icon icon={followed ? faCheck : faBell} />{' '}
+                    {product.popularity || (followed ? 'Salvo' : 'Seguir')}
+                  </button>
+                  {product.category === 'games' && props.onSearchExternal && (
+                    <button
+                      type="button"
+                      className="nr-product-search"
+                      aria-label={`Buscar ${product.title} na página Buscar jogos`}
+                      title={`Buscar "${product.title}" na página Buscar jogos`}
+                      onClick={() => props.onSearchExternal!(product.title)}
+                    >
+                      <Icon icon={faSearch} /> Buscar na loja
+                    </button>
+                  )}
+                </div>
               </div>
             </header>
             {props.busy && (

@@ -109,18 +109,62 @@
 .nr-detail .nr-product-status {
   color: var(--nr-detail-date);
 }
-.nr-detail .nr-product-follow {
+.nr-detail .nr-product-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 18px;
-  padding: 5px 8px;
-  min-height: 30px;
-  border-color: #625184;
+  flex-wrap: wrap;
+}
+.nr-detail .nr-product-follow {
+  padding: 5px 10px;
+  min-height: 32px;
+  border-radius: 6px;
+  border: 1px solid #625184;
   font-size: 12px;
   background: #0d0b22;
   color: var(--nr-detail-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .nr-detail .nr-product-follow[aria-pressed='true'] {
   background: #6724da;
   color: #fff;
+  border-color: #8b5cf6;
+}
+.nr-detail .nr-product-search {
+  padding: 5px 12px;
+  min-height: 32px;
+  border-radius: 6px;
+  border: 1px solid #55447a;
+  font-size: 12px;
+  background: #241b3d;
+  color: #cbb8ff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nr-detail .nr-product-search:hover {
+  background: #38d9e622;
+  border-color: #38d9e6;
+  color: #38d9e6;
+  box-shadow: 0 0 10px rgba(56, 217, 230, 0.45);
+}
+.NativeReleases--light .nr-detail .nr-product-search {
+  color: #433268;
+  background: #e9e3f5;
+  border-color: #c5b6e2;
+}
+.NativeReleases--light .nr-detail .nr-product-search:hover {
+  color: #0b7285;
+  background: #e6fcf5;
+  border-color: #20c997;
+  box-shadow: 0 0 10px rgba(32, 201, 151, 0.35);
 }
 .nr-detail .nr-product-description {
   margin: 30px 0;

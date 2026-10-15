@@ -77,39 +77,95 @@ type View = ReleaseView
 interface Preferences {
   category: string
   platforms: string[]
+  platformsByCategory?: Record<string, string[]>
   region: ReleaseRegion
   layout: ReleaseLayout
   theme: 'dark' | 'light'
 }
 function preferences(): Preferences {
   try {
-    const saved = JSON.parse(
-      localStorage.getItem('ghost_releases_preferences_v1') || '{}'
-    )
-    return {
-      category: RELEASE_CATEGORIES.some((c) => c.id === saved.category)
-        ? saved.category
-        : 'games',
-      platforms: Array.isArray(saved.platforms)
-        ? [
-            ...new Set<string>(
-              saved.platforms.filter(
-                (value: unknown) =>
-                  typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value)
+    let saved: Record<string, any> = {}
+    const localRaw = localStorage.getItem('ghost_releases_preferences_v1')
+    if (localRaw) {
+      try {
+        saved = JSON.parse(localRaw)
+      } catch {
+        saved = {}
+      }
+    }
+
+    let storedConfig: Record<string, any> | undefined
+    try {
+      storedConfig = window.api?.storeGet?.('configStore', 'releasesPreferences') as
+        | Record<string, any>
+        | undefined
+    } catch {
+      storedConfig = undefined
+    }
+
+    const merged = {
+      ...(storedConfig && typeof storedConfig === 'object' ? storedConfig : {}),
+      ...(saved && typeof saved === 'object' ? saved : {})
+    }
+
+    const category = RELEASE_CATEGORIES.some((c) => c.id === merged.category)
+      ? merged.category
+      : 'games'
+
+    const platformsByCategory: Record<string, string[]> = {}
+    const sources = [storedConfig?.platformsByCategory, saved?.platformsByCategory]
+    for (const source of sources) {
+      if (source && typeof source === 'object') {
+        for (const [cat, list] of Object.entries(source)) {
+          if (Array.isArray(list)) {
+            platformsByCategory[cat] = [
+              ...new Set<string>(
+                list.filter(
+                  (value: unknown) =>
+                    typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value)
+                )
               )
+            ].slice(0, 50)
+          }
+        }
+      }
+    }
+
+    const activeList = Array.isArray(merged.platforms)
+      ? [
+          ...new Set<string>(
+            merged.platforms.filter(
+              (value: unknown) =>
+                typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value)
             )
-          ].slice(0, 50)
-        : typeof saved.platform === 'string' && saved.platform
-          ? [saved.platform]
-          : [],
-      region: saved.region === 'uk' ? 'uk' : 'us',
-      layout: ['items', 'rows'].includes(saved.layout) ? saved.layout : 'cards',
-      theme: saved.theme === 'light' ? 'light' : 'dark'
+          )
+        ].slice(0, 50)
+      : typeof merged.platform === 'string' && merged.platform
+        ? [merged.platform]
+        : []
+
+    if (activeList.length > 0 && !platformsByCategory[category]) {
+      platformsByCategory[category] = activeList
+    }
+
+    const resolvedPlatforms =
+      platformsByCategory[category] && platformsByCategory[category].length > 0
+        ? platformsByCategory[category]
+        : activeList
+
+    return {
+      category,
+      platforms: resolvedPlatforms,
+      platformsByCategory,
+      region: merged.region === 'uk' ? 'uk' : 'us',
+      layout: ['items', 'rows'].includes(merged.layout) ? merged.layout : 'cards',
+      theme: merged.theme === 'light' ? 'light' : 'dark'
     }
   } catch {
     return {
       category: 'games',
       platforms: [],
+      platformsByCategory: {},
       region: 'us',
       layout: 'cards',
       theme: 'dark'
@@ -532,11 +588,46 @@ export default function NativeReleases() {
     }
   }, [selectedId, prefs.region])
 
+  useEffect(() => {
+    try {
+      const stored = window.api?.storeGet?.('configStore', 'releasesPreferences') as
+        | Preferences
+        | undefined
+      if (stored && typeof stored === 'object') {
+        const local = preferences()
+        const mergedPlatformsMap = {
+          ...(stored.platformsByCategory || {}),
+          ...(local.platformsByCategory || {})
+        }
+        const activeCat = local.category || stored.category || 'games'
+        const activePlats =
+          local.platforms.length > 0
+            ? local.platforms
+            : mergedPlatformsMap[activeCat] || stored.platforms || []
+        const merged: Preferences = {
+          ...local,
+          ...stored,
+          category: activeCat,
+          platforms: activePlats,
+          platformsByCategory: mergedPlatformsMap
+        }
+        setPrefs(merged)
+        localStorage.setItem(
+          'ghost_releases_preferences_v1',
+          JSON.stringify(merged)
+        )
+      }
+    } catch {}
+  }, [])
+
   const changePrefs = (next: Partial<Preferences>) => {
     const value = { ...prefs, ...next }
     setPrefs(value)
     localStorage.setItem('ghost_releases_preferences_v1', JSON.stringify(value))
-    window.api.storeSet('configStore', 'backup.lastModified', Date.now())
+    try {
+      window.api?.storeSet?.('configStore', 'releasesPreferences', value)
+      window.api?.storeSet?.('configStore', 'backup.lastModified', Date.now())
+    } catch {}
     void syncLocalStorageToBackend().catch(() =>
       setSyncMessage(
         'Preferências salvas localmente; não foi possível prepará-las para backup.'
@@ -913,10 +1004,17 @@ export default function NativeReleases() {
         tracked={tracked}
         tracking={view === 'tracking'}
         onCategory={(category) => {
-          changePrefs({ category, platforms: [] })
+          const restoredPlatforms = prefs.platformsByCategory?.[category] || []
+          changePrefs({ category, platforms: restoredPlatforms })
           setTag('')
         }}
-        onPlatforms={(platforms) => changePrefs({ platforms })}
+        onPlatforms={(platforms) => {
+          const updatedMap = {
+            ...(prefs.platformsByCategory || {}),
+            [prefs.category]: platforms
+          }
+          changePrefs({ platforms, platformsByCategory: updatedMap })
+        }}
         onRegion={(region) => changePrefs({ region })}
         onTheme={() =>
           changePrefs({ theme: prefs.theme === 'dark' ? 'light' : 'dark' })
@@ -926,6 +1024,16 @@ export default function NativeReleases() {
         onCalendar={() => {
           setView('calendar')
           setSearch('')
+          if (prefs.category === 'all') {
+            const targetCategory = 'games'
+            const restored = prefs.platformsByCategory?.[targetCategory] || []
+            changePrefs({ category: targetCategory, platforms: restored })
+          } else if (
+            !prefs.platforms.length &&
+            prefs.platformsByCategory?.[prefs.category]?.length
+          ) {
+            changePrefs({ platforms: prefs.platformsByCategory[prefs.category] })
+          }
         }}
         onTracking={(category = 'all', platform = '') => {
           trackingAnchorContext.current = null
@@ -1290,6 +1398,22 @@ export default function NativeReleases() {
                                     </span>
                                   </button>
                                   {product.category === 'games' && (
+                                    <button
+                                      type="button"
+                                      className="nr-card-search"
+                                      title={`Buscar "${product.title}" na página Buscar jogos`}
+                                      aria-label={`Buscar ${product.title} na página Buscar jogos`}
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        navigate(
+                                          `/external-games?q=${encodeURIComponent(product.title)}`
+                                        )
+                                      }}
+                                    >
+                                      <Icon icon={faSearch} />
+                                    </button>
+                                  )}
+                                  {product.category === 'games' && (
                                     <ReleaseDrmBadge
                                       product={product}
                                       onOpen={() => setSelected(product)}
@@ -1408,6 +1532,10 @@ export default function NativeReleases() {
             expanded={detailExpanded}
             isTracked={isReleaseTracked}
             onMonitor={monitor}
+            onSearchExternal={(title) => {
+              setSelected(null)
+              navigate(`/external-games?q=${encodeURIComponent(title)}`)
+            }}
             onClose={() => setSelected(null)}
             onExpand={() => setDetailExpanded(!detailExpanded)}
             onRegion={(region) => changePrefs({ region })}

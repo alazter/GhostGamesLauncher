@@ -71,3 +71,20 @@ it('accepts historical dates without a current-year floor and retains backward c
     '/partial/Releases.Www.PL.Calendar.Group?Code=Y2002-M9-D1&Category=games&Direction=Backward&F=v%3APC'
   expect(catalogUrl({ cursor })).toBe('https://www.releases.com' + cursor)
 })
+
+it('generates the exact query with PC and PC Early Access platforms preserved', () => {
+  const url = new URL(
+    catalogUrl({
+      category: 'games',
+      platforms: ['PC', 'PC (Early Access)'],
+      date: '2026-10-15',
+      region: 'us'
+    })
+  )
+  expect(url.pathname).toBe('/calendar/games')
+  expect(url.searchParams.getAll('f')).toEqual([
+    'v:PC',
+    'v:PC (Early Access)'
+  ])
+  expect(url.searchParams.get('at')).toBe('2026-oct-15')
+})

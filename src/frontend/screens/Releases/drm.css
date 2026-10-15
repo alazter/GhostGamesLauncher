@@ -41,7 +41,8 @@
   flex-wrap: nowrap;
   min-width: 0;
 }
-.nr-workspace .nr-products--cards .nr-card-actions .nr-card-play {
+.nr-workspace .nr-products--cards .nr-card-actions .nr-card-play,
+.nr-workspace .nr-products--cards .nr-card-actions .nr-card-search {
   width: 28px;
   min-width: 28px;
 }

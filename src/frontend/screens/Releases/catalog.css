@@ -398,6 +398,26 @@
   background: #302254;
   border-color: #3d2e64;
 }
+.nr-workspace .nr-card-actions .nr-card-search {
+  width: 32px;
+  min-width: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #241b3d;
+  border: 1px solid #55447a;
+  color: #cbb8ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nr-workspace .nr-card-actions .nr-card-search:hover {
+  background: #38d9e622;
+  border-color: #38d9e6;
+  color: #38d9e6;
+  box-shadow: 0 0 10px rgba(56, 217, 230, 0.45);
+}
 .nr-workspace .nr-card-actions button:hover {
   background: #59339b;
   border-color: #9775da;
@@ -406,6 +426,17 @@
   background: var(--nr-accent);
   border-color: #9973dc;
   color: #fff;
+}
+.NativeReleases--light .nr-workspace .nr-card-actions .nr-card-search {
+  color: #433268;
+  background: #e9e3f5;
+  border-color: #c5b6e2;
+}
+.NativeReleases--light .nr-workspace .nr-card-actions .nr-card-search:hover {
+  color: #0b7285;
+  background: #e6fcf5;
+  border-color: #20c997;
+  box-shadow: 0 0 10px rgba(32, 201, 151, 0.35);
 }
 .nr-workspace .nr-card-date {
   margin-left: 0;
