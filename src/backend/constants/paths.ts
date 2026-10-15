@@ -52,6 +52,7 @@ export const publicDir = resolve(
 const preloadDir = resolve(__dirname, '..', 'preload')
 
 export const mainPreloadPath = join(preloadDir, 'index.js')
+export const directDownloadLearningPreloadPath = join(preloadDir, 'directDownloadLearning.js')
 
 export const fakeEpicExePath = fixAsarPath(
   join(publicDir, 'bin', 'x64', 'win32', 'EpicGamesLauncher.exe')

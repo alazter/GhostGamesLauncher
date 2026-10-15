@@ -5,6 +5,7 @@ import { join } from 'path'
 import { BrowserWindow, session } from 'electron'
 import { AnkerAccount, directDownloadManifest } from '../ankerAccount'
 import { NetworkGuard } from '../networkGuard'
+jest.mock('backend/constants/paths', () => ({ userDataPath: require('path').join(require('os').tmpdir(), 'ghost-direct-learning-unit'), directDownloadLearningPreloadPath: '/isolated/directDownloadLearning.js' }))
 import { loadAnkerPage, evaluateAnkerPage } from '../ankerNavigation'
 import { resolveOnlineFixTorrentLink } from '../onlineFixTorrent'
 import { ROM_SOURCES, romSource } from '../romSources'
@@ -30,6 +31,7 @@ jest.mock('electron', () => {
   let id = 0
   const makeWindow = () => {
     let destroyed = false
+    let visible = false
     return Object.assign(new EventEmitter(), {
       webContents: Object.assign(new EventEmitter(), {
         id: ++id,
@@ -42,7 +44,9 @@ jest.mock('electron', () => {
       destroy: jest.fn(() => {
         destroyed = true
       }),
-      hide: jest.fn(),
+      isVisible: () => visible,
+      show: jest.fn(() => { visible = true }),
+      hide: jest.fn(() => { visible = false }),
       loadURL: jest.fn()
     })
   }
@@ -76,6 +80,7 @@ it('automatically follows the Online-Fix torrent directory on port 2053 and capt
     for (let i = 0; i < 100 && constructor.mock.results.length === before; i++)
       await new Promise(resolve => setTimeout(resolve, 5))
     const parent = constructor.mock.results[before].value as BrowserWindow
+    expect(constructor.mock.calls[before][0]?.show).toBe(false)
     jest.mocked(parent.webContents.getURL).mockReturnValue(page)
     jest.mocked(evaluateAnkerPage).mockResolvedValue({ url: page, html: `<a href="${folder}">Torrent</a>` })
     jest.mocked(resolveOnlineFixTorrentLink).mockResolvedValue(folder)
@@ -85,7 +90,9 @@ it('automatically follows the Online-Fix torrent directory on port 2053 and capt
     expect(parent.loadURL).toHaveBeenCalledWith(folder, { httpReferrer: page })
     expect(parent.webContents.executeJavaScript).not.toHaveBeenCalled()
     const popup = jest.mocked(parent.webContents.setWindowOpenHandler).mock.calls[0][0]
-    expect(popup({ url: folder } as Electron.HandlerDetails).action).toBe('allow')
+    const popupOptions = popup({ url: folder } as Electron.HandlerDetails)
+    expect(popupOptions.action).toBe('allow')
+    expect(popupOptions.overrideBrowserWindowOptions?.show).toBe(false)
     const gateway = 'https://loot-reward.com/t?cc=fixture'
     expect(popup({ url: gateway } as Electron.HandlerDetails).action).toBe('deny')
     const navigation = { preventDefault: jest.fn() }
@@ -108,6 +115,38 @@ it('automatically follows the Online-Fix torrent directory on port 2053 and capt
     download.emit('done', {}, 'completed')
     expect(Buffer.isBuffer(await outcome)).toBe(true)
     expect(download.setSavePath).toHaveBeenCalledWith(destination)
+    expect(parent.show).not.toHaveBeenCalled()
+  } finally {
+    controller.abort()
+    await outcome
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+it('reveals the official Online-Fix page only when automatic resolution needs manual interaction', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ghost-onlinefix-manual-'))
+  const controller = new AbortController()
+  const constructor = jest.mocked(BrowserWindow)
+  const before = constructor.mock.results.length
+  const page = 'https://online-fix.me/games/test.html'
+  const task = OnlineFixAccount.torrent(page, join(directory, 'source.torrent'), controller.signal)
+  const outcome = task.catch(error => error as Error)
+  try {
+    for (let i = 0; i < 100 && constructor.mock.results.length === before; i++)
+      await new Promise(resolve => setTimeout(resolve, 5))
+    const parent = constructor.mock.results[before].value as BrowserWindow
+    jest.mocked(parent.webContents.getURL).mockReturnValue(page)
+    jest.mocked(evaluateAnkerPage).mockResolvedValue({ url: page, html: '<form>Login required</form>' })
+    jest.mocked(resolveOnlineFixTorrentLink).mockResolvedValue(undefined)
+    expect(parent.show).not.toHaveBeenCalled()
+    parent.webContents.emit('dom-ready')
+    for (let i = 0; i < 100 && !jest.mocked(parent.show).mock.calls.length; i++)
+      await new Promise(resolve => setTimeout(resolve, 5))
+    expect(parent.show).toHaveBeenCalledTimes(1)
+    expect(parent.loadURL).not.toHaveBeenCalled()
+    controller.abort()
+    expect(await outcome).toBeInstanceOf(Error)
+    expect(parent.destroy).toHaveBeenCalled()
   } finally {
     controller.abort()
     await outcome
@@ -157,6 +196,7 @@ it.each([true, false])(
       )
         await new Promise((resolve) => setTimeout(resolve, 5))
       const parent = constructor.mock.results[before].value as BrowserWindow
+      expect(constructor.mock.calls[before][0]?.show).toBe(false)
       const child = new BrowserWindow()
       parent.webContents.emit('did-create-window', child)
       const download = Object.assign(new EventEmitter(), {
@@ -209,10 +249,10 @@ it('scopes the observed Download Now relay to Anker without trusting lookalike h
     ).toBe(false)
 })
 
-it('permits the observed FileDitch relay only in the SteamRIP download manifest', () => {
+it('shares the observed FileDitch relay across the native direct download sources', () => {
   const file = 'https://blehpooffileditch.org/balpha4/fixture/Ball-x-Pit-SteamRIP.com.rar'
   expect(NetworkGuard.validateUrl(file, directDownloadManifest(true)).allowed).toBe(true)
-  expect(NetworkGuard.validateUrl(file, directDownloadManifest(false)).allowed).toBe(false)
+  expect(NetworkGuard.validateUrl(file, directDownloadManifest(false)).allowed).toBe(true)
   expect(NetworkGuard.validateUrl('https://blehpooffileditch.org.evil.test/game.rar',
     directDownloadManifest(true)).allowed).toBe(false)
 })
@@ -279,6 +319,7 @@ it.each(['anker', 'steamrip', 'steamrip-fileditch', 'steamrip-megadb', ...ROM_SO
         postBody: { data: [] }
       } as unknown as Electron.HandlerDetails)
       expect(options.action).toBe('allow')
+      expect(options.overrideBrowserWindowOptions?.show).toBe(false)
       const requestGuard = jest
         .mocked(session.fromPartition('unused').webRequest.onBeforeRequest)
         .mock.calls.at(-1)![0] as unknown as (

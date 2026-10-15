@@ -84,13 +84,19 @@ export function registerPluginsIPC(): void {
   addHandler('externalGamesLink', async (_event, appName, game) =>
     manager.linkExternalGame(appName, game)
   )
-  addHandler('externalGamesSearch', async (_event, query) =>
-    manager.searchExternalGames(query)
+  addHandler('externalGamesSearch', async (event, query, requestId) =>
+    manager.searchExternalGames(query, requestId ? progress => {
+      if (!event.sender.isDestroyed())
+        event.sender.send('external-games-search-progress', requestId, progress)
+    } : undefined)
   )
   addHandler(
     'externalGamesGetCatalog',
     async (_event, providerId: string, options?: any) =>
       manager.getCatalog(providerId, options)
+  )
+  addHandler('externalGamesGetHomeContent', async (_event, options) =>
+    manager.getHomeContent(options)
   )
   addHandler(
     'externalGamesAddPage',

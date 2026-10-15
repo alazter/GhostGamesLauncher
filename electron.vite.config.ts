@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => ({
       rollupOptions: {
         input: {
           index: 'src/preload/index.ts',
+          directDownloadLearning: 'src/preload/directDownloadLearning.ts',
           webviewPreload: 'src/webviewPreload/index.ts'
         }
       },

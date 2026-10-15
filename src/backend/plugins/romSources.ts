@@ -1,5 +1,6 @@
 import { isSourceUrl, sourceDomains, canonicalSourceUrl } from './sourceSettings'
 import type { PluginManifest } from 'common/types/plugins'
+import { DIRECT_HOSTERS } from './directHosters'
 import { TRUSTED_GAME_MIRROR_DOMAINS } from './networkGuard'
 
 export const ROM_SOURCES = [
@@ -40,6 +41,7 @@ export function romManifest(id: string): PluginManifest {
     allowedDomains: [
       ...sourceDomains(id),
       ...TRUSTED_GAME_MIRROR_DOMAINS,
+      ...Object.values(DIRECT_HOSTERS).flat(),
       ...(source.name === 'RomsLab' ? ['filekeeper.net'] : [])
     ]
   }

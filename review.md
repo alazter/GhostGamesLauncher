@@ -1,4 +1,4 @@
-# Review das Alterações - 13/10/2026
+# Review das Alterações - 15/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -728,89 +728,85 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Desbloqueio de Servidores Finais MegaDB no SteamRIP (`fs4.megadb.xyz`)**: Inclusão de `fs4.megadb.xyz` no manifesto de download assistido do SteamRIP em `ankerAccount.ts`, permitindo que os downloads via MegaDB completem a navegação e entreguem o arquivo ao gerenciador sem bloqueios de segurança.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), novos testes Jest aprovados em `gameUpdateState`, `externalDownloadStatus` e `onlineFixTorrent`, e conformidade estrita com a Regra Canônica 62.
 
+### 46. Vitrine Dinâmica via Scrapling/Obscura, Purga SteamRIP (20 Jogos de Recently Added), Brilho Neon Sem Amarelo e Alinhamento Pixel-Perfect no Cabeçalho
+* **Problema:** A vitrine inicial de "Buscar Jogos" apresentava conteúdos estáticos suscetíveis a quebras caso os sites parceiros mudassem de layout; a prateleira do SteamRIP exibia cards institucionais indesejados ("Top Games", "Recent Updates", "All Games Games Collection", "How to Run Games") no lugar de lançamentos autênticos; o botão de busca de atualizações da loja Piratas ficava apagado durante o carregamento com cor amarela rejeitada pelo usuário; e os botões de ação ("Jogos Sem Classificação" e "Edição em Massa") estavam desalinhados verticalmente em relação aos dropdowns ("Categorias" e "Filtros") no cabeçalho da Biblioteca.
+* **Solução:**
+  - **Vitrine Dinâmica e Resiliente de Buscar Jogos (Conquista 171/Regra 137)**: Integração de Scrapling adaptativo (`adaptiveGames` via `scrapling_worker.py`) e Obscura (`experimentalPage`) contornando Cloudflare com cache em três camadas (RAM + Disco `ghost_home_content_cache.json` + `localStorage`) garantindo 0ms de latência ao abrir e botão `🔄 Atualizar Destaques` com telemetria visual.
+  - **Expurgamento Multicamada de Não-Jogos e 20 Jogos de Recently Added no SteamRIP (Conquista 172/Regra 138)**: Sanitização canônica universal (`isNonGameCard`) eliminando tutoriais e caixas institucionais de ponta a ponta (parser HTML, Scrapling, cache do backend e camada de renderização). Entrega garantida dos 20 primeiros jogos reais cronológicos da seção "Recently Added" com paginação automática e Spotlight Hero refletindo o jogo autêntico #1.
+  - **Brilho Neon Íntegro no Ícone de Atualizações da Loja Piratas (Conquista 173/Regra 139/Erro 136/Seção 78)**: Blindagem com `opacity: 1 !important` e `cursor: wait !important` durante a checagem, expurgo absoluto de cores amarelas hardcoded, e paridade 100% com a paleta configurada pelo usuário (`var(--action-color-1)`, `var(--action-glow-color-1)` ou degradê nativo SVG) preservando a rotação de inércia elástica da caveira.
+  - **Alinhamento Vertical e Geometria Pixel-Perfect no Cabeçalho da Biblioteca (Conquista 174/Regra 140/Erro 137/Seção 79)**: Padronização unificada de altura em `32px !important` para `.Header__actionBtn` e `.Header__dropdownBtn` no modo padrão e neon, eliminando o strut de descendente de linha com `display: inline-flex !important; align-items: center !important; margin: 0 !important; line-height: 1 !important;` e sincronização 1:1 em `themes.scss`.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), testes unitários Jest 100% aprovados e preservação soberana da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
 
-### Configuração e Build
+### Configuração, Documentação e Scripts
 - [MODIFY] [package.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/package.json)
 - [MODIFY] [electron-builder.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron-builder.yml)
+- [MODIFY] [electron.vite.config.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron.vite.config.ts)
 - [MODIFY] [review.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/review.md)
-- [NEW] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
-- [NEW] [docs/RELEASES_SIDEBAR_GUIDE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_SIDEBAR_GUIDE.md)
-
-### Configuração e Build
-- [MODIFY] [package.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/package.json)
-- [MODIFY] [electron-builder.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron-builder.yml)
-- [MODIFY] [review.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/review.md)
-- [NEW] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
-- [NEW] [docs/RELEASES_SIDEBAR_GUIDE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_SIDEBAR_GUIDE.md)
+- [MODIFY] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
+- [MODIFY] [.github/workflows/source-engines.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.github/workflows/source-engines.yml)
+- [MODIFY] [docs/ONLINE_FIX_TORRENT_DOWNLOAD.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ONLINE_FIX_TORRENT_DOWNLOAD.md)
+- [NEW] [docs/ALAZTERFLIX_PLAYER_STREAMING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ALAZTERFLIX_PLAYER_STREAMING.md)
+- [NEW] [docs/DIRECT_DOWNLOAD_ENGINES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DIRECT_DOWNLOAD_ENGINES.md)
+- [NEW] [docs/DIRECT_DOWNLOAD_LEARNING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DIRECT_DOWNLOAD_LEARNING.md)
+- [NEW] [docs/ONLINE_FIX_DIRECT_DOWNLOAD.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ONLINE_FIX_DIRECT_DOWNLOAD.md)
+- [NEW] [docs/SHARED_DIRECT_DOWNLOAD_AUTOMATION.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/SHARED_DIRECT_DOWNLOAD_AUTOMATION.md)
+- [MODIFY] [scripts/engines/prepare_engines.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/prepare_engines.py)
+- [MODIFY] [scripts/engines/runtime_smoke.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/runtime_smoke.ts)
+- [MODIFY] [scripts/engines/scrapling_worker.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/scrapling_worker.py)
+- [NEW] [scripts/engines/direct_download_page.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/direct_download_page.py)
 
 ### Backend & Core
-- [MODIFY] [updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
-- [MODIFY] [main.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main.ts)
-- [MODIFY] [main_window.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main_window.ts)
-- [MODIFY] [constants/paths.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/constants/paths.ts)
-- [MODIFY] [images_cache.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/images_cache.ts)
-- [MODIFY] [game_overrides/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/game_overrides/index.ts)
-- [MODIFY] [scanner.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner.ts)
-- [MODIFY] [scanner_rules.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner_rules.json)
-- [MODIFY] [storeManagers/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/index.ts)
-- [MODIFY] [tray_icon.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/tray_icon/tray_icon.ts)
-- [MODIFY] [types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
-- [MODIFY] [ipc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/ipc.ts)
-- [MODIFY] [progress_bar.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/progress_bar.ts)
-- [MODIFY] [utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils.ts)
-- [MODIFY] [heroicVersion.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/systeminfo/heroicVersion.ts)
-- [MODIFY] [index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/systeminfo/index.ts)
-- [MODIFY] [progress_bar.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/progress_bar.test.ts)
-- [MODIFY] [steamgridHelper.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/steamgridHelper.ts)
-- [MODIFY] [sideload/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/library.ts)
-- [MODIFY] [cloudBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/cloudBackup.ts)
-- [NEW] [backupHelper.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/backupHelper.ts)
+- [MODIFY] [src/backend/constants/paths.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/constants/paths.ts)
+- [MODIFY] [src/backend/plugins/adaptiveSource.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/adaptiveSource.ts)
+- [MODIFY] [src/backend/plugins/ankerAccount.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ankerAccount.ts)
+- [MODIFY] [src/backend/plugins/externalGames.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/externalGames.ts)
+- [MODIFY] [src/backend/plugins/ipcHandler.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ipcHandler.ts)
+- [MODIFY] [src/backend/plugins/mediaStreamServer.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/mediaStreamServer.ts)
+- [MODIFY] [src/backend/plugins/onlineFixAccount.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixAccount.ts)
+- [MODIFY] [src/backend/plugins/pluginManager.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/pluginManager.ts)
+- [MODIFY] [src/backend/plugins/romSources.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/romSources.ts)
+- [MODIFY] [src/backend/plugins/sourceEngines.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceEngines.ts)
+- [MODIFY] [src/backend/plugins/websiteSource.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/websiteSource.ts)
+- [NEW] [src/backend/plugins/browserDownloadAutomation.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/browserDownloadAutomation.ts)
+- [NEW] [src/backend/plugins/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/directDownloadLearning.ts)
+- [NEW] [src/backend/plugins/directHosters.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/directHosters.ts)
+- [NEW] [src/backend/plugins/directPageEngines.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/directPageEngines.ts)
+- [NEW] [src/backend/plugins/directWaitNotice.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/directWaitNotice.ts)
+- [NEW] [src/backend/plugins/mediaByteRange.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/mediaByteRange.ts)
+- [NEW] [src/backend/plugins/onlineFixDirect.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixDirect.ts)
+- [NEW] [src/backend/plugins/onlineFixHosters.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixHosters.ts)
+- [NEW] [src/backend/plugins/onlineFixInstall.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixInstall.ts)
+- [NEW] [src/backend/plugins/onlineFixWaitNotice.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixWaitNotice.ts)
+- [NEW] [src/backend/plugins/sourceDownloadScript.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceDownloadScript.ts)
 
-### Preload & API
-- [MODIFY] [misc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/misc.ts)
-- [MODIFY] [library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/library.ts)
+### Common & Preload
+- [MODIFY] [src/common/externalDownloadStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalDownloadStatus.ts)
+- [MODIFY] [src/common/types/ipc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/ipc.ts)
+- [MODIFY] [src/common/types/plugins.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/plugins.ts)
+- [MODIFY] [src/common/utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/utils.ts)
+- [NEW] [src/common/defaultHomeContent.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/defaultHomeContent.ts)
+- [NEW] [src/common/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/directDownloadLearning.ts)
+- [MODIFY] [src/preload/api/plugins.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/plugins.ts)
+- [NEW] [src/preload/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/directDownloadLearning.ts)
 
 ### Frontend
-- [MODIFY] [App.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.css)
-- [MODIFY] [App.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.tsx)
-- [MODIFY] [index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/index.scss)
-- [MODIFY] [CachedImage/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/CachedImage/index.tsx)
-- [MODIFY] [Header/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.tsx)
-- [MODIFY] [Header/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.css)
-- [MODIFY] [Personalization/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.tsx)
-- [MODIFY] [Personalization/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.css)
-- [MODIFY] [StoreLogos/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/StoreLogos/index.tsx)
-- [MODIFY] [HeroicVersion/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/HeroicVersion/index.tsx)
-- [MODIFY] [HeroicVersion/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/HeroicVersion/index.scss)
-- [MODIFY] [SidebarLinks/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/SidebarLinks/index.tsx)
-- [MODIFY] [Sidebar/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/index.tsx)
-- [MODIFY] [Library/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/index.tsx)
-- [MODIFY] [LibraryHeader/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/LibraryHeader/index.tsx)
-- [MODIFY] [LibraryContext.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/LibraryContext.tsx)
-- [MODIFY] [GameCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.tsx)
-- [MODIFY] [GameCard/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.css)
-- [MODIFY] [GamesList/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GamesList/index.tsx)
-- [MODIFY] [HeroPanel/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/HeroPanel/index.tsx)
-- [MODIFY] [InlineGameSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/index.tsx)
-- [MODIFY] [SideloadDialog/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InstallModal/SideloadDialog/index.tsx)
-- [MODIFY] [LogSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/LogSettings/index.tsx)
-- [MODIFY] [GeneralSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/GeneralSettings/index.tsx)
-- [MODIFY] [BackupRestoreSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/BackupRestoreSettings.tsx)
-- [MODIFY] [TraySettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/TraySettings.tsx)
-- [MODIFY] [helpers/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/library.ts)
-- [MODIFY] [constants.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/constants.ts)
-- [MODIFY] [hasStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/hasStatus.ts)
-- [MODIFY] [GlobalState.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/state/GlobalState.tsx)
-- [MODIFY] [types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/types.ts)
-- [MODIFY] [ActionIcons/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.tsx)
-- [MODIFY] [LibraryFilters/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/LibraryFilters/index.tsx)
-- [MODIFY] [SteamGridDBPicker/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/SteamGridDBPicker/index.tsx)
-- [NEW] [Releases/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/index.tsx)
-- [NEW] [Releases/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/index.css)
-- [NEW] [localStorageBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/utils/localStorageBackup.ts)
-- [NEW] [update-ghost.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/assets/update-ghost.png)
-- [NEW] [UpdatePopupModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/UpdatePopupModal/index.tsx)
-- [NEW] [UpdatePopupModal/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/UpdatePopupModal/index.scss)
+- [MODIFY] [src/frontend/components/ChooseDownloadModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/index.tsx)
+- [MODIFY] [src/frontend/components/UI/ActionIcons/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.css)
+- [MODIFY] [src/frontend/components/UI/ActionIcons/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.tsx)
+- [MODIFY] [src/frontend/components/UI/Dropdown/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Dropdown/index.scss)
+- [MODIFY] [src/frontend/components/UI/Header/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.css)
+- [MODIFY] [src/frontend/components/UI/Header/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/index.tsx)
+- [MODIFY] [src/frontend/screens/DownloadManager/components/ExternalActiveCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/DownloadManager/components/ExternalActiveCard/index.tsx)
+- [MODIFY] [src/frontend/screens/ExternalGames/Downloads.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/Downloads.tsx)
+- [MODIFY] [src/frontend/screens/ExternalGames/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/index.css)
+- [MODIFY] [src/frontend/screens/ExternalGames/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/index.tsx)
+- [MODIFY] [src/frontend/themes.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/themes.scss)
+- [NEW] [src/frontend/screens/Alazterflix/videoBuffering.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/videoBuffering.ts)
+- [NEW] [src/frontend/screens/ExternalGames/SearchStatus.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/SearchStatus.tsx)
+- [NEW] [src/frontend/components/DirectDownloadWait/](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/DirectDownloadWait/)
+

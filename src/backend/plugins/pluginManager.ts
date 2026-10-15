@@ -28,8 +28,17 @@ import type {
   GhostDownloadSource,
   ExternalInstallRequest,
   ExternalActionResult,
-  SourceSearchResponse
+  SourceSearchResponse,
+  SourceSearchProgress,
+  GhostHomeContent,
+  SpotlightGameItem,
+  StoreShelfItem
 } from 'common/types/plugins'
+import {
+  DEFAULT_HOME_SPOTLIGHT_GAMES,
+  DEFAULT_STORE_HIGHLIGHT_SHELVES,
+  isNonGameCard
+} from 'common/defaultHomeContent'
 import { PluginPacker } from './pluginPacker'
 import {
   archivePluginInstallation,
@@ -52,13 +61,13 @@ import {
   ankerGameUrl
 } from './ankerAccount'
 import { NetworkGuard } from './networkGuard'
+import { ONLINE_FIX_DIRECT_ID } from './onlineFixHosters'
 import {
   ONLINE_FIX_SOURCE_ID,
   ONLINE_FIX_TORRENT_ID,
   onlineFixGameUrl
 } from './onlineFixAccount'
 import {
-  isNewerRelease,
   isNewerGameRelease,
   parseDateToIso
 } from './externalPolicy'
@@ -132,6 +141,8 @@ export class PluginManager {
   private sourceResults = new Map<string, GhostSearchResult>()
   private updateMonitor?: ReturnType<typeof setInterval>
   private checkingUpdates = false
+  private homeContentCache: GhostHomeContent | null = null
+  private homeCacheFile = join(userDataPath, 'ghost_home_content_cache.json')
 
   private async pollExternalUpdates(
     force = false,
@@ -305,21 +316,34 @@ export class PluginManager {
   }
 
   public async searchExternalGames(
-    query: string
+    query: string,
+    onProgress?: (progress: SourceSearchProgress) => void
   ): Promise<SourceSearchResponse> {
     const response: SourceSearchResponse = { games: [], errors: [] }
     if (!query.trim()) return response
-    await Promise.all(
-      this.getPlugins()
+    const providers = this.getPlugins()
         .filter((plugin) => plugin.isEnabled && plugin.type === 'game-source')
-        .map(async (plugin) => {
+        .flatMap(plugin => {
           const provider = this.hosts.get(plugin.id)?.getSourceProvider()
-          if (!provider) return
+          return provider ? [{ plugin, provider }] : []
+        })
+    const pending = new Map(providers.map(({ plugin }) => [plugin.id, { id: plugin.id, name: plugin.name }]))
+    const publish = () => {
+      try {
+        onProgress?.({ games: [...response.games], errors: [...response.errors],
+          completed: providers.length - pending.size, total: providers.length,
+          pendingProviders: [...pending.values()] })
+      } catch { /* A closed renderer must not fail source searches. */ }
+    }
+    publish()
+    await Promise.all(
+      providers.map(async ({ plugin, provider }) => {
+          let timer: ReturnType<typeof setTimeout> | undefined
           try {
             const games = await Promise.race([
               provider.search(query.trim()),
               new Promise<never>((_, reject) => {
-                const timer = setTimeout(
+                timer = setTimeout(
                   () =>
                     reject(new Error('A fonte demorou demais para responder.')),
                   25000
@@ -335,6 +359,10 @@ export class PluginManager {
               providerName: plugin.name,
               message: error instanceof Error ? error.message : String(error)
             })
+          } finally {
+            if (timer) clearTimeout(timer)
+            pending.delete(plugin.id)
+            publish()
           }
         })
     )
@@ -449,6 +477,217 @@ export class PluginManager {
     } catch {
       return { games: [], hasMore: false }
     }
+  }
+
+  public async getHomeContent(options?: {
+    forceRefresh?: boolean
+  }): Promise<GhostHomeContent> {
+    const TTL_MS = 30 * 60 * 1000
+    const now = Date.now()
+
+    if (!options?.forceRefresh && this.homeContentCache && this.homeContentCache.updatedAt) {
+      if (now - this.homeContentCache.updatedAt < TTL_MS) {
+        return this.homeContentCache
+      }
+    }
+
+    if (!options?.forceRefresh && existsSync(this.homeCacheFile)) {
+      try {
+        const raw = readFileSync(this.homeCacheFile, 'utf-8')
+        const parsed = JSON.parse(raw) as GhostHomeContent
+        if (
+          parsed &&
+          Array.isArray(parsed.shelves) &&
+          parsed.shelves.length > 0 &&
+          parsed.updatedAt &&
+          now - parsed.updatedAt < TTL_MS
+        ) {
+          const sanitizedShelves = parsed.shelves.map((s) => ({
+            ...s,
+            games: (s.games || []).filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+          }))
+          const sanitizedSpotlight = (parsed.spotlightGames || []).filter(
+            (sp) => !isNonGameCard(sp.title, sp.game?.pageUrl || sp.game?.id)
+          )
+          const sanitizedContent: GhostHomeContent = {
+            ...parsed,
+            shelves: sanitizedShelves,
+            spotlightGames:
+              sanitizedSpotlight.length > 0
+                ? sanitizedSpotlight
+                : DEFAULT_HOME_SPOTLIGHT_GAMES
+          }
+          this.homeContentCache = sanitizedContent
+          return sanitizedContent
+        }
+      } catch (err) {
+        logWarning(`[PluginManager] Erro ao ler cache de home do disco: ${err}`, LogPrefix.Backend)
+      }
+    }
+
+    const plugins = this.getPlugins().filter((p) => p.isEnabled)
+    const ankerPlugin = plugins.find((p) => p.id.includes('anker'))
+    const steamripPlugin = plugins.find((p) => p.id.includes('steamrip'))
+    const onlineFixPlugin = plugins.find(
+      (p) => p.id.includes('online-fix') || p.id.includes('onlinefix')
+    )
+    const switchPlugin = plugins.find(
+      (p) =>
+        p.id.includes('nxbrew') ||
+        p.id.includes('nswgf') ||
+        p.id.includes('romslab')
+    )
+
+    const [ankerResult, steamripResult, onlineFixResult, switchResult] =
+      await Promise.allSettled([
+        ankerPlugin
+          ? this.getCatalog(ankerPlugin.id, { page: 1 })
+          : Promise.resolve({ games: [] as GhostSearchResult[], hasMore: false }),
+        steamripPlugin
+          ? this.getCatalog(steamripPlugin.id, { page: 1 })
+          : Promise.resolve({ games: [] as GhostSearchResult[], hasMore: false }),
+        onlineFixPlugin
+          ? this.getCatalog(onlineFixPlugin.id, { page: 1 })
+          : Promise.resolve({ games: [] as GhostSearchResult[], hasMore: false }),
+        switchPlugin
+          ? this.getCatalog(switchPlugin.id, { page: 1 })
+          : Promise.resolve({ games: [] as GhostSearchResult[], hasMore: false })
+      ])
+
+    const ankerGames =
+      ankerResult.status === 'fulfilled' && ankerResult.value.games.length > 0
+        ? ankerResult.value.games.filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+        : null
+    const steamripGames =
+      steamripResult.status === 'fulfilled' && steamripResult.value.games.length > 0
+        ? steamripResult.value.games.filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+        : null
+    const onlineFixGames =
+      onlineFixResult.status === 'fulfilled' && onlineFixResult.value.games.length > 0
+        ? onlineFixResult.value.games.filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+        : null
+    const switchGames =
+      switchResult.status === 'fulfilled' && switchResult.value.games.length > 0
+        ? switchResult.value.games.filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+        : null
+
+    const baseShelves = this.homeContentCache?.shelves || DEFAULT_STORE_HIGHLIGHT_SHELVES
+
+    const updatedShelves: StoreShelfItem[] = baseShelves.map((shelf) => {
+      if (shelf.id === 'ankergames' && ankerGames && ankerGames.length > 0) {
+        return { ...shelf, games: ankerGames.slice(0, 16) }
+      }
+      if (shelf.id === 'steamrip' && steamripGames && steamripGames.length > 0) {
+        return { ...shelf, games: steamripGames.slice(0, 20) }
+      }
+      if (shelf.id === 'onlinefix' && onlineFixGames && onlineFixGames.length > 0) {
+        return { ...shelf, games: onlineFixGames.slice(0, 16) }
+      }
+      if (shelf.id === 'switch' && switchGames && switchGames.length > 0) {
+        return { ...shelf, games: switchGames.slice(0, 16) }
+      }
+      return shelf
+    })
+
+    const updatedSpotlight: SpotlightGameItem[] = []
+
+    const prepareSpotlightGame = (
+      game: GhostSearchResult,
+      fallbackSpotlight: SpotlightGameItem,
+      defaultTags: string[]
+    ): SpotlightGameItem => {
+      const tags = [
+        game.genre || defaultTags[0],
+        game.size || defaultTags[1],
+        game.platform === 'switch' ? 'Nintendo Switch' : 'PC Windows',
+        game.mode || defaultTags[3],
+        'GhostShield Saves'
+      ]
+      return {
+        id: game.id,
+        title: game.title,
+        tags,
+        backdropUrl: game.coverUrl || fallbackSpotlight.backdropUrl,
+        game: {
+          ...game,
+          description:
+            game.description ||
+            fallbackSpotlight.game.description ||
+            `${game.title} está disponível com instalador completo, suporte a atualizações e backup de saves GhostShield.`
+        }
+      }
+    }
+
+    if (ankerGames && ankerGames[0]) {
+      updatedSpotlight.push(
+        prepareSpotlightGame(
+          ankerGames[0],
+          DEFAULT_HOME_SPOTLIGHT_GAMES[0],
+          ['Repack Testado', '35 GB', 'PC Windows', 'Multiplayer / Co-op']
+        )
+      )
+    } else {
+      updatedSpotlight.push(
+        this.homeContentCache?.spotlightGames?.[0] || DEFAULT_HOME_SPOTLIGHT_GAMES[0]
+      )
+    }
+
+    if (steamripGames && steamripGames[0]) {
+      updatedSpotlight.push(
+        prepareSpotlightGame(
+          steamripGames[0],
+          DEFAULT_HOME_SPOTLIGHT_GAMES[1],
+          ['Pré-instalado', '20 GB', 'PC Windows', 'Singleplayer']
+        )
+      )
+    } else {
+      updatedSpotlight.push(
+        this.homeContentCache?.spotlightGames?.[1] || DEFAULT_HOME_SPOTLIGHT_GAMES[1]
+      )
+    }
+
+    if (onlineFixGames && onlineFixGames[0]) {
+      updatedSpotlight.push(
+        prepareSpotlightGame(
+          onlineFixGames[0],
+          DEFAULT_HOME_SPOTLIGHT_GAMES[2],
+          ['Multiplayer Online', '10 GB', 'PC Windows', 'Co-op Online']
+        )
+      )
+    } else {
+      updatedSpotlight.push(
+        this.homeContentCache?.spotlightGames?.[2] || DEFAULT_HOME_SPOTLIGHT_GAMES[2]
+      )
+    }
+
+    if (switchGames && switchGames[0]) {
+      updatedSpotlight.push(
+        prepareSpotlightGame(
+          switchGames[0],
+          DEFAULT_HOME_SPOTLIGHT_GAMES[3],
+          ['Nintendo Switch', '6 GB', 'Switch Emulado', 'Ryujinx / Yuzu']
+        )
+      )
+    } else {
+      updatedSpotlight.push(
+        this.homeContentCache?.spotlightGames?.[3] || DEFAULT_HOME_SPOTLIGHT_GAMES[3]
+      )
+    }
+
+    const newHomeContent: GhostHomeContent = {
+      spotlightGames: updatedSpotlight,
+      shelves: updatedShelves,
+      updatedAt: now
+    }
+
+    this.homeContentCache = newHomeContent
+    try {
+      writeFileSync(this.homeCacheFile, JSON.stringify(newHomeContent, null, 2), 'utf-8')
+    } catch (err) {
+      logWarning(`[PluginManager] Falha ao salvar cache de home: ${err}`, LogPrefix.Backend)
+    }
+
+    return newHomeContent
   }
 
   public async installExternalGame(
@@ -681,30 +920,10 @@ export class PluginManager {
       const comparison = isNewerGameRelease(currentCandidate, remoteCandidate)
       const isNewer = comparison.isNewer
 
-      if (!isNewer && comparison.reason !== 'date') {
-        const normalized = (value: string) =>
-          value
-            .trim()
-            .toLowerCase()
-            .replace(/^v(?:ersion|er)?[ ._-]*/, '')
-        if (
-          currentVersion &&
-          details.version &&
-          !isNewerRelease(currentVersion, details.version) &&
-          !isNewerRelease(details.version, currentVersion) &&
-          normalized(currentVersion) !== normalized(details.version) &&
-          !currentCandidate.sourceDate &&
-          !remoteCandidate.sourceDate
-        ) {
-          const message =
-            'As versões instalada e disponível usam formatos diferentes. Confira a versão na página da fonte.'
-          ExternalGames.getInstance().recordUpdate(
-            installation.id,
-            undefined,
-            message
-          )
-          return { success: false, error: message }
-        }
+      if (comparison.reason === 'unknown') {
+        const message = 'Não foi possível confirmar uma atualização: as versões ou datas da instalação e da fonte não são comparáveis.'
+        ExternalGames.getInstance().recordUpdate(installation.id, undefined, message)
+        return { success: false, error: message }
       }
 
       const update =
@@ -1301,7 +1520,7 @@ export class PluginManager {
       return [
         {
           id: ROM_DIRECT_ID,
-          name: `${rom.name} · Download da ROM · Confirmar no site`,
+          name: `${rom.name} · Download da ROM · Automático`,
           type: 'external',
           url: romPageUrl(normProviderId, gameId)
         }
@@ -1311,12 +1530,6 @@ export class PluginManager {
       normProviderId === ONLINE_FIX_SOURCE_ID &&
       isSourceEnabled(normProviderId)
     ) {
-      const existing =
-        (await this.hosts
-          .get(normProviderId)
-          ?.getSourceProvider()
-          ?.getSources(gameId)
-          .catch(() => [])) || []
       return [
         {
           id: ONLINE_FIX_TORRENT_ID,
@@ -1324,7 +1537,12 @@ export class PluginManager {
           type: 'torbox',
           url: onlineFixGameUrl(gameId)
         },
-        ...existing.filter((item) => item.id !== ONLINE_FIX_TORRENT_ID)
+        {
+          id: ONLINE_FIX_DIRECT_ID,
+          name: 'Online-Fix · Download direto · Jogo e fix',
+          type: 'external',
+          url: onlineFixGameUrl(gameId)
+        }
       ]
     }
     if (
@@ -1334,7 +1552,7 @@ export class PluginManager {
       return [
         {
           id: STEAMRIP_DIRECT_ID,
-          name: 'SteamRIP · Download direto',
+          name: 'SteamRIP · Download direto · Automático',
           type: 'external',
           url: steamripGameUrl(gameId)
         }
@@ -1350,7 +1568,7 @@ export class PluginManager {
         },
         {
           id: ANKER_DIRECT_ID,
-          name: 'Download direto · Confirmar no site',
+          name: 'Download direto · Automático',
           type: 'external',
           url: ankerGameUrl(gameId)
         }

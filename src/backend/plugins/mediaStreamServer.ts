@@ -4,6 +4,7 @@ import path from 'node:path'
 import { spawn, execFile } from 'node:child_process'
 import util from 'node:util'
 import { logInfo, logError, LogPrefix } from 'backend/logger'
+import { mediaByteRange } from './mediaByteRange'
 
 const execFileAsync = util.promisify(execFile)
 
@@ -344,12 +345,16 @@ export class MediaStreamServer {
 
               ffmpegProc.stdout.pipe(res)
 
-              req.on('close', () => {
+              res.on('close', () => {
                 try {
                   ffmpegProc.stdout.destroy()
                   ffmpegProc.kill('SIGKILL')
                 } catch {}
               })
+
+              // Always consume stderr so a long-running converter cannot block
+              // when its diagnostic pipe fills up.
+              ffmpegProc.stderr.resume()
 
               ffmpegProc.on('error', (err) => {
                 logError(['[MediaStreamServer] Erro no ffmpeg transcode stream:', err], LogPrefix.Backend)
@@ -411,15 +416,8 @@ export class MediaStreamServer {
 
             const range = req.headers.range
             if (range) {
-              const parts = range.replace(/bytes=/, '').split('-')
-              const start = parseInt(parts[0], 10)
-              // Buffer de 16MB por chunk: fluidez impecável e contínua em 1080p e 4K HDR
-              const MAX_CHUNK_SIZE = 16 * 1024 * 1024
-              const end = parts[1]
-                ? parseInt(parts[1], 10)
-                : Math.min(start + MAX_CHUNK_SIZE - 1, fileSize - 1)
-
-              if (isNaN(start) || start >= fileSize || (parts[1] && end < start)) {
+              const resolvedRange = mediaByteRange(range, fileSize)
+              if (!resolvedRange) {
                 res.writeHead(416, {
                   'Content-Range': `bytes */${fileSize}`,
                   'Access-Control-Allow-Origin': '*'
@@ -427,14 +425,8 @@ export class MediaStreamServer {
                 res.end()
                 return
               }
-
+              const { start, end } = resolvedRange
               const chunkSize = end - start + 1
-              const stream = fs.createReadStream(filePath, { start, end, highWaterMark: 1024 * 1024 })
-
-              // Descarte imediato de handles em desconexão / seek
-              req.on('close', () => {
-                stream.destroy()
-              })
 
               res.writeHead(206, {
                 'Content-Range': `bytes ${start}-${end}/${fileSize}`,
@@ -448,6 +440,11 @@ export class MediaStreamServer {
                 'Access-Control-Allow-Headers': 'Range, Content-Type, Accept',
                 'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges'
               })
+
+              const stream = fs.createReadStream(filePath, { start, end, highWaterMark: 1024 * 1024 })
+              // The response lifetime includes slow playback; completing the
+              // incoming GET alone must not tear down the outgoing video.
+              res.on('close', () => stream.destroy())
 
               stream.on('error', (err) => {
                 logError(['[MediaStreamServer] Erro no stream parcial:', err], LogPrefix.Backend)
@@ -473,7 +470,7 @@ export class MediaStreamServer {
               })
 
               const stream = fs.createReadStream(filePath, { highWaterMark: 1024 * 1024 })
-              req.on('close', () => {
+              res.on('close', () => {
                 stream.destroy()
               })
 

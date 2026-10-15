@@ -198,14 +198,18 @@ async function smoke(release: EngineRelease, folder: string) {
     release.id === 'scrapling' ? ['--self-test'] : ['--version']
   )
   if (release.id === 'scrapling') {
-    const result = JSON.parse(output)
+    const parsed: unknown = JSON.parse(output)
+    if (!parsed || typeof parsed !== 'object') throw new Error('O teste do Scrapling falhou.')
+    const result = parsed as Record<string, unknown>
     if (
       result.protocol !== 1 ||
       result.version !== release.version ||
       result.ok !== true ||
       ((release.integrationRevision || 0) >= 3 &&
         (!Array.isArray(result.capabilities) ||
-          !result.capabilities.includes('online-fix-torrent-links-v1')))
+          !result.capabilities.includes('online-fix-torrent-links-v1'))) ||
+      ((release.integrationRevision || 0) >= 4 &&
+        (!Array.isArray(result.capabilities) || !result.capabilities.includes('direct-download-page-v1')))
     )
       throw new Error('O teste do Scrapling falhou.')
   } else if (!output.includes(release.version))

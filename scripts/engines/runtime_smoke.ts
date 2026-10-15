@@ -18,6 +18,7 @@ import {
   adaptiveGames,
   experimentalPage
 } from '../../src/backend/plugins/adaptiveSource'
+import { readDirectPage } from '../../src/backend/plugins/directPageEngines'
 import type { PluginManifest } from '../../src/common/types/plugins'
 
 void (async () => {
@@ -63,6 +64,18 @@ void (async () => {
     if (games.length !== 1 || games[0].title !== 'Test Game')
       throw new Error('Scrapling IPC check failed')
     report('Scrapling executable + protocol: OK')
+    const direct = await readDirectPage(
+      '<a href="https://example.com/Test.zip"><img alt="Download"></a>',
+      'https://example.com/game/test',
+      manifest,
+      (url) => new URL(url).hostname === 'example.com'
+    )
+    if (
+      direct.links.length !== 1 ||
+      direct.links[0].url !== 'https://example.com/Test.zip'
+    )
+      throw new Error('Scrapling direct-download protocol check failed')
+    report('Scrapling direct-download protocol: OK')
     await sourceEngineAction({ type: 'install', id: 'obscura' })
     await sourceEngineAction({ type: 'enable', id: 'obscura', enabled: true })
     const html = await experimentalPage('https://example.com', manifest)

@@ -6,10 +6,14 @@ import { setTimeout as delay } from 'timers/promises'
 import { torrentInfoHash } from './torrentMetadata'
 import { loadAnkerPage, evaluateAnkerPage } from './ankerNavigation'
 import { TRUSTED_GAME_MIRROR_DOMAINS, NetworkGuard } from './networkGuard'
-import type { PluginManifest } from 'common/types/plugins'
+import type { DirectDownloadWait, PluginManifest } from 'common/types/plugins'
 import { romSource, romPageUrl, romManifest } from './romSources'
 import { directDownloadRecovery, type DirectDownloadDiagnostic } from './directDownloadRecovery'
 import { rangedDownload } from './rangedDownload'
+import { DIRECT_HOSTERS, directNonDownloadUrl } from './directHosters'
+import { BrowserDownloadAutomation } from './browserDownloadAutomation'
+import { DirectDownloadLearning } from './directDownloadLearning'
+import { directDownloadLearningPreloadPath } from 'backend/constants/paths'
 
 export const ANKER_SOURCE_ID = 'com.ghost.ankergames-source'
 export const ANKER_TORRENT_ID = 'anker-official-torrent'
@@ -36,7 +40,8 @@ const baseDirectManifest = {
     'ankergames.net',
     'steamrip.com',
     'challenges.cloudflare.com',
-    ...TRUSTED_GAME_MIRROR_DOMAINS
+    ...TRUSTED_GAME_MIRROR_DOMAINS,
+    ...Object.values(DIRECT_HOSTERS).flat()
   ]
 } as PluginManifest
 export function directDownloadManifest(steamrip: boolean): PluginManifest {
@@ -91,7 +96,7 @@ export class AnkerAccount {
       try {
         const url = new URL(details.url)
         const currentSourceId = steamrip ? STEAMRIP_SOURCE_ID : romProvider || ANKER_SOURCE_ID
-        const allowed =
+        const allowed = (!direct || !directNonDownloadUrl(details.url)) && (
           (url.protocol === 'blob:' &&
             isSourceUrl(currentSourceId, url.origin)) ||
           (url.protocol === 'https:' &&
@@ -99,7 +104,7 @@ export class AnkerAccount {
               url.hostname === 'challenges.cloudflare.com' ||
               url.hostname.endsWith('.cloudflare.com') ||
               (direct &&
-                NetworkGuard.validateUrl(url.href, directManifest).allowed)))
+                NetworkGuard.validateUrl(url.href, directManifest).allowed))))
         if (!allowed)
           onBlocked?.(url.hostname || url.protocol, details.resourceType)
         callback({ cancel: !allowed })
@@ -132,7 +137,8 @@ export class AnkerAccount {
         contextIsolation: true,
         nodeIntegration: false,
         webviewTag: false,
-        backgroundThrottling: false
+        backgroundThrottling: false,
+        ...(direct ? { preload: directDownloadLearningPreloadPath } : {})
       }
     })
     const family = new Set<BrowserWindow>([window])
@@ -141,12 +147,13 @@ export class AnkerAccount {
     const guard = (event: Electron.Event, target: string) => {
       try {
         if (
-          !isSourceUrl(currentSourceId, target) &&
+          (direct && directNonDownloadUrl(target)) ||
+          (!isSourceUrl(currentSourceId, target) &&
           !(
             direct &&
             new URL(target).protocol === 'https:' &&
             NetworkGuard.validateUrl(target, directManifest).allowed
-          )
+          ))
         ) {
           onBlocked?.(new URL(target).hostname, 'navigation')
           event.preventDefault()
@@ -160,13 +167,14 @@ export class AnkerAccount {
         if (
           direct &&
           NetworkGuard.validateUrl(url, directManifest).allowed &&
-          new URL(url).protocol === 'https:'
+          new URL(url).protocol === 'https:' && !directNonDownloadUrl(url)
         ) {
           // Let Chromium preserve the opener, POST body and referrer. Replacing
           // this with loadURL in the parent converts the request into a GET.
           return {
             action: 'allow',
             overrideBrowserWindowOptions: {
+              show: false,
               autoHideMenuBar: true,
               webPreferences: {
                 session: window.webContents.session,
@@ -174,7 +182,8 @@ export class AnkerAccount {
                 contextIsolation: true,
                 nodeIntegration: false,
                 webviewTag: false,
-                backgroundThrottling: false
+                backgroundThrottling: false,
+                preload: directDownloadLearningPreloadPath
               }
             }
           }
@@ -224,7 +233,8 @@ export class AnkerAccount {
     signal: AbortSignal,
     progress: (bytes: number, total: number, archive: string) => void,
     provider: string = 'anker',
-    diagnostic: (value: DirectDownloadDiagnostic) => void = () => undefined
+    diagnostic: (value: DirectDownloadDiagnostic) => void = () => undefined,
+    wait: (state: DirectDownloadWait | undefined) => void = () => undefined
   ): Promise<string> {
     const rom = romSource(provider)
     if (!rom && !['anker', 'steamrip'].includes(provider)) throw new Error('Fonte de download inválida.')
@@ -247,7 +257,7 @@ export class AnkerAccount {
           attempts: 0, at: new Date().toISOString() })
       } catch { /* Diagnostics must not interrupt browser requests. */ }
     }
-    const window = this.window(true, true, provider === 'steamrip', (host, resourceType) => {
+    const window = this.window(false, true, provider === 'steamrip', (host, resourceType) => {
       // Keep waiting: rejected popups may be ads, not the chosen file host.
       if ((!resourceType || ['mainFrame', 'navigation', 'popup'].includes(resourceType)) &&
           /^[a-z0-9.-]{1,253}$/i.test(host)) blockedHost = host
@@ -281,17 +291,22 @@ export class AnkerAccount {
     const closed = () => {
       if (!item) rejectOperation(waitingError())
     }
-    const timer = setTimeout(
-      () =>
-        rejectOperation(
-          blockedHost
-            ? waitingError()
-            : new Error(
-                'Nenhum arquivo recebido em três minutos. Use Retomar e confirme o download na hospedagem.'
-              )
-        ),
-      180000
-    )
+    const learning = new DirectDownloadLearning(rom?.id || (provider === 'steamrip' ? STEAMRIP_SOURCE_ID : ANKER_SOURCE_ID),
+      link => NetworkGuard.validateUrl(link, directManifest).allowed && !directNonDownloadUrl(link), directManifest.allowedDomains || [])
+    learning.watch(window)
+    const automation = new BrowserDownloadAutomation({ window, family,
+      sourceId: rom?.id || (provider === 'steamrip' ? STEAMRIP_SOURCE_ID : ANKER_SOURCE_ID),
+      sourceName: rom?.name || (provider === 'steamrip' ? 'SteamRIP' : 'AnkerGames'),
+      manifest: directManifest, done: () => Boolean(item) || !observing, learning, gamePage: url,
+      fail: error => rejectOperation(error), wait: state => {
+        wait(state)
+        if (state) {
+          try {
+            const current = [...family].reverse().find(member => !member.isDestroyed() && member.webContents.getURL().startsWith('https://'))
+            if (current) reportNavigation(`automation-${state.phase}`, new URL(current.webContents.getURL()).hostname)
+          } catch { /* Diagnostics must not interrupt capture or expose signed URLs. */ }
+        }
+      } })
     let onDownload: (
       event: Electron.Event,
       download: DownloadItem,
@@ -317,7 +332,7 @@ export class AnkerAccount {
             item ||
             !extension ||
             !NetworkGuard.validateUrl(link, directManifest).allowed ||
-            !link.startsWith('https://')
+            !link.startsWith('https://') || directNonDownloadUrl(link)
           ) {
             download.cancel()
             if (!item)
@@ -329,7 +344,7 @@ export class AnkerAccount {
             return
           }
           item = download
-          clearTimeout(timer)
+          automation.stop()
           archive = `${directory}/package.${extension}`
           download.setSavePath(archive)
           const report = () =>
@@ -351,7 +366,7 @@ export class AnkerAccount {
             if (state === 'completed') {
               completed = true
               report()
-              resolve(archive!)
+              void learning.complete(archive!, download.getTotalBytes()).then(() => resolve(archive!))
             } else
               reject(
                 new Error(
@@ -394,6 +409,7 @@ export class AnkerAccount {
                 if (transferred) {
                   completed = true
                   archive = segmentedArchive
+                  await learning.complete(segmentedArchive, download.getTotalBytes())
                   recovery?.stop()
                   // The package is complete. A disposed browser item must not
                   // send us into the fallback and start another transfer.
@@ -422,19 +438,21 @@ export class AnkerAccount {
           abort()
           return
         }
+        automation.start()
         void loadAnkerPage(
           window,
           url,
           new URL(url).origin,
           rom?.name || (provider === 'steamrip' ? 'SteamRIP' : 'AnkerGames')
-        ).catch(reject)
+        ).catch(() => automation.navigationFailed())
       })
     } finally {
       observing = false
       accelerationController.abort()
       await acceleration?.catch(() => undefined)
       recovery?.stop()
-      clearTimeout(timer)
+      automation.stop()
+      learning.dispose(!signal.aborted && !item)
       isolated.removeListener('will-download', onDownload)
       signal.removeEventListener('abort', abort)
       window.removeListener('closed', closed)

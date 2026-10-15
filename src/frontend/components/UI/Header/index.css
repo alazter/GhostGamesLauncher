@@ -25,12 +25,18 @@
   box-shadow: none !important;
   border-radius: 6px !important;
   height: 32px !important;
+  min-width: 32px !important;
+  width: auto !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
   outline: none !important;
   padding: 0 6px !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
   transition: all 0.25s ease !important;
 }
 
@@ -45,6 +51,10 @@
 .Header__filters:not(.header-buttons--neon):not(.action-icons--neon) .Header__dropdownBtn svg {
   color: rgba(255, 255, 255, 0.75) !important;
   font-size: 16px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  line-height: 1 !important;
   transition: transform 0.2s ease, color 0.2s ease !important;
 }
 
@@ -62,10 +72,34 @@
 
 .Header__filters {
   margin-left: auto; /* Empurra para a direita */
-  display: flex;
-  gap: 12px;
-  align-items: center;
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  height: 32px !important;
   z-index: 501;
+}
+
+.Header__filters .Header__dropdownGroup {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: inherit !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+
+.Header__filters .dropdownContainer,
+.Header__filters .Header__dropdownWrapper {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
 }
 
 /* ========================================================
@@ -95,11 +129,15 @@
   padding: 0 4px !important;
   width: auto !important;
   min-width: auto !important;
-  height: auto !important;
+  height: 32px !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   filter: none !important;
@@ -118,6 +156,10 @@
   fill: currentColor !important;
   filter: none !important;
   opacity: 1 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 !important;
+  line-height: 1 !important;
   transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
 }
 
@@ -127,6 +169,12 @@
   justify-content: center !important;
   gap: 3px !important;
   color: inherit !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
 }
 
 .Header__filters.header-buttons--neon .Header__dropdownChevron,
@@ -137,6 +185,9 @@
   filter: none !important;
   opacity: 0.7 !important;
   margin-left: 1px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
   transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
 }
 

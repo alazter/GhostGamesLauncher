@@ -7,6 +7,7 @@ import {
   matchesQuery,
   normalizeAcronyms,
   parseWebsiteGames,
+  isNonGameCard,
   websiteSource
 } from '../websiteSource'
 import type { PluginManifest, WebsiteSourceConfig } from 'common/types/plugins'
@@ -200,6 +201,32 @@ describe('source search fallbacks', () => {
 })
 
 describe('extractVersionFromText', () => {
+  it.each([
+    ['Graveyard Keeper 2', 'v1.009.1', 'v1.010'],
+    ['Dimraeth', 'v0.107.7832', 'v0.107.7756']
+  ])('uses the visible current version of %s ahead of conflicting structured metadata', async (title, actual, structured) => {
+    const site = { ...manifest, id: 'com.ghost.ankergames-source', homepage: 'https://ankergames.net', allowedDomains: ['ankergames.net'] }
+    const html = `<head><title>${title} Free Download (${structured}) | AnkerGames</title>
+      <script type="application/ld+json">{"softwareVersion":"${structured}","dateModified":"2026-10-14"}</script></head>
+      <h1>${title}</h1><section><h4>Version Status</h4><span>Current Version</span><span>${actual}</span></section>
+      <h3>Recommended For You</h3><article><span class="animate-glow">V 1.407</span></article>`
+    const fetch = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async () => new Response(html))
+    try {
+      const details = await websiteSource(site, config).getDetails!('https://ankergames.net/game/test')
+      expect(details?.title).toBe(title)
+      expect(details?.version).toBe(actual)
+    } finally { fetch.mockRestore() }
+  })
+
+  it('uses the game document title before conflicting JSON-LD when no visible version status is present', async () => {
+    const site = { ...manifest, id: 'com.ghost.ankergames-source', homepage: 'https://ankergames.net', allowedDomains: ['ankergames.net'] }
+    const fetch = jest.spyOn(NetworkGuard, 'fetchResponse').mockImplementation(async () => new Response(
+      '<title>Graveyard Keeper 2 Free Download (v1.009.1) | AnkerGames</title><h1>Graveyard Keeper 2</h1>' +
+      '<script type="application/ld+json">{"softwareVersion":"v1.010"}</script>'))
+    try {
+      expect((await websiteSource(site, config).getDetails!('https://ankergames.net/game/test'))?.version).toBe('v1.009.1')
+    } finally { fetch.mockRestore() }
+  })
   it('extracts version from SteamRIP card and detail page', () => {
     expect(extractVersionFromText('<span class="tagmetafield">Build 24832302</span>')).toBe('Build 24832302')
     expect(extractVersionFromText('<li><strong>Version</strong>: v1.2.3 | Build 24832302</li>')).toBe('v1.2.3 (Build 24832302)')
@@ -358,5 +385,85 @@ describe('extractGameMetadataFromHtml', () => {
       request.mockRestore()
     }
   })
+
+  it('rejects non-game cards (Top Games, Recent Updates, All Games Games Collection, How to Run Games) and accepts real games', () => {
+    expect(isNonGameCard('Top Games', 'https://steamrip.com/category/top-games/')).toBe(true)
+    expect(isNonGameCard('Recent Updates', 'https://steamrip.com/recent-updates/')).toBe(true)
+    expect(isNonGameCard('All Games Games Collection', 'https://steamrip.com/all-games-collection/')).toBe(true)
+    expect(isNonGameCard('All Games Collection', 'https://steamrip.com/all-games-collection/')).toBe(true)
+    expect(isNonGameCard('How to Run Games', 'https://steamrip.com/how-to-run-games/')).toBe(true)
+    expect(isNonGameCard('Request Games', 'https://steamrip.com/request-games/')).toBe(true)
+    expect(isNonGameCard('How to Download', 'https://steamrip.com/how-to-download/')).toBe(true)
+    expect(isNonGameCard('FAQ', 'https://steamrip.com/faq/')).toBe(true)
+
+    // Jogos legítimos NUNCA devem ser rejeitados
+    expect(isNonGameCard('Half-Life 3', 'https://steamrip.com/half-life-3-free-download/')).toBe(false)
+    expect(isNonGameCard('Dune: Awakening', 'https://steamrip.com/dune-awakening-free-download/')).toBe(false)
+    expect(isNonGameCard('How to Fish', 'https://ankergames.net/game/how-to-fish')).toBe(false)
+    expect(isNonGameCard('Top Gun: Maverick', 'https://steamrip.com/top-gun-free-download/')).toBe(false)
+  })
+
+  it('purges non-game cards from SteamRIP HTML and extracts games from Recently Added section', () => {
+    const steamripHomepageHtml = `
+      <header>
+        <nav><a href="/">Home</a></nav>
+      </header>
+      <div class="featured-boxes">
+        <a href="https://steamrip.com/top-games/">Top Games</a>
+        <a href="https://steamrip.com/recent-updates/">Recent Updates</a>
+        <a href="https://steamrip.com/all-games-collection/">All Games Games Collection</a>
+        <a href="https://steamrip.com/how-to-run-games/">How to Run Games</a>
+      </div>
+      <section class="recently-added">
+        <h2>Recently Added</h2>
+        <article>
+          <h2 class="post-title"><a href="https://steamrip.com/dune-awakening-free-download/">Dune: Awakening</a></h2>
+          <span class="tagmetafield">v1.5.3</span>
+          <img src="https://steamrip.com/covers/dune.jpg" />
+        </article>
+        <article>
+          <h2 class="post-title"><a href="https://steamrip.com/kayak-vr-mirage-free-download/">Kayak VR: Mirage</a></h2>
+          <span class="tagmetafield">Build 19061694</span>
+          <img src="https://steamrip.com/covers/kayak.jpg" />
+        </article>
+        <article>
+          <h2 class="post-title"><a href="https://steamrip.com/island-market-simulator-free-download/">Island Market Simulator</a></h2>
+          <span class="tagmetafield">Build 25230567</span>
+          <img src="https://steamrip.com/covers/island.jpg" />
+        </article>
+      </section>
+      <footer>
+        <p>SteamRIP 2026</p>
+      </footer>
+    `
+
+    const srManifest = {
+      id: 'com.ghost.steamrip-source',
+      name: 'SteamRIP',
+      homepage: 'https://steamrip.com',
+      permissions: ['network', 'game-sources'],
+      allowedDomains: ['steamrip.com']
+    } as PluginManifest
+
+    const games = parseWebsiteGames(
+      steamripHomepageHtml,
+      'https://steamrip.com',
+      { catalogPath: '/', platform: 'windows' },
+      srManifest
+    )
+
+    // Os 4 cards de navegação/guias foram completamente expurgados:
+    expect(games.some((g) => g.title.toLowerCase().includes('top games'))).toBe(false)
+    expect(games.some((g) => g.title.toLowerCase().includes('recent updates'))).toBe(false)
+    expect(games.some((g) => g.title.toLowerCase().includes('games collection'))).toBe(false)
+    expect(games.some((g) => g.title.toLowerCase().includes('how to run games'))).toBe(false)
+
+    // Apenas os jogos reais da seção Recently Added foram preservados:
+    expect(games.length).toBe(3)
+    expect(games[0].title).toBe('Dune: Awakening')
+    expect(games[1].title).toBe('Kayak VR: Mirage')
+    expect(games[2].title).toBe('Island Market Simulator')
+  })
 })
+
 

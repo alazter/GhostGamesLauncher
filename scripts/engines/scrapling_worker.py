@@ -9,6 +9,7 @@ from importlib.metadata import version
 from scrapling.parser import Selector
 from scrapling.core.storage import SQLiteStorageSystem
 from release_selectors import release_selectors, self_test as release_self_test
+from direct_download_page import direct_download_page, self_test as direct_self_test
 
 
 class GhostStorage(SQLiteStorageSystem.__wrapped__):
@@ -31,6 +32,8 @@ def parse(request):
         return manual_drm_page(request)
     if request.get('operation') == 'release-selectors-v1':
         return release_selectors(request, GhostStorage)
+    if request.get('operation') == 'direct-download-page-v1':
+        return direct_download_page(request)
     if request.get('operation') == 'online-fix-torrent-links-v1':
         page = Selector(request['html'], url=request['base'])
         links = []
@@ -70,7 +73,10 @@ def parse(request):
         for el in elements:
             url = urljoin(base, el.attrib.get('href', ''))
             title = ' '.join(el.get_all_text().split())
-            if valid_url(url, base, provider) and 2 <= len(title) <= 200 and title.lower() not in {'download', 'read more', 'login', 'register', 'home', 'next', 'previous'}:
+            if (valid_url(url, base, provider)
+                    and 2 <= len(title) <= 200
+                    and title.lower() not in {'download', 'read more', 'login', 'register', 'home', 'next', 'previous'}
+                    and not re.match(r'^(?:top games|recent updates|all games(?:\s+games)?\s+collection|all games collection|how to run games?|how to download|how to install|request (?:a )?games?|game requests?|all games|games list|pc games|switch games|faq|frequently asked questions|about us|dmca|contact us|privacy policy|terms of (?:use|service)|troubleshooting|common errors?|common problems|fix errors?|steamrip (?:discussion|faq|guides?)|join (?:our )?discord|discord community)\b', title, re.I)):
                 games[url] = {'url': url, 'title': title}
             if len(games) == 200:
                 break
@@ -144,6 +150,8 @@ def valid_url(url, base, provider='com.ghost.ankergames-source'):
         return bool(re.fullmatch(r'/games/.+\.html', parsed.path))
     if provider not in {'com.ghost.steamrip-source', 'com.ghost.nxbrew-source', 'com.ghost.nswgf-source', 'com.ghost.romslab-source'}:
         return False
+    if re.search(r'/(?:top-games|recent-updates|all-games(?:-games)?-collection|all-games|how-to-run-games|request-games|request-a-game|how-to-download|faq|dmca|contact-us|privacy-policy|terms-of-use|terms-of-service|games-list-page)/?$', parsed.path, re.I):
+        return False
     return (parsed.path != '/' and not re.match(r'^/(?:category|tag|author|page|feed|wp-|contact|about|privacy|dmca|faq|search|comments|login|register|account|logout)(?:\b|/)', parsed.path, re.I)
             and not re.search(r'\.(?!html?$)[a-z0-9]+$', parsed.path.rstrip('/'), re.I))
 
@@ -166,7 +174,12 @@ def self_test():
             assert parse(request) == [{'url': 'https://example.com' + path, 'title': 'Test Game'}]
             request['html'] = f'<h2 class="changed-title"><a href="{path}">Test Game</a></h2><a href="/account">Account</a>'
             assert parse(request) == [{'url': 'https://example.com' + path, 'title': 'Test Game'}]
+    assert not valid_url('https://example.com/top-games', 'https://example.com', 'com.ghost.steamrip-source')
+    assert not valid_url('https://example.com/how-to-run-games', 'https://example.com', 'com.ghost.steamrip-source')
+    assert not valid_url('https://example.com/recent-updates', 'https://example.com', 'com.ghost.steamrip-source')
+    assert not valid_url('https://example.com/all-games-collection', 'https://example.com', 'com.ghost.steamrip-source')
     release_self_test(GhostStorage)
+    direct_self_test()
     from scrapling.fetchers import StealthySession
     assert callable(StealthySession)
     assert valid_manual_url('https://ankergames.net/game/test')
@@ -176,7 +189,7 @@ def self_test():
                       'base': 'https://uploads.online-fix.me:2053/torrents/Test/',
                       'html': '<a href="Test.torrent">Test.torrent</a><a href="https://evil.test/Test.torrent">Ad</a>'}
     assert parse(torrent_request) == [{'url': 'https://uploads.online-fix.me:2053/torrents/Test/Test.torrent', 'title': 'Test.torrent'}]
-    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1']}
+    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1', 'direct-download-page-v1']}
 
 
 if __name__ == '__main__':

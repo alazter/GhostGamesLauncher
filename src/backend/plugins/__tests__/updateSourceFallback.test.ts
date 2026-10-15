@@ -2,7 +2,9 @@ jest.mock('backend/game_overrides/electronStores', () => ({
   gameOverridesStore: { get: jest.fn(), set: jest.fn() }
 }))
 
-import { resolveBestDownloadSource } from '../pluginManager'
+import { PluginManager, resolveBestDownloadSource } from '../pluginManager'
+import { ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID } from '../onlineFixUrls'
+import { ONLINE_FIX_DIRECT_ID } from '../onlineFixHosters'
 import type { GhostDownloadSource } from 'common/types/plugins'
 
 describe('resolveBestDownloadSource - Seleção Automática Inteligente de Fontes de Download e Updates', () => {
@@ -73,5 +75,19 @@ describe('resolveBestDownloadSource - Seleção Automática Inteligente de Fonte
     expect(selected?.id).toBe('anker-official-torrent')
     expect(selected?.type).toBe('torbox')
   })
+})
+
+it('exposes one complete Online-Fix direct flow alongside TorBox, including the legacy provider alias', async () => {
+  const manager = Object.create(PluginManager.prototype) as PluginManager
+  jest.spyOn(manager, 'getPlugins').mockReturnValue([])
+  Object.assign(manager, { pluginStates: {} })
+  for (const provider of [ONLINE_FIX_SOURCE_ID, 'onlinefix']) {
+    const options = await manager.getDownloadSources(provider, 'https://online-fix.me/games/test.html')
+    expect(options.map(item => [item.id, item.type])).toEqual([
+      [ONLINE_FIX_TORRENT_ID, 'torbox'], [ONLINE_FIX_DIRECT_ID, 'external']
+    ])
+    expect(resolveBestDownloadSource(options, ONLINE_FIX_DIRECT_ID, true)?.id).toBe(ONLINE_FIX_DIRECT_ID)
+    expect(resolveBestDownloadSource(options, undefined, true, 'online-fix-direct')?.id).toBe(ONLINE_FIX_DIRECT_ID)
+  }
 })
 

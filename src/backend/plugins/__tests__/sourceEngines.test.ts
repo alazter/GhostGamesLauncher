@@ -238,6 +238,17 @@ it('reports a newer integration package even when its upstream version is unchan
   expect(sourceEnginesState().engines[0].updateAvailable).toBe(false)
 })
 
+it('activates revision 4 only when the worker declares direct-download support', async () => {
+  catalog = [await packageVersion('0.4.15', 'scrapling', 4)]
+  await sourceEngineAction({ type: 'check' })
+  jest.mocked(engineProcess).mockResolvedValue(JSON.stringify({ ok: true, protocol: 1, version: '0.4.15', capabilities: ['online-fix-torrent-links-v1'] }))
+  await expect(sourceEngineAction({ type: 'install', id: 'scrapling' })).rejects.toThrow('teste do Scrapling')
+  expect(sourceEnginesState().engines[0].installed).toBeUndefined()
+  jest.mocked(engineProcess).mockResolvedValue(JSON.stringify({ ok: true, protocol: 1, version: '0.4.15', capabilities: ['online-fix-torrent-links-v1', 'direct-download-page-v1'] }))
+  await sourceEngineAction({ type: 'install', id: 'scrapling' })
+  expect(sourceEnginesState().engines[0].installed).toBe('0.4.15')
+})
+
 it('distinguishes an upstream announcement from an installable package when the catalog fails', async () => {
   await sourceEngineAction({ type: 'install', id: 'scrapling' })
   jest

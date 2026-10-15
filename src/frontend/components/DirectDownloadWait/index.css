@@ -1,0 +1,39 @@
+.directDownloadWait {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  margin: 5px 0;
+  border-left: 2px solid #00dce8;
+  border-radius: 6px;
+  background: rgba(0, 229, 255, 0.06);
+  color: #00e5ff;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.directDownloadWait > svg { flex-shrink: 0; }
+
+.directDownloadWaitCopy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.directDownloadWaitTitle { font-weight: 600; color: #e2faff; }
+.directDownloadWaitDetail { color: #aabac9; overflow-wrap: anywhere; }
+
+.directDownloadWaitTime {
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.directDownloadWait[data-phase='manual'] {
+  border-left-color: #ffb703;
+  color: #ffcf66;
+  background: rgba(255, 183, 3, 0.06);
+}

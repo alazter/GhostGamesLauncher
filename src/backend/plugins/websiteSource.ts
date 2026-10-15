@@ -2,6 +2,7 @@ import { sourceRuleConfig } from './sourceRules'
 import { hasRequestedTitleNumbers } from 'common/externalTitle'
 import { adaptiveGames, experimentalPage } from './adaptiveSource'
 import { sourceCandidates, canonicalSourceUrl, markSourceAvailable } from './sourceSettings'
+import { isNonGameCard } from 'common/defaultHomeContent'
 import sanitizeHtml from 'sanitize-html'
 import type {
   GhostDownloadSource,
@@ -12,6 +13,8 @@ import type {
 import type { SourceProvider } from './pluginHost'
 import { NetworkGuard } from './networkGuard'
 import { isNewerRelease, parseDateToIso } from 'common/utils'
+
+export { isNonGameCard }
 
 function plain(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
@@ -518,6 +521,7 @@ export function parseWebsiteGames(
             const candidate = new URL(m[1].replace(/&amp;/g, '&'), base)
             if (candidate.origin === new URL(base).origin && candidate.pathname !== '/' &&
                 !/^\/(?:category|tag|author|page|feed|wp-|contact|about|privacy|dmca|faq|search|comments)\b/i.test(candidate.pathname)) {
+              if (isNonGameCard('', candidate.href)) continue
               if (!config.gamePathPrefix || candidate.pathname.startsWith(config.gamePathPrefix)) {
                 url = candidate
                 break
@@ -527,7 +531,7 @@ export function parseWebsiteGames(
         }
       }
 
-      if (!url) continue
+      if (!url || isNonGameCard('', url.href)) continue
 
       // Título
       let title = ''
@@ -549,6 +553,7 @@ export function parseWebsiteGames(
 
       title = cleanGameTitle(title)
       if (title.length < 2 || /^(download|details|read more|скачать|baixar)/i.test(title)) continue
+      if (isNonGameCard(title, url.href)) continue
 
       // Capa
       let coverUrl: string | undefined = undefined
@@ -659,10 +664,11 @@ export function parseWebsiteGames(
       // Rejeita páginas de paginação de comentários DLE (ex: /page,1,7,...)
       if (/\/page,\d+/i.test(url.pathname)) continue
 
-      // Ignora páginas de navegação do sistema
+      // Ignora páginas de navegação do sistema e páginas que não são jogos
       if (/^\/(?:category|tag|author|page|feed|wp-|contact|about|privacy|dmca|faq|search|comments|guides_upd|terms-of-use|partners)\b/i.test(url.pathname)) {
         continue
       }
+      if (isNonGameCard('', url.href)) continue
 
       if (config.gamePathPrefix && !url.pathname.startsWith(config.gamePathPrefix)) {
         continue
@@ -699,6 +705,7 @@ export function parseWebsiteGames(
         /^(download|details|read more|скачать|baixar)/i.test(rawTitle)
       )
         continue
+      if (isNonGameCard(rawTitle, url.href)) continue
 
       // 2. Extração multi-camada de Capa / Imagem e Versão circundante
       let imageSrc: string | undefined = undefined
@@ -827,10 +834,9 @@ export function websiteSource(
   }
   async function parseCatalog(html: string) {
     const known = parseWebsiteGames(html, base!, config, manifest)
+    if (known.length) return known
     try {
-      // Also observe successful pages so the adaptive parser can learn their structure.
-      const adaptive = await adaptiveGames(html, base!, manifest, config)
-      return known.length ? known : adaptive
+      return await adaptiveGames(html, base!, manifest, config)
     } catch { return known }
   }
   async function readPage(url: string, signal: AbortSignal) {
@@ -927,6 +933,8 @@ export function websiteSource(
             lastError = error
           }
         }
+        // Variants are fallbacks; do not repeat successful searches.
+        if (gamesMap.size) break
       }
 
       // Se nenhum alvo de busca encontrou jogos, tenta o catálogo geral como fallback
@@ -990,6 +998,9 @@ export function websiteSource(
             targetUrls.push(new URL(`/games-list?genre=${encodeURIComponent(theme)}&page=${pageNum}`, base).href)
           }
         } else {
+          if (pageNum === 1) {
+            targetUrls.push(new URL('/', base).href)
+          }
           targetUrls.push(new URL(`/games-list?page=${pageNum}`, base).href)
           targetUrls.push(new URL(`/games-list`, base).href)
         }
@@ -1011,6 +1022,8 @@ export function websiteSource(
           }
         } else {
           if (pageNum === 1) {
+            targetUrls.push(new URL('/', base).href)
+            targetUrls.push(new URL('/page/1/', base).href)
             targetUrls.push(new URL('/games-list-page/', base).href)
           } else {
             targetUrls.push(new URL(`/games-list-page/page/${pageNum}/`, base).href)
@@ -1018,6 +1031,9 @@ export function websiteSource(
           }
         }
       } else {
+        if (pageNum === 1) {
+          targetUrls.push(new URL('/', base).href)
+        }
         const catalogPath = config.catalogPath || '/'
         targetUrls.push(new URL(catalogPath, base).href)
       }
@@ -1028,12 +1044,40 @@ export function websiteSource(
         try {
           fetchedHtml = await page(target, true, signal)
           const parsed = await parseCatalog(fetchedHtml)
-          if (parsed.length > 0) {
-            games = parsed
+          const valid = parsed.filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+          if (valid.length > 0) {
+            games = valid
             break
           }
         } catch {
           // Segue para a próxima URL de fallback
+        }
+      }
+
+      // SteamRIP: se for a página inicial (Recently Added) e tiver menos de 20 jogos válidos,
+      // busca a próxima página para completar até os 20 primeiros jogos reais solicitados pelo usuário
+      if (
+        /steamrip\.com/i.test(base) &&
+        pageNum === 1 &&
+        games.length > 0 &&
+        games.length < 20 &&
+        !letter &&
+        (!theme || theme === 'all')
+      ) {
+        try {
+          const page2Html = await page(new URL('/page/2/', base).href, true, signal)
+          const page2Parsed = await parseCatalog(page2Html)
+          const page2Valid = page2Parsed.filter((g) => !isNonGameCard(g.title, g.pageUrl || g.id))
+          const existingIds = new Set(games.map((g) => g.id))
+          for (const g of page2Valid) {
+            if (!existingIds.has(g.id)) {
+              existingIds.add(g.id)
+              games.push(g)
+              if (games.length >= 20) break
+            }
+          }
+        } catch {
+          // Mantém os jogos já extraídos da primeira página
         }
       }
 
@@ -1069,25 +1113,32 @@ export function websiteSource(
 
       let version: string | undefined = undefined
 
-      // 1. ANKERGAMES (Alta fidelidade via JSON-LD softwareVersion, Title tag, badge animate-glow ou meta description)
+      // 1. ANKERGAMES: visible release, document title, then structured metadata.
       if (isAnker) {
+        // The visible release status is authoritative. JSON-LD can change
+        // independently, and recommendation cards describe other games.
+        const visibleVersion = plain(html.replace(/<\/[^>]+>/g, '$& ')).split(/Recommended For You/i)[0]
+          .match(/\bCurrent\s+Version\s*[:：]?\s*((?:V\s*|B\s*)?\d+(?:\.\d+)*[a-z]?)(?=\s|$)/i)?.[1]
+        const documentVersion = html.match(/<title>[\s\S]*?\((?:v(?:er)?\.?\s*)?([v\d][^)]+)\)\s*(?:\||»|–|-)\s*AnkerGames/i)?.[1]?.trim()
         const jsonLdVersion = html.match(/"softwareVersion"\s*:\s*"([^"]+)"/i)?.[1]?.trim()
-        if (jsonLdVersion) {
+        if (visibleVersion) {
+          version = /^B\s*\d+/i.test(visibleVersion)
+            ? `Build ${visibleVersion.replace(/^B\s*/i, '')}`
+            : (/^v/i.test(visibleVersion) ? visibleVersion.replace(/^V\s*/i, 'v') : `v${visibleVersion}`)
+        } else if (documentVersion) {
+          version = /^build\b/i.test(documentVersion) ? documentVersion
+            : (/^v/i.test(documentVersion) ? documentVersion : `v${documentVersion}`)
+        } else if (jsonLdVersion) {
           version = jsonLdVersion
         } else {
-          const titleTagVersion = html.match(/<title>[\s\S]*?\((?:v(?:er)?\.?\s*)?([v\d][^)]+)\)\s*(?:\||»|–|-)\s*AnkerGames/i)?.[1]?.trim()
-          if (titleTagVersion) {
-            version = /^build\b/i.test(titleTagVersion) ? titleTagVersion : (titleTagVersion.startsWith('v') || titleTagVersion.startsWith('V') ? titleTagVersion : `v${titleTagVersion}`)
+          const ankerHeroBadge = html.match(/class=["'][^"']*animate-glow[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1]?.replace(/<[^>]+>/g, '')?.trim()
+          if (ankerHeroBadge) {
+            if (/^B\s*\d+/i.test(ankerHeroBadge)) version = `Build ${ankerHeroBadge.replace(/^B\s*/i, '')}`
+            else if (/^V\s*[\d.]+[a-z]?/i.test(ankerHeroBadge)) version = `v${ankerHeroBadge.replace(/^V\s*/i, '')}`
           } else {
-            const ankerHeroBadge = html.match(/class=["'][^"']*animate-glow[^"']*["'][^>]*>([\s\S]*?)<\/span>/i)?.[1]?.replace(/<[^>]+>/g, '')?.trim()
-            if (ankerHeroBadge) {
-              if (/^B\s*\d+/i.test(ankerHeroBadge)) version = `Build ${ankerHeroBadge.replace(/^B\s*/i, '')}`
-              else if (/^V\s*[\d.]+[a-z]?/i.test(ankerHeroBadge)) version = `v${ankerHeroBadge.replace(/^V\s*/i, '')}`
-            } else {
-              const metaDescVersion = html.match(/<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*content=["'][^"']*\(\s*(?:v(?:er)?\.?\s*)?([v\d][a-zA-Z0-9._-]+|\bBuild\s*\d+)/i)?.[1]?.trim()
-              if (metaDescVersion) {
-                version = /^build\b/i.test(metaDescVersion) ? metaDescVersion : (metaDescVersion.startsWith('v') || metaDescVersion.startsWith('V') ? metaDescVersion : `v${metaDescVersion}`)
-              }
+            const metaDescVersion = html.match(/<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*content=["'][^"']*\(\s*(?:v(?:er)?\.?\s*)?([v\d][a-zA-Z0-9._-]+|\bBuild\s*\d+)/i)?.[1]?.trim()
+            if (metaDescVersion) {
+              version = /^build\b/i.test(metaDescVersion) ? metaDescVersion : (metaDescVersion.startsWith('v') || metaDescVersion.startsWith('V') ? metaDescVersion : `v${metaDescVersion}`)
             }
           }
         }

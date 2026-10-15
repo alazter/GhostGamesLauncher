@@ -464,6 +464,28 @@
   margin-bottom: 20px;
 }
 
+.externalSearchStatus {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  color: #00ffff;
+  background: #101a23;
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 12px;
+}
+
+.externalSearchStatus > svg { margin-top: 3px; flex-shrink: 0; }
+.externalSearchStatusText { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.externalSearchStatusText strong { color: #fff; overflow-wrap: anywhere; }
+.externalSearchStatusText span, .externalSearchStatusText small { color: #a8c1d0; }
+.externalSearchStatusText progress { width: min(340px, 100%); height: 6px; accent-color: #00ffff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .externalSearchStatus .fa-spin, .externalSearchIconBtn .fa-spin { animation: none; }
+}
+
 .externalUnifiedSearchRow:focus-within {
   border-color: rgba(0, 255, 255, 0.5);
   box-shadow: 0 0 24px rgba(0, 255, 255, 0.2), 0 8px 30px rgba(0, 0, 0, 0.6);
@@ -1845,6 +1867,14 @@
   width: 100%;
 }
 
+.modernShelvesMainTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: -6px;
+}
+
 .modernShelvesMainTitle {
   display: flex;
   align-items: center;
@@ -1852,12 +1882,52 @@
   font-size: 22px;
   font-weight: 800;
   color: #fff;
-  margin-bottom: -6px;
 }
 
 .modernShelvesMainTitle svg {
   font-size: 20px;
   color: #00ffff;
+}
+
+.modernShelvesRefreshActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modernShelvesSyncTime {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.modernShelvesRefreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 255, 255, 0.08);
+  border: 1px solid rgba(0, 255, 255, 0.28);
+  color: #00ffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.modernShelvesRefreshBtn:hover:not(:disabled) {
+  background: rgba(0, 255, 255, 0.18);
+  border-color: #00ffff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.modernShelvesRefreshBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .modernShelfSection {

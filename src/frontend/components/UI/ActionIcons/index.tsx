@@ -475,8 +475,17 @@ export default React.memo(function ActionIcons({
             icon={faSyncAlt}
           />
         </button>
-        <div className="ActionIcons__updateGroup" ref={scopeMenuRef}>
-          <div className="ActionIcons__updateBtnWrapper">
+        <div
+          className={classNames('ActionIcons__updateGroup', {
+            'is-checking': isCheckingPiratas
+          })}
+          ref={scopeMenuRef}
+        >
+          <div
+            className={classNames('ActionIcons__updateBtnWrapper', {
+              'is-checking': isCheckingPiratas
+            })}
+          >
             <button
               className={classNames('FormControl__button', 'FormControl__button--piratas-update', {
                 'is-checking': isCheckingPiratas,

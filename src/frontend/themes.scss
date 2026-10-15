@@ -942,9 +942,10 @@ button.is-close,
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.1) !important;
 }
 
-.Header__filters .Header__dropdownBtn {
+.Header__filters .Header__dropdownBtn,
+.Header__filters .Header__actionBtn {
   height: 32px !important;
-  min-width: 36px !important;
+  min-width: 32px !important;
   width: auto !important;
   border-radius: 6px !important;
   background-image: none !important;
@@ -953,11 +954,27 @@ button.is-close,
   padding-inline-end: 6px !important;
   font-size: 13px !important;
   box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
 }
 
-.Header__filters.header-buttons--neon .Header__dropdownBtn {
+.Header__filters.header-buttons--neon .Header__dropdownBtn,
+.Header__filters.header-buttons--neon .Header__actionBtn,
+.Header__filters.action-icons--neon .Header__dropdownBtn,
+.Header__filters.action-icons--neon .Header__actionBtn {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  padding: 0 4px !important;
+  padding-inline-end: 4px !important;
+  min-width: auto !important;
+  height: 32px !important;
 }
 

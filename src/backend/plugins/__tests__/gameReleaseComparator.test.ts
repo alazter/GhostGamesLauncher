@@ -45,7 +45,36 @@ describe('Universal Date Parser and Composite Release Comparator', () => {
   })
 
   describe('isNewerGameRelease (Tupla Instalada vs Tupla do Site)', () => {
-    it('Cenário 1: Confirma update quando a data do site for posterior, mesmo com formatos de versão diferentes', () => {
+    it.each([
+      ['v1.009.1', 'v1.009.1', 'same'],
+      ['v0.107.7832', 'v0.107.7756', 'version'],
+      ['v0.107.7832', 'v0.107.7832', 'same'],
+      ['v1.009.1', '1.009.1', 'same'],
+      ['v1.0', 'v1.0.0', 'same'],
+      ['Build 25752683', 'Build 25752683', 'same']
+    ])('does not advertise %s -> %s because the page has a newer date', (current, next, reason) => {
+      expect(isNewerGameRelease({ version: current, sourceDate: '2026-10-08' },
+        { version: next, sourceDate: '2026-10-14' })).toEqual({ isNewer: false, reason })
+    })
+
+    it('accepts a newer package version even if the page publication date is older', () => {
+      expect(isNewerGameRelease({ version: 'v1.009.1', sourceDate: '2026-10-14' },
+        { version: 'v1.010', sourceDate: '2026-10-08' })).toEqual({ isNewer: true, reason: 'version' })
+    })
+
+    it('compares explicit builds and letter suffixes without using page dates', () => {
+      expect(isNewerGameRelease({ version: 'v0.61d' }, { version: 'v0.61e' })).toEqual({ isNewer: true, reason: 'version' })
+      expect(isNewerGameRelease({ version: 'v0.61e' }, { version: 'v0.61d' })).toEqual({ isNewer: false, reason: 'version' })
+      expect(isNewerGameRelease({ version: 'v1.0 (Build 100)' }, { version: 'v1.0 (Build 101)' })).toEqual({ isNewer: true, reason: 'version' })
+    })
+
+    it('does not fall back to upload dates for matching or unrecognised version labels', () => {
+      expect(isNewerGameRelease({ version: 'v1.0', uploadDate: '2026-10-08' },
+        { version: 'v1.0', uploadDate: '2026-10-14' })).toEqual({ isNewer: false, reason: 'same' })
+      expect(isNewerGameRelease({ version: 'edition-a', sourceDate: '2026-10-08' },
+        { version: 'edition-b', sourceDate: '2026-10-14' })).toEqual({ isNewer: false, reason: 'unknown' })
+    })
+    it('does not use a later date to compare a build number against a semantic version', () => {
       const installed = {
         version: 'Build 25134257',
         sourceDate: '2026-09-10'
@@ -55,11 +84,11 @@ describe('Universal Date Parser and Composite Release Comparator', () => {
         sourceDate: '2026-09-29'
       }
       const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(true)
-      expect(res.reason).toBe('date')
+      expect(res.isNewer).toBe(false)
+      expect(res.reason).toBe('unknown')
     })
 
-    it('Cenário 2: Confirma update em hotfix/repack com crack novo mantendo a mesma versão textual', () => {
+    it('does not infer a hotfix or repack from a page date with the same package version', () => {
       const installed = {
         version: 'v1.0.2',
         sourceDate: '2026-09-15'
@@ -69,8 +98,8 @@ describe('Universal Date Parser and Composite Release Comparator', () => {
         sourceDate: '2026-09-29'
       }
       const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(true)
-      expect(res.reason).toBe('date')
+      expect(res.isNewer).toBe(false)
+      expect(res.reason).toBe('same')
     })
 
     it('Cenário 3: Desempata pela versão quando as datas forem idênticas (mesmo dia)', () => {
@@ -112,16 +141,14 @@ describe('Universal Date Parser and Composite Release Comparator', () => {
       }
       const res = isNewerGameRelease(installed, site)
       expect(res.isNewer).toBe(false)
-      expect(res.reason).toBe('date')
+      expect(res.reason).toBe('version')
     })
 
     it('Cenário 6: Utiliza uploadDate como fallback seguro quando sourceDate não estiver preenchido', () => {
       const installed = {
-        version: 'v1.0',
         uploadDate: 'September 10, 2026'
       }
       const site = {
-        version: 'v1.0',
         uploadDate: 'September 29, 2026'
       }
       const res = isNewerGameRelease(installed, site)

@@ -75,6 +75,7 @@ import { getMediaImageUrl } from './imageUrl'
 import useCinemaFavorites from './useCinemaFavorites'
 import CatalogCoverSize from './CatalogCoverSize'
 import useCinemaCoverSize from './useCinemaCoverSize'
+import { observeVideoBuffering } from './videoBuffering'
 import useCinemaCardPreferences from './useCinemaCardPreferences'
 import CatalogCardSettings from './CatalogCardSettings'
 import { mediaTmdbRating } from './cardPreferences'
@@ -2787,6 +2788,12 @@ export default function AlazterflixScreen() {
   }, [playerMovie, updatePlaybackProgress, duration])
 
   // Video Player Event Handlers
+  const playerStreamUrl = playerMovie?.streamUrl
+  useEffect(() => {
+    if (!playerStreamUrl || !videoRef.current) return
+    return observeVideoBuffering(videoRef.current, setIsBuffering)
+  }, [playerStreamUrl])
+
   useEffect(() => {
     if (!playerMovie) return
 
@@ -2911,17 +2918,11 @@ export default function AlazterflixScreen() {
       }
     }
 
-    const handleWaiting = () => {
-      setIsBuffering(true)
-    }
-
     const handleCanPlay = () => {
-      setIsBuffering(false)
       disableNativeTracks()
     }
 
     const handlePlaying = () => {
-      setIsBuffering(false)
       disableNativeTracks()
     }
 
@@ -2933,7 +2934,6 @@ export default function AlazterflixScreen() {
     video.addEventListener('timeupdate', handleTimeUpdate)
     video.addEventListener('ended', handleEnded)
     video.addEventListener('pause', handlePause)
-    video.addEventListener('waiting', handleWaiting)
     video.addEventListener('canplay', handleCanPlay)
     video.addEventListener('playing', handlePlaying)
     if (video.textTracks) {
@@ -3027,7 +3027,6 @@ export default function AlazterflixScreen() {
       video.removeEventListener('timeupdate', handleTimeUpdate)
       video.removeEventListener('ended', handleEnded)
       video.removeEventListener('pause', handlePause)
-      video.removeEventListener('waiting', handleWaiting)
       video.removeEventListener('canplay', handleCanPlay)
       video.removeEventListener('playing', handlePlaying)
       if (video.textTracks) {

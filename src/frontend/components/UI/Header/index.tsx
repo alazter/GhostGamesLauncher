@@ -444,7 +444,26 @@ export default function Header() {
               </button>
             )}
 
-            <div style={isUnclassifiedActive || isDuplicatesActive ? { pointerEvents: 'none', opacity: 0.4, display: 'flex', gap: 'inherit', alignItems: 'center' } : { display: 'flex', gap: 'inherit', alignItems: 'center' }}>
+            <div
+              className="Header__dropdownGroup"
+              style={
+                isUnclassifiedActive || isDuplicatesActive
+                  ? {
+                      pointerEvents: 'none',
+                      opacity: 0.4,
+                      display: 'inline-flex',
+                      gap: 'inherit',
+                      alignItems: 'center',
+                      height: '32px'
+                    }
+                  : {
+                      display: 'inline-flex',
+                      gap: 'inherit',
+                      alignItems: 'center',
+                      height: '32px'
+                    }
+              }
+            >
               <CategoryFilter />
               <LibraryFilters />
             </div>

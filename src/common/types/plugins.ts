@@ -191,7 +191,19 @@ export interface ExternalSpacePlan {
   estimated: boolean
 }
 
+export interface DirectDownloadWait {
+  returningToGame?: boolean
+  confirmOnGamePage?: boolean
+  phase: 'automatic' | 'manual'
+  deadline: number
+  hoster: string
+  next?: string
+  attempt: number
+  attempts: number
+}
+
 export interface ExternalDownloadJob {
+  directWait?: DirectDownloadWait
   oldRemoved?: boolean
   spacePlan?: ExternalSpacePlan
   canResume?: boolean
@@ -215,7 +227,7 @@ export interface ExternalDownloadJob {
   createdAt: string
   error?: string
   candidates: string[]
-  transport?: 'torbox' | 'anker-direct' | 'steamrip-direct' | 'rom-direct'
+  transport?: 'torbox' | 'anker-direct' | 'steamrip-direct' | 'rom-direct' | 'online-fix-direct'
   transferPhase?: 'torrent' | 'remote' | 'local'
   remoteProgress?: number
   remoteStatus?: string
@@ -297,6 +309,12 @@ export interface ExternalActionResult {
 export interface SourceSearchResponse {
   games: GhostSearchResult[]
   errors: Array<{ providerId: string; providerName: string; message: string }>
+}
+
+export interface SourceSearchProgress extends SourceSearchResponse {
+  completed: number
+  total: number
+  pendingProviders: Array<{ id: string; name: string }>
 }
 
 export interface WebsiteSourceConfig {
@@ -550,4 +568,27 @@ export interface CinemaLibraryState {
       continueHidden?: boolean
     }
   >
+}
+
+export interface SpotlightGameItem {
+  id: string
+  title: string
+  tags: string[]
+  backdropUrl: string
+  game: GhostSearchResult
+}
+
+export interface StoreShelfItem {
+  id: string
+  name: string
+  tag: string
+  subtitle: string
+  theme: 'theme-anker' | 'theme-steamrip' | 'theme-onlinefix' | 'theme-switch'
+  games: GhostSearchResult[]
+}
+
+export interface GhostHomeContent {
+  spotlightGames: SpotlightGameItem[]
+  shelves: StoreShelfItem[]
+  updatedAt?: number
 }

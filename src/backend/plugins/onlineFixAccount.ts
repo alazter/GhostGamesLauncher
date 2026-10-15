@@ -16,7 +16,7 @@ export class OnlineFixAccount {
   ): Promise<Buffer> {
     const url = onlineFixGameUrl(page)
     if (this.busy)
-      throw new Error('Conclua a janela Online-Fix aberta antes de continuar.')
+      throw new Error('Aguarde a obtenção do torrent Online-Fix em andamento antes de continuar.')
     await mkdir(dirname(destination), { recursive: true })
     const isolated = session.fromPartition('persist:ghost-online-fix')
     isolated.setPermissionRequestHandler((_contents, _permission, callback) =>
@@ -31,7 +31,7 @@ export class OnlineFixAccount {
       })
     })
     const window = new BrowserWindow({
-      show: true,
+      show: false,
       width: 1000,
       height: 760,
       title: 'Ghost — Torrent Online-Fix',
@@ -62,9 +62,15 @@ export class OnlineFixAccount {
             !('url' in snapshot) || typeof snapshot.url !== 'string' ||
             !('html' in snapshot) || typeof snapshot.html !== 'string') return
         const target = await resolveOnlineFixTorrentLink(snapshot.html, snapshot.url)
-        if (!target || !active || item || member.isDestroyed() || signal.aborted ||
-            followed.has(target) || followed.size >= 3) return
+        if (!active || item || member.isDestroyed() || signal.aborted) return
         if (member.webContents.getURL() !== snapshot.url) return
+        if (!target) {
+          // Keep successful captures silent. Show only the official page that
+          // needs login, a challenge, or a file choice by the user.
+          if (onlineFixDownloadUrl(snapshot.url) && !member.isVisible()) member.show()
+          return
+        }
+        if (followed.has(target) || followed.size >= 3) return
         followed.add(target)
         // Navigate to the observed official href. A site's click handler can
         // replace an otherwise valid anchor with an advertising/task gateway.
@@ -90,12 +96,14 @@ export class OnlineFixAccount {
           ? {
               action: 'allow',
               overrideBrowserWindowOptions: {
+                show: false,
                 webPreferences: {
                   session: isolated,
                   sandbox: true,
                   contextIsolation: true,
                   nodeIntegration: false,
-                  webviewTag: false
+                  webviewTag: false,
+                  backgroundThrottling: false
                 }
               }
             }

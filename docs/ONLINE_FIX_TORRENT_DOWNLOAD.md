@@ -77,3 +77,34 @@ liberar o bloqueio de resolução, pois `dom-ready` pode ocorrer durante `loadUR
 Testes conferem bloqueio do intermediário em pop-up, navegação e requisição,
 e abertura direta da pasta oficial sem executar clique. Não foi verificado
 por análise externa se esse domínio é classificado como malware ou fraude.
+
+### Verificação concluída em 14/10/2026
+
+A captura integrada pela navegação direta, sem evento de clique, também retornou
+`automaticCapture: true, bytes: 95261, validTorrent: true`. O build isolado
+desse reforço passou. No estado atual do código, 31 testes de `directBrowser`,
+`onlineFixTorrent` e `externalDownloadStatus` e `pnpm run codecheck` passaram.
+O envio e a transferência completa na conta TorBox pessoal continuam pendentes.
+
+### Confirmação do usuário e captura silenciosa — 14/10/2026
+
+O usuário confirmou que o fluxo TorBox/torrent funcionou e que o download
+começou automaticamente. Pediu eliminar a janela que aparecia durante a captura.
+
+A janela Online-Fix e suas janelas filhas agora são criadas com `show: false`,
+mantendo a sessão persistente e o processamento em segundo plano. A página
+oficial só é revelada quando a resolução não encontra automaticamente um
+destino único — por exemplo, login, verificação ou escolha entre arquivos.
+Não há temporizador que abra a janela durante uma captura automática demorada.
+Páginas bloqueadas de terceiros continuam rejeitadas.
+
+Os testes verificam a criação oculta, a ausência de `show()` no sucesso e a
+abertura da página oficial somente no caminho manual. A confirmação recebida
+refere-se ao funcionamento do fluxo e ao início do download; a conclusão da
+instalação do jogo não foi informada pelo usuário.
+
+Validação dessa captura silenciosa: o teste integrado em Electron com perfil
+isolado obteve o torrent real do UNO de 95.261 bytes, válido, com
+`initialVisibleWindows: 0` e `revealedWindows: 0`. Os 32 testes de
+`directBrowser`, `onlineFixTorrent` e `externalDownloadStatus` passaram;
+TypeScript, lint do backend alterado e build isolado também passaram.

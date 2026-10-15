@@ -12,6 +12,8 @@ import { PluginPacker } from '../pluginPacker'
 import { NetworkGuard } from '../networkGuard'
 import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID } from '../ankerAccount'
 import { OnlineFixAccount, ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID } from '../onlineFixAccount'
+import { OnlineFixDirect } from '../onlineFixDirect'
+import { ONLINE_FIX_DIRECT_ID } from '../onlineFixHosters'
 import { TorboxClient } from '../torboxClient'
 import { torrentInfoHash } from '../torrentMetadata'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
@@ -161,6 +163,32 @@ it('publishes the cleared update only after the replacement is installed', async
   )
 })
 
+it('rejects cached same-version and older-package update notices even with a newer publication date', async () => {
+  const installed = await install()
+  service.setInstalledVersion(installed.appName, 'v0.107.7832')
+  for (const version of ['v0.107.7832', 'v0.107.7756']) {
+    service.recordUpdate(installed.id, { ...game, version, sourceDate: '2026-10-14' }, 'Atualização disponível')
+    expect(service.snapshot(false).installations[0].availableUpdate).toBeUndefined()
+  }
+})
+
+it('invalidates notices from the old comparison policy on restart without changing the installed release', async () => {
+  const installed = await install()
+  const { userDataPath } = await import('backend/constants/paths')
+  const statePath = join(userDataPath, 'external-games', 'state.json')
+  const state = JSON.parse(await readFile(statePath, 'utf8'))
+  delete state.releaseCheckRevision
+  state.installations[0].availableUpdate = { ...game, version: 'v99.0' }
+  await writeFile(statePath, JSON.stringify(state))
+  backendEvents.removeAllListeners('gameStatusUpdate')
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance().snapshot(false).installations[0]
+  expect(restarted.availableUpdate).toBeUndefined()
+  expect(restarted.game.version).toBe(installed.game.version)
+  expect(restarted.directory).toBe(installed.directory)
+  expect(JSON.parse(await readFile(statePath, 'utf8')).releaseCheckRevision).toBe(1)
+})
+
 it('keeps progress snapshots free of installation healing and filesystem checks', async () => {
   await install()
   games = []
@@ -259,7 +287,13 @@ function torboxFixture() {
 
 it('receives a browser-confirmed archive without requiring or calling TorBox', async () => {
   const torbox = jest.spyOn(TorboxClient, 'saved').mockRejectedValue(new Error('No key'))
-  const direct = jest.spyOn(AnkerAccount, 'direct').mockImplementation(async (_page, directory, _signal, progress) => {
+  const direct = jest.spyOn(AnkerAccount, 'direct').mockImplementation(async (_page, directory, _signal, progress, _provider, _diagnostic, wait) => {
+    const state = { phase: 'automatic' as const, deadline: Date.now() + 45000, hoster: 'AnkerGames', attempt: 1, attempts: 1 }
+    wait?.(state)
+    expect(service.snapshot().jobs[0].directWait).toEqual(state)
+    wait?.({ ...state, phase: 'manual', deadline: Date.now() + 120000 })
+    expect(service.snapshot().jobs[0].directWait?.phase).toBe('manual')
+    wait?.(undefined)
     await mkdir(directory, { recursive: true })
     const file = join(directory, 'package.zip')
     const data = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('direct game') }])
@@ -278,6 +312,7 @@ it('receives a browser-confirmed archive without requiring or calling TorBox', a
   expect(direct).toHaveBeenCalledTimes(1)
   expect(service.snapshot().jobs[0].transport).toBe('anker-direct')
   expect(service.snapshot().jobs[0].bytes).toBeGreaterThan(0)
+  expect(service.snapshot().jobs[0].directWait).toBeUndefined()
 })
 
 it('receives a SteamRIP browser-confirmed archive via steamrip-direct transport', async () => {
@@ -310,10 +345,119 @@ it('receives a SteamRIP browser-confirmed archive via steamrip-direct transport'
     expect.any(AbortSignal),
     expect.any(Function),
     'steamrip',
+    expect.any(Function),
     expect.any(Function)
   )
   expect(service.snapshot().jobs[0].transport).toBe('steamrip-direct')
   expect(service.snapshot().jobs[0].bytes).toBeGreaterThan(0)
+})
+
+it('installs the Online-Fix game and applies the separate fix before registering the executable', async () => {
+  const torbox = jest.spyOn(TorboxClient, 'saved').mockRejectedValue(new Error('No key'))
+  const extract = jest.spyOn(externalFiles, 'extractGame')
+  const direct = jest.spyOn(OnlineFixDirect, 'download').mockImplementation(async (_page, directory, _signal, progress, completed) => {
+    await mkdir(directory, { recursive: true })
+    const packages = []
+    for (const role of ['game', 'fix'] as const) {
+      const name = role === 'game' ? 'Example.zip' : 'Example_Fix.zip'
+      const archive = join(directory, name)
+      const data = PluginPacker.createZipBuffer(role === 'game'
+        ? [{ name: 'Example/game.exe', content: Buffer.from('original game') }]
+        : [{ name: 'Fix Repair/game.exe', content: Buffer.from('patched game') },
+            { name: 'Fix Repair/steam_api64.dll', content: Buffer.from('fix library') }])
+      await writeFile(archive, data)
+      packages.push({ name, role, archive, bytes: data.length })
+      completed([...packages])
+    }
+    const bytes = packages.reduce((sum, file) => sum + file.bytes, 0)
+    progress(bytes, bytes)
+    return packages
+  })
+  const result = await service.enqueue(
+    { ...game, id: 'https://online-fix.me/games/test.html', providerId: ONLINE_FIX_SOURCE_ID, providerName: 'Online-Fix' },
+    { id: ONLINE_FIX_DIRECT_ID, name: 'Jogo e fix', type: 'external', url: 'https://online-fix.me/games/test.html' },
+    { ...manifest, id: ONLINE_FIX_SOURCE_ID }, undefined, false, true, root
+  )
+  expect(result.success).toBe(true)
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'completed')
+  expect(torbox).not.toHaveBeenCalled()
+  expect(direct).toHaveBeenCalledTimes(1)
+  expect(extract.mock.calls.map(call => call[2])).toEqual(['online-fix.me', 'online-fix.me'])
+  expect(service.snapshot().jobs[0].transport).toBe('online-fix-direct')
+  const installed = service.snapshot().installations[0]
+  expect(await readFile(installed.executable!, 'utf8')).toBe('patched game')
+  expect(await readFile(join(installed.directory, 'steam_api64.dll'), 'utf8')).toBe('fix library')
+})
+
+it('retains the completed Online-Fix game when the fix fails and passes it back on resume', async () => {
+  const direct = jest.spyOn(OnlineFixDirect, 'download').mockImplementation(async (_page, directory, _signal, progress, completed, previous) => {
+    await mkdir(directory, { recursive: true })
+    const archive = join(directory, 'Example.zip')
+    const data = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('original') }])
+    if (!previous?.length) {
+      await writeFile(archive, data)
+      completed([{ name: 'Example.zip', role: 'game', archive, bytes: data.length }])
+      throw new Error('Fix temporarily unavailable')
+    }
+    expect(previous[0].archive).toBe(archive)
+    const fixData = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('patched') }])
+    const fix = join(directory, 'Example_Fix.zip')
+    await writeFile(fix, fixData)
+    const files = [...previous, { name: 'Example_Fix.zip', role: 'fix' as const, archive: fix, bytes: fixData.length }]
+    completed(files)
+    progress(data.length + fixData.length, data.length + fixData.length)
+    return files
+  })
+  const result = await service.enqueue(
+    { ...game, id: 'https://online-fix.me/games/test.html', providerId: ONLINE_FIX_SOURCE_ID, providerName: 'Online-Fix' },
+    { id: ONLINE_FIX_DIRECT_ID, name: 'Jogo e fix', type: 'external', url: 'https://online-fix.me/games/test.html' },
+    { ...manifest, id: ONLINE_FIX_SOURCE_ID }, undefined, false, false, root
+  )
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  expect(service.snapshot().installations).toHaveLength(0)
+  expect(service.snapshot().jobs[0].canResume).toBe(true)
+  expect(await service.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'ready')
+  expect(direct).toHaveBeenCalledTimes(2)
+})
+
+it('retries an Online-Fix extraction failure from both local packages without another download', async () => {
+  const actualExtract = externalFiles.extractGame
+  let failed = false
+  jest.spyOn(externalFiles, 'extractGame').mockImplementation(async (file, destination, password, platform) => {
+    if (file.endsWith('Example_Fix.zip') && !failed) {
+      failed = true
+      throw new Error('Temporary extraction failure')
+    }
+    return actualExtract(file, destination, password, platform)
+  })
+  const direct = jest.spyOn(OnlineFixDirect, 'download').mockImplementation(async (_page, directory, _signal, progress, completed) => {
+    await mkdir(directory, { recursive: true })
+    const packages = []
+    for (const role of ['game', 'fix'] as const) {
+      const name = role === 'game' ? 'Example.zip' : 'Example_Fix.zip'
+      const archive = join(directory, name)
+      const data = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from(role) }])
+      await writeFile(archive, data)
+      packages.push({ name, role, archive, bytes: data.length })
+    }
+    completed(packages)
+    const bytes = packages.reduce((sum, file) => sum + file.bytes, 0)
+    progress(bytes, bytes)
+    return packages
+  })
+  const result = await service.enqueue(
+    { ...game, id: 'https://online-fix.me/games/test.html', providerId: ONLINE_FIX_SOURCE_ID, providerName: 'Online-Fix' },
+    { id: ONLINE_FIX_DIRECT_ID, name: 'Jogo e fix', type: 'external', url: 'https://online-fix.me/games/test.html' },
+    { ...manifest, id: ONLINE_FIX_SOURCE_ID }, undefined, false, false, root
+  )
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  expect(service.snapshot().jobs[0].canResume).toBe(true)
+  expect(await service.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  expect(service.snapshot().jobs[0].status).toBe('ready')
+  expect(direct).toHaveBeenCalledTimes(1)
 })
 
 it('reuses the matching TorBox torrent and downloads without persisting signed links', async () => {

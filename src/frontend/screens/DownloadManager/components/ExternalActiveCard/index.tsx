@@ -25,6 +25,7 @@ import ExternalStoreLogo from '../ExternalStoreLogo'
 import { useExternalGameCover } from '../../hooks/useExternalGameCover'
 import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import CachedImage from 'frontend/components/UI/CachedImage'
+import DirectDownloadWait from 'frontend/components/DirectDownloadWait'
 import '../DownloadManagerItem/index.css'
 import './index.css'
 
@@ -644,13 +645,21 @@ export default function ExternalActiveCard({
                   Obtendo automaticamente o torrent de {job.game.providerName}. Entre na conta na janela do site se necessário.
                 </p>
               )}
-              {job.status === 'downloading' && ['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && !job.transferPhase && (
+              <DirectDownloadWait job={job} />
+              {job.status === 'downloading' && !job.directWait && ['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && !job.transferPhase && (
                 <p
                   role="status"
                   className="dmExternalNoticeBanner"
-                  title={`Confirme o download do pacote na janela de ${job.game.providerName}. O Ghost receberá o arquivo automaticamente.`}
+                  title={`Obtendo o download de ${job.game.providerName} automaticamente. A janela será aberta somente se precisar de intervenção.`}
                 >
-                  Confirme o download na janela de {job.game.providerName}. O Ghost receberá o arquivo automaticamente.
+                  Obtendo o download de {job.game.providerName} automaticamente. Se precisar de intervenção, o Ghost abrirá a janela com orientações.
+                </p>
+              )}
+              {job.status === 'downloading' && !job.directWait && job.transport === 'online-fix-direct' && (
+                <p role="status" className="dmExternalNoticeBanner">
+                  {job.transferPhase === 'local'
+                    ? 'Baixando os arquivos do jogo e do fix. A instalação começará quando todos estiverem concluídos.'
+                    : 'Obtendo os arquivos nos hosters do Online-Fix. Se a hospedagem pedir uma verificação, conclua na janela do site.'}
                 </p>
               )}
               {job.status === 'downloading' && (
@@ -860,6 +869,10 @@ export default function ExternalActiveCard({
                     const isExternal = source.type === 'external'
                     const label = isTorbox
                       ? 'TorBox — Torrent'
+                      : source.id === 'online-fix-hosters-direct'
+                      ? 'Download direto — Jogo e fix'
+                      : ['anker-browser-direct', 'steamrip-browser-direct', 'rom-browser-direct'].includes(source.id)
+                      ? 'Download direto — Automático'
                       : isExternal
                       ? 'Download direto — Confirmar no site'
                       : source.type === 'direct'

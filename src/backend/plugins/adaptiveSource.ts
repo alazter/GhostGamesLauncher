@@ -1,4 +1,5 @@
 import { sourceRuleSelector } from './sourceRules'
+import { isNonGameCard } from 'common/defaultHomeContent'
 import type {
   GhostSearchResult,
   PluginManifest,
@@ -20,6 +21,9 @@ export function isAdaptiveGamePath(id: string, path: string): boolean {
   return (
     path !== '/' &&
     !/^\/(?:category|tag|author|page|feed|wp-|contact|about|privacy|dmca|faq|search|comments|login|register|account|logout)(?:\b|\/)/i.test(
+      path
+    ) &&
+    !/\/(?:top-games|recent-updates|all-games(?:-games)?-collection|all-games|how-to-run-games|request-games|request-a-game|how-to-download|faq|dmca|contact-us|privacy-policy|terms-of-use|terms-of-service|games-list-page)\/?$/i.test(
       path
     ) &&
     !/\.(?!html?$)[a-z0-9]+$/i.test(path.replace(/\/$/, ''))
@@ -70,7 +74,8 @@ export async function adaptiveGames(
           item.title.length > 200 ||
           /^(?:download|read more|login|register|home|next|previous)$/i.test(
             item.title.trim()
-          )
+          ) ||
+          isNonGameCard(item.title, url.href)
         )
           return []
         const id = canonicalSourceUrl(manifest.id, url.href)
@@ -95,7 +100,7 @@ export async function experimentalPage(
   return withSourceEngine('obscura', async (executable) => {
     const proxy = await engineProxy(manifest)
     try {
-      // Public catalog only. Authenticated downloads keep the existing Electron session.
+      // Public pages only. Authenticated downloads keep the existing Electron session.
       return await engineProcess(
         executable,
         [

@@ -109,9 +109,10 @@
   transition: transform 0.2s ease, filter 0.2s ease, color 0.2s ease, opacity 0.2s ease !important;
 }
 
-/* Hover sem degradê - Apenas o glifo do ícone acende com a cor escolhida */
 .ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button:hover svg,
-.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button:hover .FormControl__segmentedFaIcon {
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button:hover .FormControl__segmentedFaIcon,
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button.is-checking svg,
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button.is-checking .FormControl__segmentedFaIcon {
   color: var(--action-color-1, #38d9e6) !important;
   fill: var(--action-color-1, #38d9e6) !important;
   opacity: var(--action-opacity, 1) !important;
@@ -122,9 +123,16 @@
   transform: scale(1.15) !important;
 }
 
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button:hover svg path,
+.ActionIcons.action-icons--neon:not(.action-icons--gradient) .FormControl__button.is-checking svg path {
+  fill: currentColor !important;
+}
+
 /* Hover com degradê - O glifo do ícone recebe o degradê e o glow direcional correspondente às cores do degradê */
 .ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover svg,
-.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover .FormControl__segmentedFaIcon {
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover .FormControl__segmentedFaIcon,
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button.is-checking svg,
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button.is-checking .FormControl__segmentedFaIcon {
   color: transparent !important;
   opacity: var(--action-opacity, 1) !important;
   filter: drop-shadow(-2px -2px calc(var(--action-glow-strength, 8px) * 0.8) var(--action-glow-rgba-1, rgba(230, 55, 81, 0.85))) 
@@ -134,7 +142,9 @@
 }
 
 .ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover svg path,
-.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover .FormControl__segmentedFaIcon path {
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button:hover .FormControl__segmentedFaIcon path,
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button.is-checking svg path,
+.ActionIcons.action-icons--neon.action-icons--gradient .FormControl__button.is-checking .FormControl__segmentedFaIcon path {
   fill: url(#actionIconGradient) !important;
 }
 
@@ -173,13 +183,15 @@
   gap: 2px !important;
 }
 
-.ActionIcons__updateBtnWrapper:hover {
+.ActionIcons__updateBtnWrapper:hover,
+.ActionIcons__updateBtnWrapper.is-checking {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(0, 255, 255, 0.35);
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
 }
 
-.ActionIcons.action-icons--neon .ActionIcons__updateBtnWrapper:hover {
+.ActionIcons.action-icons--neon .ActionIcons__updateBtnWrapper:hover,
+.ActionIcons.action-icons--neon .ActionIcons__updateBtnWrapper.is-checking {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -213,27 +225,12 @@
   filter: none !important;
 }
 
-/* Hover no botão exclusivo - Glow intenso e expansão */
-.FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon,
-.ActionIcons.action-icons--neon .FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon {
-  color: #ffd166 !important;
-  fill: #ffd166 !important;
+.FormControl__button--piratas-update:disabled,
+.FormControl__button--piratas-update.is-checking {
   opacity: 1 !important;
-  filter: drop-shadow(0 0 6px #ffb703) 
-          drop-shadow(0 0 12px rgba(255, 183, 3, 0.85)) 
-          drop-shadow(0 0 18px rgba(255, 183, 3, 0.45)) !important;
-  transform: scale(1.2) !important;
+  cursor: wait !important;
 }
 
-.FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon.ActionIcons__piratasFaIcon--globe,
-.ActionIcons.action-icons--neon .FormControl__button--piratas-update:hover .ActionIcons__piratasFaIcon.ActionIcons__piratasFaIcon--globe {
-  color: #80ffff !important;
-  fill: #80ffff !important;
-  filter: drop-shadow(0 0 6px #00ffff) 
-          drop-shadow(0 0 14px rgba(0, 255, 255, 0.85)) 
-          drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)) !important;
-  transform: scale(1.2) !important;
-}
 
 /* Modo não-neon: botão neutro em repouso */
 .ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update {
@@ -245,7 +242,8 @@
   background: transparent !important;
 }
 
-.ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update:hover {
+.ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update:hover,
+.ActionIcons:not(.action-icons--neon) .FormControl__button--piratas-update.is-checking {
   background: rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -279,13 +277,6 @@
 .ActionIcons__scopeChevronBtn:disabled {
   opacity: 0.3 !important;
   pointer-events: none !important;
-}
-
-/* Animação quando está checando updates */
-.FormControl__button--piratas-update.is-checking .ActionIcons__piratasFaIcon {
-  color: #00ffff !important;
-  fill: #00ffff !important;
-  filter: drop-shadow(0 0 8px #00ffff) drop-shadow(0 0 14px rgba(0, 255, 255, 0.75)) !important;
 }
 
 /* Estrutura SVG desacoplada da caveira (Cabeça móvel + Base de ossos estática) */

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DirectDownloadWait from 'frontend/components/DirectDownloadWait'
 import { torboxTransferMessage } from 'common/externalDownloadStatus'
 import { Link } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -131,6 +132,7 @@ export default function ExternalDownloads({
                 )}
               </div>
               <h3>{job.game.title}</h3>
+              <DirectDownloadWait job={job} />
               <p>
                 {job.operation === 'switch-source'
                   ? `Migrando para ${job.game.providerName}`
@@ -143,7 +145,10 @@ export default function ExternalDownloads({
                 <p>Pausar ou cancelar interrompe a transferência no Ghost. A tarefa na nuvem permanece na sua conta TorBox.</p>
               )}
               {['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') && (
-                <p>Download direto pelo Ghost. {job.status === 'downloading' && !job.transferPhase ? 'Confirme Download na janela do site; escolha o pacote, não o torrent.' : 'Ao retomar, confirme novamente no site; a transferência reinicia do começo.'}</p>
+                <p>Download direto pelo Ghost. {job.status === 'downloading' && !job.transferPhase ? 'Obtendo o pacote automaticamente. A janela só aparece se precisar de intervenção.' : 'Ao retomar, o Ghost busca o link novamente; a transferência poderá reiniciar.'}</p>
+              )}
+              {job.transport === 'online-fix-direct' && (
+                <p role="status">Download do jogo e do fix pelo Ghost. Ao retomar, os arquivos já concluídos são preservados.</p>
               )}
               {job.status === 'downloading' && job.transferPhase === 'torrent' && <p role="status">Obtendo o torrent de {job.game.providerName}… Na janela do site, entre na conta se necessário e escolha Torrent.</p>}
               {job.status === 'downloading' && job.transferPhase === 'remote' && <>

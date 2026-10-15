@@ -82,6 +82,7 @@ import type {
   ExternalGameAction,
   LocalCandidateGame,
   SourceSearchResponse,
+  SourceSearchProgress,
   GhostMovie,
   StremioAddonManifest,
   StremioMetaPreview,
@@ -91,7 +92,8 @@ import type {
   CinemaMetadataSettings,
   CinemaMetadataJob,
   CinemaUpdateOptions,
-  CinemaMediaPreferences
+  CinemaMediaPreferences,
+  GhostHomeContent
 } from './plugins'
 
 // ts-prune-ignore-next
@@ -622,7 +624,7 @@ interface AsyncIPCFunctions {
     game: GhostSearchResult
   ) => Promise<ExternalActionResult>
   pluginsInstallBuiltinSource: (id: string) => Promise<PluginInstallResult>
-  externalGamesSearch: (query: string) => Promise<SourceSearchResponse>
+  externalGamesSearch: (query: string, requestId?: string) => Promise<SourceSearchResponse>
   externalGamesGetCatalog: (
     providerId: string,
     options?: { letter?: string; page?: number; theme?: string }
@@ -631,6 +633,9 @@ interface AsyncIPCFunctions {
     hasMore: boolean
     totalEstimated?: number
   }>
+  externalGamesGetHomeContent: (options?: {
+    forceRefresh?: boolean
+  }) => Promise<GhostHomeContent>
   externalGamesAddPage: (
     providerId: string,
     pageUrl: string,
@@ -832,6 +837,7 @@ export interface DetectedVersionResult {
 }
 
 interface FrontendMessages {
+  'external-games-search-progress': (requestId: string, progress: SourceSearchProgress) => void
   'plugins-updated': (plugins: PluginInfo[]) => void
   'external-games-updated': (state: ExternalGamesState) => void
   'external-games-assign-piratas': (data: { appName: string }) => void

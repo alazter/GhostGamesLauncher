@@ -1,5 +1,6 @@
 import { externalErrorMessage } from 'common/externalErrors'
 import { downloadProgress } from './downloadProgress'
+import { confirmDirectDownloadLearning } from './directDownloadLearning'
 import { rangedDownload } from './rangedDownload'
 import { app, dialog, shell } from 'electron'
 
@@ -54,7 +55,7 @@ import { backendEvents } from 'backend/backend_events'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
 import { gameOverridesStore } from 'backend/game_overrides/electronStores'
 import { sameExternalGameIdentity } from 'common/externalGameIdentity'
-import { parseDateToIso } from 'common/utils'
+import { parseDateToIso, isNewerGameRelease } from 'common/utils'
 import { sendFrontendMessage } from 'backend/ipc'
 import type {
   ExternalActionResult,
@@ -74,6 +75,9 @@ import { NetworkGuard } from './networkGuard'
 import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, ankerGameUrl, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID, steamripGameUrl } from './ankerAccount'
 import { ROM_DIRECT_ID, romSource, romPageUrl } from './romSources'
 import { OnlineFixAccount, ONLINE_FIX_SOURCE_ID, ONLINE_FIX_TORRENT_ID, onlineFixGameUrl } from './onlineFixAccount'
+import { OnlineFixDirect } from './onlineFixDirect'
+import { ONLINE_FIX_DIRECT_ID, type OnlineFixDownloadedPackage } from './onlineFixHosters'
+import { applyOnlineFixPackages, onlineFixPackageRoots } from './onlineFixInstall'
 import { TorboxClient, TorboxRejectedError } from './torboxClient'
 import { TORBOX_DOWNLOAD_DOMAINS } from './torboxDomains'
 import { torrentInfoHash } from './torrentMetadata'
@@ -103,6 +107,7 @@ interface StoredJob extends ExternalDownloadJob {
   torboxSubmissionPending?: boolean
   torboxWrapped?: boolean
   packageDownloaded?: boolean
+  onlineFixPackages?: OnlineFixDownloadedPackage[]
   source: GhostDownloadSource
   manifest: PluginManifest
   directory: string
@@ -121,6 +126,7 @@ interface StoredState extends Omit<ExternalGamesState, 'jobs'> {
   jobs: StoredJob[]
   torboxReferences?: Record<string, { hash: string; id?: number; recordedAt: number }>
   lastUpdateCheckTime?: number
+  releaseCheckRevision?: number
 }
 
 async function safeRename(
@@ -316,6 +322,7 @@ export class ExternalGames {
         readFileSync(this.statePath, 'utf8')
       ) as StoredState
     for (const job of this.state.jobs) {
+      job.directWait = undefined
       if (job.removalStarted) {
         job.status = 'error'
         job.error = 'A remoção foi interrompida. Retome para concluir a reinstalação; o backup foi preservado.'
@@ -332,6 +339,19 @@ export class ExternalGames {
     const migrationFlagFile = join(this.root, '.ghost-defaults-enabled-v1')
     const needsMigration = !existsSync(migrationFlagFile)
     let stateModified = false
+
+    // Previous checks allowed page dates to override the package version and
+    // preferred JSON-LD over the visible release. Recheck these cached notices.
+    if (this.state.releaseCheckRevision !== 1) {
+      for (const installation of this.state.installations) {
+        if (installation.availableUpdate) {
+          installation.availableUpdate = undefined
+          installation.updateMessage = 'Confira novamente a fonte para verificar atualizações.'
+        }
+      }
+      this.state.releaseCheckRevision = 1
+      stateModified = true
+    }
 
     const initialGames = (libraryStore.get('games', []) || []) as GameInfo[]
     if (this.healInstallations(initialGames)) {
@@ -515,8 +535,9 @@ export class ExternalGames {
   recordUpdate(id: string, update?: GhostSearchResult, message?: string) {
     const installation = this.state.installations.find((item) => item.id === id)
     if (installation) {
-      installation.availableUpdate = update
-      installation.updateMessage = message
+      const confirmed = !update || isNewerGameRelease(installation.game, update).isNewer
+      installation.availableUpdate = confirmed ? update : undefined
+      installation.updateMessage = confirmed ? message : 'A fonte não confirmou uma versão mais recente do jogo.'
       this.save()
     }
   }
@@ -1145,11 +1166,12 @@ export class ExternalGames {
         error: job.error,
         transport: job.transport,
         transferPhase: job.transferPhase,
+        directWait: job.status === 'downloading' ? job.directWait : undefined,
         remoteProgress: job.remoteProgress,
         remoteStatus: job.remoteStatus,
         oldRemoved: job.oldRemoved || job.removalStarted,
         spacePlan: job.spacePlan,
-        canResume: ['paused', 'error', 'cancelled'].includes(job.status) && !job.commitStarted && (this.canRetryPackage(job) || (!existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '')))),
+        canResume: ['paused', 'error', 'cancelled'].includes(job.status) && !job.commitStarted && (this.canRetryPackage(job) || (!existsSync(job.stage) && Boolean(job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct', 'online-fix-direct'].includes(job.transport || '')))),
         candidates: job.candidates
       })),
       installations: this.state.installations,
@@ -1428,10 +1450,12 @@ export class ExternalGames {
     const isAnkerDirect = (manifest.id === ANKER_SOURCE_ID || manifest.id === 'ankergames') && source.id === ANKER_DIRECT_ID
     const isSteamripDirect = (manifest.id === STEAMRIP_SOURCE_ID || manifest.id === 'steamrip') && source.id === STEAMRIP_DIRECT_ID
     const isRomDirect = Boolean(romSource(manifest.id)) && source.id === ROM_DIRECT_ID
-    const viaBrowser = isAnkerDirect || isSteamripDirect || isRomDirect
+    const isOnlineFixDirect = manifest.id === ONLINE_FIX_SOURCE_ID && source.id === ONLINE_FIX_DIRECT_ID
+    const viaBrowser = isAnkerDirect || isSteamripDirect || isRomDirect || isOnlineFixDirect
     if (isAnkerDirect) ankerGameUrl(source.url)
     if (isSteamripDirect) steamripGameUrl(source.url)
     if (isRomDirect) romPageUrl(manifest.id, source.url)
+    if (isOnlineFixDirect) onlineFixGameUrl(source.url)
     if (viaTorbox) {
       this.torrentProvider(manifest.id, source.id, source.url)
       await TorboxClient.saved()
@@ -1569,7 +1593,7 @@ export class ExternalGames {
       stage: join(parent, `.ghost-stage-${id}`),
       archive: join(work, `package${archiveExt}`),
       status: isDirectArchive || viaTorbox || viaBrowser ? 'queued' : 'awaiting-file',
-      transport: viaTorbox ? 'torbox' : isSteamripDirect ? 'steamrip-direct' : isRomDirect ? 'rom-direct' : viaBrowser ? 'anker-direct' : undefined,
+      transport: viaTorbox ? 'torbox' : isOnlineFixDirect ? 'online-fix-direct' : isSteamripDirect ? 'steamrip-direct' : isRomDirect ? 'rom-direct' : viaBrowser ? 'anker-direct' : undefined,
       bytes: 0,
       speed: 0,
       candidates: [],
@@ -1766,6 +1790,7 @@ export class ExternalGames {
             continue
           }
           if (job.transport === 'torbox') await this.downloadTorbox(job)
+          else if (job.transport === 'online-fix-direct') await this.downloadOnlineFixDirect(job)
           else if (['anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '')) await this.downloadBrowserDirect(job)
           else await this.download(job)
         } catch (error) {
@@ -1780,6 +1805,7 @@ export class ExternalGames {
             })
           this.controllers.delete(job.id)
           job.speed = 0
+          job.directWait = undefined
           this.save()
         }
       }
@@ -1788,12 +1814,46 @@ export class ExternalGames {
     }
   }
 
+  private async downloadOnlineFixDirect(job: StoredJob) {
+    const controller = new AbortController()
+    this.controllers.set(job.id, controller)
+    job.packageDownloaded = false
+    job.status = 'downloading'
+    job.transferPhase = undefined
+    job.directWait = undefined
+    job.bytes = 0
+    job.total = undefined
+    this.save()
+    const report = this.transferProgress(job)
+    const packages = await OnlineFixDirect.download(job.source.url, dirname(job.archive), controller.signal,
+      (bytes, total) => {
+        const started = job.transferPhase !== 'local' || bytes < job.bytes
+        job.bytes = bytes
+        job.total = total || undefined
+        job.transferPhase = 'local'
+        report(bytes, started)
+      }, files => {
+        job.onlineFixPackages = files
+        this.save()
+      }, job.onlineFixPackages, state => {
+        job.directWait = state
+        this.save()
+      })
+    controller.signal.throwIfAborted()
+    job.onlineFixPackages = packages
+    job.archive = onlineFixPackageRoots(packages).find(file => file.role === 'game')!.archive
+    job.packageDownloaded = true
+    this.save()
+    await this.prepare(job, job.archive)
+  }
+
   private async downloadBrowserDirect(job: StoredJob) {
     job.packageDownloaded = false
     const controller = new AbortController()
     this.controllers.set(job.id, controller)
     job.status = 'downloading'
     job.transferPhase = undefined
+    job.directWait = undefined
     job.bytes = 0
     job.total = undefined
     this.save()
@@ -1813,6 +1873,9 @@ export class ExternalGames {
       void import('backend/logger').then(({ logInfo, LogPrefix }) => {
         logInfo(JSON.stringify({ jobId: job.id, provider, ...diagnostic }), LogPrefix.DownloadManager)
       }).catch(() => { /* Diagnostics must never interrupt a transfer. */ })
+    }, state => {
+      job.directWait = state
+      this.save()
     })
     controller.signal.throwIfAborted()
     report(job.bytes, true)
@@ -2094,8 +2157,16 @@ export class ExternalGames {
   }
 
   private canRetryPackage(job: StoredJob): boolean {
-    if (!['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '') || job.commitStarted || job.removalStarted) return false
+    if (!['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct', 'online-fix-direct'].includes(job.transport || '') || job.commitStarted || job.removalStarted) return false
     try {
+      if (job.transport === 'online-fix-direct') {
+        const packages = job.onlineFixPackages
+        return job.packageDownloaded === true && Boolean(packages?.some(file => file.role === 'game') &&
+          packages?.some(file => file.role === 'fix') && packages.every(file => {
+            const info = statSync(file.archive)
+            return info.isFile() && info.size > 0 && info.size === file.bytes
+          }))
+      }
       const file = statSync(job.archive)
       return file.isFile() && file.size > 0 && (!job.total || file.size === job.total) && (job.packageDownloaded === true ||
         (job.transport === 'torbox' && job.transferPhase === 'local' && Boolean(job.total) && job.bytes === job.total && file.size === job.total))
@@ -2109,6 +2180,11 @@ export class ExternalGames {
         !inside(await realpath(downloadFolder), await realpath(job.archive)) ||
         resolve(job.stage) !== resolve(dirname(job.directory), `.ghost-stage-${job.id}`))
       throw new Error('Caminho de pacote temporário inválido.')
+    for (const file of job.onlineFixPackages || []) {
+      if (resolve(dirname(file.archive)) !== resolve(downloadFolder) ||
+          !inside(await realpath(downloadFolder), await realpath(file.archive)))
+        throw new Error('Caminho de pacote Online-Fix temporário inválido.')
+    }
     if (existsSync(job.stage)) {
       if (resolve(await realpath(job.stage)).toLowerCase() !== resolve(job.stage).toLowerCase())
         throw new Error('A pasta de extração foi redirecionada.')
@@ -2128,7 +2204,10 @@ export class ExternalGames {
   private async prepare(job: StoredJob, archive: string) {
     const password = /online[- ]?fix/i.test(job.game.providerId + ' ' + job.game.providerName) ? 'online-fix.me' : undefined
     if (job.oldRemoved) {
-      const unpackedBytes = await archiveSize(archive, password)
+      const roots = job.transport === 'online-fix-direct' && job.onlineFixPackages
+        ? onlineFixPackageRoots(job.onlineFixPackages).map(file => file.archive) : [archive]
+      let unpackedBytes = 0
+      for (const file of roots) unpackedBytes += await archiveSize(file, password)
       const saveBytes = this.state.backups.find(item => item.id === job.backupId)?.bytes || 0
       job.installedEstimate = unpackedBytes + saveBytes
       const disk = await statfs(dirname(job.directory))
@@ -2179,9 +2258,12 @@ export class ExternalGames {
       if (!job.old && !job.cleanReplace) job.directory = prepared.directory
       candidates = prepared.candidates
     }
+    if (job.transport === 'online-fix-direct' && job.onlineFixPackages)
+      candidates = await applyOnlineFixPackages(job.onlineFixPackages, job.stage, candidates)
     job.candidates = candidates.map((file) => relative(job.stage, file))
     if (!job.candidates.length)
       throw new Error('Nenhum executável de jogo encontrado no arquivo baixado.')
+    confirmDirectDownloadLearning(archive, ...(job.onlineFixPackages?.map(file => file.archive) || []))
     job.status = 'ready'
     job.error = undefined
     this.save()
@@ -2654,7 +2736,7 @@ export class ExternalGames {
         } else if (action.type === 'resume' && ['error', 'paused'].includes(job.status) && this.canRetryPackage(job)) {
           if (this.controllers.has(job.id)) throw new Error('Aguarde a transferência terminar.')
           await this.retryPackage(job)
-        } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'cancelled' && job.oldRemoved) || (job.status === 'error' && (job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct'].includes(job.transport || '')) && !existsSync(job.stage)))) {
+        } else if (action.type === 'resume' && (job.status === 'paused' || (job.status === 'cancelled' && job.oldRemoved) || (job.status === 'error' && (job.oldRemoved || job.removalStarted || ['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct', 'online-fix-direct'].includes(job.transport || '')) && !existsSync(job.stage)))) {
           if (this.controllers.has(job.id))
             throw new Error('Aguarde a pausa terminar.')
           if (job.spacePlan) throw new Error('Use as opções de espaço disponíveis nesta tarefa.')
@@ -2776,19 +2858,25 @@ export class ExternalGames {
           const isAnkerDirect = (manifest.id === ANKER_SOURCE_ID || manifest.id === 'ankergames') && newSource.id === ANKER_DIRECT_ID
           const isSteamripDirect = (manifest.id === STEAMRIP_SOURCE_ID || manifest.id === 'steamrip') && newSource.id === STEAMRIP_DIRECT_ID
           const isRomDirect = Boolean(romSource(manifest.id)) && newSource.id === ROM_DIRECT_ID
-          const viaBrowser = isAnkerDirect || isSteamripDirect || isRomDirect
+          const isOnlineFixDirect = manifest.id === ONLINE_FIX_SOURCE_ID && newSource.id === ONLINE_FIX_DIRECT_ID
+          const viaBrowser = isAnkerDirect || isSteamripDirect || isRomDirect || isOnlineFixDirect
 
           if (isAnkerDirect) ankerGameUrl(newSource.url)
           if (isSteamripDirect) steamripGameUrl(newSource.url)
           if (isRomDirect) romPageUrl(manifest.id, newSource.url)
+          if (isOnlineFixDirect) onlineFixGameUrl(newSource.url)
           if (viaTorbox) {
             this.torrentProvider(manifest.id, newSource.id, newSource.url)
             await TorboxClient.saved()
           }
 
+          job.onlineFixPackages = undefined
+          job.packageDownloaded = false
           job.source = newSource
           job.transport = viaTorbox
             ? 'torbox'
+            : isOnlineFixDirect
+            ? 'online-fix-direct'
             : isSteamripDirect
             ? 'steamrip-direct'
             : isRomDirect

@@ -130,12 +130,18 @@ export function ChooseDownloadModalWrapper() {
             <FontAwesomeIcon icon={faDownload} className="cdmBtnIcon" />
             <div className="cdmBtnTexts">
               <span className="cdmBtnLabel">
-                {source.type === 'external'
+                {source.id === 'online-fix-hosters-direct'
+                  ? 'Download direto — Jogo e fix'
+                  : ['anker-browser-direct', 'steamrip-browser-direct', 'rom-browser-direct'].includes(source.id)
+                  ? 'Download direto — Automático'
+                  : source.type === 'external'
                   ? 'Download direto — Confirmar no site'
                   : source.name || 'Download Direto'}
               </span>
               <span className="cdmBtnSub">
-                Download direto em alta velocidade (Buzzheavier, MegaDB)
+                {source.id === 'online-fix-hosters-direct'
+                  ? 'Baixa o jogo e o fix, descompacta e instala automaticamente'
+                  : 'Download direto em alta velocidade (Buzzheavier, MegaDB)'}
               </span>
             </div>
           </div>

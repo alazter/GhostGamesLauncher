@@ -198,9 +198,8 @@ export interface ReleaseComparisonResult {
 }
 
 /**
- * Comparador universal híbrido:
- * 1. PRIORIDADE PRIMÁRIA: Data de Last Updated / Publicação na Fonte (sourceDate)
- * 2. PRIORIDADE SECUNDÁRIA / DESEMPATE: SemVer, Builds e Versões (version)
+ * Compare identified releases before publication dates. A page edit is not
+ * evidence of a new package when its version is equal, older or incomparable.
  */
 export function isNewerGameRelease(
   current: GameReleaseCandidate | undefined,
@@ -211,18 +210,6 @@ export function isNewerGameRelease(
   const curDate = (current.sourceDate ? parseDateToIso(current.sourceDate) : undefined) || parseDateToIso(current.uploadDate)
   const nextDate = (next.sourceDate ? parseDateToIso(next.sourceDate) : undefined) || parseDateToIso(next.uploadDate)
 
-  // 1. REGRA PRIMÁRIA SOBERANA: Data do Last Updated / Publicação na Fonte
-  if (curDate && nextDate) {
-    if (nextDate > curDate) {
-      return { isNewer: true, reason: 'date' }
-    }
-    if (nextDate < curDate) {
-      return { isNewer: false, reason: 'date' }
-    }
-    // Se as datas forem exatamente idênticas, desempata pela versão abaixo
-  }
-
-  // 2. REGRA SECUNDÁRIA / DESEMPATE: SemVer, Builds, Versões Numéricas
   if (current.version && next.version) {
     if (isNewerRelease(current.version, next.version)) {
       return { isNewer: true, reason: 'version' }
@@ -235,6 +222,26 @@ export function isNewerGameRelease(
     if (cleanCur && cleanNext && cleanCur === cleanNext) {
       return { isNewer: false, reason: 'same' }
     }
+    // Numeric versions with optional letter suffixes and trailing zeroes.
+    // isNewerRelease already ordered the numeric components above.
+    const numeric = /^(\d+(?:\.\d+)*)([a-z]?)$/
+    const a = numeric.exec(cleanCur)
+    const b = numeric.exec(cleanNext)
+    if (a && b) {
+      const partsA = a[1].split('.').map(Number)
+      const partsB = b[1].split('.').map(Number)
+      const equal = Array.from({ length: Math.max(partsA.length, partsB.length) },
+        (_, i) => (partsA[i] || 0) === (partsB[i] || 0)).every(Boolean)
+      if (equal) return a[2] === b[2]
+        ? { isNewer: false, reason: 'same' }
+        : { isNewer: b[2] > a[2], reason: 'version' }
+    }
+    return { isNewer: false, reason: 'unknown' }
+  }
+
+  // Dates are a fallback only when at least one release has no version.
+  if (curDate && nextDate) {
+    return { isNewer: nextDate > curDate, reason: nextDate === curDate ? 'same' : 'date' }
   }
 
   return { isNewer: false, reason: 'unknown' }
