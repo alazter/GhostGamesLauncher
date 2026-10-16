@@ -747,6 +747,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Atualização do Alazterflix v1.3.3**: Suporte ampliado a títulos baseados em diretórios/pastas, empacotamento do arquivo de extensão `alazterflix-v1.3.3.ghost`, sanitização de headers no renderer e melhorias no player de streaming.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 131 testes unitários em 20 suítes de Releases e Backend aprovados (100%), e conformidade estrita com a Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 48. Seletor Integrado da Loja Personalizada "Softwares" nas Caixas de Texto/Endereço de "Scripts e Softwares" (`SoftwareStorePathBox`) e Releases v0.3.4-beta / v0.3.5-beta
+* **Problema:** Nas configurações dos jogos, as caixas de texto/endereço de "Scripts e Softwares" permitiam apenas digitação manual de caminhos ou seleção via diálogo nativo de arquivos locais (`📁`). Usuários que possuem softwares cadastrados na loja personalizada "Softwares" do Ghost precisavam navegar manualmente pelos diretórios do Windows para vincular executáveis aos jogos.
+* **Solução:**
+  - **Descoberta Automática e Conexão Reativa com a Loja "Softwares" (Conquista 177/Regra 143/Seção 81)**: Implementação do motor `softwareStoreItems.ts` (`resolveGameExecutablePath`, `findPrimarySoftwareStore`, `getSoftwareStoreItems`, `findMatchingSoftwareByPath`) e hook `useSoftwareStoreCatalog` monitorando em tempo real as lojas personalizadas e atribuições, exibindo indicador dinâmico no cabeçalho: `🧰 Conectado à sua loja personalizada "Softwares" (N apps disponíveis)`.
+  - **Caixa de Endereço Cyber-Neon com Popover e Botão `"🧰 Loja Softwares ▾"`**: Novo componente `SoftwareStorePathBox` integrado em `BeforeLaunchScriptPath` e `AfterLaunchScriptPath`, embutindo o botão da loja diretamente ao lado do seletor local `📁` e de limpeza `⌫`. Popover com filtro de busca rápida, miniatura da capa do aplicativo, caminho `.exe` em fonte monoespaçada e botão de seleção em 1 clique.
+  - **Badge Identificador de Vínculo**: Exibição em tempo real do badge de status (`Vinculado da Loja Softwares: [Nome]` com ícone ou `📁 Selecionado via Pasta Local: [arquivo]`).
+  - **Lançamento das Versões `v0.3.4-beta` e `v0.3.5-beta`**: Incremento de versões no `package.json`, atualização de regras do scanner de sideload e estabilização de build.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 99/99 testes unitários Jest aprovados (100% em 5 suítes de Custom Stores & Connected Accounts) e conformidade estrita com a Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -829,7 +838,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/releases/calendarCache.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/calendarCache.ts)
 - [NEW] [src/backend/releases/collector.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/collector.ts)
 - [NEW] [src/backend/rendererRequestHeaders.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/rendererRequestHeaders.ts)
+- [NEW] [src/backend/storeManagers/connectedAccounts/__tests__/softwareStoreItems.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/connectedAccounts/__tests__/softwareStoreItems.test.ts)
 - [MODIFY] [src/backend/storeManagers/gog/presence.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/gog/presence.ts)
+- [MODIFY] [src/backend/storeManagers/sideload/scanner_rules.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/sideload/scanner_rules.json)
 - [MODIFY] [src/backend/utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils.ts)
 - [MODIFY] [src/backend/utils/aborthandler/aborthandler.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/aborthandler/aborthandler.ts)
 
@@ -853,17 +864,25 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/components/UI/Dropdown/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Dropdown/index.scss)
 - [MODIFY] [src/frontend/components/UI/Header/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.css)
 - [MODIFY] [src/frontend/components/UI/Header/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.tsx)
+- [MODIFY] [src/frontend/helpers/customStoreFiltering.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/customStoreFiltering.ts)
+- [NEW] [src/frontend/helpers/softwareStoreItems.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/softwareStoreItems.ts)
 - [MODIFY] [src/frontend/screens/Alazterflix/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/index.tsx)
 - [MODIFY] [src/frontend/screens/DownloadManager/components/ExternalActiveCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/DownloadManager/components/ExternalActiveCard/index.tsx)
 - [MODIFY] [src/frontend/screens/ExternalGames/Downloads.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/Downloads.tsx)
 - [MODIFY] [src/frontend/screens/ExternalGames/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/index.css)
 - [MODIFY] [src/frontend/screens/ExternalGames/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/index.tsx)
 - [MODIFY] [src/frontend/screens/Releases/NativeReleases.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/NativeReleases.tsx)
+- [NEW] [src/frontend/screens/Releases/ReleaseCollectorPicker.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseCollectorPicker.tsx)
+- [NEW] [src/frontend/screens/Releases/collector.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/collector.css)
+- [MODIFY] [src/frontend/screens/Settings/components/AfterLaunchScriptPath.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/AfterLaunchScriptPath.tsx)
+- [MODIFY] [src/frontend/screens/Settings/components/BeforeLaunchScriptPath.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/BeforeLaunchScriptPath.tsx)
+- [NEW] [src/frontend/screens/Settings/components/SoftwareStorePathBox.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/SoftwareStorePathBox.scss)
+- [NEW] [src/frontend/screens/Settings/components/SoftwareStorePathBox.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/components/SoftwareStorePathBox.tsx)
+- [MODIFY] [src/frontend/screens/Settings/sections/GamesSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/GamesSettings/index.tsx)
 - [MODIFY] [src/frontend/themes.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/themes.scss)
 - [NEW] [src/frontend/components/DirectDownloadWait/](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/DirectDownloadWait/)
 - [NEW] [src/frontend/screens/Alazterflix/videoBuffering.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/videoBuffering.ts)
 - [NEW] [src/frontend/screens/ExternalGames/SearchStatus.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/SearchStatus.tsx)
-- [NEW] [src/frontend/screens/Releases/ReleaseCollectorPicker.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseCollectorPicker.tsx)
-- [NEW] [src/frontend/screens/Releases/collector.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/collector.css)
+
 
 
