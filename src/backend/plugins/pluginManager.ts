@@ -987,7 +987,8 @@ export class PluginManager {
       app.isPackaged
         ? join(process.resourcesPath, 'engine-bundles')
         : join(app.getAppPath(), 'public', 'engine-bundles'),
-      app.getVersion()
+      app.getVersion(),
+      { deferVerification: true }
     )
     ExternalGames.getInstance()
     mkdirSync(this.pluginsDir, { recursive: true })

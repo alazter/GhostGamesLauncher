@@ -1,0 +1,66 @@
+.nr-collector-picker {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+}
+.nr-collector-picker > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 6px;
+  color: var(--nr-muted);
+  padding: 0;
+  font-size: 14px;
+}
+.nr-collector-picker > summary::-webkit-details-marker {
+  display: none;
+}
+.nr-collector-picker > summary:hover,
+.nr-collector-picker[open] > summary {
+  color: var(--nr-text);
+  background: var(--nr-card);
+}
+.nr-collector-picker > summary:focus-visible {
+  outline: 2px solid #a889ff;
+  outline-offset: 3px;
+}
+.nr-collector-popup {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(310px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--nr-line);
+  border-radius: 10px;
+  background: var(--nr-bg);
+  color: var(--nr-text);
+  box-shadow: 0 12px 32px #0006;
+  z-index: 12;
+  text-align: left;
+}
+.nr-collector-popup label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.nr-collector-popup select {
+  width: 100%;
+}
+.nr-collector-popup p {
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nr-muted);
+}
+.NativeReleases .nr-collector-popup button {
+  width: 100%;
+  border-color: var(--nr-line);
+}
+.nr-workspace .nr-header {
+  position: relative;
+  z-index: 6;
+}

@@ -31,6 +31,7 @@ type State = {
   rejected: Partial<Record<SourceEngineId, string>>
 }
 let root: string | undefined
+const verifiedWorkers = new Set<string>()
 let bundles = ''
 let ghostVersion = ''
 let state: State = {
@@ -192,6 +193,7 @@ async function boundedDownload(url: string, limit: number, timeout = 30000) {
   throw new Error('Redirecionamentos demais na atualização.')
 }
 async function smoke(release: EngineRelease, folder: string) {
+  verifiedWorkers.delete(release.sha256)
   const executable = join(folder, release.executable)
   const output = await engineProcess(
     executable,
@@ -209,11 +211,14 @@ async function smoke(release: EngineRelease, folder: string) {
         (!Array.isArray(result.capabilities) ||
           !result.capabilities.includes('online-fix-torrent-links-v1'))) ||
       ((release.integrationRevision || 0) >= 4 &&
-        (!Array.isArray(result.capabilities) || !result.capabilities.includes('direct-download-page-v1')))
+        (!Array.isArray(result.capabilities) || !result.capabilities.includes('direct-download-page-v1'))) ||
+      ((release.integrationRevision || 0) >= 5 &&
+        (!Array.isArray(result.capabilities) || !result.capabilities.includes('release-page-v1')))
     )
       throw new Error('O teste do Scrapling falhou.')
   } else if (!output.includes(release.version))
     throw new Error('A versão do Obscura não corresponde ao pacote.')
+  verifiedWorkers.add(release.sha256)
 }
 async function install(id: SourceEngineId) {
   if (!root) throw new Error('Motores ainda não inicializados.')
@@ -445,8 +450,10 @@ export async function checkSourceEngines(force = false) {
 export async function initializeSourceEngines(
   dataRoot: string,
   bundleRoot: string,
-  version: string
+  version: string,
+  options: { deferVerification?: boolean } = {}
 ) {
+  verifiedWorkers.clear()
   root = resolve(dataRoot, 'source-engines')
   await mkdir(root, { recursive: true })
   bundles = bundleRoot
@@ -498,7 +505,7 @@ export async function initializeSourceEngines(
     /* Bundled rules remain active. */
   }
   // Verify the installed worker before use; recover without touching sessions or games.
-  for (const id of ids)
+  for (const id of options.deferVerification ? [] : ids)
     if (state.installed[id]) {
       try {
         await smoke(state.installed[id]!, directory(state.installed[id]!))
@@ -554,6 +561,9 @@ export async function withSourceEngine<T>(
     return undefined
   const release = state.installed[id]!
   try {
+    // Startup can load engine metadata without spawning browsers/workers.
+    // The first actual use still verifies the installed executable under its lock.
+    if (!verifiedWorkers.has(release.sha256)) await smoke(release, directory(release))
     const data = join(root, id, 'data')
     await mkdir(data, { recursive: true })
     return await run(join(directory(release), release.executable), data)

@@ -249,6 +249,18 @@ it('activates revision 4 only when the worker declares direct-download support',
   expect(sourceEnginesState().engines[0].installed).toBe('0.4.15')
 })
 
+it('activates revision 5 only when the worker declares public Releases collection', async () => {
+  catalog = [await packageVersion('0.4.15', 'scrapling', 5)]
+  await sourceEngineAction({ type: 'check' })
+  const capabilities = ['online-fix-torrent-links-v1', 'direct-download-page-v1']
+  jest.mocked(engineProcess).mockResolvedValue(JSON.stringify({ ok: true, protocol: 1, version: '0.4.15', capabilities }))
+  await expect(sourceEngineAction({ type: 'install', id: 'scrapling' })).rejects.toThrow('teste do Scrapling')
+  expect(sourceEnginesState().engines[0].installed).toBeUndefined()
+  jest.mocked(engineProcess).mockResolvedValue(JSON.stringify({ ok: true, protocol: 1, version: '0.4.15', capabilities: [...capabilities, 'release-page-v1'] }))
+  await sourceEngineAction({ type: 'install', id: 'scrapling' })
+  expect(sourceEnginesState().engines[0].installed).toBe('0.4.15')
+})
+
 it('distinguishes an upstream announcement from an installable package when the catalog fails', async () => {
   await sourceEngineAction({ type: 'install', id: 'scrapling' })
   jest
@@ -288,4 +300,27 @@ it('refuses a downgrade and still verifies a newer installed worker', async () =
     installed: '0.4.16',
     updateAvailable: false
   })
+})
+
+it('loads startup metadata without spawning engines, then verifies once before first use', async () => {
+  await sourceEngineAction({ type: 'install', id: 'scrapling' })
+  jest.mocked(engineProcess).mockClear()
+  await initializeSourceEngines(root, bundles, '0.3.0-beta', { deferVerification: true })
+  expect(engineProcess).not.toHaveBeenCalled()
+  const run = jest.fn(async () => 'ready')
+  expect(await withSourceEngine('scrapling', run)).toBe('ready')
+  expect(engineProcess).toHaveBeenCalledTimes(1)
+  expect(engineProcess).toHaveBeenCalledWith(expect.any(String), ['--self-test'])
+  await withSourceEngine('scrapling', run)
+  expect(engineProcess).toHaveBeenCalledTimes(1)
+})
+
+it('does not execute an unverified worker that fails its first deferred smoke test', async () => {
+  await sourceEngineAction({ type: 'install', id: 'scrapling' })
+  await initializeSourceEngines(root, bundles, '0.3.0-beta', { deferVerification: true })
+  jest.mocked(engineProcess).mockRejectedValue(new Error('damaged worker'))
+  const run = jest.fn(async () => 'unexpected')
+  await expect(withSourceEngine('scrapling', run)).rejects.toThrow('damaged worker')
+  expect(run).not.toHaveBeenCalled()
+  expect(sourceEnginesState().engines[0].enabled).toBe(false)
 })

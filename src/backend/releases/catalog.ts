@@ -1,6 +1,7 @@
 import { BrowserWindow, session } from 'electron'
 import {
   ReleaseCatalog,
+  ReleaseCollector,
   ReleaseProduct,
   ReleaseQuery,
   ReleaseRegion
@@ -9,10 +10,22 @@ import { RELEASE_CATEGORIES } from 'common/types/releases'
 import { exactDate, parseReleaseCatalog, parseReleaseProduct } from './parser'
 import { getReleaseArchive } from './archive'
 import {
+  annualCalendarYear,
+  calendarDay,
+  frozenCalendarPage,
+  historicalCalendarPage,
+  mergeFrozenCalendar
+} from './calendarCache'
+import {
   catalogUpdateProblem,
   releaseUpdateProblem
 } from 'common/releaseValidation'
 import { parseResilient, obscuraReleasePage } from './engines'
+import {
+  collectReleasePage,
+  sourceAccessBlocked,
+  validateReleaseCollector
+} from './collector'
 
 const ORIGIN = 'https://www.releases.com'
 const months = [
@@ -66,6 +79,7 @@ function getSourceSession(region: ReleaseRegion = 'us') {
 export function catalogUrl(query: ReleaseQuery): string {
   if (!query || typeof query !== 'object')
     throw new Error('Filtros de lançamentos inválidos.')
+  validateReleaseCollector(query.collector)
   if (query.region && !['us', 'uk'].includes(query.region))
     throw new Error('Região inválida.')
   if (
@@ -243,13 +257,7 @@ async function sourceOrAlternative(
     return await readSource(url, query)
   } catch (error) {
     // An alternative engine is for transport compatibility, never challenge solving.
-    if (
-      query?.search ||
-      /verificação|verification|403|429|captcha|ERR_BLOCKED/i.test(
-        String(error)
-      )
-    )
-      throw error
+    if (query?.search || sourceAccessBlocked(error)) throw error
     const alternative = await obscuraReleasePage(url)
     if (alternative) return alternative
     throw error
@@ -266,50 +274,82 @@ export async function getReleaseCatalog(
     query.region || 'us'
   ])
   const archive = await getReleaseArchive()
-  const saved = await archive.get<ReleaseCatalog>('catalog', key)
-  if (!query.refresh && saved && Date.now() - saved.at < 5 * 60 * 1000)
+  const today = calendarDay()
+  const year = annualCalendarYear(query, today)
+  const annual =
+    year === undefined
+      ? undefined
+      : await archive.calendar.page(year, key, query, sourceUrl)
+  const saved = annual || (await archive.get<ReleaseCatalog>('catalog', key))
+  if (year !== undefined && saved && frozenCalendarPage(saved, query, today)) {
+    if (!annual) await archive.calendar.save(year, key, query, saved)
+    return saved.value
+  }
+  const finalCheck =
+    year !== undefined &&
+    saved &&
+    historicalCalendarPage(saved.value, query, today)
+  if (
+    !query.refresh &&
+    !finalCheck &&
+    saved &&
+    Date.now() - saved.at < 5 * 60 * 1000
+  )
     return saved.value
   try {
-    const html = await sourceOrAlternative(
-      query.search ? ORIGIN : sourceUrl,
-      query
-    )
-    const result = await parseResilient(html, 'catalog:' + key, (html) => {
-      const result = parseReleaseCatalog(html, query, sourceUrl)
-      if (query.search) {
-        result.products = result.products.map((product) => ({
-          ...product,
-          region: query.region || 'us',
-          releases: [],
-          releaseDate: undefined,
-          dateLabel: 'Ver datas por plataforma'
-        }))
-      } else if (
-        query.region &&
-        result.products.some((product) => product.region !== query.region)
-      ) {
-        throw new Error('A fonte retornou datas de outra região.')
-      }
-      if (query.search && query.category && query.category !== 'all')
-        result.products = result.products.filter((product) =>
-          query.category!.split('_').includes(product.category)
-        )
-      if (query.search && (query.platform || query.platforms?.length)) {
-        const legacy = RELEASE_CATEGORIES.find(
-          (category) => category.id === query.category
-        )?.platforms.find((platform) => platform.id === query.platform)
-        const platforms = query.platforms || (legacy ? [legacy.label] : [])
-        if (platforms.length)
-          result.products = result.products.filter((product) =>
-            product.platforms.some((platform) => platforms.includes(platform))
-          )
-      }
-      const problem = catalogUpdateProblem(result, saved?.value)
-      if (problem) throw new Error(problem)
-      return result
-    })
+    const { value: result, warning: collectionWarning } =
+      await collectReleasePage(
+        query.search ? ORIGIN : sourceUrl,
+        query,
+        (html) =>
+          parseResilient(html, 'catalog:' + key, (html) => {
+            let result = parseReleaseCatalog(html, query, sourceUrl)
+            if (query.search) {
+              result.products = result.products.map((product) => ({
+                ...product,
+                region: query.region || 'us',
+                releases: [],
+                releaseDate: undefined,
+                dateLabel: 'Ver datas por plataforma'
+              }))
+            } else if (
+              query.region &&
+              result.products.some((product) => product.region !== query.region)
+            ) {
+              throw new Error('A fonte retornou datas de outra região.')
+            }
+            if (query.search && query.category && query.category !== 'all')
+              result.products = result.products.filter((product) =>
+                query.category!.split('_').includes(product.category)
+              )
+            if (query.search && (query.platform || query.platforms?.length)) {
+              const legacy = RELEASE_CATEGORIES.find(
+                (category) => category.id === query.category
+              )?.platforms.find((platform) => platform.id === query.platform)
+              const platforms =
+                query.platforms || (legacy ? [legacy.label] : [])
+              if (platforms.length)
+                result.products = result.products.filter((product) =>
+                  product.platforms.some((platform) =>
+                    platforms.includes(platform)
+                  )
+                )
+            }
+            if (year !== undefined)
+              result = mergeFrozenCalendar(saved, result, today)
+            const problem = catalogUpdateProblem(result, saved?.value)
+            if (problem) throw new Error(problem)
+            return result
+          }),
+        () => sourceOrAlternative(query.search ? ORIGIN : sourceUrl, query)
+      )
     await archive.put('catalog', key, result)
-    return result
+    if (year !== undefined)
+      await archive.calendar.save(year, key, query, {
+        at: Date.now(),
+        value: result
+      })
+    return collectionWarning ? { ...result, collectionWarning } : result
   } catch (error) {
     if (saved)
       return {
@@ -323,8 +363,10 @@ export async function getReleaseCatalog(
 
 export async function getReleaseDetails(
   id: string,
-  region: ReleaseRegion = 'us'
+  region: ReleaseRegion = 'us',
+  collector?: ReleaseCollector
 ): Promise<ReleaseProduct> {
+  validateReleaseCollector(collector)
   if (
     typeof id !== 'string' ||
     !/^[a-z0-9][a-z0-9._~-]{0,200}$/i.test(id) ||
@@ -342,36 +384,46 @@ export async function getReleaseDetails(
     '&RegionId=' +
     region
   try {
-    let html: string
-    try {
-      const response = await getSourceSession(region).fetch(url, {
-        signal: AbortSignal.timeout(20000),
-        redirect: 'error'
-      })
-      if (!response.ok)
-        throw new Error(
-          'A fonte recusou os detalhes (HTTP ' + response.status + ').'
-        )
-      html = await response.text()
-    } catch (error) {
-      if (/403|429|captcha|ERR_BLOCKED/i.test(String(error))) throw error
-      const alternative = await obscuraReleasePage(url)
-      if (!alternative) throw error
-      html = alternative
+    const readDefault = async () => {
+      try {
+        const response = await getSourceSession(region).fetch(url, {
+          signal: AbortSignal.timeout(20000),
+          redirect: 'error'
+        })
+        if (!response.ok)
+          throw new Error(
+            'A fonte recusou os detalhes (HTTP ' + response.status + ').'
+          )
+        return await response.text()
+      } catch (error) {
+        if (/403|429|captcha|ERR_BLOCKED/i.test(String(error))) throw error
+        const alternative = await obscuraReleasePage(url)
+        if (!alternative) throw error
+        return alternative
+      }
     }
-    if (html.length > 8 * 1024 * 1024)
-      throw new Error('Resposta da fonte muito grande.')
-    const product = await parseResilient(html, 'product:' + key, (html) => {
-      const product = parseReleaseProduct(html, id, region)
-      product.releases = product.releases.filter((row) => row.region === region)
-      if (!product.releases.length)
-        throw new Error(
-          'A fonte não informou datas por plataforma; a atualização foi suspensa.'
-        )
-      const problem = releaseUpdateProblem(product, saved?.value)
-      if (problem) throw new Error(problem)
-      return product
-    })
+    const { value: product } = await collectReleasePage(
+      url,
+      { collector },
+      async (html) => {
+        if (html.length > 8 * 1024 * 1024)
+          throw new Error('Resposta da fonte muito grande.')
+        return parseResilient(html, 'product:' + key, (html) => {
+          const product = parseReleaseProduct(html, id, region)
+          product.releases = product.releases.filter(
+            (row) => row.region === region
+          )
+          if (!product.releases.length)
+            throw new Error(
+              'A fonte não informou datas por plataforma; a atualização foi suspensa.'
+            )
+          const problem = releaseUpdateProblem(product, saved?.value)
+          if (problem) throw new Error(problem)
+          return product
+        })
+      },
+      readDefault
+    )
     product.verifiedAt = new Date().toISOString()
     await archive.put('product', key, product)
     return product

@@ -1,4 +1,5 @@
 export type ReleaseRegion = 'us' | 'uk'
+export type ReleaseCollector = 'electron' | 'scrapling' | 'obscura'
 
 export interface ReleaseDate {
   platform: string
@@ -42,6 +43,8 @@ export interface ReleaseCategory {
 }
 
 export interface ReleaseQuery {
+  /** Preferred public-page transport; Electron remains the compatibility fallback. */
+  collector?: ReleaseCollector
   category?: string
   platform?: string
   /** Source version labels; multiple selections are combined with OR. */
@@ -58,6 +61,7 @@ export interface ReleaseQuery {
 }
 
 export interface ReleaseCatalog {
+  collectionWarning?: string
   products: ReleaseProduct[]
   filters: ReleaseCategory[]
   hasMore: boolean

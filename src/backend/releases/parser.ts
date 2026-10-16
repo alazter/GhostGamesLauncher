@@ -232,8 +232,21 @@ export function parseReleaseCatalog(
       tags: []
     })
   }
+  const explicitCalendarGroup = nodes(root, 'RWP-Calendar-Group').some(
+    (group) => {
+      const code = group.attribs['data-calendarcode'] || ''
+      return (
+        !!group.attribs['data-atprimarytext']?.trim() &&
+        (exactDate(code) ||
+          /^\d{4}(?:-(?:q[1-4]|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec))?(?:-est)?$/i.test(
+            code
+          ))
+      )
+    }
+  )
   if (
     !cards.length &&
+    !explicitCalendarGroup &&
     !nodes(root, 'RWP-Calendar-Header').length &&
     !nodes(root, 'RWP-Search-SearchResultView').length
   ) {

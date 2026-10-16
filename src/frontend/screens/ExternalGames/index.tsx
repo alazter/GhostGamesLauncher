@@ -2905,6 +2905,7 @@ export default function ExternalGamesScreen() {
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${currentVideoId}?autoplay=1`}
                     title={`Gameplay ${activeGroup.canonicalTitle}`}
+                    referrerPolicy="strict-origin-when-cross-origin"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />

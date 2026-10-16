@@ -5,6 +5,7 @@ import { GOGUser } from './user'
 import { isOnline } from 'backend/online_monitor'
 import { GlobalConfig } from 'backend/config'
 import { backendEvents } from 'backend/backend_events'
+import { callAbortController } from 'backend/utils/aborthandler/aborthandler'
 
 interface PresencePayload {
   application_type: string
@@ -64,8 +65,12 @@ async function setPresence() {
   }
 }
 
-async function deletePresence(force = false) {
+async function deletePresence(force = false, signal?: AbortSignal) {
+  clearInterval(interval)
+  const abort = () => callAbortController('gogdl-get-credentials')
+  signal?.addEventListener('abort', abort, { once: true })
   try {
+    signal?.throwIfAborted()
     const { disablePlaytimeSync, disableGOGPresence } =
       GlobalConfig.get().getSettings()
     if (
@@ -76,19 +81,21 @@ async function deletePresence(force = false) {
     )
       return
     const credentials = await GOGUser.getCredentials()
+    signal?.throwIfAborted()
     if (!credentials) {
       return
     }
-    clearInterval(interval)
     const response = await axiosClient.delete(
       `https://presence.gog.com/users/${credentials.user_id}/status`,
-      { headers: { Authorization: `Bearer ${credentials.access_token}` } }
+      { headers: { Authorization: `Bearer ${credentials.access_token}` }, signal }
     )
     if (response.status === 204) {
       logInfo('GOG presence deleted', LogPrefix.Gog)
     }
   } catch (e) {
     logError(['Failed to delete gog presence', e], LogPrefix.Gog)
+  } finally {
+    signal?.removeEventListener('abort', abort)
   }
 }
 

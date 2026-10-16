@@ -298,7 +298,8 @@ async function fetchAccountName(provider: string, accessToken: string): Promise<
 }
 
 // Refresh access token if expired
-async function getValidAccessToken(provider: string, tokens: CloudTokens): Promise<string> {
+async function getValidAccessToken(provider: string, tokens: CloudTokens, signal?: AbortSignal): Promise<string> {
+  signal?.throwIfAborted()
   if (tokens.expires_at && tokens.expires_at > Date.now() + 60000) {
     return tokens.access_token
   }
@@ -327,7 +328,8 @@ async function getValidAccessToken(provider: string, tokens: CloudTokens): Promi
   const response = await fetch(tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body
+    body,
+    signal
   })
 
   if (!response.ok) {
@@ -350,14 +352,19 @@ async function getValidAccessToken(provider: string, tokens: CloudTokens): Promi
 }
 
 // Upload backup to the connected cloud service
-export async function uploadBackupToCloud(backupData: any): Promise<{ success: boolean; error?: string }> {
+export async function uploadBackupToCloud(backupData: any, signal?: AbortSignal): Promise<{ success: boolean; error?: string }> {
   const { provider, tokens } = loadTokens()
   if (!provider || !tokens) {
     return { success: false, error: 'Nenhuma conta de nuvem conectada.' }
   }
 
   try {
-    const accessToken = await getValidAccessToken(provider, tokens)
+    signal?.throwIfAborted()
+    const accessToken = await getValidAccessToken(provider, tokens, signal)
+    const request = (target: string, options: RequestInit) => {
+      signal?.throwIfAborted()
+      return fetch(target, { ...options, signal })
+    }
     const backupBuffer = Buffer.from(JSON.stringify(backupData), 'utf-8')
     const now = new Date()
     const dd = String(now.getDate()).padStart(2, '0')
@@ -369,7 +376,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
       // 1. Buscar backups existentes do Ghost para deletar após o novo upload
       let previousFiles: Array<{ id: string; name: string }> = []
       try {
-        const listRes = await fetch(
+        const listRes = await request(
           `https://www.googleapis.com/drive/v3/files?q=(name contains '.GhostBackup' or name contains '.ghostbackup' or name contains '.Ghost.Backup' or name = 'Ghost_Backup.ghostbackup') and trashed = false&fields=files(id, name, createdTime)&spaces=drive`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         )
@@ -392,7 +399,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
       const footerPart = Buffer.from(`\r\n--${boundary}--`, 'utf-8')
       const multipartBody = Buffer.concat([headerPart, backupBuffer, footerPart])
 
-      const uploadRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      const uploadRes = await request('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -408,7 +415,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
       for (const prev of previousFiles) {
         if (prev.id && prev.id !== newFileId) {
           try {
-            await fetch(`https://www.googleapis.com/drive/v3/files/${prev.id}`, {
+            await request(`https://www.googleapis.com/drive/v3/files/${prev.id}`, {
               method: 'DELETE',
               headers: { Authorization: `Bearer ${accessToken}` }
             })
@@ -419,7 +426,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
         }
       }
     } else if (provider === 'dropbox') {
-      const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      const res = await request('https://content.dropboxapi.com/2/files/upload', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -434,7 +441,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
       })
       if (!res.ok) throw new Error(`Dropbox upload failed: ${await res.text()}`)
     } else if (provider === 'onedrive') {
-      const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/GhostBackups/${fileName}:/content`, {
+      const res = await request(`https://graph.microsoft.com/v1.0/me/drive/root:/GhostBackups/${fileName}:/content`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -445,6 +452,7 @@ export async function uploadBackupToCloud(backupData: any): Promise<{ success: b
       if (!res.ok) throw new Error(`OneDrive upload failed: ${await res.text()}`)
     }
 
+    signal?.throwIfAborted()
     logInfo(`Backup successfully uploaded to ${provider} as ${fileName}`, LogPrefix.Backend)
     const storeAny = configStore as any
     storeAny.set('backup.lastSuccess', Date.now())

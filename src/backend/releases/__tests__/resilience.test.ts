@@ -175,3 +175,50 @@ it('quarantines a suspicious empty catalog instead of replacing a populated one'
   )
   expect(catalogUpdateProblem({ ...catalog, products: [] })).toBeUndefined()
 })
+
+it('accepts a shrinking or emptied estimated quarter without quarantining confirmed release days', () => {
+  const estimated: ReleaseProduct = {
+    ...product,
+    releaseDate: undefined,
+    calendarOrder: '2026-09-30',
+    dateLabel: 'Estimated Q3 2026',
+    releases: [
+      {
+        ...product.releases[0],
+        date: undefined,
+        estimated: true,
+        calendarOrder: '2026-09-30',
+        dateLabel: 'Estimated Q3 2026'
+      }
+    ]
+  }
+  const old: ReleaseCatalog = {
+    products: Array.from({ length: 31 }, (_, index) => ({
+      ...estimated,
+      id: `estimated-${index}`,
+      url: `https://www.releases.com/p/estimated-${index}`
+    })),
+    filters: [],
+    hasMore: false,
+    fetchedAt: new Date().toISOString(),
+    sourceUrl: 'https://www.releases.com/calendar/games',
+    stale: false
+  }
+  expect(
+    catalogUpdateProblem({ ...old, products: [old.products[0]] }, old)
+  ).toBeUndefined()
+  expect(catalogUpdateProblem({ ...old, products: [] }, old)).toBeUndefined()
+  const mixed = { ...old, products: [...old.products, product] }
+  expect(
+    catalogUpdateProblem({ ...old, products: [product] }, mixed)
+  ).toBeUndefined()
+  expect(
+    catalogUpdateProblem({ ...old, products: [estimated] }, mixed)
+  ).toContain('suspensa')
+  expect(
+    catalogUpdateProblem(
+      { ...old, products: [{ ...product, releases: [] }] },
+      { ...old, products: [product] }
+    )
+  ).toContain('datas conhecidas')
+})

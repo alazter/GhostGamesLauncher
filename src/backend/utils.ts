@@ -50,6 +50,7 @@ import { sendFrontendMessage } from './ipc'
 import { GlobalConfig } from './config'
 import { getBackupPayload } from './backup/backupHelper'
 import { uploadBackupToCloud } from './backup/cloudBackup'
+import { createExitHandler } from './applicationExit'
 import { GameConfig } from './game_config'
 import { validWine, runWineCommand } from './launcher'
 import { libraryManagerMap } from 'backend/storeManagers'
@@ -210,59 +211,66 @@ const showAboutWindow = () => {
   return app.showAboutPanel()
 }
 
-async function handleExit() {
-  const isLocked = existsSync(join(gamesConfigPath, 'lock'))
-  const mainWindow = getMainWindow()
+const handleExit = createExitHandler({
+  confirm: async () => {
+    const isLocked = existsSync(join(gamesConfigPath, 'lock'))
+    const mainWindow = getMainWindow()
 
-  if ((isLocked || isRunning()) && mainWindow) {
-    const { response } = await dialog.showMessageBox(mainWindow, {
-      buttons: [i18next.t('box.no'), i18next.t('box.yes')],
-      message: i18next.t(
-        'box.quit.message',
-        'There are pending operations, are you sure?'
-      ),
-      title: i18next.t('box.quit.title', 'Exit')
-    })
+    if ((isLocked || isRunning()) && mainWindow) {
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        buttons: [i18next.t('box.no'), i18next.t('box.yes')],
+        message: i18next.t(
+          'box.quit.message',
+          'There are pending operations, are you sure?'
+        ),
+        title: i18next.t('box.quit.title', 'Exit')
+      })
 
-    if (response === 0) {
-      return
+      if (response === 0) {
+        return false
+      }
+
+      // This is very hacky and can be removed if bineries handle SIGTERM and SIGKILL
+      // FIXME: we should keep track of what we are doing and kill just that
+      // this is really dangerous cause we can be killing other processes unrelated
+      // to what we are doing x_x
+      const possibleChildren = ['legendary', 'gogdl', 'nile']
+      possibleChildren.forEach((procName) => {
+        try {
+          killPattern(procName)
+        } catch (error) {
+          logInfo([`Unable to kill ${procName}, ignoring.`, error])
+        }
+      })
+
+      // Kill all child processes
+      callAllAbortControllers()
     }
 
-    // This is very hacky and can be removed if bineries handle SIGTERM and SIGKILL
-    // FIXME: we should keep track of what we are doing and kill just that
-    // this is really dangerous cause we can be killing other processes unrelated
-    // to what we are doing x_x
-    const possibleChildren = ['legendary', 'gogdl', 'nile']
-    possibleChildren.forEach((procName) => {
-      try {
-        killPattern(procName)
-      } catch (error) {
-        logInfo([`Unable to kill ${procName}, ignoring.`, error])
-      }
-    })
-
-    // Kill all child processes
-    callAllAbortControllers()
-  }
-
-  mainWindow?.hide()
-  await gogPresence.deletePresence()
-
-  try {
-    const settings = GlobalConfig.get().getSettings() as any
+    return true
+  },
+  hide: () => getMainWindow()?.hide(),
+  presence: (signal) => gogPresence.deletePresence(false, signal),
+  backup: async (signal) => {
+    const settings = GlobalConfig.get().getSettings()
     const provider = settings.cloudBackupProvider || 'none'
     const autoBackup = settings.cloudBackupOnExit === true
     if (autoBackup && provider !== 'none') {
-      logInfo(`Running automatic cloud backup on exit to ${provider}...`, LogPrefix.Backend)
+      logInfo(
+        `Running automatic cloud backup on exit to ${provider}...`,
+        LogPrefix.Backend
+      )
       const backupData = await getBackupPayload()
-      await uploadBackupToCloud(backupData)
+      signal.throwIfAborted()
+      const result = await uploadBackupToCloud(backupData, signal)
+      if (!result.success)
+        throw new Error(result.error || 'O backup não foi concluído.')
     }
-  } catch (err) {
-    logError(`Auto cloud backup on exit failed: ${err}`, LogPrefix.Backend)
-  }
-
-  app.exit()
-}
+  },
+  report: (task, error) =>
+    logError(`${task} on exit failed: ${String(error)}`, LogPrefix.Backend),
+  exit: () => app.exit()
+})
 
 export async function askForceUninstall(game: Game) {
   const { title } = game.getGameInfo()

@@ -96,6 +96,31 @@ describe('release source parsing', () => {
     ).toEqual([])
   })
 
+  it('recognizes an explicitly empty historical quarter and keeps its backward cursor', () => {
+    const html =
+      '<div class="RWP-Calendar-Group" data-calendarcode="2026-q3-est" data-atprimarytext="Estimated Q3"><div class="RWP-Calendar-Group-List"></div></div><div class="RWPCC-InfinityUp-InfinityUpTypes" data-ui-url="/partial/Releases.Www.PL.Calendar.Group?Code=Y2026-M9-D30&amp;Direction=Backward"></div>'
+    const page = parseReleaseCatalog(
+      html,
+      { category: 'games', region: 'us' },
+      'https://www.releases.com/partial/Releases.Www.PL.Calendar.Group?Code=Y2026-Q3'
+    )
+    expect(page.products).toEqual([])
+    expect(page.previousCursor).toContain('Code=Y2026-M9-D30')
+    expect(() =>
+      parseReleaseCatalog(html.replace('2026-q3-est', 'unknown'), {}, '')
+    ).toThrow('reconhecido')
+    expect(() =>
+      parseReleaseCatalog(
+        html.replace(
+          '<div class="RWP-Calendar-Group-List"></div>',
+          '<a href="/p/lost-card">Lost card</a>'
+        ),
+        {},
+        ''
+      )
+    ).toThrow('estrutura mudou')
+  })
+
   it('preserves different regional/platform dates and uncertain labels in details', () => {
     const row = (platform: string, region: string, label: string) =>
       `<div class="RWP-Product-ReleaseInfoView-DateListItem" data-regionid="${region}"><span class="RWP-Product-ReleaseInfoView-Item">${platform}</span><span class="RWP-Product-ReleaseInfoView-ItemReleaseDate">${label}</span></div>`

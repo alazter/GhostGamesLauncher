@@ -15,6 +15,7 @@ const dialog = {
 
 const app = {
   // app override
+  getAppPath: () => join(appBasePath, 'ghost-test-app'),
   getPath: (path: string) => {
     if (path === 'exe') return join(appBasePath, 'heroic')
     return join(appBasePath, path)
@@ -64,12 +65,14 @@ const Menu = {
 
 const nativeImage = {
   createFromPath: (path: string) => ({
+    isEmpty: () => true,
     resize: (size: { width: number; height: number }) =>
       `${path} width=${size.width} height=${size.height}`
   })
 }
 
 const screen = {
+  getAllDisplays: () => [{ bounds: { x: 0, y: 0, width: 1920, height: 1280 } }],
   getPrimaryDisplay: () => {
     return {
       workAreaSize: {

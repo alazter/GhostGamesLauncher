@@ -10,6 +10,7 @@ from scrapling.parser import Selector
 from scrapling.core.storage import SQLiteStorageSystem
 from release_selectors import release_selectors, self_test as release_self_test
 from direct_download_page import direct_download_page, self_test as direct_self_test
+from release_page import release_page, self_test as release_page_self_test
 
 
 class GhostStorage(SQLiteStorageSystem.__wrapped__):
@@ -32,6 +33,8 @@ def parse(request):
         return manual_drm_page(request)
     if request.get('operation') == 'release-selectors-v1':
         return release_selectors(request, GhostStorage)
+    if request.get('operation') == 'release-page-v1':
+        return release_page(request)
     if request.get('operation') == 'direct-download-page-v1':
         return direct_download_page(request)
     if request.get('operation') == 'online-fix-torrent-links-v1':
@@ -180,6 +183,7 @@ def self_test():
     assert not valid_url('https://example.com/all-games-collection', 'https://example.com', 'com.ghost.steamrip-source')
     release_self_test(GhostStorage)
     direct_self_test()
+    release_page_self_test()
     from scrapling.fetchers import StealthySession
     assert callable(StealthySession)
     assert valid_manual_url('https://ankergames.net/game/test')
@@ -189,7 +193,7 @@ def self_test():
                       'base': 'https://uploads.online-fix.me:2053/torrents/Test/',
                       'html': '<a href="Test.torrent">Test.torrent</a><a href="https://evil.test/Test.torrent">Ad</a>'}
     assert parse(torrent_request) == [{'url': 'https://uploads.online-fix.me:2053/torrents/Test/Test.torrent', 'title': 'Test.torrent'}]
-    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1', 'direct-download-page-v1']}
+    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1', 'direct-download-page-v1', 'release-page-v1']}
 
 
 if __name__ == '__main__':

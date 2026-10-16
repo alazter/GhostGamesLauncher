@@ -817,7 +817,7 @@ describe('Alazterflix catalog and artwork persistence', () => {
       fileName: 'Interstellar.2014.1080p.mkv',
       preferredSource: 'folder'
     })
-    expect(fromFolder.cleanTitle).toBe('Interestelar')
+    expect(fromFolder.cleanTitle).toBe('Interestelar (2014)')
     expect(fromFolder.year).toBe(2014)
     expect(fromFolder.sourceUsed).toBe('folder')
 
@@ -848,9 +848,57 @@ describe('Alazterflix catalog and artwork persistence', () => {
       fileName: 'video.mp4',
       preferredSource: 'file'
     })
-    expect(fallbackToFolder.cleanTitle).toBe('Interestelar')
+    expect(fallbackToFolder.cleanTitle).toBe('Interestelar (2014)')
     expect(fallbackToFolder.year).toBe(2014)
     expect(fallbackToFolder.sourceUsed).toBe('folder')
+  })
+
+  test.each([
+    ['D:/Animes/One Punch Man/Season 01/ep01.mkv', 'One Punch Man'],
+    ['D:/Animes/Vinland Saga/Temporada 2/ep01.mkv', 'Vinland Saga'],
+    ['D:/Animes/Shingeki no Kyojin (Attack on Titan)/ep01.mkv', 'Shingeki no Kyojin (Attack on Titan)'],
+    ['D:/Documentários/Power o poder por tras da energia/video.mkv', 'Power o poder por tras da energia'],
+    ['D:/Séries/Mr Robot (Em andamento)/ep01.mkv', 'Mr Robot'],
+    ['D:/Animes/Star.Wars.Visions.S01.1080p.WEB-DL.TRIAL.AUDIO/ep01.mkv', 'Star Wars Visions']
+  ])('keeps meaningful folder words and alternate names in %s', (file, title) => {
+    const { internals } = harness()
+    expect(internals.parseMediaHierarchy(file, file.split('/').pop(), {titleSource:'folder'}).showTitle).toBe(title)
+  })
+
+  test('category roots never supply their ancestor as a title and numeric movie folders remain valid', () => {
+    const { internals } = harness()
+    expect(internals.resolveMediaTitle({filePath:'D:/My Library/Filmes/Arrival.2016.mp4',fileName:'Arrival.2016.mp4',preferredSource:'folder'}).cleanTitle).toBe('Arrival')
+    expect(internals.resolveMediaTitle({filePath:'D:/Filmes/300/video.mkv',fileName:'video.mkv',preferredSource:'folder'}).cleanTitle).toBe('300')
+  })
+
+  test('folder preference never replaces distinct saga or shared-folder movies by one title', () => {
+    const { internals } = harness()
+    const movies = [
+      item('D:/Filmes/[Saga] Matrix/The.Matrix.1999.mkv'),
+      item('D:/Filmes/[Saga] Matrix/Matrix.Reloaded.2003.mkv'),
+      item('D:/Filmes/Uma Aventura Lego/Uma.Aventura.Lego.2014.mkv'),
+      item('D:/Filmes/Uma Aventura Lego/Uma.Aventura.Lego.2.2019.mkv'),
+      item('D:/Filmes/[Saga] Duna/Duna Parte Dois (2024)/Dune.Part.Two.2024.mkv')
+    ]
+    const result = internals.autoCatalogMovies(movies,{titleSource:'folder'}).cataloged
+    expect(result.map((movie: GhostMovie)=>movie.title)).toEqual(['The Matrix','Matrix Reloaded','Uma Aventura Lego','Uma Aventura Lego 2','Duna Parte Dois (2024)'])
+    expect(result.map((movie: GhostMovie)=>movie.id)).toEqual(movies.map(movie=>movie.id))
+  })
+
+  test('startup honors saved folder preference while preserving playback and locked metadata', async () => {
+    const { provider, storage } = harness([
+      item('D:/Animes/One Punch Man/ep01.mkv', {progressSeconds:150,userRating:9.5}),
+      item('D:/Filmes/Local Title/video.mkv',{title:'Manual title',customTitle:'Manual title',metadataLocked:true})
+    ])
+    storage.metadata_settings.titleSource = 'folder'
+    storage.playback_history = {example:{progressSeconds:150,lastWatched:'2026-01-01'}}
+    const history = clone(storage.playback_history)
+    const result = await provider.getState()
+    expect(result.movies[0].showTitle).toBe('One Punch Man')
+    expect(result.movies[0].progressSeconds).toBe(150)
+    expect(result.movies[0].userRating).toBe(9.5)
+    expect(result.movies[1].title).toBe('Manual title')
+    expect(result.playbackHistory).toEqual(history)
   })
 
   test('parseMediaHierarchy respects titleSource options for movies and series', () => {
@@ -860,7 +908,7 @@ describe('Alazterflix catalog and artwork persistence', () => {
       'The.Matrix.1999.mkv',
       { titleSource: 'folder' }
     )
-    expect(folderMovie.cleanTitle).toBe('Matrix')
+    expect(folderMovie.cleanTitle).toBe('Matrix (1999)')
     expect(folderMovie.year).toBe(1999)
 
     const fileMovie = internals.parseMediaHierarchy(
@@ -940,7 +988,7 @@ describe('Alazterflix catalog and artwork persistence', () => {
     expect(storage.metadata_settings.titleSource).toBe('folder')
 
     // Filmes no catálogo devem ter sido re-catalogados com o nome da pasta
-    expect(storage.movies[0].title).toBe('Gladiador')
-    expect(storage.movies[0].cleanTitle).toBe('Gladiador')
+    expect(storage.movies[0].title).toBe('Gladiador (2000)')
+    expect(storage.movies[0].cleanTitle).toBe('Gladiador (2000)')
   })
 })

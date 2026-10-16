@@ -32,6 +32,7 @@ import { existsSync, watch, readdirSync, readFileSync, writeFileSync, mkdirSync 
 import 'source-map-support/register'
 import { registerPluginsIPC } from './plugins/ipcHandler'
 import { registerReleasesIPC } from './releases/ipc'
+import { installRendererRequestHeaders } from './rendererRequestHeaders'
 import { createBackupPreferenceSync } from './backup/preferenceSync'
 import { getReleaseArchive, validateReleaseArchive } from './releases/archive'
 import { PluginManager } from './plugins/pluginManager'
@@ -225,7 +226,7 @@ protocol.registerSchemesAsPrivileged([
 
 if (isLinux) app.commandLine?.appendSwitch('--gtk-version', '3')
 
-async function initializeWindow(): Promise<BrowserWindow> {
+function initializeWindow(): BrowserWindow {
   createNecessaryFolders()
   configStore.set('userHome', userHome)
   const mainWindow = createMainWindow()
@@ -324,15 +325,18 @@ async function initializeWindow(): Promise<BrowserWindow> {
     isCLIConsoleMode || globalConf.startInConsoleMode ? '/console' : undefined
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    try {
-      const devToolsModule = 'electron-devtools-installer'
-      const { installExtension, REACT_DEVELOPER_TOOLS } = await import(
-        /* @vite-ignore */ devToolsModule
-      )
-      await installExtension(REACT_DEVELOPER_TOOLS)
-    } catch {
-      // optional dev dependency
-    }
+    // Optional extension installation can reach the network; it must not delay loadURL.
+    void (async () => {
+      try {
+        const devToolsModule = 'electron-devtools-installer'
+        const { installExtension, REACT_DEVELOPER_TOOLS } = await import(
+          /* @vite-ignore */ devToolsModule
+        )
+        await installExtension(REACT_DEVELOPER_TOOLS)
+      } catch {
+        // optional dev dependency
+      }
+    })()
 
     const devUrl = startHash
       ? `${process.env.ELECTRON_RENDERER_URL}#${startHash}`
@@ -431,15 +435,11 @@ if (!gotTheLock) {
     registerReleasesIPC()
     await PluginManager.getInstance().init()
 
-    // Add User-Agent Client hints to behave like Windows
-    if (process.argv.includes('--spoof-windows')) {
-      session.defaultSession.webRequest.onBeforeSendHeaders(
-        (details, callback) => {
-          details.requestHeaders['sec-ch-ua-platform'] = 'Windows'
-          callback({ cancel: false, requestHeaders: details.requestHeaders })
-        }
-      )
-    }
+    installRendererRequestHeaders(
+      session.defaultSession,
+      () => getMainWindow()?.webContents.id,
+      process.argv.includes('--spoof-windows')
+    )
 
     // Network-level Ad & Tracker Blocker (Cancels socket connections to ad networks)
     const AD_TRACKER_DOMAINS = [
@@ -623,7 +623,7 @@ if (!gotTheLock) {
       supportedLngs: supportedLanguages
     })
 
-    const mainWindow = await initializeWindow()
+    const mainWindow = initializeWindow()
 
     protocol.handle('heroic', (request) => {
       handleProtocol([request.url])

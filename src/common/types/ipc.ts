@@ -1,6 +1,7 @@
 import type { OpenDialogOptions, TitleBarOverlay } from 'electron'
 import type {
   ReleaseCatalog,
+  ReleaseCollector,
   ReleaseProduct,
   ReleaseQuery,
   ReleaseRegion
@@ -271,7 +272,8 @@ interface AsyncIPCFunctions {
   releasesCatalog: (query: ReleaseQuery) => Promise<ReleaseCatalog>
   releasesProduct: (
     id: string,
-    region: ReleaseRegion
+    region: ReleaseRegion,
+    collector?: ReleaseCollector
   ) => Promise<ReleaseProduct>
   releasesDrm: (query: {
     id: string
@@ -624,7 +626,10 @@ interface AsyncIPCFunctions {
     game: GhostSearchResult
   ) => Promise<ExternalActionResult>
   pluginsInstallBuiltinSource: (id: string) => Promise<PluginInstallResult>
-  externalGamesSearch: (query: string, requestId?: string) => Promise<SourceSearchResponse>
+  externalGamesSearch: (
+    query: string,
+    requestId?: string
+  ) => Promise<SourceSearchResponse>
   externalGamesGetCatalog: (
     providerId: string,
     options?: { letter?: string; page?: number; theme?: string }
@@ -837,7 +842,10 @@ export interface DetectedVersionResult {
 }
 
 interface FrontendMessages {
-  'external-games-search-progress': (requestId: string, progress: SourceSearchProgress) => void
+  'external-games-search-progress': (
+    requestId: string,
+    progress: SourceSearchProgress
+  ) => void
   'plugins-updated': (plugins: PluginInfo[]) => void
   'external-games-updated': (state: ExternalGamesState) => void
   'external-games-assign-piratas': (data: { appName: string }) => void

@@ -1,8 +1,19 @@
-# 🎬 Alazterflix Plugin (v1.3.2)
+# 🎬 Alazterflix Plugin (v1.3.3)
 
 Plugin oficial de Mídia, Catálogo Jellyfin e Integração Stremio Protocol v3 para o **Ghost Games Launcher**.
 
 ---
+
+## Novidades da versão v1.3.3: nomes originais das pastas
+
+A origem Pasta conserva nomes como One Punch Man, Vinland Saga e títulos
+alternativos entre parênteses, sem remover palavras legítimas como tags de
+release. Remove apenas sufixos técnicos identificáveis e notas de andamento.
+Pastas de sagas ou com filmes distintos mantêm os nomes individuais dos arquivos;
+subpastas próprias de um filme continuam tendo prioridade. Categorias como
+Filmes não fazem arquivos soltos herdarem o nome da raiz da biblioteca.
+A preferência é respeitada também ao reabrir o Ghost. Dados manuais protegidos,
+caminhos, notas e histórico permanecem preservados. Pacote: alazterflix-v1.3.3.ghost.
 
 ## Novidades da versão v1.3.2: lista de continuação e tamanhos por página
 

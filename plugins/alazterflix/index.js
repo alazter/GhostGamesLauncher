@@ -665,6 +665,8 @@ function extractCandidateFolder(filePath) {
     // Skip drive roots (e.g. "C:", "D:")
     if (DRIVE_OR_ROOT_REGEX.test(part)) continue
 
+    if (/^(?:filmes?|movies?)$/i.test(part)) return null
+
     // Skip intermediate subfolders (e.g. "Season 01", "Temporada 2", "CD1", "Specials")
     if (INTERMEDIATE_SUBFOLDER_REGEX.test(part)) continue
 
@@ -675,7 +677,11 @@ function extractCandidateFolder(filePath) {
       .toLowerCase()
 
     // If it's a generic category or system folder, it cannot be a movie/show title!
-    if (GENERIC_FOLDER_NAMES.has(normalizedPart)) continue
+    if (GENERIC_FOLDER_NAMES.has(normalizedPart)) {
+      // A file directly inside a category must not inherit the library/root name.
+      if (/^(?:filmes?|movies?|series?|shows?|animes?|desenhos?|cartoons?|documentarios?|documentaries)$/.test(normalizedPart)) return null
+      continue
+    }
 
     // Found a valid candidate folder!
     return part
@@ -708,6 +714,13 @@ function isValidMediaTitle(title) {
   return true
 }
 
+function folderDisplayTitle(folder) {
+  const original = (folder || '').trim()
+  const technical = original.search(/[ ._-]+(?:s\d{1,2}(?:[ ._-]|$)|(?:480|576|720|1080|2160)p\b|(?:4k|uhd|bluray|webrip|web-dl|hdtv|x264|x265|hevc)\b)/i)
+  const title = technical === -1 ? original : original.slice(0, technical).replace(/[._]/g, ' ')
+  return title.replace(/\s*\((?:falta\s*baixar|em\s*andamento|s[eé]rie\s*completa|completo)\)\s*$/i, '').trim() || original
+}
+
 function resolveMediaTitle({ filePath, fileName, preferredSource = 'file' }) {
   const fileCleaned = cleanMovieTitleAndYear(fileName)
   const isFileValid = isValidMediaTitle(fileCleaned.cleanTitle)
@@ -716,8 +729,12 @@ function resolveMediaTitle({ filePath, fileName, preferredSource = 'file' }) {
   let folderCleaned = null
   let isFolderValid = false
   if (candidateFolder) {
-    folderCleaned = cleanMovieTitleAndYear(candidateFolder)
-    isFolderValid = isValidMediaTitle(folderCleaned.cleanTitle)
+    folderCleaned = {
+      ...cleanMovieTitleAndYear(candidateFolder),
+      cleanTitle: folderDisplayTitle(candidateFolder)
+    }
+    const collection = /^(?:\[\s*)?(?:saga|cole[cç][aã]o|collection|trilogia|duologia)\b/i.test(candidateFolder)
+    isFolderValid = !collection && (isValidMediaTitle(folderCleaned.cleanTitle) || /^\d{3,4}$/.test(folderCleaned.cleanTitle))
   }
 
   // 1. Preferred: 'folder'
@@ -815,7 +832,9 @@ function parseMediaHierarchy(filePath, fileName, options = {}) {
     const movieInfo = resolveMediaTitle({
       filePath,
       fileName,
-      preferredSource: titleSource
+      preferredSource: options.collectionDirectories?.has(
+        norm.substring(0, norm.lastIndexOf('/')).toLowerCase()
+      ) ? 'file' : titleSource
     })
     let res = parsed.resolution || 'HD'
     if (/2160p|4k|uhd/i.test(fileName)) res = '4K'
@@ -884,10 +903,9 @@ function parseMediaHierarchy(filePath, fileName, options = {}) {
   }
 
   if (isSpecial) season = 0
-  const cleanShow = cleanShowTitle(
-    showTitle || parsed.cleanTitle,
-    mediaCategory
-  )
+  const cleanShow = titleSource === 'folder' && showTitle
+    ? folderDisplayTitle(showTitle)
+    : cleanShowTitle(showTitle || parsed.cleanTitle, mediaCategory)
 
   let epCleanTitle = parsed.cleanTitle
   if (!isValidMediaTitle(epCleanTitle)) {
@@ -912,9 +930,29 @@ function parseMediaHierarchy(filePath, fileName, options = {}) {
 }
 
 function autoCatalogMovies(movies, options = {}) {
+  // A shared movie directory can contain sequels, extras, or alternate films.
+  // Only single-work folders are authoritative; do not rename an entire saga
+  // to its collection name just because folder titles were selected.
+  const folderFiles = new Map()
+  if (options.titleSource === 'folder') {
+    for (const movie of movies) {
+      if (parseMediaHierarchy(movie.filePath, movie.fileName).mediaCategory !== 'movie') continue
+      const normalized = (movie.filePath || '').replace(/\\/g, '/').toLowerCase()
+      const directory = normalized.substring(0, normalized.lastIndexOf('/'))
+      const title = cleanMovieTitleAndYear(movie.fileName)
+      const key = normalizeMediaTitle(title.cleanTitle) + ':' + (title.year || '')
+      if (!folderFiles.has(directory)) folderFiles.set(directory, new Set())
+      folderFiles.get(directory).add(key)
+    }
+  }
+  const collectionDirectories = new Set(
+    Array.from(folderFiles).filter(([, titles]) => titles.size > 1).map(([directory]) => directory)
+  )
+  const hierarchyOptions = { ...options, collectionDirectories }
+  const forceTitleUpdate = options.forceTitleUpdate || options.titleSource === 'folder'
   let updatedCount = 0
   const cataloged = movies.map((m) => {
-    const h = parseMediaHierarchy(m.filePath, m.fileName, options)
+    const h = parseMediaHierarchy(m.filePath, m.fileName, hierarchyOptions)
     if (m.metadataLocked) return m
     const category = m.customCategory || h.mediaCategory
     const isSeries =
@@ -923,12 +961,12 @@ function autoCatalogMovies(movies, options = {}) {
         : category !== 'movie' && h.isSeries
     const targetTitle =
       m.customTitle ||
-      (options.forceTitleUpdate ? h.cleanTitle : m.title) ||
+      (forceTitleUpdate ? h.cleanTitle : m.title) ||
       h.cleanTitle ||
       m.title
     const targetCleanTitle =
       m.customTitle ||
-      (options.forceTitleUpdate ? h.cleanTitle : m.cleanTitle) ||
+      (forceTitleUpdate ? h.cleanTitle : m.cleanTitle) ||
       h.cleanTitle ||
       m.cleanTitle
     const updated = {
@@ -1049,7 +1087,9 @@ async function migrateLibrary() {
       idCounts.set(movie.id, (idCounts.get(movie.id) || 0) + 1)
     const oldHistory = (await ghost.storage.get('playback_history')) || {}
     const history = { ...oldHistory }
-    const catalog = autoCatalogMovies(movies).cataloged
+    const catalog = autoCatalogMovies(movies, {
+      titleSource: (await metadataSettings()).titleSource
+    }).cataloged
     const unique = new Map()
     for (const movie of catalog) {
       if (!movie.id || idCounts.get(movie.id) > 1) {

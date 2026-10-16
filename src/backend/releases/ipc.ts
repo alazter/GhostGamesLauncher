@@ -14,8 +14,8 @@ export function registerReleasesIPC() {
   addHandler('releasesDrmEndManual', async () =>
     (await import('./drmManual')).endManualDrm()
   )
-  addHandler('releasesProduct', (_event, id, region) =>
-    getReleaseDetails(id, region)
+  addHandler('releasesProduct', (_event, id, region, collector) =>
+    getReleaseDetails(id, region, collector)
   )
 
   let notifiedDay = ''

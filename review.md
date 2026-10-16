@@ -1,4 +1,4 @@
-# Review das Alterações - 15/10/2026
+# Review das Alterações - 16/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -737,6 +737,16 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Alinhamento Vertical e Geometria Pixel-Perfect no Cabeçalho da Biblioteca (Conquista 174/Regra 140/Erro 137/Seção 79)**: Padronização unificada de altura em `32px !important` para `.Header__actionBtn` e `.Header__dropdownBtn` no modo padrão e neon, eliminando o strut de descendente de linha com `display: inline-flex !important; align-items: center !important; margin: 0 !important; line-height: 1 !important;` e sincronização 1:1 em `themes.scss`.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), testes unitários Jest 100% aprovados e preservação soberana da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 47. Seletor de Coleta de Lançamentos (Electron/Scrapling/Obscura), Download Headless Online-Fix, Lupa de Busca na Loja e Alta Performance de Encerramento
+* **Problema:** Usuários precisavam de flexibilidade para escolher o motor de coleta de dados no calendário de lançamentos para contornar bloqueios de rede sem perder histórico; o download de torrents do Online-Fix abria uma janela transitória rápida indesejada na tela; os cards e detalhes de lançamentos de jogos não possuíam acesso direto com 1 clique para buscar o título na loja "Buscar Jogos"; e o encerramento do launcher podia ficar represado aguardando timeouts de presença no GOG ou cancelamento de uploads em nuvem.
+* **Solução:**
+  - **Download Silencioso Headless via TorBox/Torrent no Online-Fix (Conquista 175/Regra 141/Erro 138)**: Eliminação da exibição prematura da janela Electron no `OnlineFixAccount.torrent`, captura 100% invisível em segundo plano com revelação controlada apenas em caso de desafio interativo ou grace timeout de 8s; persistência dupla e independente de plataformas por categoria (`platformsByCategory: Record<string, string[]>`) sincronizada de forma síncrona com `configStore` e `localStorage` (preservando PC e PC Early Access entre navegações e reinicializações).
+  - **Botão de Busca Direta na Loja nos Cards e Detalhes de Lançamentos (Conquista 176/Regra 142/Seção 80)**: Inclusão do botão `.nr-card-search` com ícone `faSearch` nos cards de lançamentos (`product.category === 'games'`) com `stopPropagation` e navegação instantânea para `/external-games?q=...`; inclusão do botão `.nr-product-search` ("Buscar na loja") no cabeçalho do `<ReleaseDetails>` envolvido no contêiner `.nr-product-actions` com hover em ciano neon `#38d9e6`.
+  - **Seletor de Motores de Coleta de Lançamentos (`ReleaseCollectorPicker` e `collector.css`)**: Implementação de dropdown Cyber Neon no cabeçalho de Lançamentos permitindo escolher entre *Electron (Padrão)*, *Preferir Scrapling* e *Preferir Obscura*; persistência conjunta no `localStorage` e `configStore`; integração do script `release_page.py` com Scrapling 0.4.15 integração 5 (`release-page-v1`); retenção anual resiliente e fallback transparente para Electron com aviso em português em caso de indisponibilidade.
+  - **Otimização de Shutdown e Encerramento Imediato (`applicationExit.ts`)**: Criação de barramento de saída seguro com cancelamento atômico de operações pendentes (`abortAllOperations`), cancelamento gracioso de backups em nuvem sem travar e desconexão instantânea de presença GOG (`gogPresenceExit.ts`), garantindo fechamento rápido e sem processos órfãos.
+  - **Atualização do Alazterflix v1.3.3**: Suporte ampliado a títulos baseados em diretórios/pastas, empacotamento do arquivo de extensão `alazterflix-v1.3.3.ghost`, sanitização de headers no renderer e melhorias no player de streaming.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 131 testes unitários em 20 suítes de Releases e Backend aprovados (100%), e conformidade estrita com a Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -749,18 +759,41 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
 - [MODIFY] [.github/workflows/source-engines.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.github/workflows/source-engines.yml)
 - [MODIFY] [docs/ONLINE_FIX_TORRENT_DOWNLOAD.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ONLINE_FIX_TORRENT_DOWNLOAD.md)
+- [NEW] [docs/ALAZTERFLIX_FOLDER_TITLES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ALAZTERFLIX_FOLDER_TITLES.md)
 - [NEW] [docs/ALAZTERFLIX_PLAYER_STREAMING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ALAZTERFLIX_PLAYER_STREAMING.md)
 - [NEW] [docs/DIRECT_DOWNLOAD_ENGINES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DIRECT_DOWNLOAD_ENGINES.md)
 - [NEW] [docs/DIRECT_DOWNLOAD_LEARNING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DIRECT_DOWNLOAD_LEARNING.md)
 - [NEW] [docs/ONLINE_FIX_DIRECT_DOWNLOAD.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ONLINE_FIX_DIRECT_DOWNLOAD.md)
+- [NEW] [docs/RELEASES_ANNUAL_CALENDAR.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_ANNUAL_CALENDAR.md)
+- [NEW] [docs/RELEASES_COLLECTION_ENGINES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_COLLECTION_ENGINES.md)
+- [NEW] [docs/RELEASES_PAGINATION_RECOVERY.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/RELEASES_PAGINATION_RECOVERY.md)
 - [NEW] [docs/SHARED_DIRECT_DOWNLOAD_AUTOMATION.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/SHARED_DIRECT_DOWNLOAD_AUTOMATION.md)
+- [NEW] [docs/STARTUP_SHUTDOWN_PERFORMANCE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/STARTUP_SHUTDOWN_PERFORMANCE.md)
+- [NEW] [docs/YOUTUBE_EMBED_PLAYER.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/YOUTUBE_EMBED_PLAYER.md)
+- [NEW] [plugins/alazterflix-v1.3.3.ghost](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/alazterflix-v1.3.3.ghost)
+- [MODIFY] [plugins/alazterflix/README.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/alazterflix/README.md)
+- [MODIFY] [plugins/alazterflix/index.js](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/alazterflix/index.js)
+- [MODIFY] [plugins/alazterflix/plugin.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/alazterflix/plugin.json)
 - [MODIFY] [scripts/engines/prepare_engines.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/prepare_engines.py)
 - [MODIFY] [scripts/engines/runtime_smoke.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/runtime_smoke.ts)
 - [MODIFY] [scripts/engines/scrapling_worker.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/scrapling_worker.py)
 - [NEW] [scripts/engines/direct_download_page.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/direct_download_page.py)
+- [NEW] [scripts/engines/release_page.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/release_page.py)
 
 ### Backend & Core
+- [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
+- [NEW] [src/backend/__tests__/abortAllOperations.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/abortAllOperations.test.ts)
+- [NEW] [src/backend/__tests__/appRouteLoading.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/appRouteLoading.test.ts)
+- [NEW] [src/backend/__tests__/applicationExit.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/applicationExit.test.ts)
+- [NEW] [src/backend/__tests__/gogPresenceExit.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/gogPresenceExit.test.ts)
+- [NEW] [src/backend/__tests__/rendererRequestHeaders.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/rendererRequestHeaders.test.ts)
+- [NEW] [src/backend/applicationExit.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/applicationExit.ts)
+- [MODIFY] [src/backend/backup/cloudBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/cloudBackup.ts)
+- [NEW] [src/backend/backup/__tests__/cloudBackupCancellation.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/__tests__/cloudBackupCancellation.test.ts)
 - [MODIFY] [src/backend/constants/paths.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/constants/paths.ts)
+- [MODIFY] [src/backend/main.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main.ts)
+- [MODIFY] [src/backend/plugins/__tests__/alazterflixCatalog.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixCatalog.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/sourceEngines.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/sourceEngines.test.ts)
 - [MODIFY] [src/backend/plugins/adaptiveSource.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/adaptiveSource.ts)
 - [MODIFY] [src/backend/plugins/ankerAccount.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ankerAccount.ts)
 - [MODIFY] [src/backend/plugins/externalGames.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/externalGames.ts)
@@ -782,11 +815,30 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/plugins/onlineFixInstall.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixInstall.ts)
 - [NEW] [src/backend/plugins/onlineFixWaitNotice.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixWaitNotice.ts)
 - [NEW] [src/backend/plugins/sourceDownloadScript.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceDownloadScript.ts)
+- [MODIFY] [src/backend/releases/__tests__/catalogPersistence.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/catalogPersistence.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/engines.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/engines.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/parser.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/parser.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/resilience.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/resilience.test.ts)
+- [NEW] [src/backend/releases/__tests__/calendarCache.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/calendarCache.test.ts)
+- [NEW] [src/backend/releases/__tests__/collector.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/collector.test.ts)
+- [MODIFY] [src/backend/releases/archive.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/archive.ts)
+- [MODIFY] [src/backend/releases/catalog.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/catalog.ts)
+- [MODIFY] [src/backend/releases/engines.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/engines.ts)
+- [MODIFY] [src/backend/releases/ipc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/ipc.ts)
+- [MODIFY] [src/backend/releases/parser.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/parser.ts)
+- [NEW] [src/backend/releases/calendarCache.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/calendarCache.ts)
+- [NEW] [src/backend/releases/collector.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/collector.ts)
+- [NEW] [src/backend/rendererRequestHeaders.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/rendererRequestHeaders.ts)
+- [MODIFY] [src/backend/storeManagers/gog/presence.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/gog/presence.ts)
+- [MODIFY] [src/backend/utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils.ts)
+- [MODIFY] [src/backend/utils/aborthandler/aborthandler.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/aborthandler/aborthandler.ts)
 
 ### Common & Preload
 - [MODIFY] [src/common/externalDownloadStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalDownloadStatus.ts)
+- [MODIFY] [src/common/releaseValidation.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/releaseValidation.ts)
 - [MODIFY] [src/common/types/ipc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/ipc.ts)
 - [MODIFY] [src/common/types/plugins.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/plugins.ts)
+- [MODIFY] [src/common/types/releases.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/releases.ts)
 - [MODIFY] [src/common/utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/utils.ts)
 - [NEW] [src/common/defaultHomeContent.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/defaultHomeContent.ts)
 - [NEW] [src/common/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/directDownloadLearning.ts)
@@ -794,6 +846,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/preload/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/directDownloadLearning.ts)
 
 ### Frontend
+- [MODIFY] [src/frontend/App.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.tsx)
 - [MODIFY] [src/frontend/components/ChooseDownloadModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/index.tsx)
 - [MODIFY] [src/frontend/components/UI/ActionIcons/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.css)
 - [MODIFY] [src/frontend/components/UI/ActionIcons/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ActionIcons/index.tsx)
@@ -805,8 +858,12 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/screens/ExternalGames/Downloads.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/Downloads.tsx)
 - [MODIFY] [src/frontend/screens/ExternalGames/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/index.css)
 - [MODIFY] [src/frontend/screens/ExternalGames/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/index.tsx)
+- [MODIFY] [src/frontend/screens/Releases/NativeReleases.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/NativeReleases.tsx)
 - [MODIFY] [src/frontend/themes.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/themes.scss)
+- [NEW] [src/frontend/components/DirectDownloadWait/](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/DirectDownloadWait/)
 - [NEW] [src/frontend/screens/Alazterflix/videoBuffering.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/videoBuffering.ts)
 - [NEW] [src/frontend/screens/ExternalGames/SearchStatus.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/SearchStatus.tsx)
-- [NEW] [src/frontend/components/DirectDownloadWait/](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/DirectDownloadWait/)
+- [NEW] [src/frontend/screens/Releases/ReleaseCollectorPicker.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseCollectorPicker.tsx)
+- [NEW] [src/frontend/screens/Releases/collector.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/collector.css)
+
 

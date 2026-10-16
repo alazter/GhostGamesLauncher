@@ -63,7 +63,7 @@ def main():
         zip_path = Path(shutil.make_archive(str(temporary / 'scrapling'), 'zip', binary_root))
         digest = hashlib.sha256(zip_path.read_bytes()).hexdigest()
         shutil.copy2(zip_path, output / (digest + '.zip'))
-        releases.append({'id': 'scrapling', 'version': args.scrapling, 'integrationRevision': 4,
+        releases.append({'id': 'scrapling', 'version': args.scrapling, 'integrationRevision': 5,
                          'url': f'https://github.com/alazter/GhostGamesLauncher/releases/download/engines-scrapling-{args.scrapling}/{digest}.zip',
                          'sha256': digest, 'executable': 'ghost-scrapling.exe'})
 

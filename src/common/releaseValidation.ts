@@ -159,10 +159,20 @@ export function catalogUpdateProblem(
 ): string | undefined {
   if (!isReleaseCatalog(next))
     return 'A estrutura do catálogo não pôde ser validada.'
-  if (
-    previous?.products.length &&
-    next.products.length < previous.products.length * 0.4
-  )
+  // Estimated month/quarter rosters naturally shrink as releases acquire real
+  // dates or move to another period. They are not a fixed set of confirmed days.
+  const stableCount = (catalog: ReleaseCatalog) =>
+    catalog.products.filter(
+      (product) =>
+        !(
+          !product.releaseDate &&
+          product.calendarOrder &&
+          product.releases.length &&
+          product.releases.every((row) => row.estimated)
+        )
+    ).length
+  const previousCount = previous ? stableCount(previous) : 0
+  if (previousCount && stableCount(next) < previousCount * 0.4)
     return 'A quantidade de títulos caiu de forma inesperada; a atualização foi suspensa.'
   for (const product of next.products) {
     const old = previous?.products.find((item) => item.id === product.id)

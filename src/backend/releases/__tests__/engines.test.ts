@@ -5,16 +5,29 @@ jest.mock('../../plugins/engineProcess', () => ({ engineProcess: jest.fn() }))
 jest.mock('../../plugins/adaptiveSource', () => ({
   experimentalPage: jest.fn()
 }))
+const mockProxyClose = jest.fn()
+jest.mock('../../plugins/engineProxy', () => ({
+  engineProxy: jest.fn(async () => ({
+    url: 'http://ghost:test@127.0.0.1:12345',
+    close: mockProxyClose
+  }))
+}))
 import { withSourceEngine } from '../../plugins/sourceEngines'
 import { engineProcess } from '../../plugins/engineProcess'
 import { experimentalPage } from '../../plugins/adaptiveSource'
+import { engineProxy } from '../../plugins/engineProxy'
 import {
   parseResilient,
   releaseSelectors,
-  obscuraReleasePage
+  obscuraReleasePage,
+  scraplingReleasePage
 } from '../engines'
 let sequence = 0
 beforeEach(() => {
+  ;(engineProxy as jest.Mock).mockResolvedValue({
+    url: 'http://ghost:test@127.0.0.1:12345',
+    close: mockProxyClose
+  })
   const executable = `worker-${sequence++}`
   ;(withSourceEngine as jest.Mock).mockImplementation((_id, run) =>
     run(executable, 'test-storage')
@@ -32,6 +45,49 @@ beforeEach(() => {
       html: request.mode === 'repair' ? 'recovered-document' : undefined
     })
   })
+})
+
+it('uses only compatible enabled Scrapling workers through the restricted proxy', async () => {
+  const url = 'https://www.releases.com/calendar/games'
+  ;(engineProcess as jest.Mock).mockImplementation((_exe, args, input) => {
+    if (args.includes('--self-test'))
+      return JSON.stringify({ ok: true, capabilities: ['release-page-v1'] })
+    const request = JSON.parse(input)
+    expect(request).toMatchObject({
+      operation: 'release-page-v1',
+      url,
+      proxy: 'http://ghost:test@127.0.0.1:12345'
+    })
+    return JSON.stringify({
+      capability: 'release-page-v1',
+      status: 200,
+      url,
+      html: 'public-page'
+    })
+  })
+  expect(await scraplingReleasePage(url)).toBe('public-page')
+  expect(mockProxyClose).toHaveBeenCalledTimes(1)
+})
+
+it('reports source refusal and always closes the Scrapling proxy', async () => {
+  const url = 'https://www.releases.com/calendar'
+  ;(engineProcess as jest.Mock).mockImplementation((_exe, args) =>
+    JSON.stringify(
+      args.includes('--self-test')
+        ? { ok: true, capabilities: ['release-page-v1'] }
+        : { capability: 'release-page-v1', status: 403, url, html: '' }
+    )
+  )
+  await expect(scraplingReleasePage(url)).rejects.toThrow('403')
+  expect(mockProxyClose).toHaveBeenCalledTimes(1)
+})
+
+it('does not send a public-page operation to older Scrapling workers', async () => {
+  expect(
+    await scraplingReleasePage('https://www.releases.com/calendar')
+  ).toBeUndefined()
+  expect(engineProcess).toHaveBeenCalledTimes(1)
+  expect(mockProxyClose).not.toHaveBeenCalled()
 })
 it('trains only validated documents and revalidates adaptive output before returning it', async () => {
   const parse = jest.fn((html: string) => {

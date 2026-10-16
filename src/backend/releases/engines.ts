@@ -2,9 +2,11 @@ import { createHash } from 'crypto'
 import { withSourceEngine } from '../plugins/sourceEngines'
 import { engineProcess } from '../plugins/engineProcess'
 import { experimentalPage } from '../plugins/adaptiveSource'
+import { engineProxy } from '../plugins/engineProxy'
 import type { PluginManifest } from 'common/types/plugins'
 
 const capabilities = new Map<string, boolean>()
+const pageCapabilities = new Map<string, boolean>()
 const manifest: PluginManifest = {
   id: 'com.ghost.releases',
   name: 'Lançamentos',
@@ -30,11 +32,14 @@ export async function releaseSelectors(
     throw new Error('Documento adaptativo muito grande.')
   return withSourceEngine('scrapling', async (executable, storage) => {
     if (!capabilities.has(executable)) {
-      const info = JSON.parse(await engineProcess(executable, ['--self-test']))
+      const info = JSON.parse(
+        await engineProcess(executable, ['--self-test'])
+      ) as { ok?: unknown; capabilities?: unknown }
       capabilities.set(
         executable,
         info.ok === true &&
-          info.capabilities?.includes('release-selectors-v1') === true
+          Array.isArray(info.capabilities) &&
+          info.capabilities.includes('release-selectors-v1')
       )
     }
     // Existing protocol-1 bundles without this capability remain valid for other sources.
@@ -70,6 +75,12 @@ export async function releaseSelectors(
 export async function obscuraReleasePage(
   url: string
 ): Promise<string | undefined> {
+  const target = releasePageUrl(url)
+  // Honors the existing disabled-by-default Obscura setting and domain-limited proxy.
+  return experimentalPage(target.href, manifest)
+}
+
+function releasePageUrl(url: string): URL {
   const target = new URL(url)
   if (
     target.origin !== 'https://www.releases.com' ||
@@ -80,8 +91,66 @@ export async function obscuraReleasePage(
     )
   )
     throw new Error('Endereço não permitido para o coletor alternativo.')
-  // Honors the existing disabled-by-default Obscura setting and domain-limited proxy.
-  return experimentalPage(target.href, manifest)
+  if (target.hash) throw new Error('Fragmento inválido para o coletor.')
+  return target
+}
+
+export async function scraplingReleasePage(
+  url: string
+): Promise<string | undefined> {
+  const target = releasePageUrl(url)
+  return withSourceEngine('scrapling', async (executable) => {
+    if (!pageCapabilities.has(executable)) {
+      const info = JSON.parse(
+        await engineProcess(executable, ['--self-test'])
+      ) as { ok?: unknown; capabilities?: unknown }
+      pageCapabilities.set(
+        executable,
+        info.ok === true &&
+          Array.isArray(info.capabilities) &&
+          info.capabilities.includes('release-page-v1')
+      )
+    }
+    if (!pageCapabilities.get(executable)) return undefined
+    const proxy = await engineProxy(manifest)
+    try {
+      const result = JSON.parse(
+        await engineProcess(
+          executable,
+          [],
+          JSON.stringify({
+            protocol: 1,
+            operation: 'release-page-v1',
+            url: target.href,
+            proxy: proxy.url
+          }),
+          22000
+        )
+      ) as {
+        capability?: unknown
+        status?: unknown
+        url?: unknown
+        html?: unknown
+      }
+      if (
+        result.capability !== 'release-page-v1' ||
+        typeof result.status !== 'number' ||
+        !Number.isInteger(result.status)
+      )
+        throw new Error('Resposta incompatível do coletor Scrapling.')
+      if (result.status < 200 || result.status >= 300)
+        throw new Error(`A fonte recusou a consulta (HTTP ${result.status}).`)
+      if (
+        result.url !== target.href ||
+        typeof result.html !== 'string' ||
+        result.html.length > 8 * 1024 * 1024
+      )
+        throw new Error('Documento inválido do coletor Scrapling.')
+      return result.html
+    } finally {
+      proxy.close()
+    }
+  })
 }
 
 /** Only successfully validated native parses train references; recovered data must be revalidated. */

@@ -1,7 +1,7 @@
 {
   "id": "com.ghost.alazterflix",
   "name": "Alazterflix",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Catálogo completo de filmes e séries ao estilo Jellyfin, player de vídeo acelerado por hardware, Stremio Subtitle Studio com sincronização milimétrica de keyframes (0ms drift), controles de delay estendidos com saltos rápidos e entrada direta, configuração de estilo padrão de legendas nas opções do plugin, remux em tempo real para áudio AC3/EAC3 e suporte ao ecossistema de Addons Stremio Protocol v3.",
   "author": "Ghost Community Media Labs",
   "type": "media",

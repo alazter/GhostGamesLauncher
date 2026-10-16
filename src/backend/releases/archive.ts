@@ -1,8 +1,9 @@
-import { mkdir, readFile, writeFile, rename } from 'fs/promises'
+import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { createHash } from 'crypto'
 import type { ReleaseCatalog, ReleaseProduct } from 'common/types/releases'
 import { isReleaseCatalog, isReleaseProduct } from 'common/releaseValidation'
+import { CalendarYearCache, replaceCalendarFile } from './calendarCache'
 
 type Kind = 'catalog' | 'product'
 type Value = ReleaseCatalog | ReleaseProduct
@@ -57,7 +58,10 @@ export function validateReleaseArchive(value: unknown): ReleaseArchiveData {
 /** One serialized writer, atomic replacement and a separately recoverable previous file. */
 export class ReleaseArchive {
   private pending: Promise<unknown> = Promise.resolve()
-  constructor(private directory: string) {}
+  readonly calendar: CalendarYearCache
+  constructor(private directory: string) {
+    this.calendar = new CalendarYearCache(directory)
+  }
   private key(kind: Kind, key: string) {
     return createHash('sha256').update(`${kind}:${key}`).digest('hex')
   }
@@ -91,7 +95,7 @@ export class ReleaseArchive {
       JSON.stringify(current.records.length ? current : data),
       'utf8'
     )
-    await rename(
+    await replaceCalendarFile(
       join(this.directory, 'previous.tmp'),
       join(this.directory, 'archive.previous.json')
     )
@@ -100,7 +104,7 @@ export class ReleaseArchive {
       JSON.stringify(data),
       'utf8'
     )
-    await rename(
+    await replaceCalendarFile(
       join(this.directory, 'archive.tmp'),
       join(this.directory, 'archive.json')
     )

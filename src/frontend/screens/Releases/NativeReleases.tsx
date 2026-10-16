@@ -29,6 +29,7 @@ import {
 import {
   RELEASE_CATEGORIES,
   ReleaseCatalog,
+  ReleaseCollector,
   ReleaseProduct,
   ReleaseQuery,
   ReleaseRegion
@@ -53,6 +54,7 @@ import './native.css'
 import './catalog.css'
 import ReleaseNavigation from './ReleaseNavigation'
 import ReleaseDetails from './ReleaseDetails'
+import ReleaseCollectorPicker from './ReleaseCollectorPicker'
 import { ReleaseDrmBadge } from './ReleaseDrm'
 import {
   drmBatchGames,
@@ -75,6 +77,7 @@ import { releaseVideoEmbed } from 'common/releaseMedia'
 
 type View = ReleaseView
 interface Preferences {
+  collector: ReleaseCollector
   category: string
   platforms: string[]
   platformsByCategory?: Record<string, string[]>
@@ -96,9 +99,10 @@ function preferences(): Preferences {
 
     let storedConfig: Record<string, any> | undefined
     try {
-      storedConfig = window.api?.storeGet?.('configStore', 'releasesPreferences') as
-        | Record<string, any>
-        | undefined
+      storedConfig = window.api?.storeGet?.(
+        'configStore',
+        'releasesPreferences'
+      ) as Record<string, any> | undefined
     } catch {
       storedConfig = undefined
     }
@@ -113,7 +117,10 @@ function preferences(): Preferences {
       : 'games'
 
     const platformsByCategory: Record<string, string[]> = {}
-    const sources = [storedConfig?.platformsByCategory, saved?.platformsByCategory]
+    const sources = [
+      storedConfig?.platformsByCategory,
+      saved?.platformsByCategory
+    ]
     for (const source of sources) {
       if (source && typeof source === 'object') {
         for (const [cat, list] of Object.entries(source)) {
@@ -155,15 +162,21 @@ function preferences(): Preferences {
 
     return {
       category,
+      collector: ['scrapling', 'obscura'].includes(merged.collector)
+        ? merged.collector
+        : 'electron',
       platforms: resolvedPlatforms,
       platformsByCategory,
       region: merged.region === 'uk' ? 'uk' : 'us',
-      layout: ['items', 'rows'].includes(merged.layout) ? merged.layout : 'cards',
+      layout: ['items', 'rows'].includes(merged.layout)
+        ? merged.layout
+        : 'cards',
       theme: merged.theme === 'light' ? 'light' : 'dark'
     }
   } catch {
     return {
       category: 'games',
+      collector: 'electron',
       platforms: [],
       platformsByCategory: {},
       region: 'us',
@@ -271,6 +284,9 @@ export default function NativeReleases() {
   const [catalog, setCatalog] = useState<ReleaseCatalog | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [failedPageDirection, setFailedPageDirection] = useState<
+    'forward' | 'backward' | null
+  >(null)
   const [reload, setReload] = useState(0)
   const [tracked, setTracked] = useState(getTrackedReleases)
   const [selected, setSelected] = useState<ReleaseProduct | null>(null)
@@ -468,7 +484,7 @@ export default function NativeReleases() {
     const id = state?.targetUrl?.match(/\/(?:p|l)\/([a-z0-9._~-]+)/i)?.[1]
     if (id)
       void window.api
-        .releasesProduct(id, prefs.region)
+        .releasesProduct(id, prefs.region, prefs.collector)
         .then(setSelected)
         .catch((error) => setError(String(error)))
   }, [location.key])
@@ -493,6 +509,7 @@ export default function NativeReleases() {
     if (resultsPanel.current && view !== 'tracking')
       resultsPanel.current.scrollTop = 0
     setError('')
+    setFailedPageDirection(null)
     if (view === 'tracking') {
       setBusy(false)
       return
@@ -500,6 +517,7 @@ export default function NativeReleases() {
     setBusy(true)
     setCatalog(null)
     const query: ReleaseQuery = {
+      collector: prefs.collector,
       category: prefs.category,
       platforms: JSON.parse(platformsKey),
       region: prefs.region,
@@ -530,6 +548,7 @@ export default function NativeReleases() {
   }, [
     view,
     prefs.category,
+    prefs.collector,
     platformsKey,
     prefs.region,
     interval,
@@ -553,7 +572,7 @@ export default function NativeReleases() {
     setDetailBusy(true)
     setDetailError('')
     void window.api
-      .releasesProduct(selectedId, prefs.region)
+      .releasesProduct(selectedId, prefs.region, prefs.collector)
       .then((product) => {
         if (current !== detailGeneration.current) return
         refreshTrackedProducts([product])
@@ -586,13 +605,14 @@ export default function NativeReleases() {
       detailGeneration.current++
       if (playRequested.current === selectedId) playRequested.current = null
     }
-  }, [selectedId, prefs.region])
+  }, [selectedId, prefs.region, prefs.collector])
 
   useEffect(() => {
     try {
-      const stored = window.api?.storeGet?.('configStore', 'releasesPreferences') as
-        | Preferences
-        | undefined
+      const stored = window.api?.storeGet?.(
+        'configStore',
+        'releasesPreferences'
+      ) as Preferences | undefined
       if (stored && typeof stored === 'object') {
         const local = preferences()
         const mergedPlatformsMap = {
@@ -607,6 +627,7 @@ export default function NativeReleases() {
         const merged: Preferences = {
           ...local,
           ...stored,
+          collector: local.collector,
           category: activeCat,
           platforms: activePlats,
           platformsByCategory: mergedPlatformsMap
@@ -742,7 +763,7 @@ export default function NativeReleases() {
     ' / '
   )
   const loadMore = useCallback(
-    async (direction: 'forward' | 'backward' = 'forward') => {
+    async (direction: 'forward' | 'backward' = 'forward', refresh = false) => {
       const cursor =
         direction === 'forward' ? catalog?.nextCursor : catalog?.previousCursor
       if (
@@ -765,8 +786,10 @@ export default function NativeReleases() {
       pageRequest.current = { generation: current, cursor }
       setBusy(true)
       setError('')
+      setFailedPageDirection(null)
       try {
         const result = await window.api.releasesCatalog({
+          collector: prefs.collector,
           category: prefs.category,
           platforms: JSON.parse(platformsKey),
           region: prefs.region,
@@ -776,7 +799,7 @@ export default function NativeReleases() {
           date,
           search: term,
           tag: appliedTag,
-          refresh: reload > 0
+          refresh: refresh || reload > 0
         })
         if (current !== generation.current) return
         const next = appendReleasePage(catalog, result, cursor, direction)
@@ -802,7 +825,10 @@ export default function NativeReleases() {
         }
         setCatalog(next)
       } catch (error) {
-        if (current === generation.current) setError(String(error))
+        if (current === generation.current) {
+          setFailedPageDirection(direction)
+          setError(String(error).replace(/^Error: /, ''))
+        }
       } finally {
         if (current === generation.current) {
           pageRequest.current = null
@@ -816,6 +842,7 @@ export default function NativeReleases() {
       selectedId,
       view,
       prefs.category,
+      prefs.collector,
       prefs.region,
       platformsKey,
       interval,
@@ -1032,7 +1059,9 @@ export default function NativeReleases() {
             !prefs.platforms.length &&
             prefs.platformsByCategory?.[prefs.category]?.length
           ) {
-            changePrefs({ platforms: prefs.platformsByCategory[prefs.category] })
+            changePrefs({
+              platforms: prefs.platformsByCategory[prefs.category]
+            })
           }
         }}
         onTracking={(category = 'all', platform = '') => {
@@ -1081,6 +1110,14 @@ export default function NativeReleases() {
           >
             <Icon icon={faRotate} spin={busy} />
           </button>
+          <ReleaseCollectorPicker
+            value={prefs.collector}
+            onChange={(collector) => {
+              changePrefs({ collector })
+              setReload((previous) => previous + 1)
+            }}
+            onManage={() => navigate('/plugins')}
+          />
         </header>
         <ReleaseToolbar
           view={view}
@@ -1121,6 +1158,11 @@ export default function NativeReleases() {
               <Icon icon={faXmark} />
             </button>
           </div>
+        )}
+        {catalog?.collectionWarning && (
+          <p className="nr-notice" role="status">
+            {catalog.collectionWarning}
+          </p>
         )}
         {view === 'tracking' && (
           <div className="nr-backup-bar">
@@ -1166,7 +1208,14 @@ export default function NativeReleases() {
           <div className="nr-error" role="alert">
             <strong>Não foi possível consultar a fonte</strong>
             <p>{error}</p>
-            <button onClick={() => setReload((value) => value + 1)}>
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (failedPageDirection)
+                  void loadMore(failedPageDirection, true)
+                else setReload((value) => value + 1)
+              }}
+            >
               Tentar novamente
             </button>
             <button onClick={() => setView('tracking')}>

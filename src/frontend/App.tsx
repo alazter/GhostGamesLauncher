@@ -260,12 +260,12 @@ function Root() {
 }
 
 function makeLazyFunc(
-  importedFile: Promise<{
+  loadFile: () => Promise<{
     default: React.ComponentType<Record<string, unknown>>
   }>
 ) {
   return async () => {
-    const component = await importedFile
+    const component = await loadFile()
     return { Component: component.default }
   }
 }
@@ -275,66 +275,66 @@ const router = createHashRouter([
     path: '/',
     element: <Root />,
     children: [
-      { index: true, lazy: makeLazyFunc(import('./screens/Library')) },
-      { path: 'login', lazy: makeLazyFunc(import('./screens/Login')) },
-      { path: 'store/:store', lazy: makeLazyFunc(import('./screens/WebView')) },
-      { path: 'wiki', lazy: makeLazyFunc(import('./screens/WebView')) },
+      { index: true, lazy: makeLazyFunc(() => import('./screens/Library')) },
+      { path: 'login', lazy: makeLazyFunc(() => import('./screens/Login')) },
+      { path: 'store/:store', lazy: makeLazyFunc(() => import('./screens/WebView')) },
+      { path: 'wiki', lazy: makeLazyFunc(() => import('./screens/WebView')) },
       {
         path: 'gamepage/:runner/:appName',
-        lazy: makeLazyFunc(import('./screens/Game/GamePage'))
+        lazy: makeLazyFunc(() => import('./screens/Game/GamePage'))
       },
-      { path: 'store-page', lazy: makeLazyFunc(import('./screens/WebView')) },
+      { path: 'store-page', lazy: makeLazyFunc(() => import('./screens/WebView')) },
       {
         path: 'discounts',
-        lazy: makeLazyFunc(import('./screens/Discounts'))
+        lazy: makeLazyFunc(() => import('./screens/Discounts'))
       },
       {
         path: 'releases',
-        lazy: makeLazyFunc(import('./screens/Releases'))
+        lazy: makeLazyFunc(() => import('./screens/Releases'))
       },
       {
         path: 'loginweb/:runner',
-        lazy: makeLazyFunc(import('./screens/WebView'))
+        lazy: makeLazyFunc(() => import('./screens/WebView'))
       },
       {
         path: 'settings/:type',
-        lazy: makeLazyFunc(import('./screens/Settings'))
+        lazy: makeLazyFunc(() => import('./screens/Settings'))
       },
       {
         path: 'wine-manager',
-        lazy: makeLazyFunc(import('./screens/WineManager'))
+        lazy: makeLazyFunc(() => import('./screens/WineManager'))
       },
       {
         path: 'download-manager',
-        lazy: makeLazyFunc(import('./screens/DownloadManager'))
+        lazy: makeLazyFunc(() => import('./screens/DownloadManager'))
       },
       {
         path: 'accessibility',
-        lazy: makeLazyFunc(import('./screens/Accessibility'))
+        lazy: makeLazyFunc(() => import('./screens/Accessibility'))
       },
       {
         path: 'personalization',
-        lazy: makeLazyFunc(import('./screens/Personalization'))
+        lazy: makeLazyFunc(() => import('./screens/Personalization'))
       },
       {
         path: 'plugins',
-        lazy: makeLazyFunc(import('./screens/Plugins'))
+        lazy: makeLazyFunc(() => import('./screens/Plugins'))
       },
       {
         path: 'external-games',
-        lazy: makeLazyFunc(import('./screens/ExternalGames'))
+        lazy: makeLazyFunc(() => import('./screens/ExternalGames'))
       },
       {
         path: 'alazterflix',
-        lazy: makeLazyFunc(import('./screens/Alazterflix'))
+        lazy: makeLazyFunc(() => import('./screens/Alazterflix'))
       },
       {
         path: 'cinema',
-        lazy: makeLazyFunc(import('./screens/Alazterflix'))
+        lazy: makeLazyFunc(() => import('./screens/Alazterflix'))
       },
       {
         path: 'console',
-        lazy: makeLazyFunc(import('./screens/ConsoleMode'))
+        lazy: makeLazyFunc(() => import('./screens/ConsoleMode'))
       },
       {
         path: '*',
