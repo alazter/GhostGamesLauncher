@@ -2,7 +2,8 @@ import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import SettingsContext from '../SettingsContext'
 import useSetting from 'frontend/hooks/useSetting'
-import { PathSelectionBox, ToggleSwitch } from 'frontend/components/UI'
+import { ToggleSwitch } from 'frontend/components/UI'
+import SoftwareStorePathBox from './SoftwareStorePathBox'
 
 const AfterLaunchScriptPath = () => {
   const { t } = useTranslation()
@@ -15,47 +16,39 @@ const AfterLaunchScriptPath = () => {
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <PathSelectionBox
-        type="file"
-        onPathChange={setScriptPath}
-        path={scriptPath}
-        pathDialogTitle={t(
-          'box.select.script',
-          'Selecionar software (.exe) ou script (.bat, .cmd, .ps1)...'
-        )}
-        pathDialogDefaultPath={gameInfo?.install.install_path}
-        placeholder={
-          scriptPath ||
-          t(
-            'box.select.script',
-            'Selecionar software (.exe) ou script (.bat, .cmd, .ps1)...'
-          )
-        }
-        label={t(
-          'setting.after-launch-script-path',
-          'Selecione um software (.exe) ou script (.bat, .cmd, .ps1) para executar após o jogo ser fechado'
-        )}
-        htmlId="after-launch-script-path"
-      />
-      {Boolean(scriptPath) && (
-        <div style={{ marginTop: '2px', paddingLeft: '2px' }}>
-          <ToggleSwitch
-            htmlId="waitAfterLaunchScript"
-            value={waitAfterLaunchScript}
-            handleChange={() => setWaitAfterLaunchScript(!waitAfterLaunchScript)}
-            title={t(
-              'setting.wait-after-launch-script',
-              'Aguardar o software/script finalizar após fechar o jogo'
-            )}
-            description={t(
-              'setting.wait-after-launch-script-desc',
-              'Quando desmarcado, o software/script é iniciado em segundo plano sem prender o encerramento do Ghost.'
-            )}
-          />
-        </div>
+    <SoftwareStorePathBox
+      onPathChange={setScriptPath}
+      path={scriptPath}
+      pathDialogTitle={t(
+        'box.select.script',
+        'Selecionar software (.exe) ou script (.bat, .cmd, .ps1)...'
       )}
-    </div>
+      pathDialogDefaultPath={gameInfo?.install.install_path}
+      placeholder={t(
+        'box.select.script.store',
+        'Selecionar software (.exe) da Loja Softwares ou procurar no PC...'
+      )}
+      label={t(
+        'setting.after-launch-script-path',
+        'Selecione um software (.exe) ou script (.bat, .cmd, .ps1) para executar após o jogo ser fechado'
+      )}
+      htmlId="after-launch-script-path"
+      excludeAppName={gameInfo?.app_name}
+    >
+      <ToggleSwitch
+        htmlId="waitAfterLaunchScript"
+        value={waitAfterLaunchScript}
+        handleChange={() => setWaitAfterLaunchScript(!waitAfterLaunchScript)}
+        title={t(
+          'setting.wait-after-launch-script',
+          'Aguardar o software/script finalizar após fechar o jogo'
+        )}
+        description={t(
+          'setting.wait-after-launch-script-desc',
+          'Quando desmarcado, o software/script é iniciado em segundo plano sem prender o encerramento do Ghost.'
+        )}
+      />
+    </SoftwareStorePathBox>
   )
 }
 

@@ -52,6 +52,7 @@ import { Tabs, Tab } from '@mui/material'
 import { GameInfo } from 'common/types'
 import DisableUMU from '../../components/DisableUMU'
 import VerboseLogs from '../../components/VerboseLogs'
+import { useSoftwareStoreCatalog } from '../../components/SoftwareStorePathBox'
 
 const windowsPlatforms = ['Win32', 'Windows', 'windows']
 function getStartingTab(platform: string, gameInfo?: GameInfo | null): string {
@@ -76,6 +77,9 @@ export default function GamesSettings() {
   const { t } = useTranslation()
   const { platform } = useContext(ContextProvider)
   const { isDefault, gameInfo } = useContext(SettingsContext)
+  const { primaryStoreName, softwareStoreItems } = useSoftwareStoreCatalog(
+    gameInfo?.app_name
+  )
   const [wineVersion] = useSetting('wineVersion', defaultWineVersion)
   const [isNative, setIsNative] = useState(false)
   const isLinux = platform === 'linux'
@@ -231,7 +235,32 @@ export default function GamesSettings() {
         <LaunchOptionSelector />
         <LauncherArgs />
         <div className="Field">
-          <label>{t('setting.scripts', 'Scripts e Softwares:')}</label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              marginBottom: '8px'
+            }}
+          >
+            <span>{t('setting.scripts', 'Scripts e Softwares:')}</span>
+            <span
+              style={{
+                fontSize: '12px',
+                color: '#00ffff',
+                fontWeight: 500
+              }}
+            >
+              🧰 Conectado à sua loja personalizada &quot;{primaryStoreName}&quot; (
+              {softwareStoreItems.length}{' '}
+              {softwareStoreItems.length === 1
+                ? 'app disponível'
+                : 'apps disponíveis'}
+              )
+            </span>
+          </label>
           <BeforeLaunchScriptPath />
           <AfterLaunchScriptPath />
         </div>

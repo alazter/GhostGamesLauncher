@@ -17,6 +17,7 @@ export function isGameAssignedToStore(
     if (targetNameLower && explicitlyAssignedStore === targetNameLower) return true
     if (targetNameLower.includes('pirata') && (explicitlyAssignedStore.includes('pirata') || explicitlyAssignedStore === 'piratas')) return true
     if (targetNameLower.includes('indie') && (explicitlyAssignedStore.includes('indie') || explicitlyAssignedStore === 'indies')) return true
+    if (targetNameLower.includes('software') && explicitlyAssignedStore.includes('software')) return true
     if (targetNameLower.includes('epic') && (explicitlyAssignedStore.includes('epic') || explicitlyAssignedStore === 'legendary')) return true
     if (targetNameLower.includes('gog') && explicitlyAssignedStore.includes('gog')) return true
     if (targetNameLower.includes('amazon') && (explicitlyAssignedStore.includes('amazon') || explicitlyAssignedStore === 'nile')) return true
