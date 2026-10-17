@@ -1,6 +1,6 @@
 {
   "name": "ghost",
-  "version": "0.3.5-beta",
+  "version": "0.3.6-beta",
   "private": false,
   "main": "build/main/main.js",
   "homepage": "./",
