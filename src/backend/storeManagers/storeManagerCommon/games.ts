@@ -1,10 +1,14 @@
-import { GameSettings } from 'common/types'
+import { GameInfo, GameSettings } from 'common/types'
 import { GameConfig } from '../../game_config'
 import { GlobalConfig } from 'backend/config'
 import { prepareRomLaunch } from 'backend/plugins/romLauncher'
 import { logInfo, LogPrefix, logWarning } from 'backend/logger'
-import { basename, dirname } from 'path'
-import { constants as FS_CONSTANTS } from 'graceful-fs'
+import { basename, dirname, join } from 'path'
+import {
+  constants as FS_CONSTANTS,
+  existsSync,
+  readdirSync
+} from 'graceful-fs'
 import i18next from 'i18next'
 import {
   callRunner,
@@ -248,6 +252,7 @@ export async function launchGame(
         executable = extraArgs.shift()!
       }
 
+      const callStartTime = Date.now()
       await callRunner(
         extraArgs,
         {
@@ -267,6 +272,14 @@ export async function launchGame(
 
       if (isSteamLaunchWithMonitor && !gameInfo.install.romPlatform) {
         await waitForProcessToExit(gameSettingsOverrides.targetExe, logWriter)
+      } else if (isWindows && !gameInfo.install.romPlatform) {
+        await waitForChildGameProcessInFolder(
+          gameInfo,
+          gameSettings,
+          executable,
+          callStartTime,
+          logWriter
+        )
       }
 
       launchCleanup(rpcClient)
@@ -304,6 +317,110 @@ export async function launchGame(
     return true
   }
   return false
+}
+
+const IGNORED_HELPER_EXE_PATTERNS = [
+  /unitycrashhandler/i,
+  /crashreportclient/i,
+  /crashpad_handler/i,
+  /ue4prereqsetup/i,
+  /ueprereqsetup/i,
+  /^unins\d*\.exe$/i,
+  /uninstall/i,
+  /vc_redist/i,
+  /vcredist/i,
+  /dxsetup/i,
+  /directx/i,
+  /dotnet/i,
+  /physx/i,
+  /easyanticheat/i,
+  /battleye/i
+]
+
+export function findCandidateGameExesInFolder(
+  rootDir: string,
+  excludeNames: Set<string>,
+  maxDepth = 4
+): string[] {
+  const results = new Set<string>()
+
+  const walk = (dir: string, depth: number) => {
+    if (depth > maxDepth || !dir || !existsSync(dir)) return
+    let entries
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        walk(join(dir, entry.name), depth + 1)
+      } else if (
+        entry.isFile() &&
+        entry.name.toLowerCase().endsWith('.exe')
+      ) {
+        const lowerName = entry.name.toLowerCase()
+        if (excludeNames.has(lowerName)) continue
+        if (IGNORED_HELPER_EXE_PATTERNS.some((re) => re.test(lowerName))) {
+          continue
+        }
+        results.add(entry.name)
+      }
+    }
+  }
+
+  walk(rootDir, 0)
+  return Array.from(results)
+}
+
+async function waitForChildGameProcessInFolder(
+  gameInfo: GameInfo,
+  gameSettings: GameSettings,
+  launchedExe: string,
+  callStartTime: number,
+  logWriter: LogWriter
+): Promise<void> {
+  if (process.platform !== 'win32') return
+
+  const installDir =
+    gameInfo.folder_name ||
+    gameInfo.install?.install_path ||
+    dirname(launchedExe)
+  if (!installDir || !existsSync(installDir)) return
+
+  const excludeNames = new Set<string>([basename(launchedExe).toLowerCase()])
+  if (gameSettings.beforeLaunchScriptPath) {
+    excludeNames.add(basename(gameSettings.beforeLaunchScriptPath).toLowerCase())
+  }
+  if (gameSettings.afterLaunchScriptPath) {
+    excludeNames.add(basename(gameSettings.afterLaunchScriptPath).toLowerCase())
+  }
+
+  const candidateExes = findCandidateGameExesInFolder(installDir, excludeNames)
+  if (candidateExes.length === 0) return
+
+  // If the bootstrapper exited quickly (< 15s), give the child game executable 1.5s to appear in tasklist
+  if (Date.now() - callStartTime < 15000) {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+  }
+
+  try {
+    const { stdout } = await execAsync('tasklist /FO CSV /NH')
+    const lowerStdout = stdout.toLowerCase()
+    const runningChildExe = candidateExes.find((exe) =>
+      lowerStdout.includes(`"${exe.toLowerCase()}"`)
+    )
+
+    if (runningChildExe) {
+      logInfo(
+        `Game bootstrapper exited, monitoring active game process: ${runningChildExe}`,
+        LogPrefix.Backend
+      )
+      await waitForProcessToExit(runningChildExe, logWriter)
+    }
+  } catch {
+    // Ignore errors from tasklist
+  }
 }
 
 async function isProcessRunning(processName: string): Promise<boolean> {

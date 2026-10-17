@@ -7,8 +7,103 @@ export interface SoftwareStoreEntry {
   title: string
   executablePath: string
   iconUrl: string
+  fallbackIconUrl?: string
   storeId: string
   storeName: string
+}
+
+export function formatSoftwareIconUrl(rawUrl?: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return ''
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return ''
+  if (
+    trimmed.startsWith('imagecache://') ||
+    trimmed.startsWith('data:') ||
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://')
+  ) {
+    return trimmed
+  }
+
+  let cleanTarget = trimmed
+  if (cleanTarget.startsWith('file:///')) {
+    cleanTarget = decodeURIComponent(cleanTarget.slice(8))
+  } else if (cleanTarget.startsWith('file://')) {
+    cleanTarget = decodeURIComponent(cleanTarget.slice(7))
+  }
+
+  if (
+    /^[a-zA-Z]:[\\/]/.test(cleanTarget) ||
+    (cleanTarget.startsWith('/') &&
+      !cleanTarget.startsWith('/src/') &&
+      !cleanTarget.startsWith('/assets/'))
+  ) {
+    return `imagecache://localhost/${encodeURIComponent(cleanTarget)}`
+  }
+
+  if (/^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith('file://')) {
+    return `imagecache://localhost/${encodeURIComponent(trimmed)}`
+  }
+
+  return trimmed
+}
+
+export function resolveGameIconUrls(
+  game: GameInfo,
+  externalOverride?: any
+): {
+  iconUrl: string
+  fallbackIconUrl: string
+} {
+  if (!game) return { iconUrl: '', fallbackIconUrl: '' }
+
+  const overrides = externalOverride || (game as any).overrides || {}
+
+  const candidates: (string | undefined)[] = [
+    overrides.art_square,
+    game.art_square,
+    overrides.art_cover,
+    game.art_cover,
+    (game as any).art_icon,
+    overrides.art_icon
+  ]
+
+  const validCandidates: string[] = []
+  const seen = new Set<string>()
+
+  for (const c of candidates) {
+    if (!c || typeof c !== 'string') continue
+    const trimmed = c.trim()
+    if (!trimmed || seen.has(trimmed)) continue
+    if (
+      trimmed.includes('heroic_card') ||
+      trimmed.includes('heroic-icon') ||
+      trimmed.includes('default_cover')
+    ) {
+      continue
+    }
+    seen.add(trimmed)
+    validCandidates.push(trimmed)
+  }
+
+  if (validCandidates.length === 0) {
+    for (const c of candidates) {
+      if (!c || typeof c !== 'string') continue
+      const trimmed = c.trim()
+      if (trimmed && !seen.has(trimmed)) {
+        seen.add(trimmed)
+        validCandidates.push(trimmed)
+      }
+    }
+  }
+
+  const primaryRaw = validCandidates[0] || ''
+  const secondaryRaw = validCandidates[1] || ''
+
+  return {
+    iconUrl: formatSoftwareIconUrl(primaryRaw),
+    fallbackIconUrl: formatSoftwareIconUrl(secondaryRaw)
+  }
 }
 
 const EXECUTABLE_OR_SCRIPT_REGEX = /\.(exe|bat|cmd|ps1|sh|appimage|py|vbs)$/i
@@ -20,7 +115,11 @@ export function normalizeExecutablePathComparison(p: string): string {
 export function resolveGameExecutablePath(game: GameInfo): string {
   if (!game) return ''
   const rawExe = (game.install?.executable || '').trim()
-  const rawInstallPath = (game.install?.install_path || '').trim()
+  const rawInstallPath = (
+    game.install?.install_path ||
+    (game as any).folder_name ||
+    ''
+  ).trim()
 
   if (rawExe) {
     const isAbsoluteWin = /^[a-zA-Z]:[\\/]/.test(rawExe) || rawExe.startsWith('\\\\')
@@ -102,6 +201,7 @@ export interface GetSoftwareStoreItemsParams {
   storeFilter?: string
   searchQuery?: string
   excludeAppName?: string
+  gameOverrides?: Record<string, any>
 }
 
 export function getSoftwareStoreItems({
@@ -110,7 +210,8 @@ export function getSoftwareStoreItems({
   assignments,
   storeFilter = 'softwares',
   searchQuery = '',
-  excludeAppName = ''
+  excludeAppName = '',
+  gameOverrides
 }: GetSoftwareStoreItemsParams): SoftwareStoreEntry[] {
   if (!Array.isArray(allGames) || allGames.length === 0) return []
 
@@ -175,11 +276,15 @@ export function getSoftwareStoreItems({
         }
       : resolveStoreForGame(game, customStores, assignments)
 
+    const gameOverride = gameOverrides?.[game.app_name]
+    const { iconUrl, fallbackIconUrl } = resolveGameIconUrls(game, gameOverride)
+
     entries.push({
       appName: game.app_name,
       title,
       executablePath,
-      iconUrl: game.art_square || game.art_cover || game.art_icon || '',
+      iconUrl,
+      fallbackIconUrl,
       storeId: storeMeta.storeId,
       storeName: storeMeta.storeName
     })

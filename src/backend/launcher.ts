@@ -19,8 +19,8 @@ import {
 // This handles launching games, prefix creation etc..
 
 import i18next from 'i18next'
-import { existsSync, mkdirSync } from 'graceful-fs'
-import { join, dirname, isAbsolute, extname } from 'path'
+import { existsSync, mkdirSync, readdirSync, statSync } from 'graceful-fs'
+import { join, dirname, isAbsolute, extname, basename } from 'path'
 
 import {
   constructAndUpdateRPC,
@@ -34,7 +34,8 @@ import {
   checkWineBeforeLaunch,
   isMacSonomaOrHigher,
   askForceUninstall,
-  getGame
+  getGame,
+  killPattern
 } from './utils'
 import {
   createGameLogWriter,
@@ -231,7 +232,18 @@ const launchEventCallback: (args: LaunchParams) => StatusPromise = async ({
     }
   }
 
-  await runBeforeLaunchScript(gameInfo, gameSettings, logWriter)
+  try {
+    await runBeforeLaunchScript(gameInfo, gameSettings, logWriter)
+  } catch (error) {
+    logError(
+      ['Error running before launch script/software:', error],
+      LogPrefix.Backend
+    )
+    await logWriter.logError([
+      'Error running before launch script/software:',
+      error
+    ])
+  }
 
   sendGameStatusUpdate({
     appName,
@@ -261,8 +273,35 @@ const launchEventCallback: (args: LaunchParams) => StatusPromise = async ({
     return false
   })
 
+  try {
+    const latestGameSettings = await game
+      .getSettings()
+      .catch(() => gameSettings)
+    await stopBeforeLaunchScript(gameInfo, latestGameSettings, logWriter)
+  } catch (error) {
+    logError(
+      ['Error stopping before launch script/software:', error],
+      LogPrefix.Backend
+    )
+    await logWriter.logError([
+      'Error stopping before launch script/software:',
+      error
+    ])
+  }
+
   if (launchResult !== false) {
-    await runAfterLaunchScript(gameInfo, gameSettings, logWriter)
+    try {
+      await runAfterLaunchScript(gameInfo, gameSettings, logWriter)
+    } catch (error) {
+      logError(
+        ['Error running after launch script/software:', error],
+        LogPrefix.Backend
+      )
+      await logWriter.logError([
+        'Error running after launch script/software:',
+        error
+      ])
+    }
   }
   await logWriter.close()
 
@@ -1791,6 +1830,7 @@ async function callRunner(
   const abortController = createAbortController(abortId)
 
   let promise = new Promise<ExecResult>((res, rej) => {
+    let handledByElevationFallback = false
     const child = spawn(bin, commandParts, {
       cwd: options?.cwd || runner.dir,
       env: { ...process.env, ...options?.env },
@@ -1831,6 +1871,10 @@ async function callRunner(
     })
 
     child.on('close', (code, signal) => {
+      if (handledByElevationFallback) {
+        return
+      }
+
       errorHandler(
         `${stdout.join().concat(stderr.join())}`,
         appName,
@@ -1848,6 +1892,81 @@ async function callRunner(
     })
 
     child.on('error', (error) => {
+      if (
+        isWindows &&
+        (error as NodeJS.ErrnoException)?.code === 'EACCES' &&
+        bin.toLowerCase() !== 'powershell' &&
+        bin.toLowerCase() !== 'powershell.exe'
+      ) {
+        handledByElevationFallback = true
+        const targetCwd = options?.cwd || runner.dir || process.cwd()
+        const escapedFilePath = fullRunnerPath.replace(/'/g, "''")
+        const escapedCwd = targetCwd.replace(/'/g, "''")
+        const psCommand = [
+          `Start-Process`,
+          `-FilePath '${escapedFilePath}'`,
+          `-WorkingDirectory '${escapedCwd}'`,
+          ...(commandParts.length > 0
+            ? [
+                `-ArgumentList @(${commandParts
+                  .map((a) => `'${a.replace(/'/g, "''")}'`)
+                  .join(',')})`
+              ]
+            : []),
+          `-Wait`
+        ].join(' ')
+
+        logInfo(
+          [
+            `Executable requires elevation (EACCES), launching via Start-Process:`,
+            fullRunnerPath
+          ],
+          runner.logPrefix
+        )
+
+        try {
+          const elevatedChild = spawn(
+            'powershell.exe',
+            [
+              '-NoProfile',
+              '-NonInteractive',
+              '-ExecutionPolicy',
+              'Bypass',
+              '-WindowStyle',
+              'Hidden',
+              '-Command',
+              psCommand
+            ],
+            {
+              cwd: targetCwd,
+              env: { ...process.env, ...options?.env },
+              signal: abortController.signal,
+              windowsHide: true
+            }
+          )
+
+          elevatedChild.on('close', (code, signal) => {
+            if (signal && !elevatedChild.killed) {
+              rej(new Error(`Process terminated with signal ${signal}`))
+              return
+            }
+
+            res({
+              stdout: stdout.join(),
+              stderr: stderr.join('\n')
+            })
+          })
+
+          elevatedChild.on('error', (elevatedError) => {
+            rej(elevatedError)
+          })
+          return
+        } catch (fallbackErr) {
+          rej(fallbackErr)
+          return
+        }
+      }
+
       rej(error)
     })
   })
@@ -2024,6 +2143,173 @@ async function runAfterLaunchScript(
   return runScriptForGame(gameInfo, gameSettings, 'after', logWriter)
 }
 
+const runningBeforeScriptsByApp = new Map<
+  string,
+  { pid?: number; scriptPath: string }
+>()
+
+const SYSTEM_SHELL_EXECUTABLES = new Set([
+  'cmd.exe',
+  'powershell.exe',
+  'pwsh.exe',
+  'explorer.exe',
+  'conhost.exe',
+  'wscript.exe',
+  'cscript.exe',
+  'bash.exe',
+  'sh.exe'
+])
+
+async function stopBeforeLaunchScript(
+  gameInfo: GameInfo,
+  gameSettings: GameSettings,
+  logWriter?: LogWriter
+): Promise<void> {
+  const tracked = runningBeforeScriptsByApp.get(gameInfo.app_name)
+  runningBeforeScriptsByApp.delete(gameInfo.app_name)
+
+  if (!gameSettings.closeBeforeLaunchScriptOnExit) {
+    return
+  }
+
+  const rawScriptPath =
+    tracked?.scriptPath || gameSettings.beforeLaunchScriptPath || ''
+  const cleanScriptPath = rawScriptPath
+    ? rawScriptPath.trim().replace(/^["']+|["']+$/g, '')
+    : ''
+
+  if (!cleanScriptPath) {
+    return
+  }
+
+  const exeName = basename(cleanScriptPath)
+  const ext = extname(cleanScriptPath).toLowerCase()
+  const pid = tracked?.pid
+
+  logInfo(
+    [
+      `Closing before-launch software/script for ${gameInfo.title}:`,
+      exeName,
+      pid ? `(PID: ${pid})` : ''
+    ],
+    LogPrefix.Backend
+  )
+  await logWriter?.writeString(
+    `Closing before-launch software/script: ${exeName}${
+      pid ? ` (PID: ${pid})` : ''
+    }\n`
+  )
+
+  if (isWindows) {
+    const canKillByImageName =
+      ext === '.exe' && !SYSTEM_SHELL_EXECUTABLES.has(exeName.toLowerCase())
+
+    if (pid && pid > 0) {
+      try {
+        spawnSync('taskkill', ['/F', '/T', '/PID', String(pid)], {
+          windowsHide: true
+        })
+      } catch {}
+    }
+
+    if (canKillByImageName) {
+      try {
+        spawnSync('taskkill', ['/F', '/T', '/IM', exeName], {
+          windowsHide: true
+        })
+      } catch {}
+    }
+
+    // Check if the process is still running (e.g. if it was started with UAC elevation)
+    let stillRunning = false
+    if (canKillByImageName) {
+      try {
+        const checkOut = spawnSync(
+          'tasklist',
+          ['/FI', `IMAGENAME eq ${exeName}`, '/NH'],
+          { encoding: 'utf-8', windowsHide: true }
+        )
+        if (
+          checkOut.stdout &&
+          checkOut.stdout.toLowerCase().includes(exeName.toLowerCase())
+        ) {
+          stillRunning = true
+        }
+      } catch {}
+    } else if (pid && pid > 0) {
+      try {
+        const checkPidOut = spawnSync(
+          'tasklist',
+          ['/FI', `PID eq ${pid}`, '/NH'],
+          { encoding: 'utf-8', windowsHide: true }
+        )
+        if (checkPidOut.stdout && checkPidOut.stdout.includes(String(pid))) {
+          stillRunning = true
+        }
+      } catch {}
+    }
+
+    if (stillRunning) {
+      const killArgs: string[] = []
+      if (canKillByImageName) {
+        killArgs.push(
+          "'/F'",
+          "'/T'",
+          "'/IM'",
+          `'${exeName.replace(/'/g, "''")}'`
+        )
+      } else if (pid && pid > 0) {
+        killArgs.push("'/F'", "'/T'", "'/PID'", `'${pid}'`)
+      }
+
+      if (killArgs.length > 0) {
+        logInfo(
+          [
+            `Before-launch software (${exeName}) is running elevated, terminating via elevated taskkill...`
+          ],
+          LogPrefix.Backend
+        )
+        const psKillCmd = `Start-Process -FilePath 'taskkill.exe' -ArgumentList @(${killArgs.join(
+          ','
+        )}) -Verb RunAs -WindowStyle Hidden -Wait`
+        try {
+          spawnSync(
+            'powershell.exe',
+            [
+              '-NoProfile',
+              '-NonInteractive',
+              '-ExecutionPolicy',
+              'Bypass',
+              '-WindowStyle',
+              'Hidden',
+              '-Command',
+              psKillCmd
+            ],
+            { windowsHide: true }
+          )
+        } catch (err) {
+          logError(
+            [`Failed to terminate elevated software (${exeName}):`, err],
+            LogPrefix.Backend
+          )
+        }
+      }
+    }
+  } else {
+    if (pid && pid > 0) {
+      try {
+        process.kill(-pid, 'SIGTERM')
+      } catch {}
+      try {
+        process.kill(pid, 'SIGTERM')
+      } catch {}
+    }
+    if (exeName) {
+      killPattern(exeName)
+    }
+  }
+}
+
 /* Execute script before launch/after exit, wait until the script
  * exits to continue
  *
@@ -2046,58 +2332,161 @@ async function runAfterLaunchScript(
  * - Make sure any async process is not stuck running in the background forever,
  *   use the after script to kill any running process if that's the case
  */
+function findAlternativeExecutableCandidate(targetPath: string): string | null {
+  try {
+    const targetDir = dirname(targetPath)
+    if (!existsSync(targetDir)) {
+      return null
+    }
+
+    const targetExt = extname(targetPath).toLowerCase()
+    const targetBaseName = basename(targetPath, targetExt).toLowerCase()
+
+    const entries = readdirSync(targetDir)
+    const validCandidates: { path: string; mtime: number; score: number }[] = []
+
+    const searchTerms = targetBaseName
+      .replace(/([a-zA-Z])(?=[0-9])|([0-9])(?=[a-zA-Z])/g, '$& ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter((term) => term.length >= 3)
+
+    for (const entry of entries) {
+      const entryExt = extname(entry).toLowerCase()
+      if (entryExt !== '.exe' && entryExt !== targetExt) {
+        continue
+      }
+
+      const fullCandidatePath = join(targetDir, entry)
+      const entryBase = basename(entry, entryExt).toLowerCase()
+
+      if (entry.toLowerCase() === basename(targetPath).toLowerCase()) {
+        return fullCandidatePath
+      }
+
+      let matchScore = 0
+      for (const term of searchTerms) {
+        if (entryBase.includes(term)) {
+          matchScore += term.length
+        }
+      }
+
+      if (
+        matchScore >= 3 ||
+        (searchTerms.length === 0 &&
+          targetBaseName.length >= 3 &&
+          entryBase.startsWith(targetBaseName.slice(0, 3)))
+      ) {
+        try {
+          const st = statSync(fullCandidatePath)
+          validCandidates.push({
+            path: fullCandidatePath,
+            mtime: st.mtimeMs,
+            score: matchScore
+          })
+        } catch {}
+      }
+    }
+
+    if (validCandidates.length > 0) {
+      validCandidates.sort((a, b) => {
+        if (b.score !== a.score) {
+          return b.score - a.score
+        }
+        return b.mtime - a.mtime
+      })
+      return validCandidates[0].path
+    }
+  } catch {}
+  return null
+}
+
 async function runScriptForGame(
   gameInfo: GameInfo,
   gameSettings: GameSettings,
   scriptStage: 'before' | 'after',
   logWriter: LogWriter
 ): Promise<boolean | string> {
-  return new Promise((resolve, reject) => {
-    const scriptPath = gameSettings[`${scriptStage}LaunchScriptPath`]
-    if (!scriptPath) {
+  return new Promise((resolve) => {
+    const rawScriptPath = gameSettings[`${scriptStage}LaunchScriptPath`]
+    let cleanScriptPath = rawScriptPath
+      ? rawScriptPath.trim().replace(/^["']+|["']+$/g, '')
+      : ''
+    if (!cleanScriptPath) {
       resolve(true)
       return
     }
 
+    if (!existsSync(cleanScriptPath)) {
+      const candidate = findAlternativeExecutableCandidate(cleanScriptPath)
+      if (candidate && existsSync(candidate)) {
+        logInfo(
+          [
+            `Script/software executable "${cleanScriptPath}" not found. Auto-resolved candidate in folder:`,
+            candidate
+          ],
+          LogPrefix.Backend
+        )
+        cleanScriptPath = candidate
+      } else {
+        const errorMsg = `Script/software executable not found at "${cleanScriptPath}". Please verify the path in Game Settings > Scripts e Softwares.`
+        logError(errorMsg, LogPrefix.Backend)
+        logWriter.logError(new Error(errorMsg))
+        resolve(false)
+        return
+      }
+    }
+
     let scriptCwd = process.cwd()
-    if (
+    if (existsSync(dirname(cleanScriptPath))) {
+      scriptCwd = dirname(cleanScriptPath)
+    } else if (
       gameInfo.install?.install_path &&
       existsSync(gameInfo.install.install_path)
     ) {
       scriptCwd = gameInfo.install.install_path
-    } else if (existsSync(dirname(scriptPath))) {
-      scriptCwd = dirname(scriptPath)
     }
 
-    const scriptEnv = {
+    const scriptEnv: NodeJS.ProcessEnv = {
       HEROIC_GAME_APP_NAME: gameInfo.app_name,
       HEROIC_GAME_EXEC: gameInfo.install?.executable || '',
+      HEROIC_GAME_INSTALL_PATH: gameInfo.install?.install_path || '',
       HEROIC_GAME_PREFIX: gameSettings.winePrefix,
       HEROIC_GAME_RUNNER: gameInfo.runner,
       HEROIC_GAME_SCRIPT_STAGE: scriptStage,
       HEROIC_GAME_TITLE: gameInfo.title,
       HEROIC_GAME_SETTINGS: JSON.stringify(gameSettings),
       HEROIC_GAME_INFO: JSON.stringify(gameInfo),
-      ...process.env
+      ...process.env,
+      ...(isWindows
+        ? { __COMPAT_LAYER: process.env.__COMPAT_LAYER || 'RunAsInvoker' }
+        : {})
     }
 
-    const ext = extname(scriptPath).toLowerCase()
-    let bin = scriptPath
+    const ext = extname(cleanScriptPath).toLowerCase()
+    let bin = cleanScriptPath
     let args: string[] = []
     let useShell = false
 
     if (isWindows) {
       if (ext === '.bat' || ext === '.cmd') {
-        bin = `"${scriptPath}"`
+        bin = `"${cleanScriptPath}"`
         useShell = true
       } else if (ext === '.ps1') {
         bin = 'powershell.exe'
-        args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath]
+        args = [
+          '-NoProfile',
+          '-ExecutionPolicy',
+          'Bypass',
+          '-File',
+          cleanScriptPath
+        ]
       }
     } else {
       if (ext === '.sh' || ext === '.bash') {
         bin = 'bash'
-        args = [scriptPath]
+        args = [cleanScriptPath]
       }
     }
 
@@ -2105,6 +2494,143 @@ async function runScriptForGame(
       scriptStage === 'before'
         ? Boolean(gameSettings.waitBeforeLaunchScript)
         : Boolean(gameSettings.waitAfterLaunchScript)
+
+    let hasResolved = false
+    let fallingBackToElevated = false
+    let graceTimer: ReturnType<typeof setTimeout> | null = null
+
+    const finishResolve = (val: boolean) => {
+      if (!hasResolved) {
+        hasResolved = true
+        if (graceTimer) {
+          clearTimeout(graceTimer)
+          graceTimer = null
+        }
+        resolve(val)
+      }
+    }
+
+    const launchElevatedFallback = () => {
+      const escapedFilePath = cleanScriptPath.replace(/'/g, "''")
+      const escapedCwd = scriptCwd.replace(/'/g, "''")
+      const startProcCmd = [
+        `Start-Process`,
+        `-FilePath '${escapedFilePath}'`,
+        `-WorkingDirectory '${escapedCwd}'`,
+        ...(args.length > 0
+          ? [
+              `-ArgumentList @(${args
+                .map((a) => `'${a.replace(/'/g, "''")}'`)
+                .join(',')})`
+            ]
+          : []),
+        ...(shouldWait ? ['-Wait'] : ['-PassThru'])
+      ].join(' ')
+
+      const psCommand = shouldWait
+        ? startProcCmd
+        : `$p = ${startProcCmd}; if ($p) { Write-Output $p.Id }`
+
+      logInfo(
+        [
+          `Script/software (${scriptStage}) requires elevation (EACCES), launching via Start-Process:`,
+          cleanScriptPath
+        ],
+        LogPrefix.Backend
+      )
+
+      const elevatedEnv = { ...scriptEnv }
+      delete elevatedEnv.__COMPAT_LAYER
+
+      let elevatedChild: ReturnType<typeof spawn>
+      try {
+        elevatedChild = spawn(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-NonInteractive',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-WindowStyle',
+            'Hidden',
+            '-Command',
+            psCommand
+          ],
+          {
+            cwd: scriptCwd,
+            env: elevatedEnv,
+            shell: false,
+            detached: true,
+            windowsHide: true
+          }
+        )
+      } catch (fallbackErr) {
+        logError(
+          [
+            `Failed to launch elevated script/software (${scriptStage}):`,
+            fallbackErr
+          ],
+          LogPrefix.Backend
+        )
+        logWriter.logError(fallbackErr as Error)
+        finishResolve(false)
+        return
+      }
+
+      if (scriptStage === 'before') {
+        runningBeforeScriptsByApp.set(gameInfo.app_name, {
+          scriptPath: cleanScriptPath
+        })
+      }
+
+      elevatedChild.stdout?.setEncoding('utf-8')
+      elevatedChild.stdout?.on('data', (data: string) => {
+        const parsedPid = Number.parseInt(data.trim(), 10)
+        if (scriptStage === 'before' && !Number.isNaN(parsedPid) && parsedPid > 0) {
+          runningBeforeScriptsByApp.set(gameInfo.app_name, {
+            pid: parsedPid,
+            scriptPath: cleanScriptPath
+          })
+        }
+      })
+
+      elevatedChild.on('error', (fallbackErr) => {
+        logError(
+          [
+            `Error in elevated script/software (${scriptStage}):`,
+            fallbackErr
+          ],
+          LogPrefix.Backend
+        )
+        logWriter.logError(fallbackErr)
+        finishResolve(false)
+      })
+
+      elevatedChild.on('exit', (code) => {
+        if (gameSettings.verboseLogs) {
+          logWriter.writeString(
+            `Elevated script/software (${scriptStage}) exited with code ${code}\n`
+          )
+        }
+        finishResolve(true)
+      })
+
+      if (!shouldWait) {
+        graceTimer = setTimeout(() => {
+          if (!hasResolved) {
+            try {
+              elevatedChild.unref()
+            } catch {}
+            if (gameSettings.verboseLogs) {
+              logWriter.writeString(
+                `Elevated script/software (${scriptStage}) launched in background. Proceeding...\n`
+              )
+            }
+            finishResolve(true)
+          }
+        }, 500)
+      }
+    }
 
     let child: ReturnType<typeof spawn>
     try {
@@ -2116,11 +2642,29 @@ async function runScriptForGame(
         windowsHide: false
       })
     } catch (err) {
-      if (gameSettings.verboseLogs) {
-        logWriter.logError(err as Error)
+      if (
+        isWindows &&
+        (err as NodeJS.ErrnoException)?.code === 'EACCES' &&
+        bin.toLowerCase() !== 'powershell.exe'
+      ) {
+        fallingBackToElevated = true
+        launchElevatedFallback()
+        return
       }
-      reject(err)
+      logError(
+        [`Failed to spawn script/software (${scriptStage}):`, err],
+        LogPrefix.Backend
+      )
+      logWriter.logError(err as Error)
+      finishResolve(false)
       return
+    }
+
+    if (scriptStage === 'before') {
+      runningBeforeScriptsByApp.set(gameInfo.app_name, {
+        pid: child.pid,
+        scriptPath: cleanScriptPath
+      })
     }
 
     child.stdout?.setEncoding('utf-8')
@@ -2136,36 +2680,46 @@ async function runScriptForGame(
       })
     }
 
-    let hasResolved = false
-
     child.on('error', (err) => {
-      if (gameSettings.verboseLogs) {
-        logWriter.logError(err)
+      if (
+        isWindows &&
+        (err as NodeJS.ErrnoException)?.code === 'EACCES' &&
+        bin.toLowerCase() !== 'powershell.exe' &&
+        !fallingBackToElevated
+      ) {
+        fallingBackToElevated = true
+        if (graceTimer) {
+          clearTimeout(graceTimer)
+          graceTimer = null
+        }
+        launchElevatedFallback()
+        return
       }
-      if (!hasResolved) {
-        hasResolved = true
-        reject(err)
-      }
+      logError(
+        [`Error running script/software (${scriptStage}):`, err],
+        LogPrefix.Backend
+      )
+      logWriter.logError(err)
+      finishResolve(false)
     })
 
     child.on('exit', (code) => {
+      if (fallingBackToElevated) {
+        return
+      }
       if (gameSettings.verboseLogs) {
         logWriter.writeString(
           `Script/software (${scriptStage}) exited with code ${code}\n`
         )
       }
-      if (!hasResolved) {
-        hasResolved = true
-        resolve(true)
-      }
+      finishResolve(true)
     })
 
     if (!shouldWait) {
       // Grace period of 500ms to detect immediate spawn/path errors.
       // If process is still active (e.g. companion app/GUI software), unref and let game launch!
-      setTimeout(() => {
-        if (!hasResolved) {
-          hasResolved = true
+      graceTimer = setTimeout(() => {
+        if (!hasResolved && !fallingBackToElevated) {
           try {
             child.unref()
           } catch {}
@@ -2174,7 +2728,7 @@ async function runScriptForGame(
               `Script/software (${scriptStage}) running in background (PID: ${child.pid}). Proceeding...\n`
             )
           }
-          resolve(true)
+          finishResolve(true)
         }
       }, 500)
     }
@@ -2193,5 +2747,10 @@ export {
   callRunner,
   getWinePath,
   launchEventCallback,
-  getKnownFixesEnvVariables
+  getKnownFixesEnvVariables,
+  runBeforeLaunchScript,
+  runAfterLaunchScript,
+  stopBeforeLaunchScript,
+  runScriptForGame,
+  findAlternativeExecutableCandidate
 }

@@ -48,6 +48,23 @@ export function parseIsItCracked(
   }
 }
 
+/** Shared by search candidate selection and the final, flair-verified post. */
+export function isCrackWatchGame(postTitle: string, title: string): boolean {
+  if (
+    !normalizeDrmTitle(title) ||
+    postTitle.length > 300 ||
+    /\b(update|hotfix|crackfix|repack|dlc|rumou?r|question)\b/i.test(postTitle)
+  )
+    return false
+  const game = postTitle
+    .replace(
+      /-(?:voices38|rune|codex|tenoke|skidrow|cpy|empress|razor1911|p2p|reloaded|flt|goldberg|artifact|hypervisor)\b.*$/i,
+      ''
+    )
+    .replace(/\s*\(C-S\)\s*$/i, '')
+  return normalizeDrmTitle(game) === normalizeDrmTitle(title)
+}
+
 /** Discussion, repack/update announcements and similar game names are not proof of a base-game release. */
 export function parseCrackWatch(
   value: unknown,
@@ -59,7 +76,7 @@ export function parseCrackWatch(
   }
   if (!Array.isArray(data?.data?.children)) return []
   const results: ReleaseDrmSource[] = []
-  for (const child of data.data.children.slice(0, 25)) {
+  for (const child of data.data.children.slice(0, 100)) {
     const post = child?.data
     if (
       !post ||
@@ -68,18 +85,9 @@ export function parseCrackWatch(
       post.title.length > 300 ||
       typeof post.link_flair_text !== 'string' ||
       typeof post.permalink !== 'string' ||
-      /\b(update|hotfix|crackfix|repack|dlc|rumou?r|question)\b/i.test(
-        post.title
-      )
+      !isCrackWatchGame(post.title, title)
     )
       continue
-    const game = post.title
-      .replace(
-        /-(?:voices38|rune|codex|tenoke|skidrow|cpy|empress|razor1911|p2p|reloaded|flt|goldberg|artifact|hypervisor)\b.*$/i,
-        ''
-      )
-      .replace(/\s*\(C-S\)\s*$/i, '')
-    if (normalizeDrmTitle(game) !== normalizeDrmTitle(title)) continue
     const flair = post.link_flair_text.toLowerCase()
     const status: ReleaseDrmStatus | undefined = /hypervisor|bypass/.test(flair)
       ? 'bypassed'

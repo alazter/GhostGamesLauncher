@@ -1,8 +1,10 @@
 import {
   findMatchingSoftwareByPath,
   findPrimarySoftwareStore,
+  formatSoftwareIconUrl,
   getSoftwareStoreItems,
-  resolveGameExecutablePath
+  resolveGameExecutablePath,
+  resolveGameIconUrls
 } from 'frontend/helpers/softwareStoreItems'
 import { GameInfo } from 'common/types'
 import { CustomStore } from 'frontend/types'
@@ -146,5 +148,95 @@ describe('Software Store Items Helper (Scripts & Softwares Integration)', () => 
     expect(matched).toBeDefined()
     expect(matched?.title).toBe('Lossless Scaling')
     expect(matched?.storeName).toBe('Softwares')
+  })
+
+  it('resolves executable path using folder_name when install.install_path is absent', () => {
+    const game = {
+      app_name: 'dlss-app',
+      title: 'DLSS 5 OneClick',
+      runner: 'sideload',
+      folder_name: 'T:\\Downloads\\Programs',
+      install: {
+        executable: 'DLSS5-Swapper-2.2.5-portable.exe',
+        platform: 'Windows'
+      }
+    } as unknown as GameInfo
+
+    expect(resolveGameExecutablePath(game)).toBe(
+      'T:\\Downloads\\Programs\\DLSS5-Swapper-2.2.5-portable.exe'
+    )
+  })
+
+  it('formats image URLs safely for local filesystem, file:// and web URLs', () => {
+    expect(formatSoftwareIconUrl('')).toBe('')
+    expect(formatSoftwareIconUrl('https://example.com/cover.png')).toBe(
+      'https://example.com/cover.png'
+    )
+    expect(formatSoftwareIconUrl('imagecache://localhost/foo.png')).toBe(
+      'imagecache://localhost/foo.png'
+    )
+
+    const winPath = 'C:\\Users\\alazt\\Downloads\\DLSS 5 Swapper_ Evolução Neon.png'
+    expect(formatSoftwareIconUrl(winPath)).toBe(
+      `imagecache://localhost/${encodeURIComponent(winPath)}`
+    )
+
+    const fileUrl = 'file:///C:/Users/alazt/Downloads/DLSS 5 Swapper_ Evolução Neon.png'
+    expect(formatSoftwareIconUrl(fileUrl)).toBe(
+      `imagecache://localhost/${encodeURIComponent('C:/Users/alazt/Downloads/DLSS 5 Swapper_ Evolução Neon.png')}`
+    )
+  })
+
+  it('resolves game icon URLs with priority for square art and overrides, ignoring placeholder defaults', () => {
+    const gameWithOverrides: GameInfo = {
+      app_name: 'dlss-swapper',
+      title: 'DLSS 5 Swapper',
+      runner: 'sideload',
+      art_cover: 'file:///C:/Temp/resources/app.asar/build/assets/heroic_card-bbsQ4lqh.jpg',
+      art_square: 'C:\\Users\\alazt\\Downloads\\DLSS 5 Swapper_ Evolução Neon.png',
+      overrides: {
+        title: 'DLSS 5 Swapper',
+        art_square: 'C:\\Users\\alazt\\Downloads\\DLSS 5 Swapper_ Evolução Neon.png'
+      }
+    } as unknown as GameInfo
+
+    const resolved = resolveGameIconUrls(gameWithOverrides)
+    expect(resolved.iconUrl).toBe(
+      `imagecache://localhost/${encodeURIComponent('C:\\Users\\alazt\\Downloads\\DLSS 5 Swapper_ Evolução Neon.png')}`
+    )
+
+    // Check that secondary fallback is available if two valid images exist
+    const gameMultiArt: GameInfo = {
+      app_name: 'borderless',
+      title: 'Borderless Gaming',
+      runner: 'sideload',
+      art_square: 'C:\\Users\\alazt\\Downloads\\Gaming sem Fronteiras.png',
+      art_cover: 'C:\\Users\\alazt\\AppData\\Roaming\\ghost\\custom-covers\\cover.jpg'
+    } as unknown as GameInfo
+
+    const multi = resolveGameIconUrls(gameMultiArt)
+    expect(multi.iconUrl).toBe(
+      `imagecache://localhost/${encodeURIComponent('C:\\Users\\alazt\\Downloads\\Gaming sem Fronteiras.png')}`
+    )
+    expect(multi.fallbackIconUrl).toBe(
+      `imagecache://localhost/${encodeURIComponent('C:\\Users\\alazt\\AppData\\Roaming\\ghost\\custom-covers\\cover.jpg')}`
+    )
+  })
+
+  it('populates iconUrl and fallbackIconUrl in getSoftwareStoreItems entries', () => {
+    const items = getSoftwareStoreItems({
+      allGames: sampleLibrary,
+      customStores,
+      assignments,
+      storeFilter: 'softwares'
+    })
+
+    const ls = items.find((i) => i.appName === 'lossless-scaling')
+    expect(ls).toBeDefined()
+    expect(ls?.iconUrl).toBe('https://example.com/ls.png')
+
+    const ds4 = items.find((i) => i.appName === 'ds4-windows')
+    expect(ds4).toBeDefined()
+    expect(ds4?.iconUrl).toBe('https://example.com/ds4.png')
   })
 })

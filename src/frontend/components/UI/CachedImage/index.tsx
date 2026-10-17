@@ -24,6 +24,7 @@ const shouldCache = (src?: string) => {
   if (src.startsWith('imagecache://')) return false
   if (src.startsWith('http://') || src.startsWith('https://')) return true
   if (/^[a-zA-Z]:[\\/]/.test(src)) return true
+  if (src.startsWith('file://')) return true
   if (src.startsWith('/') && !src.startsWith('/src/') && !src.startsWith('/assets/')) return true
   return false
 }

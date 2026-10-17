@@ -153,4 +153,83 @@ describe('SideloadLibraryManager - Connected Accounts & is_installed integrity',
     expect(sanitized.folder_name).toBeUndefined()
     expect(sanitized.art_cover).toBe('https://cdn.example.com/coldwar.jpg')
   })
+
+  test('Adding two different softwares in the same directory creates two distinct cards without replacing', () => {
+    // 1. User adds "DLSS 5 Swapper"
+    manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'swapper-id-123',
+      title: 'DLSS 5 Swapper',
+      install: {
+        executable: 'T:\\Downloads\\Programs\\DLSS5-Swapper-2.2.5-portable.exe',
+        platform: 'windows'
+      },
+      art_cover: 'cover-swapper.jpg',
+      art_square: 'square-swapper.jpg',
+      is_installed: true
+    } as any)
+
+    expect(libraryStore.get('games', [])).toHaveLength(1)
+    expect(libraryStore.get('games', [])[0].title).toBe('DLSS 5 Swapper')
+
+    // 2. User adds "DLSS 5 One Click" located in the SAME directory T:\Downloads\Programs\
+    manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'oneclick-id-456',
+      title: 'DLSS 5 One Click',
+      install: {
+        executable: 'T:\\Downloads\\Programs\\dlss5oneclick.exe',
+        platform: 'windows'
+      },
+      art_cover: 'cover-oneclick.jpg',
+      art_square: 'square-oneclick.jpg',
+      is_installed: true
+    } as any)
+
+    const allGames = libraryStore.get('games', [])
+    expect(allGames).toHaveLength(2)
+
+    const swapper = allGames.find((g: any) => g.app_name === 'swapper-id-123')
+    const oneclick = allGames.find((g: any) => g.app_name === 'oneclick-id-456')
+
+    expect(swapper).toBeDefined()
+    expect(swapper!.title).toBe('DLSS 5 Swapper')
+    expect(swapper!.install.executable).toBe(
+      'T:\\Downloads\\Programs\\DLSS5-Swapper-2.2.5-portable.exe'
+    )
+
+    expect(oneclick).toBeDefined()
+    expect(oneclick!.title).toBe('DLSS 5 One Click')
+    expect(oneclick!.install.executable).toBe(
+      'T:\\Downloads\\Programs\\dlss5oneclick.exe'
+    )
+  })
+
+  test('Editing existing card preserves user-typed new title', () => {
+    manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'test-edit-id',
+      title: 'Original Title',
+      install: {
+        executable: 'C:\\Games\\Test\\game.exe',
+        platform: 'windows'
+      },
+      is_installed: true
+    } as any)
+
+    manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'test-edit-id',
+      title: 'Renamed New Title',
+      install: {
+        executable: 'C:\\Games\\Test\\game.exe',
+        platform: 'windows'
+      },
+      is_installed: true
+    } as any)
+
+    const games = libraryStore.get('games', [])
+    expect(games).toHaveLength(1)
+    expect(games[0].title).toBe('Renamed New Title')
+  })
 })

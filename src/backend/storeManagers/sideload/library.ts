@@ -35,24 +35,64 @@ export default class SideloadLibraryManager implements LibraryManager {
     const normTitle = (title || '').trim().toLowerCase()
     const cleanTargetTitle = (title || '').toLowerCase().replace(/[^a-z0-9]/g, '')
     const targetDirNorm = executable ? dirname(executable).toLowerCase() : undefined
-
-    const gameIndex = current.findIndex(
-      (value) =>
-        value.app_name === app_name ||
-        (targetDirNorm && value.folder_name && value.folder_name.toLowerCase() === targetDirNorm) ||
-        (Boolean(normTitle) &&
-          value.title?.trim().toLowerCase() === normTitle &&
-          value.runner === 'sideload') ||
-        (Boolean(cleanTargetTitle) && cleanTargetTitle.length > 2 &&
-          (value.title || '').toLowerCase().replace(/[^a-z0-9]/g, '') === cleanTargetTitle &&
-          value.runner === 'sideload')
-    )
-    const existing = gameIndex !== -1 ? current[gameIndex] : undefined
+    const normExe = executable ? executable.trim().toLowerCase().replace(/\\/g, '/') : ''
 
     const hasRealExecutable = Boolean(
       executable && typeof executable === 'string' && executable.trim().length > 0
     )
     const exeFileExists = Boolean(hasRealExecutable && executable && existsSync(executable))
+
+    // Se o executável existir no disco, busca pelo manifesto físico Ghost (.ghost-manifest.json)
+    let manifestData: ReturnType<typeof findManifestForExecutable> = null
+    if (exeFileExists && executable) {
+      manifestData = findManifestForExecutable(executable)
+    }
+
+    const gameIndex = current.findIndex((value) => {
+      // 1. Vínculo explícito por ID (edição de card existente)
+      if (value.app_name === app_name) {
+        return true
+      }
+
+      // Se o ID for diferente (novo card sendo adicionado), só deve coincidir se for REALMENTE o mesmo jogo:
+      const valExe = value.install?.executable
+        ? value.install.executable.trim().toLowerCase().replace(/\\/g, '/')
+        : ''
+
+      // 2. Mesmo arquivo executável exato já cadastrado
+      if (normExe && valExe && normExe === valExe) {
+        return true
+      }
+
+      // 3. Manifesto oficial Ghost (.ghost-manifest.json) correspondente
+      if (
+        manifestData?.manifest.ghostAppId &&
+        value.app_name === manifestData.manifest.ghostAppId
+      ) {
+        return true
+      }
+
+      // 4. Coincidência de título para itens do runner sideload
+      const valTitleNorm = (value.title || '').trim().toLowerCase()
+      const valTitleClean = (value.title || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const titleMatches =
+        value.runner === 'sideload' &&
+        ((Boolean(normTitle) && valTitleNorm === normTitle) ||
+          (Boolean(cleanTargetTitle) &&
+            cleanTargetTitle.length > 2 &&
+            valTitleClean === cleanTargetTitle))
+
+      if (titleMatches) {
+        // Se o título for idêntico, só considera o mesmo se estiver na mesma pasta ou não tiver pasta definida
+        const valDirNorm = value.folder_name ? value.folder_name.toLowerCase() : undefined
+        if (!targetDirNorm || !valDirNorm || targetDirNorm === valDirNorm) {
+          return true
+        }
+      }
+
+      return false
+    })
+    const existing = gameIndex !== -1 ? current[gameIndex] : undefined
 
     const isConnectedAccount = Boolean(existing?.accountProvider)
     let computedIsInstalled: boolean
@@ -71,18 +111,17 @@ export default class SideloadLibraryManager implements LibraryManager {
       computedIsInstalled = Boolean(hasRealExecutable || browserUrl)
     }
 
-    // Se o executável existir no disco, busca pelo manifesto físico Ghost (.ghost-manifest.json)
-    let manifestData: ReturnType<typeof findManifestForExecutable> = null
-    if (exeFileExists && executable) {
-      manifestData = findManifestForExecutable(executable)
-    }
-
-    const resolvedTitle = existing?.title || (manifestData?.manifest.title && (!title || title === app_name)
-      ? manifestData.manifest.title
-      : title)
+    const resolvedTitle =
+      (title && title !== app_name ? title : undefined) ||
+      (manifestData?.manifest.title && (!title || title === app_name)
+        ? manifestData.manifest.title
+        : undefined) ||
+      existing?.title ||
+      title ||
+      'Sideload Game'
     const resolvedVersion = manifestData?.manifest.version || existing?.version || '1.0'
-    const resolvedCover = existing?.art_cover || art_cover || manifestData?.manifest.coverUrl || ''
-    const resolvedSquare = existing?.art_square || art_square || manifestData?.manifest.coverUrl || existing?.art_cover || ''
+    const resolvedCover = art_cover || existing?.art_cover || manifestData?.manifest.coverUrl || ''
+    const resolvedSquare = art_square || existing?.art_square || manifestData?.manifest.coverUrl || existing?.art_cover || ''
 
     const game: GameInfo = {
       ...existing,
@@ -106,6 +145,18 @@ export default class SideloadLibraryManager implements LibraryManager {
       description,
       customUserAgent,
       launchFullScreen
+    }
+
+    if (game.overrides) {
+      if (resolvedTitle && game.overrides.title) {
+        game.overrides.title = resolvedTitle
+      }
+      if (resolvedCover && game.overrides.art_cover) {
+        game.overrides.art_cover = resolvedCover
+      }
+      if (resolvedSquare && game.overrides.art_square) {
+        game.overrides.art_square = resolvedSquare
+      }
     }
 
     if (isMac && executable?.endsWith('.app')) {

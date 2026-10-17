@@ -22,7 +22,49 @@ import {
   getSoftwareStoreItems,
   normalizeExecutablePathComparison
 } from 'frontend/helpers/softwareStoreItems'
+import CachedImage from 'frontend/components/UI/CachedImage'
+import { gameOverridesStore } from 'frontend/helpers/electronStores'
 import './SoftwareStorePathBox.scss'
+
+interface SoftwareThumbnailProps {
+  src?: string
+  fallback?: string
+  alt?: string
+  className?: string
+}
+
+const SoftwareThumbnail: React.FC<SoftwareThumbnailProps> = ({
+  src,
+  fallback,
+  alt = '',
+  className
+}) => {
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    setHasError(false)
+  }, [src, fallback])
+
+  if (!src || hasError) {
+    return (
+      <span className="SoftwareStorePathBox__defaultIcon" aria-hidden="true">
+        🧰
+      </span>
+    )
+  }
+
+  return (
+    <CachedImage
+      src={src}
+      fallback={fallback}
+      alt={alt}
+      loading="eager"
+      hideOnError={false}
+      className={className}
+      onError={() => setHasError(true)}
+    />
+  )
+}
 
 function readCustomStoresFromStorage(): CustomStore[] {
   try {
@@ -96,6 +138,16 @@ export function useSoftwareStoreCatalog(excludeAppName?: string) {
     [customStores]
   )
 
+  const gameOverrides = useMemo(() => {
+    try {
+      return (
+        (gameOverridesStore.get('overrides', {}) as Record<string, any>) || {}
+      )
+    } catch {
+      return {}
+    }
+  }, [])
+
   const softwareStoreItems = useMemo(
     () =>
       getSoftwareStoreItems({
@@ -103,9 +155,10 @@ export function useSoftwareStoreCatalog(excludeAppName?: string) {
         customStores,
         assignments,
         storeFilter: 'softwares',
-        excludeAppName
+        excludeAppName,
+        gameOverrides
       }),
-    [allGames, customStores, assignments, excludeAppName]
+    [allGames, customStores, assignments, excludeAppName, gameOverrides]
   )
 
   const allAvailableItems = useMemo(
@@ -115,9 +168,10 @@ export function useSoftwareStoreCatalog(excludeAppName?: string) {
         customStores,
         assignments,
         storeFilter: 'all',
-        excludeAppName
+        excludeAppName,
+        gameOverrides
       }),
-    [allGames, customStores, assignments, excludeAppName]
+    [allGames, customStores, assignments, excludeAppName, gameOverrides]
   )
 
   return {
@@ -263,17 +317,12 @@ const SoftwareStorePathBox: React.FC<SoftwareStorePathBoxProps> = ({
           className="SoftwareStorePathBox__linkedBadge"
           data-testid={`${htmlId}-linked-badge`}
         >
-          {matchedSoftware.iconUrl ? (
-            <img
-              src={matchedSoftware.iconUrl}
-              alt=""
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
-            />
-          ) : (
-            <span>🧰</span>
-          )}
+          <SoftwareThumbnail
+            src={matchedSoftware.iconUrl}
+            fallback={matchedSoftware.fallbackIconUrl}
+            alt={matchedSoftware.title}
+            className="SoftwareStorePathBox__badgeIcon"
+          />
           <span>
             Vinculado da{' '}
             <span className="store-tag">Loja {matchedSoftware.storeName}</span>:{' '}
@@ -464,17 +513,11 @@ const SoftwareStorePathBox: React.FC<SoftwareStorePathBoxProps> = ({
                     >
                       <div className="SoftwareStorePathBox__itemInfo">
                         <div className="SoftwareStorePathBox__itemIcon">
-                          {item.iconUrl ? (
-                            <img
-                              src={item.iconUrl}
-                              alt=""
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                          ) : (
-                            <span>🧰</span>
-                          )}
+                          <SoftwareThumbnail
+                            src={item.iconUrl}
+                            fallback={item.fallbackIconUrl}
+                            alt={item.title}
+                          />
                         </div>
                         <div className="SoftwareStorePathBox__itemText">
                           <span className="SoftwareStorePathBox__itemName">

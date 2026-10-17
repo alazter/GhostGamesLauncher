@@ -240,6 +240,7 @@ class GameConfigV0 extends GameConfig {
       afterLaunchScriptPath,
       waitBeforeLaunchScript,
       waitAfterLaunchScript,
+      closeBeforeLaunchScriptOnExit,
       gamescope,
       verboseLogs,
       advertiseAvxForRosetta
@@ -281,6 +282,7 @@ class GameConfigV0 extends GameConfig {
       afterLaunchScriptPath,
       waitBeforeLaunchScript: waitBeforeLaunchScript ?? false,
       waitAfterLaunchScript: waitAfterLaunchScript ?? false,
+      closeBeforeLaunchScriptOnExit: closeBeforeLaunchScriptOnExit ?? false,
       gamescope,
       verboseLogs,
       advertiseAvxForRosetta,

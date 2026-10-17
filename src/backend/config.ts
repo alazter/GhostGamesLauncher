@@ -387,6 +387,7 @@ class GlobalConfigV0 extends GlobalConfig {
       afterLaunchScriptPath: '',
       waitBeforeLaunchScript: false,
       waitAfterLaunchScript: false,
+      closeBeforeLaunchScriptOnExit: false,
       disableUMU: false,
       verboseLogs: true,
       downloadProtonToSteam: false,

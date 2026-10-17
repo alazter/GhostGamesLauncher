@@ -4,6 +4,11 @@ let mockDirectory = ''
 const mockAdditional = jest.fn()
 const mockHiz = jest.fn()
 const mockFetch = jest.fn()
+jest.mock('../drmReddit', () => ({
+  readCrackWatch: (...args: unknown[]) => mockFetch(...args),
+  readCrackWatchIndex: async () => [],
+  crackWatchSearchUrl: () => 'https://www.reddit.com/r/CrackWatch/search/'
+}))
 jest.mock('../drmSites', () => ({
   getAdditionalDrmSources: (...args: unknown[]) => mockAdditional(...args)
 }))
@@ -26,19 +31,21 @@ jest.mock('electron', () => ({
       webRequest: { onBeforeRequest: jest.fn() }
     })
   },
-  BrowserWindow: jest
-    .fn()
-    .mockImplementation(() => ({
-      loadURL: async () => undefined,
-      isDestroyed: () => false,
-      destroy: jest.fn(),
-      webContents: {
-        setAudioMuted: jest.fn(),
-        setWindowOpenHandler: jest.fn(),
-        on: jest.fn(),
-        executeJavaScript: async () => ({ title: 'Test', status: 'Uncracked', protection: 'Steam' })
-      }
-    }))
+  BrowserWindow: jest.fn().mockImplementation(() => ({
+    loadURL: async () => undefined,
+    isDestroyed: () => false,
+    destroy: jest.fn(),
+    webContents: {
+      setAudioMuted: jest.fn(),
+      setWindowOpenHandler: jest.fn(),
+      on: jest.fn(),
+      executeJavaScript: async () => ({
+        title: 'Test',
+        status: 'Uncracked',
+        protection: 'Steam'
+      })
+    }
+  }))
 }))
 
 it('rejects implicit browser requests and retries only HizSearch after manual verification', async () => {
@@ -47,10 +54,7 @@ it('rejects implicit browser requests and retries only HizSearch after manual ve
   mockDirectory = await mkdtemp(join(root, 'manual-scope-'))
   try {
     const { getReleaseDrm } = await import('../drm')
-    mockFetch.mockResolvedValue({
-      ok: true,
-      text: async () => JSON.stringify({ data: { children: [] } })
-    })
+    mockFetch.mockResolvedValue([])
     mockAdditional.mockResolvedValue([
       {
         name: 'AnkerGames',

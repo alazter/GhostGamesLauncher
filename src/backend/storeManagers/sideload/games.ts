@@ -19,7 +19,11 @@ import {
   removeShortcuts as removeShortcutsUtil
 } from '../../shortcuts/shortcuts/shortcuts'
 import { notify } from '../../dialog/dialog'
-import { launchGame } from 'backend/storeManagers/storeManagerCommon/games'
+import {
+  findCandidateGameExesInFolder,
+  launchGame
+} from 'backend/storeManagers/storeManagerCommon/games'
+import { stopBeforeLaunchScript } from 'backend/launcher'
 import { Game, InstallResult, RemoveArgs } from 'common/types/game_manager'
 import { removePrefix } from 'backend/utils/uninstaller'
 import { removeRecentGame } from 'backend/recent_games/recent_games'
@@ -104,6 +108,33 @@ export default class SideloadGame implements Game {
       const split = target.split(/[/\\]/)
       const exe = split[split.length - 1]
       killPattern(exe)
+
+      if (isWindows && !game.install.romPlatform) {
+        const installDir =
+          game.folder_name || game.install?.install_path || dirname(executable)
+        if (installDir && existsSync(installDir)) {
+          const excludeNames = new Set<string>([exe.toLowerCase()])
+          if (gameSettings.beforeLaunchScriptPath) {
+            excludeNames.add(
+              basename(gameSettings.beforeLaunchScriptPath).toLowerCase()
+            )
+          }
+          if (gameSettings.afterLaunchScriptPath) {
+            excludeNames.add(
+              basename(gameSettings.afterLaunchScriptPath).toLowerCase()
+            )
+          }
+          const childExes = findCandidateGameExesInFolder(
+            installDir,
+            excludeNames
+          )
+          for (const childExe of childExes) {
+            killPattern(childExe)
+          }
+        }
+      }
+
+      await stopBeforeLaunchScript(game, gameSettings).catch(() => undefined)
 
       if (!this.isNative()) {
         shutdownWine(gameSettings)

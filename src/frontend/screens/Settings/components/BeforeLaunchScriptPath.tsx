@@ -14,6 +14,8 @@ const BeforeLaunchScriptPath = () => {
     'waitBeforeLaunchScript',
     false
   )
+  const [closeBeforeLaunchScriptOnExit, setCloseBeforeLaunchScriptOnExit] =
+    useSetting('closeBeforeLaunchScriptOnExit', false)
 
   return (
     <SoftwareStorePathBox
@@ -46,6 +48,21 @@ const BeforeLaunchScriptPath = () => {
         description={t(
           'setting.wait-before-launch-script-desc',
           'Quando desmarcado, o software/script é iniciado e o jogo abre imediatamente sem travar.'
+        )}
+      />
+      <ToggleSwitch
+        htmlId="closeBeforeLaunchScriptOnExit"
+        value={closeBeforeLaunchScriptOnExit}
+        handleChange={() =>
+          setCloseBeforeLaunchScriptOnExit(!closeBeforeLaunchScriptOnExit)
+        }
+        title={t(
+          'setting.close-before-launch-script-on-exit',
+          'Encerrar o software automaticamente assim que o jogo for fechado'
+        )}
+        description={t(
+          'setting.close-before-launch-script-on-exit-desc',
+          'Quando marcado, o Ghost fecha automaticamente este software/script em segundo plano assim que você sair do jogo.'
         )}
       />
     </SoftwareStorePathBox>

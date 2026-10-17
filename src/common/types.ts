@@ -297,6 +297,7 @@ export interface GameSettings {
   afterLaunchScriptPath: string
   waitBeforeLaunchScript?: boolean
   waitAfterLaunchScript?: boolean
+  closeBeforeLaunchScriptOnExit?: boolean
   disableUMU: boolean
   verboseLogs: boolean
   advertiseAvxForRosetta: boolean

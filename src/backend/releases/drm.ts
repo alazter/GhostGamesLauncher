@@ -1,4 +1,4 @@
-import { BrowserWindow, session, net, app } from 'electron'
+import { BrowserWindow, session, app } from 'electron'
 import { mkdir, readFile, writeFile, rename, unlink } from 'fs/promises'
 import { join } from 'path'
 import { createHash } from 'crypto'
@@ -13,13 +13,14 @@ import {
   releaseDrmSourceLabels,
   isConfirmedDrmReport
 } from 'common/releaseDrm'
-import { parseIsItCracked, parseCrackWatch } from './drmParser'
+import { parseIsItCracked } from './drmParser'
 import { getCrackWatchSheetSources } from './drmSheets'
+import { CRACKWATCH_INDEX, drmSheetUrl } from './drmCommunityParser'
 import {
-  CRACKWATCH_INDEX,
-  drmSheetUrl,
-  parseCrackWatchIndex
-} from './drmCommunityParser'
+  readCrackWatch,
+  readCrackWatchIndex,
+  crackWatchSearchUrl
+} from './drmReddit'
 import { DrmLookupQueue } from './drmQueue'
 import { getAdditionalDrmSources } from './drmSites'
 
@@ -27,11 +28,7 @@ const reports = new Map<string, ReleaseDrmReport>()
 const queue = new DrmLookupQueue<ReleaseDrmReport>()
 let loading: Promise<void> | null = null
 let sourceReady = false
-let redditUnavailableUntil = 0
-const lookupVersion = 3
-let indexRead: Promise<unknown> | undefined
-let indexCheckedAt = 0
-let indexValue: unknown
+const lookupVersion = 4
 let writer: Promise<unknown> = Promise.resolve()
 const directory = () => join(app.getPath('userData'), 'releases')
 const file = () => join(directory(), 'drm-cache.json')
@@ -233,60 +230,6 @@ async function readMatchingGame(title: string) {
   return undefined
 }
 
-async function redditJson(url: string) {
-  if (Date.now() < redditUnavailableUntil)
-    throw new Error(
-      'Reddit · CrackWatch indisponível nesta conexão; consulte o link da fonte.'
-    )
-  const response = await net.fetch(url, {
-    signal: AbortSignal.timeout(12000),
-    redirect: 'error',
-    credentials: 'omit',
-    headers: { 'User-Agent': 'Ghost-Launcher/0.3 (public DRM metadata)' }
-  })
-  if (!response.ok) {
-    if ([401, 403, 429].includes(response.status))
-      redditUnavailableUntil = Date.now() + 60 * 60 * 1000
-    throw new Error(
-      `Reddit · CrackWatch não permitiu a consulta (HTTP ${response.status}).`
-    )
-  }
-  const text = await response.text()
-  if (text.length > 2 * 1024 * 1024)
-    throw new Error('Resposta do CrackWatch muito grande.')
-  return JSON.parse(text)
-}
-
-async function readIndex(title: string, refresh = false) {
-  if (!indexRead && (refresh || Date.now() - indexCheckedAt >= 15 * 60000)) {
-    indexRead = redditJson(
-      CRACKWATCH_INDEX.replace(/\/$/, '.json?raw_json=1&limit=1')
-    )
-    try {
-      indexValue = await indexRead
-      indexCheckedAt = Date.now()
-    } finally {
-      indexRead = undefined
-    }
-  } else if (indexRead) await indexRead
-  return parseCrackWatchIndex(indexValue, title)
-}
-
-async function readReddit(title: string) {
-  const url = new URL('https://www.reddit.com/r/CrackWatch/search.json')
-  url.searchParams.set(
-    'q',
-    drmTitleAliases(title)
-      .map((alias) => '"' + alias + '"')
-      .join(' OR ')
-  )
-  url.searchParams.set('restrict_sr', 'on')
-  url.searchParams.set('sort', 'new')
-  url.searchParams.set('limit', '25')
-  url.searchParams.set('type', 'link')
-  return parseCrackWatch(await redditJson(url.href), title)
-}
-
 export async function getReleaseDrm(query: {
   id: string
   title: string
@@ -352,15 +295,12 @@ export async function getReleaseDrm(query: {
         await persist(key, report)
         return report
       }
-      const search = new URL('https://www.reddit.com/r/CrackWatch/search/')
-      search.searchParams.set('q', query.title)
-      search.searchParams.set('restrict_sr', 'on')
-      search.searchParams.set('sort', 'new')
+      const search = crackWatchSearchUrl(query.title)
       const results = await Promise.allSettled([
         readMatchingGame(query.title),
-        readReddit(query.title),
+        readCrackWatch(query.title, query.refresh),
         getCrackWatchSheetSources(query.title, query.refresh),
-        readIndex(query.title, query.refresh),
+        readCrackWatchIndex(query.title, query.refresh),
         getAdditionalDrmSources(
           query.title,
           query.refresh,
@@ -383,7 +323,20 @@ export async function getReleaseDrm(query: {
         },
         ...community,
         ...(!community.length
-          ? [{ name: 'CrackWatch' as const, url: search.href }]
+          ? [
+              {
+                name: 'CrackWatch' as const,
+                url: search,
+                notice:
+                  results[1].status === 'rejected'
+                    ? String(
+                        results[1].reason instanceof Error
+                          ? results[1].reason.message
+                          : 'Reddit indisponível.'
+                      ).slice(0, 1000)
+                    : undefined
+              }
+            ]
           : []),
         ...(sheet?.sources.length
           ? sheet.sources
