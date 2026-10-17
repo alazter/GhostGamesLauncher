@@ -290,6 +290,12 @@ describe('windows-1251 decoding in websiteSource', () => {
 })
 
 describe('extractGameMetadataFromHtml', () => {
+  it('reads the explicit package LAST UPDATE before a generic page-modification date', () => {
+    const html = '<script type="application/ld+json">{"dateModified":"2026-10-17"}</script>' +
+      '<div><span>LAST UPDATE</span><span>24/07/26</span></div>'
+    const metadata = extractGameMetadataFromHtml(html, 'com.ghost.ankergames-source')
+    expect(metadata.sourceDate).toBe('2026-07-24')
+  })
   it('does not interpret a specification number as a review score', () => {
     expect(extractGameMetadataFromHtml('<p>1600/5</p>', 'source').rating).toBeUndefined()
     expect(extractGameMetadataFromHtml('<p>4.8/5</p>', 'source').rating).toBe('4.8/5')

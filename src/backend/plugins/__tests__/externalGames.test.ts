@@ -8,6 +8,7 @@ import { ExternalGames, findMatchingLibraryGame, cleanGameTitle, normalizeTitleF
 import * as installSpace from '../installSpace'
 import * as archiveMetadata from '../archiveSize'
 import * as externalFiles from '../externalFiles'
+import * as ghostManifest from '../ghostManifest'
 import { PluginPacker } from '../pluginPacker'
 import { NetworkGuard } from '../networkGuard'
 import { AnkerAccount, ANKER_SOURCE_ID, ANKER_TORRENT_ID, ANKER_DIRECT_ID, STEAMRIP_SOURCE_ID, STEAMRIP_DIRECT_ID } from '../ankerAccount'
@@ -163,12 +164,13 @@ it('publishes the cleared update only after the replacement is installed', async
   )
 })
 
-it('rejects cached same-version and older-package update notices even with a newer publication date', async () => {
+it('accepts a newer source release date despite the installed version label', async () => {
   const installed = await install()
   service.setInstalledVersion(installed.appName, 'v0.107.7832')
+  service.attachSourceDate(installed.id, '2026-10-13')
   for (const version of ['v0.107.7832', 'v0.107.7756']) {
     service.recordUpdate(installed.id, { ...game, version, sourceDate: '2026-10-14' }, 'Atualização disponível')
-    expect(service.snapshot(false).installations[0].availableUpdate).toBeUndefined()
+    expect(service.snapshot(false).installations[0].availableUpdate?.version).toBe(version)
   }
 })
 
@@ -186,7 +188,7 @@ it('invalidates notices from the old comparison policy on restart without changi
   expect(restarted.availableUpdate).toBeUndefined()
   expect(restarted.game.version).toBe(installed.game.version)
   expect(restarted.directory).toBe(installed.directory)
-  expect(JSON.parse(await readFile(statePath, 'utf8')).releaseCheckRevision).toBe(1)
+  expect(JSON.parse(await readFile(statePath, 'utf8')).releaseCheckRevision).toBe(2)
 })
 
 it('keeps progress snapshots free of installation healing and filesystem checks', async () => {
@@ -200,6 +202,17 @@ it('keeps progress snapshots free of installation healing and filesystem checks'
   expect(stat).not.toHaveBeenCalled()
   // An explicit library refresh still notices the removed game.
   expect(service.snapshot().installations).toHaveLength(0)
+})
+
+it('persists the installed release pair without manufacturing version 1.0 when the source omits it', async () => {
+  const jobId = await prepare({ ...game, version: undefined, sourceDate: '2026-07-24' })
+  expect(await service.action({ type: 'finish', jobId, executable: 'game.exe' })).toEqual({ success: true })
+  const installed = service.snapshot(false).installations[0]
+  expect(installed.game.version).toBeUndefined()
+  expect(installed.game.sourceDate).toBe('2026-07-24')
+  const physical = JSON.parse(await readFile(join(installed.directory, '.ghost-manifest.json'), 'utf8'))
+  expect(physical.version).toBeUndefined()
+  expect(physical.sourceDate).toBe('2026-07-24')
 })
 
 it('does not block replacement when the configured save folder is empty', async () => {
@@ -1137,6 +1150,76 @@ it('keeps manual version corrections in the same record used for update checks',
   expect(current.game.version).toBe('v0.10.4')
   expect(current.availableUpdate).toBeUndefined()
   expect(libraryStore.get('games', []).find(item => item.app_name === installed.appName)?.version).toBe('v0.10.4')
+})
+
+it('uses a corrected release date for checks and preserves the installed version after restart', async () => {
+  const installed = await install()
+  service.attachSourceDate(installed.id, '2026-07-24', '24/07/26')
+  const remote = { ...game, sourceDate: '2026-10-16' }
+  service.recordUpdate(installed.id, remote, 'update')
+  expect(service.snapshot(false).installations[0].availableUpdate).toBeDefined()
+
+  service.setInstalledReleaseDate(installed.id, '2026-10-16')
+  const corrected = service.snapshot().installations[0]
+  expect(corrected.game).toMatchObject({ version: '1.0', sourceDate: '2026-10-16', uploadDate: '2026-10-16' })
+  expect(corrected.installedAt).toBe(installed.installedAt)
+  expect(corrected.savePath).toBe(installed.savePath)
+  expect(corrected.availableUpdate).toBeUndefined()
+  expect(corrected.updateMessage).toBeUndefined()
+  expect(ghostManifest.readGhostManifest(installed.directory)).toMatchObject({
+    version: '1.0', sourceDate: '2026-10-16', installedAt: installed.installedAt
+  })
+  service.recordUpdate(installed.id, remote)
+  expect(service.snapshot(false).installations[0].availableUpdate).toBeUndefined()
+
+  backendEvents.removeAllListeners('gameStatusUpdate')
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  service = ExternalGames.getInstance()
+  expect(service.snapshot().installations[0].game.sourceDate).toBe('2026-10-16')
+  service.recordUpdate(installed.id, { ...remote, sourceDate: '2026-10-17' })
+  expect(service.snapshot(false).installations[0].availableUpdate?.sourceDate).toBe('2026-10-17')
+})
+
+it.each(['2026-02-29', '2026-02-31', '2026-13-01', '0000-01-01', '', '16/10/26', '2026-10-16T00:00:00Z'])(
+  'rejects invalid manual release date %s without changing state or manifest', async value => {
+    const installed = await install()
+    const before = await readFile(join(installed.directory, '.ghost-manifest.json'), 'utf8')
+    expect(() => service.setInstalledReleaseDate(installed.id, value)).toThrow(/data válida/)
+    expect(service.snapshot(false).installations[0].game.sourceDate).toBeUndefined()
+    expect(await readFile(join(installed.directory, '.ghost-manifest.json'), 'utf8')).toBe(before)
+  }
+)
+
+it('blocks date edits while a replacement is pending', async () => {
+  const installed = await install()
+  await prepare({ ...game, version: '2.0' }, installed.id)
+  expect(() => service.setInstalledReleaseDate(installed.id, '2026-10-16')).toThrow(/Aguarde/)
+  expect(service.snapshot(false).installations[0].game.sourceDate).toBeUndefined()
+})
+
+it('reports a manifest write failure without recording the correction', async () => {
+  const installed = await install()
+  jest.spyOn(ghostManifest, 'writeGhostManifest').mockReturnValueOnce(false)
+  expect(() => service.setInstalledReleaseDate(installed.id, '2026-10-16')).toThrow(/manifesto/)
+  expect(service.snapshot(false).installations[0].game.sourceDate).toBeUndefined()
+  expect(ghostManifest.readGhostManifest(installed.directory)?.sourceDate).toBeUndefined()
+})
+
+it('rolls back the manifest and metadata if saving the corrected state fails', async () => {
+  const installed = await install()
+  service.attachSourceDate(installed.id, '2026-07-24')
+  jest.spyOn(service as unknown as { saveStateOnly: () => void }, 'saveStateOnly')
+    .mockImplementationOnce(() => { throw new Error('Disk full') })
+  expect(() => service.setInstalledReleaseDate(installed.id, '2026-10-16')).toThrow('Disk full')
+  expect(service.snapshot(false).installations[0].game.sourceDate).toBe('2026-07-24')
+  expect(ghostManifest.readGhostManifest(installed.directory)?.sourceDate).toBe('2026-07-24')
+})
+
+it('corrects the metadata even when the game disk is offline', async () => {
+  const installed = await install()
+  await rm(installed.directory, { recursive: true, force: true })
+  service.setInstalledReleaseDate(installed.id, '2024-02-29')
+  expect(service.snapshot(false).installations[0].game).toMatchObject({ version: '1.0', sourceDate: '2024-02-29' })
 })
 
 

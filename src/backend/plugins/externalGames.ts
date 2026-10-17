@@ -56,6 +56,7 @@ import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
 import { gameOverridesStore } from 'backend/game_overrides/electronStores'
 import { sameExternalGameIdentity } from 'common/externalGameIdentity'
 import { parseDateToIso, isNewerGameRelease } from 'common/utils'
+import { installedReleaseCandidate, isValidReleaseDate } from 'common/externalReleaseInfo'
 import { sendFrontendMessage } from 'backend/ipc'
 import type {
   ExternalActionResult,
@@ -340,16 +341,17 @@ export class ExternalGames {
     const needsMigration = !existsSync(migrationFlagFile)
     let stateModified = false
 
-    // Previous checks allowed page dates to override the package version and
-    // preferred JSON-LD over the visible release. Recheck these cached notices.
-    if (this.state.releaseCheckRevision !== 1) {
+    // Recheck cached notices using the installed source release date + version
+    // pair rather than the previous version-first comparison policy.
+    if (this.state.releaseCheckRevision !== 2) {
       for (const installation of this.state.installations) {
         if (installation.availableUpdate) {
           installation.availableUpdate = undefined
           installation.updateMessage = 'Confira novamente a fonte para verificar atualizações.'
         }
       }
-      this.state.releaseCheckRevision = 1
+      this.state.releaseCheckRevision = 2
+      this.state.lastUpdateCheckTime = undefined
       stateModified = true
     }
 
@@ -532,10 +534,49 @@ export class ExternalGames {
     this.save()
   }
 
+  setInstalledReleaseDate(id: string, sourceDate: string): void {
+    if (!isValidReleaseDate(sourceDate))
+      throw new Error('Informe uma data válida para o LAST UPDATE.')
+    const installation = this.state.installations.find(item => item.id === id)
+    if (!installation) throw new Error('Instalação externa não encontrada.')
+    if (this.locked.has(id) || this.finishing.has(id) ||
+        this.state.jobs.some(job => job.installationId === id &&
+          (job.commitStarted || !['completed', 'cancelled', 'error'].includes(job.status))))
+      throw new Error('Aguarde a instalação terminar antes de editar a data da release.')
+
+    const targetDir = installation.directory && existsSync(installation.directory)
+      ? installation.directory
+      : installation.executable && existsSync(installation.executable) ? dirname(installation.executable) : undefined
+    const found = targetDir ? findManifestForExecutable(targetDir) : null
+    if (found && found.manifest.ghostAppId !== installation.appName)
+      throw new Error('O manifesto pertence a outro jogo. Verifique a pasta da instalação.')
+    if (found && !writeGhostManifest(found.manifestDir, { ...found.manifest, sourceDate }))
+      throw new Error('Não foi possível salvar a data no manifesto do jogo. Verifique a permissão da pasta.')
+
+    const previous = { game: installation.game, update: installation.availableUpdate,
+      message: installation.updateMessage, checkTime: this.state.lastUpdateCheckTime }
+    installation.game = { ...installation.game, sourceDate, uploadDate: sourceDate }
+    installation.availableUpdate = undefined
+    installation.updateMessage = undefined
+    this.state.lastUpdateCheckTime = undefined
+    try {
+      this.saveStateOnly()
+    } catch (error) {
+      installation.game = previous.game
+      installation.availableUpdate = previous.update
+      installation.updateMessage = previous.message
+      this.state.lastUpdateCheckTime = previous.checkTime
+      if (found) writeGhostManifest(found.manifestDir, found.manifest)
+      throw error
+    }
+    sendFrontendMessage('external-games-updated', this.snapshot(false))
+    notifyExternalQueueChanged()
+  }
+
   recordUpdate(id: string, update?: GhostSearchResult, message?: string) {
     const installation = this.state.installations.find((item) => item.id === id)
     if (installation) {
-      const confirmed = !update || isNewerGameRelease(installation.game, update).isNewer
+      const confirmed = !update || isNewerGameRelease(installedReleaseCandidate(installation.game), update).isNewer
       installation.availableUpdate = confirmed ? update : undefined
       installation.updateMessage = confirmed ? message : 'A fonte não confirmou uma versão mais recente do jogo.'
       this.save()
@@ -657,7 +698,7 @@ export class ExternalGames {
         providerId: manifestResult?.manifest.storeId || 'sideload',
         providerName: manifestResult?.manifest.storeName || 'Sideload / Piratas',
         platform: 'windows',
-        version: manifestResult?.manifest.version || foundGame?.version || '1.0',
+        version: manifestResult?.manifest.version || foundGame?.version,
         pageUrl: manifestResult?.manifest.storePageUrl,
         coverUrl: manifestResult?.manifest.coverUrl || foundGame?.art_cover
       },
@@ -675,7 +716,7 @@ export class ExternalGames {
       writeGhostManifest(newInstallation.directory, {
         ghostAppId: appName,
         title: newInstallation.game.title,
-        version: newInstallation.game.version || '1.0',
+        version: newInstallation.game.version,
         sourceDate: newInstallation.game.sourceDate || parseDateToIso(newInstallation.game.uploadDate),
         storeId: newInstallation.game.providerId,
         storeName: newInstallation.game.providerName,
@@ -903,7 +944,7 @@ export class ExternalGames {
             appName: libGame.app_name,
             game: {
               ...job.game,
-              version: libGame.version || job.game?.version || '1.0'
+              version: libGame.version || job.game?.version
             },
             directory,
             executable,
@@ -940,7 +981,7 @@ export class ExternalGames {
               providerId: 'sideload',
               providerName: 'Sideload / Piratas',
               platform: 'windows',
-              version: g.version || '1.0'
+              version: g.version
             },
             directory,
             executable,
@@ -976,7 +1017,7 @@ export class ExternalGames {
                 providerId: manifest.storeId || 'sideload',
                 providerName: manifest.storeName || 'Sideload / Piratas',
                 platform: 'windows',
-                version: manifest.version || g.version || '1.0',
+                version: manifest.version || g.version,
                 pageUrl: manifest.storePageUrl,
                 coverUrl: manifest.coverUrl || g.art_cover
               },
@@ -1016,7 +1057,7 @@ export class ExternalGames {
           writeGhostManifest(inst.directory, {
             ghostAppId: inst.appName,
             title: inst.game.title,
-            version: inst.game.version || '1.0',
+            version: inst.game.version,
             sourceDate: inst.game.sourceDate || parseDateToIso(inst.game.uploadDate),
             storeId: inst.game.providerId,
             storeName: inst.game.providerName,
@@ -1038,7 +1079,7 @@ export class ExternalGames {
             ghostAppId: inst.appName,
             title: inst.game.title,
             version: 'v0.61d',
-            sourceDate: inst.game.sourceDate || parseDateToIso(inst.game.uploadDate) || '2026-09-29',
+            sourceDate: inst.game.sourceDate || parseDateToIso(inst.game.uploadDate),
             storeId: inst.game.providerId,
             storeName: inst.game.providerName,
             storePageUrl: inst.game.pageUrl,
@@ -2296,7 +2337,7 @@ export class ExternalGames {
       writeGhostManifest(backupDir, {
         ghostAppId: installation.appName,
         title: installation.game.title,
-        version: installation.game.version || '1.0',
+        version: installation.game.version,
         sourceDate: installation.game.sourceDate || parseDateToIso(installation.game.uploadDate),
         storeId: installation.game.providerId,
         storeName: installation.game.providerName,
@@ -2523,7 +2564,7 @@ export class ExternalGames {
         folder_name: installed.directory,
         is_installed: true,
         canRunOffline: true,
-        version: job.game.version || previous?.version || '1.0'
+        version: job.game.version
       }
 
       if (previous?.overrides || Object.keys(userOverride).length > 0) {
@@ -2566,7 +2607,7 @@ export class ExternalGames {
         writeGhostManifest(installed.directory, {
           ghostAppId: targetAppName,
           title: preservedTitle,
-          version: job.game.version || '1.0',
+          version: job.game.version,
           sourceDate: job.game.sourceDate || parseDateToIso(job.game.uploadDate),
           storeId: job.game.providerId,
           storeName: job.game.providerName,
@@ -2585,7 +2626,7 @@ export class ExternalGames {
             writeGhostManifest(backupDir, {
               ghostAppId: targetAppName,
               title: preservedTitle,
-              version: job.game.version || '1.0',
+              version: job.game.version,
               sourceDate: job.game.sourceDate || parseDateToIso(job.game.uploadDate),
               storeId: job.game.providerId,
               storeName: job.game.providerName,

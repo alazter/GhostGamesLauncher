@@ -132,6 +132,46 @@
 .nr-drm-warning {
   color: #efc473;
 }
+.nr-drm-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.nr-drm-editor form {
+  width: 100%;
+  min-width: 0;
+}
+.nr-drm-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.nr-drm-editor select {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  color: var(--nr-text);
+  background: var(--nr-panel, #211d40);
+  border: 1px solid var(--nr-line);
+  border-radius: 7px;
+}
+.nr-drm-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.nr-drm-editor button {
+  min-height: 30px;
+  padding: 5px 9px;
+}
+.nr-drm-manual-label {
+  padding-left: 9px;
+  border-left: 2px solid #b38bea;
+}
 .NativeReleases--light .nr-card-actions .nr-drm-badge {
   background: #e9e3f5;
 }

@@ -2,6 +2,11 @@ import { parseDateToIso, isNewerGameRelease } from 'common/utils'
 
 describe('Universal Date Parser and Composite Release Comparator', () => {
   describe('parseDateToIso', () => {
+    it('reads short source dates without accepting invalid calendar dates', () => {
+      expect(parseDateToIso('LAST UPDATE 16/10/26')).toBe('2026-10-16')
+      expect(parseDateToIso('24/07/26')).toBe('2026-07-24')
+      expect(parseDateToIso('31/02/26')).toBeUndefined()
+    })
     it('handles ISO strings with or without timestamp', () => {
       expect(parseDateToIso('2026-09-29T14:30:00Z')).toBe('2026-09-29')
       expect(parseDateToIso('2026-09-29T12:00:00.000Z')).toBe('2026-09-29')
@@ -44,132 +49,37 @@ describe('Universal Date Parser and Composite Release Comparator', () => {
     })
   })
 
-  describe('isNewerGameRelease (Tupla Instalada vs Tupla do Site)', () => {
+  describe('isNewerGameRelease: source release date before version', () => {
     it.each([
-      ['v1.009.1', 'v1.009.1', 'same'],
-      ['v0.107.7832', 'v0.107.7756', 'version'],
-      ['v0.107.7832', 'v0.107.7832', 'same'],
-      ['v1.009.1', '1.009.1', 'same'],
-      ['v1.0', 'v1.0.0', 'same'],
-      ['Build 25752683', 'Build 25752683', 'same']
-    ])('does not advertise %s -> %s because the page has a newer date', (current, next, reason) => {
-      expect(isNewerGameRelease({ version: current, sourceDate: '2026-10-08' },
-        { version: next, sourceDate: '2026-10-14' })).toEqual({ isNewer: false, reason })
+      ['v1.0', '2026-07-24', 'v0.9.1.2', '2026-10-16', true, 'date'],
+      ['v0.9.1.2', '24/07/26', 'v1.0.0.1', '16/10/26', true, 'date'],
+      ['v1.009.1', '2026-10-08', 'v1.009.1', '2026-10-14', true, 'date'],
+      ['v0.107.7832', '2026-10-13', 'v0.107.7756', '2026-10-14', true, 'date'],
+      ['Build 25134257', '2026-09-10', 'v1.0.4', '2026-09-29', true, 'date'],
+      ['v1.009.1', '2026-10-14', 'v1.010', '2026-10-08', false, 'date'],
+      ['v1.0', '2026-10-16', 'v1.1', '2026-10-16', true, 'version'],
+      ['v1.0', '2026-10-16', 'v0.9', '2026-10-16', false, 'version'],
+      ['v1.0', '2026-10-16', 'v1.0.0', '2026-10-16', false, 'same'],
+      ['v1.0', undefined, 'v1.1', undefined, true, 'version'],
+      ['v0.61d', undefined, 'v0.61e', undefined, true, 'version'],
+      ['v0.61e', undefined, 'v0.61d', undefined, false, 'version'],
+      ['v1.0 (Build 100)', undefined, 'v1.0 (Build 101)', undefined, true, 'version'],
+      ['Build 100', undefined, 'Build 101', undefined, true, 'version'],
+      ['Build 100', undefined, 'v1.1', undefined, false, 'unknown']
+    ])('compares %s / %s to %s / %s', (version, sourceDate, nextVersion, nextDate, isNewer, reason) => {
+      expect(isNewerGameRelease({ version, sourceDate }, { version: nextVersion, sourceDate: nextDate }))
+        .toEqual({ isNewer, reason })
     })
 
-    it('accepts a newer package version even if the page publication date is older', () => {
-      expect(isNewerGameRelease({ version: 'v1.009.1', sourceDate: '2026-10-14' },
-        { version: 'v1.010', sourceDate: '2026-10-08' })).toEqual({ isNewer: true, reason: 'version' })
+    it('uses recorded upload dates when canonical release dates are absent', () => {
+      expect(isNewerGameRelease({ version: 'v1.0', uploadDate: 'July 24, 2026' },
+        { version: 'v0.9', uploadDate: 'October 16, 2026' })).toEqual({ isNewer: true, reason: 'date' })
     })
 
-    it('compares explicit builds and letter suffixes without using page dates', () => {
-      expect(isNewerGameRelease({ version: 'v0.61d' }, { version: 'v0.61e' })).toEqual({ isNewer: true, reason: 'version' })
-      expect(isNewerGameRelease({ version: 'v0.61e' }, { version: 'v0.61d' })).toEqual({ isNewer: false, reason: 'version' })
-      expect(isNewerGameRelease({ version: 'v1.0 (Build 100)' }, { version: 'v1.0 (Build 101)' })).toEqual({ isNewer: true, reason: 'version' })
-    })
-
-    it('does not fall back to upload dates for matching or unrecognised version labels', () => {
-      expect(isNewerGameRelease({ version: 'v1.0', uploadDate: '2026-10-08' },
-        { version: 'v1.0', uploadDate: '2026-10-14' })).toEqual({ isNewer: false, reason: 'same' })
-      expect(isNewerGameRelease({ version: 'edition-a', sourceDate: '2026-10-08' },
-        { version: 'edition-b', sourceDate: '2026-10-14' })).toEqual({ isNewer: false, reason: 'unknown' })
-    })
-    it('does not use a later date to compare a build number against a semantic version', () => {
-      const installed = {
-        version: 'Build 25134257',
-        sourceDate: '2026-09-10'
-      }
-      const site = {
-        version: 'v1.0.4',
-        sourceDate: '2026-09-29'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(false)
-      expect(res.reason).toBe('unknown')
-    })
-
-    it('does not infer a hotfix or repack from a page date with the same package version', () => {
-      const installed = {
-        version: 'v1.0.2',
-        sourceDate: '2026-09-15'
-      }
-      const site = {
-        version: 'v1.0.2',
-        sourceDate: '2026-09-29'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(false)
-      expect(res.reason).toBe('same')
-    })
-
-    it('Cenário 3: Desempata pela versão quando as datas forem idênticas (mesmo dia)', () => {
-      const installed = {
-        version: 'Build 25000000',
-        sourceDate: '2026-09-29'
-      }
-      const site = {
-        version: 'Build 25513890',
-        sourceDate: '2026-09-29'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(true)
-      expect(res.reason).toBe('version')
-    })
-
-    it('Cenário 4: Identifica jogo perfeitamente atualizado quando versão e data forem idênticas', () => {
-      const installed = {
-        version: 'v0.61d',
-        sourceDate: '2026-09-29'
-      }
-      const site = {
-        version: 'v0.61d',
-        sourceDate: '2026-09-29'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(false)
-      expect(res.reason).toBe('same')
-    })
-
-    it('Cenário 5: Rejeita quando a data da fonte for anterior à instalada', () => {
-      const installed = {
-        version: 'v1.2.0',
-        sourceDate: '2026-09-29'
-      }
-      const site = {
-        version: 'v1.1.0',
-        sourceDate: '2026-09-10'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(false)
-      expect(res.reason).toBe('version')
-    })
-
-    it('Cenário 6: Utiliza uploadDate como fallback seguro quando sourceDate não estiver preenchido', () => {
-      const installed = {
-        uploadDate: 'September 10, 2026'
-      }
-      const site = {
-        uploadDate: 'September 29, 2026'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(true)
-      expect(res.reason).toBe('date')
-    })
-
-    it('Cenário 7: Fallback para comparação semântica tradicional quando datas estiverem ausentes', () => {
-      const installed = {
-        version: 'v1.0.0'
-      }
-      const site = {
-        version: 'v1.1.0'
-      }
-      const res = isNewerGameRelease(installed, site)
-      expect(res.isNewer).toBe(true)
-      expect(res.reason).toBe('version')
-
-      const resReverse = isNewerGameRelease(site, installed)
-      expect(resReverse.isNewer).toBe(false)
-      expect(resReverse.reason).toBe('version')
+    it('does not use installation timestamps as source release dates', () => {
+      const installed = { version: 'v1.0', installedAt: '2026-10-17' }
+      expect(isNewerGameRelease(installed, { version: 'v1.1', sourceDate: '2026-10-16' }))
+        .toEqual({ isNewer: true, reason: 'version' })
     })
   })
 })

@@ -7,6 +7,21 @@ export type ReleaseDrmStatus =
   | 'drm-free'
   | 'early-access'
   | 'conflicting'
+export type ManualDrmStatus = Exclude<ReleaseDrmStatus, 'conflicting'>
+export type InteractiveDrmSource = 'HizSearch' | 'SkidrowReloaded'
+export const manualDrmStatuses: ManualDrmStatus[] = [
+  'cracked',
+  'drm-free',
+  'uncracked',
+  'bypassed',
+  'unreleased',
+  'early-access',
+  'unknown'
+]
+export interface ReleaseDrmOverride {
+  status: ManualDrmStatus
+  updatedAt: string
+}
 export interface ReleaseDrmSource {
   name:
     | 'IsItCracked'
@@ -35,10 +50,12 @@ export interface ReleaseDrmReport {
   platform: 'PC'
   status: ReleaseDrmStatus
   checkedAt: string
+  lastAttemptAt?: string
   sources: ReleaseDrmSource[]
   stale?: boolean
   warning?: string
   lookupVersion?: number
+  manualOverride?: ReleaseDrmOverride
 }
 export const releaseDrmSourceLabels: Record<ReleaseDrmSource['name'], string> =
   {
@@ -123,6 +140,7 @@ export function normalizeDrmTitle(title: string) {
 }
 export function drmGameSlug(title: string) {
   return title
+    .replace(/(\d),(?=\d{3}(?:\D|$))/g, '$1')
     .replace(/[™®©]/g, '')
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -146,11 +164,17 @@ export function combinedDrmStatus(
 }
 /** Only a matching, explicit source status can end automatic checks. */
 export function isConfirmedDrmReport(report: ReleaseDrmReport) {
+  if (report.manualOverride)
+    return ['cracked', 'drm-free'].includes(report.manualOverride.status)
   return (
     ['cracked', 'drm-free'].includes(report.status) &&
     combinedDrmStatus(report.sources) === report.status
   )
 }
+export const displayedDrmStatus = (
+  report?: ReleaseDrmReport | null
+): ReleaseDrmStatus =>
+  report?.manualOverride?.status || report?.status || 'unknown'
 export function safeDrmSourceUrl(value: string) {
   try {
     const url = new URL(value)
@@ -176,7 +200,9 @@ export function safeDrmSourceUrl(value: string) {
     if (
       url.hostname === 'hizsearch.pages.dev' &&
       url.pathname === '/' &&
-      !url.search &&
+      [...url.searchParams.keys()].every((key) => key === 'q') &&
+      url.searchParams.getAll('q').length <= 1 &&
+      (url.searchParams.get('q') || '').length <= 300 &&
       !url.hash
     )
       return url.href

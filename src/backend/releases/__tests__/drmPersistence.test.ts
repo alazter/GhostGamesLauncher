@@ -7,6 +7,7 @@ let mockDirectory: string
 const mockLoad = jest.fn()
 const mockRead = jest.fn()
 const mockFetch = jest.fn()
+const mockAdditional = jest.fn()
 jest.mock('../drmReddit', () => ({
   readCrackWatch: (...args: unknown[]) => mockFetch(...args),
   readCrackWatchIndex: async () => [],
@@ -19,7 +20,10 @@ jest.mock('../drmSheets', () => ({
     stale: false
   })
 }))
-jest.mock('../drmSites', () => ({ getAdditionalDrmSources: async () => [] }))
+jest.mock('../drmSites', () => ({
+  getAdditionalDrmSources: (...args: unknown[]) =>
+    mockAdditional(...args) ?? Promise.resolve([])
+}))
 jest.mock('electron', () => ({
   app: { getPath: () => mockDirectory },
   net: { fetch: (...args: unknown[]) => mockFetch(...args) },
@@ -215,6 +219,59 @@ it('persists a Reddit-only public-post confirmation and keeps it across an outag
     expect((await restarted.getReleaseDrm(query)).status).toBe('cracked')
     expect(mockFetch).toHaveBeenCalledTimes(2)
   } finally {
+    if (resolve(mockDirectory).startsWith(root + sep))
+      await rm(mockDirectory, { recursive: true, force: true })
+  }
+})
+
+it('persists a source listing with its original timestamp across an access failure and restart', async () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-10-17T12:00:00Z'))
+  const root = resolve('build/release-drm-tests')
+  await mkdir(root, { recursive: true })
+  mockDirectory = await mkdtemp(join(root, 'source-listing-'))
+  try {
+    jest.resetModules()
+    const { getReleaseDrm } = await import('../drm')
+    mockLoad.mockRejectedValue(new Error('Primary offline'))
+    mockFetch.mockResolvedValue([])
+    const listing = {
+      name: 'AnkerGames',
+      url: 'https://ankergames.net/game/test',
+      title: 'Test',
+      availability: 'listed',
+      observedAt: '2026-10-17T12:00:00Z'
+    }
+    mockAdditional.mockResolvedValue([listing])
+    const query = { id: 'test', title: 'Test' }
+    expect((await getReleaseDrm(query)).sources).toContainEqual(listing)
+    jest.setSystemTime(new Date('2026-10-18T12:00:00Z'))
+    mockAdditional.mockResolvedValue([
+      {
+        name: 'AnkerGames',
+        url: listing.url,
+        notice: 'Consulta indisponível (HTTP 429).'
+      }
+    ])
+    const offline = await getReleaseDrm({ ...query, refresh: true })
+    expect(offline.stale).toBe(true)
+    expect(offline.checkedAt).toBe('2026-10-17T12:00:00.000Z')
+    expect(offline.lastAttemptAt).toBe('2026-10-18T12:00:00.000Z')
+    expect(
+      offline.sources.find((source) => source.name === 'AnkerGames')
+    ).toMatchObject({
+      ...listing,
+      notice: expect.stringContaining('Último resultado válido')
+    })
+    jest.resetModules()
+    const restarted = await import('../drm')
+    const restored = await restarted.getReleaseDrm(query)
+    expect(
+      restored.sources.find((source) => source.name === 'AnkerGames')
+    ).toEqual(offline.sources.find((source) => source.name === 'AnkerGames'))
+    expect(restored.status).toBe('unknown')
+    expect(mockAdditional).toHaveBeenCalledTimes(2)
+  } finally {
+    jest.useRealTimers()
     if (resolve(mockDirectory).startsWith(root + sep))
       await rm(mockDirectory, { recursive: true, force: true })
   }

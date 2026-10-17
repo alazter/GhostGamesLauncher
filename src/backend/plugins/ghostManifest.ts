@@ -8,7 +8,7 @@ export interface GhostGameManifest {
   schemaVersion: 1
   ghostAppId: string
   title: string
-  version: string
+  version?: string
   sourceDate?: string
   storeId?: string
   storeName?: string
@@ -68,8 +68,9 @@ export function readGhostManifest(dir: string): GhostGameManifest | null {
       parsed &&
       parsed.schemaVersion === 1 &&
       parsed.ghostSignature === GHOST_SIGNATURE &&
-      parsed.title &&
-      parsed.version
+      typeof parsed.title === 'string' && parsed.title.trim() &&
+      typeof parsed.ghostAppId === 'string' && parsed.ghostAppId &&
+      (parsed.version === undefined || typeof parsed.version === 'string')
     ) {
       return parsed
     }

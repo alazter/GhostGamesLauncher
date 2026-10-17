@@ -7,6 +7,8 @@ import { engineProcess } from '../plugins/engineProcess'
 import { engineProxy } from '../plugins/engineProxy'
 import { withSourceEngine } from '../plugins/sourceEngines'
 import { drmPageUnavailable } from './drmSitesParser'
+import { showDrmAccessWindow } from './drmAccessWindow'
+export { readSkidrowManualPage } from './drmPublicPage'
 
 const HIZ = 'https://hizsearch.pages.dev/'
 const hizHosts = new Set([
@@ -130,8 +132,18 @@ let hizLoadFailed = false
 let hizSessionPrepared = false
 /** Keep persisted cookies; stop site scripts when the user-requested batch ends. */
 export function endManualDrm() {
-  if (!verification && hizWindow && !hizWindow.isDestroyed())
-    hizWindow.destroy()
+  const pending = hizQueue
+  void pending
+    .catch(() => undefined)
+    .then(() => {
+      if (
+        hizQueue === pending &&
+        !verification &&
+        hizWindow &&
+        !hizWindow.isDestroyed()
+      )
+        hizWindow.destroy()
+    })
 }
 const inputSelector =
   'input[type="text"],input[type="search"],input:not([type])'
@@ -215,8 +227,7 @@ export function verifyHizAccess(): Promise<boolean> {
   const result = (async () => {
     const window = await windowForHiz()
     if (window.isDestroyed()) return false
-    window.show()
-    window.focus()
+    showDrmAccessWindow(window, 'Ghost · Liberar acesso ao HizSearch')
     const deadline = Date.now() + 3 * 60000
     while (!window.isDestroyed() && Date.now() < deadline) {
       if (await ready(window)) {
@@ -242,7 +253,10 @@ export function readHizManualSource(title: string): Promise<ReleaseDrmSource> {
   const result = hizQueue
     .catch(() => undefined)
     .then(async (): Promise<ReleaseDrmSource> => {
-      const base: ReleaseDrmSource = { name: 'HizSearch', url: HIZ }
+      const base: ReleaseDrmSource = {
+        name: 'HizSearch',
+        url: `${HIZ}?q=${encodeURIComponent(title)}`
+      }
       try {
         if (hizBlocked && !verification)
           return {
@@ -331,4 +345,23 @@ export function readHizManualSource(title: string): Promise<ReleaseDrmSource> {
     })
   hizQueue = result
   return result
+}
+
+export async function readSourceWithUserAccess(
+  title: string,
+  url: string,
+  name: 'HizSearch' | 'SkidrowReloaded'
+): Promise<ReleaseDrmSource> {
+  if (!safeDrmSourceUrl(url)) throw new Error('Endereço da fonte inválido.')
+  if (name === 'SkidrowReloaded')
+    return (await import('./drmPublicPage')).openSkidrowSource(title, url)
+  if (new URL(url).origin !== new URL(HIZ).origin)
+    throw new Error('Endereço da fonte inválido.')
+  try {
+    if (!(await verifyHizAccess()))
+      throw new Error('A verificação do HizSearch não foi concluída.')
+    return await readHizManualSource(title)
+  } finally {
+    endManualDrm()
+  }
 }

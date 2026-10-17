@@ -106,3 +106,17 @@ it('refreshes cached search metadata before recording the downloaded release', a
     }))
   ).rejects.toThrow('edição')
 })
+
+it('refreshes version and release date as one pair without keeping the previous package date', async () => {
+  const cached = { id: 'game', title: 'Game', providerId: 'anker', providerName: 'Anker',
+    platform: 'windows' as const, version: 'v0.9', sourceDate: '2026-07-24', uploadDate: '24/07/26' }
+  const next = await refreshExternalRelease(cached, async () => ({ ...cached,
+    version: 'v1.0.0.1', sourceDate: undefined, uploadDate: '16/10/26' }))
+  expect(next.version).toBe('v1.0.0.1')
+  expect(next.sourceDate).toBe('2026-10-16')
+  const undated = await refreshExternalRelease(cached, async () => ({
+    id: cached.id, title: cached.title, platform: cached.platform, providerId: cached.providerId,
+    providerName: cached.providerName, version: 'v1.1' }))
+  expect(undated.sourceDate).toBeUndefined()
+  expect(undated.uploadDate).toBeUndefined()
+})

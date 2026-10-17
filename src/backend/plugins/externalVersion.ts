@@ -1,4 +1,5 @@
 import type { GhostSearchResult } from 'common/types/plugins'
+import { parseDateToIso } from 'common/utils'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
 import { gameOverridesStore } from 'backend/game_overrides/electronStores'
 import { sendFrontendMessage } from 'backend/ipc'
@@ -39,5 +40,7 @@ export async function refreshExternalRelease(
     throw new Error(
       'A edição da fonte mudou. Busque o jogo novamente antes de baixar.'
     )
-  return { ...cached, ...latest, version: latest.version }
+  return { ...cached, ...latest, version: latest.version,
+    sourceDate: parseDateToIso(latest.sourceDate) || parseDateToIso(latest.uploadDate),
+    uploadDate: latest.uploadDate }
 }

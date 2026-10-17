@@ -15,12 +15,18 @@ const unavailableUntil = new Map<string, number>()
 const notices = new Map<string, string>()
 const failedAt = new Map<string, number>()
 const inFlight = new Map<string, Promise<string | undefined>>()
+const rateLimitedUntil = new Map<string, number>()
+class DrmSiteRateLimit extends Error {}
 async function page(
   url: string,
   refresh: boolean
 ): Promise<string | undefined> {
   if (!safeDrmSourceUrl(url)) throw new Error('Endereço de fonte inválido.')
   const host = new URL(url).hostname
+  if (Date.now() < (rateLimitedUntil.get(host) || 0))
+    throw new DrmSiteRateLimit(
+      'Consulta indisponível: limite temporário de acesso. Aguarde antes de tentar novamente.'
+    )
   if (
     Date.now() < (unavailableUntil.get(host) || 0) &&
     (!refresh || Date.now() - (failedAt.get(host) || 0) < 60000)
@@ -35,6 +41,19 @@ async function page(
       credentials: 'omit'
     })
     if (response.status === 404) return undefined
+    if (response.status === 429) {
+      const retry = response.headers.get('retry-after') || ''
+      const until = /^\d+$/.test(retry)
+        ? Date.now() + Number(retry) * 1000
+        : Date.parse(retry)
+      rateLimitedUntil.set(
+        host,
+        Math.max(Date.now() + 60000, Number.isFinite(until) ? until : 0)
+      )
+      throw new DrmSiteRateLimit(
+        'Consulta indisponível (HTTP 429): limite temporário de acesso. Aguarde antes de tentar novamente.'
+      )
+    }
     if (!response.ok) {
       const notice = `Consulta indisponível (HTTP ${response.status}); consulte o link da fonte.`
       if ([401, 403, 429, 503].includes(response.status)) {
@@ -64,6 +83,10 @@ async function page(
     }
     const notice = drmPageUnavailable(html)
     if (notice) {
+      if (/limite temporário/i.test(notice)) {
+        rateLimitedUntil.set(host, Date.now() + 60000)
+        throw new DrmSiteRateLimit(notice)
+      }
       unavailableUntil.set(host, Date.now() + 60 * 60000)
       notices.set(host, notice)
       failedAt.set(host, Date.now())
@@ -89,7 +112,7 @@ async function lookup(
     try {
       return await page(url, refresh)
     } catch (error) {
-      if (!browserPage) throw error
+      if (!browserPage || error instanceof DrmSiteRateLimit) throw error
       return browserPage(url)
     }
   }
@@ -138,7 +161,7 @@ export async function getAdditionalDrmSources(
   // Importing browser support is itself restricted to the general manual action.
   const browsers = manual ? await import('./drmManual') : undefined
   const sources = await Promise.all([
-    lookup(title, 'SkidrowReloaded', refresh),
+    lookup(title, 'SkidrowReloaded', refresh, browsers?.readSkidrowManualPage),
     lookup(title, 'AnkerGames', refresh, browsers?.readAnkerManualPage)
   ])
   // HizSearch requires an interactive site session. Do not borrow its API key or bypass verification.
@@ -148,7 +171,7 @@ export async function getAdditionalDrmSources(
       ? await browsers.readHizManualSource(title)
       : {
           name: 'HizSearch',
-          url: 'https://hizsearch.pages.dev/',
+          url: `https://hizsearch.pages.dev/?q=${encodeURIComponent(title)}`,
           notice: `Pesquise “${title}” no site. A consulta exige verificação manual; uma listagem não confirma quebra de DRM.`
         }
   ]

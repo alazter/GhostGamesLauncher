@@ -5,6 +5,7 @@ import {
 } from '../drmSitesParser'
 import {
   safeDrmSourceUrl,
+  drmGameSlug,
   combinedDrmStatus,
   isConfirmedDrmReport
 } from 'common/releaseDrm'
@@ -13,7 +14,9 @@ import { getAdditionalDrmSources } from '../drmSites'
 const mockFetch = jest.fn()
 const mockBrowser = jest.fn()
 const mockHiz = jest.fn()
+const mockSkidrowBrowser = jest.fn()
 jest.mock('../drmManual', () => ({
+  readSkidrowManualPage: (...args: unknown[]) => mockSkidrowBrowser(...args),
   readAnkerManualPage: (...args: unknown[]) => mockBrowser(...args),
   readHizManualSource: (...args: unknown[]) => mockHiz(...args)
 }))
@@ -198,10 +201,162 @@ it('only uses the Scrapling fallback and Hiz session in the explicit general act
   })
   await getAdditionalDrmSources(title, true)
   expect(mockBrowser).not.toHaveBeenCalled()
+  expect(mockSkidrowBrowser).not.toHaveBeenCalled()
   expect(mockHiz).not.toHaveBeenCalled()
   const sources = await getAdditionalDrmSources(title, true, true)
   expect(mockBrowser).toHaveBeenCalled()
+  expect(mockSkidrowBrowser).toHaveBeenCalled()
   expect(mockHiz).toHaveBeenCalledWith(title)
   expect(sources[1].status).toBe('cracked')
   expect(sources[2].requiresVerification).toBe(true)
+})
+
+const boltgun = 'Warhammer 40,000: Boltgun 2'
+const boltgunUrl =
+  'https://www.skidrowreloaded.com/warhammer-40000-boltgun-2-rune/'
+// Minimal structure observed on the public page (including the h2 and malformed class).
+const boltgunPage = `<link rel="canonical" href="${boltgunUrl}">
+<div class="post-extended class=" post-643715>
+<h2>Warhammer 40000 Boltgun 2-RUNE</h2>
+<div class="meta">Posted October 17, 2026 in <a rel="category tag">PC GAMES</a></div>
+<p><strong>RUNE – ONE FTP LINK – TORRENT</strong></p>
+<div class="wordpress-post-tabs"><div id="tabs-643715-0-0">
+<p>Title: Warhammer 40,000: Boltgun 2\nGenre: Action, Indie\nRelease Date: 14 Oct, 2026</p>
+<p>Warhammer 40000 Boltgun 2-RUNE\nSize: 9.9 GB</p>
+</div></div></div>`
+
+it('recognizes the complete Boltgun 2 scene announcement without requiring an h1 or NFO', () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-10-17T12:00:00Z'))
+  try {
+    const source = parseDrmSiteGame(
+      boltgunPage,
+      boltgun,
+      boltgunUrl,
+      'SkidrowReloaded'
+    )!
+    expect(source).toMatchObject({
+      status: 'cracked',
+      group: 'RUNE',
+      availability: 'listed',
+      url: boltgunUrl
+    })
+    expect(source.category).toContain('17/10/2026')
+    expect(source.crackDate).toBeUndefined() // Publication date is not a measured crack date.
+    expect(source.protection).toBeUndefined()
+    expect(combinedDrmStatus([source])).toBe('cracked')
+    for (const changed of [
+      boltgunPage.replace('rel="canonical"', 'rel="other"'),
+      boltgunPage.replace('PC GAMES', 'GAME UPDATES'),
+      boltgunPage.replace(
+        'Title: Warhammer 40,000: Boltgun 2',
+        'Title: Warhammer 40,000: Boltgun'
+      ),
+      boltgunPage.replace('Release Date: 14 Oct, 2026', 'Release Date: TBD'),
+      boltgunPage.replace('Posted October 17, 2026', 'Posted October 17, 2099'),
+      boltgunPage.replace('Size: 9.9 GB', 'No release metadata'),
+      boltgunPage.replace('post-extended class=', 'comments')
+    ])
+      expect(
+        parseDrmSiteGame(changed, boltgun, boltgunUrl, 'SkidrowReloaded')
+          ?.status
+      ).toBeUndefined()
+    expect(
+      parseDrmSiteGame(
+        boltgunPage,
+        'Warhammer 40,000: Boltgun',
+        boltgunUrl,
+        'SkidrowReloaded'
+      )
+    ).toBeUndefined()
+  } finally {
+    jest.useRealTimers()
+  }
+})
+
+it('retains thousand separators in identity but removes them from slugs and allows only public Hiz queries', () => {
+  expect(drmGameSlug(boltgun)).toBe('warhammer-40000-boltgun-2')
+  expect(
+    safeDrmSourceUrl('https://hizsearch.pages.dev/?q=boltgun%202')
+  ).toBeDefined()
+  for (const url of [
+    'https://hizsearch.pages.dev/?q=test&token=secret',
+    'https://hizsearch.pages.dev/?q=a&q=b',
+    'https://hizsearch.pages.dev/api?q=a'
+  ])
+    expect(safeDrmSourceUrl(url)).toBeUndefined()
+  expect(
+    drmPageUnavailable(
+      '<title>Access denied</title><h1>Error 1015</h1><p>You are being rate limited</p>'
+    )
+  ).toContain('limite temporário')
+})
+
+it('finds Boltgun 2 through the normal search path and records the corrected Anker slug', async () => {
+  jest.resetModules()
+  const { getAdditionalDrmSources: read } = await import('../drmSites')
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve(
+      new Response(
+        url === boltgunUrl
+          ? boltgunPage
+          : url.includes('skidrowreloaded')
+            ? `<h2><a href="${boltgunUrl}">Warhammer 40000 Boltgun 2-RUNE</a></h2>`
+            : '',
+        { status: url.includes('ankergames') ? 404 : 200 }
+      )
+    )
+  )
+  const result = await read(boltgun, true)
+  expect(result[0]).toMatchObject({
+    status: 'cracked',
+    group: 'RUNE',
+    url: boltgunUrl
+  })
+  expect(mockFetch).toHaveBeenCalledWith(
+    'https://ankergames.net/game/warhammer-40000-boltgun-2',
+    expect.anything()
+  )
+  expect(result[2].url).toContain('?q=Warhammer')
+  expect(mockBrowser).not.toHaveBeenCalled()
+})
+
+it('honors Anker Retry-After even during manual refresh without starting the browser fallback', async () => {
+  jest.resetModules()
+  const { getAdditionalDrmSources: read } = await import('../drmSites')
+  const started = Date.now()
+  const now = jest.spyOn(Date, 'now').mockReturnValue(started)
+  mockFetch.mockImplementation((url: string) =>
+    Promise.resolve(
+      new Response('', {
+        status: url.includes('ankergames') ? 429 : 404,
+        headers: { 'Retry-After': '180' }
+      })
+    )
+  )
+  mockHiz.mockResolvedValue({
+    name: 'HizSearch',
+    url: 'https://hizsearch.pages.dev/',
+    requiresVerification: true
+  })
+  try {
+    expect((await read(boltgun, true, true))[1].notice).toContain('429')
+    expect(mockBrowser).not.toHaveBeenCalled()
+    const calls = mockFetch.mock.calls.filter(([url]) =>
+      String(url).includes('ankergames')
+    ).length
+    now.mockReturnValue(started + 61000)
+    expect((await read('Other', true, true))[1].notice).toContain(
+      'limite temporário'
+    )
+    expect(
+      mockFetch.mock.calls.filter(([url]) => String(url).includes('ankergames'))
+    ).toHaveLength(calls)
+    now.mockReturnValue(started + 181000)
+    await read(boltgun, true, true)
+    expect(
+      mockFetch.mock.calls.filter(([url]) => String(url).includes('ankergames'))
+    ).toHaveLength(calls + 1)
+  } finally {
+    now.mockRestore()
+  }
 })

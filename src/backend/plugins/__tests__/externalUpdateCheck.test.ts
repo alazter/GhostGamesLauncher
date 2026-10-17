@@ -16,12 +16,12 @@ const game: GhostSearchResult = {
 }
 
 it.each([
-  ['v0.107.7832', 'v0.107.7832', false],
-  ['v0.107.7832', 'v0.107.7756', false],
-  ['v1.009.1', 'v1.009.1', false],
+  ['v0.107.7832', 'v0.107.7832', true],
+  ['v0.107.7832', 'v0.107.7756', true],
+  ['v1.009.1', 'v1.009.1', true],
   ['v1.009.1', 'v1.010', true],
-  ['v1.0', 'v1.0.0', false]
-])('checks %s against %s without promoting a date-only change', async (current, next, newer) => {
+  ['v1.0', 'v1.0.0', true]
+])('checks %s against %s using the newer source release date', async (current, next, newer) => {
   const manager = Object.create(PluginManager.prototype) as PluginManager
   const remote = { ...game, version: next, sourceDate: '2026-10-14' }
   const recordUpdate = jest.fn()
@@ -46,7 +46,7 @@ it('clears an unconfirmed notice and reports incompatible version formats', asyn
   const manager = Object.create(PluginManager.prototype) as PluginManager
   const recordUpdate = jest.fn()
   jest.mocked(ExternalGames.getInstance).mockReturnValue({
-    snapshot: () => ({ installations: [{ id: 'installed', game: { ...game, version: 'Build 1234' } }] }),
+    snapshot: () => ({ installations: [{ id: 'installed', game: { ...game, version: 'Build 1234', sourceDate: undefined } }] }),
     recordUpdate
   } as unknown as ExternalGames)
   jest.spyOn(manager, 'getPlugins').mockReturnValue([

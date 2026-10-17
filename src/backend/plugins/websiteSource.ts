@@ -334,11 +334,16 @@ export function extractGameMetadataFromHtml(
     cleanContent.match(/<strong>\s*(?:Last Updated|Data de Atualização|Дата обновления)[:\s]*<\/strong>\s*([^<\n]+)/i)?.[1] ||
     cleanContent.match(/(?:Last Updated|Data de Atualização|Дата обновления)[:\s]*<\/strong>\s*([^<\n]+)/i)?.[1]
 
+  const releaseText = plain(cleanContent.replace(/<\/[^>]+>/g, '$& ')).split(/Recommended For You/i)[0]
+  const explicitReleaseDate = releaseText.match(/\bLAST\s+UPDATE(?:D)?\s*[:\-]?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[/.]\d{1,2}[/.]\d{2,4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:de\s+)?[A-Za-z]+\s+(?:de\s+)?\d{4})/i)?.[1]
+  const contentUpdatedDate = cleanContent.match(/(?:Updated by|Last Updated)[^(]*\(([^)]+)\)/i)?.[1]
+
   const rawDate =
+    explicitReleaseDate ||
+    strongLastUpdated ||
+    contentUpdatedDate ||
     jsonLdDateModified ||
     metaDateModified ||
-    strongLastUpdated ||
-    cleanContent.match(/(?:Updated by|Last Updated)[^(]*\(([^)]+)\)/i)?.[1] ||
     cleanContent.match(/Last Updated\s*-\s*[^(]*\(([^)]+)\)/i)?.[1] ||
     cleanContent.match(/<[^>]*class=["'][^"']*date[^"']*["'][^>]*>[\s\S]*?([a-zA-Z]+ \d{1,2},? \d{4})<\/[^>]*>/i)?.[1] ||
     cleanContent.match(/<[^>]*class=["'][^"']*svchk__date[^"']*["'][^>]*>([^<,]+)/i)?.[1] ||

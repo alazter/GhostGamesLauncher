@@ -1,0 +1,650 @@
+{
+  "checkedAt": "2026-10-17T10:05:33.374Z",
+  "readOnly": true,
+  "total": 67,
+  "completed": 67,
+  "rows": [
+    {
+      "title": "ALL WILL FALL",
+      "installationId": "74e3e7e1-bbaf-4cce-95e9-a0d666f39ca2",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.5.3f2",
+      "installedSourceDate": "2026-10-10",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "Assassin's Creed Black Flag Resynced",
+      "installationId": "c8863f37-1507-47c2-9806-7341e4e1b9ea",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.06",
+      "installedSourceDate": "2026-09-15",
+      "pageUrl": "https://ankergames.net/game/assassins-creed-black-flag-resynced",
+      "remoteVersion": "v1.06",
+      "remoteSourceDate": "2026-09-15",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Balatro",
+      "installationId": "082f2d85-8d15-42ba-bfde-89d07310ebf9",
+      "provider": "AnkerGames",
+      "installedVersion": "V 1.0.17912",
+      "installedSourceDate": "2026-09-04",
+      "pageUrl": "https://ankergames.net/game/balatro",
+      "remoteVersion": "v1.0.1o",
+      "remoteSourceDate": "2026-09-04",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "BALL x PIT",
+      "installationId": "30b9b3ef-6048-44db-8e3a-973e24d40840",
+      "provider": "SteamRIP",
+      "installedVersion": "Build 23150541",
+      "installedSourceDate": "2026-08-16",
+      "pageUrl": "https://steamrip.com/ball-x-pit-free-download/",
+      "remoteVersion": "Build 23150541",
+      "remoteSourceDate": "2026-08-16",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Battlefield 2",
+      "installationId": "bcaffb06-cf3e-4d4c-98c0-35e36f35f219",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Besiege",
+      "installationId": "905ae6ae-e67b-499b-a289-d77ac9c7768d",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.91-254 90",
+      "installedSourceDate": "2026-09-22",
+      "pageUrl": "https://ankergames.net/game/besiege",
+      "remoteVersion": "v1.91-254 90",
+      "remoteSourceDate": "2026-09-22",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Beyond All Reason",
+      "installationId": "d47dd0a3-3925-453c-a360-afe1e8792b75",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Borderless Gaming",
+      "installationId": "5f0065e8-3e44-4393-83f1-2fcdfd08a83e",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Car Park Capital",
+      "installationId": "30b60520-4965-4485-8aa0-e76dfca62d8f",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.0.0",
+      "installedSourceDate": "2026-10-14",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "Cities Skylines II",
+      "installationId": "2c2f053b-382d-42ec-8344-7aacbf168a0c",
+      "provider": "AnkerGames",
+      "installedVersion": "V 1.11.0.20",
+      "installedSourceDate": "2026-09-17",
+      "pageUrl": "https://ankergames.net/game/cities-skylines-ii",
+      "remoteVersion": "v1.6.2f1",
+      "remoteSourceDate": "2026-09-17",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "Clone Hero",
+      "installationId": "410f262f-8e24-482e-9cb8-fd0735e3f16c",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Corsair Cove",
+      "installationId": "fc32d79c-ae2e-45be-81fd-4ed3274ceb99",
+      "provider": "AnkerGames",
+      "installedVersion": "Build 25506897",
+      "installedSourceDate": "2026-09-28",
+      "pageUrl": "https://ankergames.net/game/corsair-cove",
+      "remoteVersion": "Build 25506897",
+      "remoteSourceDate": "2026-09-28",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Dimraeth",
+      "installationId": "c700c194-56c1-4378-8db0-0a14cf1e8f1f",
+      "provider": "AnkerGames",
+      "installedVersion": "v0.107.7756",
+      "installedSourceDate": "2026-10-14",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "DLSS 5 OneClick",
+      "installationId": "c003d768-f1b4-47eb-8d29-b1c26400acfd",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "DLSS 5 OneClick",
+      "installationId": "tDSg1Fv6LvYLUWJj1q3Yaj",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Dragonkin: The Banished",
+      "installationId": "15a98c9d-6648-4cd9-b755-129a30199b5c",
+      "provider": "AnkerGames",
+      "installedVersion": "V 1.3.0.8",
+      "installedSourceDate": "2026-09-03",
+      "pageUrl": "https://ankergames.net/game/dragonkin-the-banished",
+      "remoteVersion": "Build 24478034",
+      "remoteSourceDate": "2026-09-03",
+      "status": "unknown",
+      "reason": "unknown"
+    },
+    {
+      "title": "Enshrouded",
+      "installationId": "5adb1176-7e4c-4b18-8921-f62dda727405",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.0.0.1",
+      "installedSourceDate": "2026-10-16",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "Graveyard Keeper 2",
+      "installationId": "8ac5694f-cc65-41dd-84b2-a246aea23b6d",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.010",
+      "installedSourceDate": "2026-10-14",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "Hellcard",
+      "installationId": "ec0f0b84-7359-45f8-96ed-d3fccc0d593e",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Heroes of Might and Magic Olden Era",
+      "installationId": "dcc7ed24-0edb-4bb0-a55c-221704acac28",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Hytale",
+      "installationId": "d06feb45-9e19-45dc-9108-93e219df3171",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Internet Cafe Simulator",
+      "installationId": "fb8ac525-ad48-4ba1-a71b-dffe03eb0b9f",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "inZOI",
+      "installationId": "b0ac756e-aefa-4e57-aa21-be99db632973",
+      "provider": "AnkerGames",
+      "installedVersion": "v0.10.4",
+      "installedSourceDate": "2026-09-17",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "League of Legends",
+      "installationId": "b46b39d5-6923-4682-abbf-853b229495cc",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Liner Rider",
+      "installationId": "5e1a45d2-567c-4d90-89bb-dd2595d32051",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Luma Island",
+      "installationId": "c4e137f3-a4a4-4957-b494-f9f8ecdedaf5",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.1.45",
+      "installedSourceDate": "2026-08-13",
+      "pageUrl": "https://ankergames.net/game/luma-island",
+      "remoteVersion": "v1.1.11.26948",
+      "remoteSourceDate": "2026-08-13",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "Marvel Tokon",
+      "installationId": "329affca-8c75-441d-84be-5727f67f8f06",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "MARVEL Tōkon: Fighting Souls",
+      "installationId": "c2312d65-30a8-40fe-92e7-4c26706d8ea8",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.3.0",
+      "installedSourceDate": "2026-09-12",
+      "pageUrl": "https://ankergames.net/game/marvel-tokon-fighting-souls",
+      "remoteVersion": "v1.3.0",
+      "remoteSourceDate": "2026-09-12",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "MARVEL vs. CAPCOM Fighting Collection: Arcade Classics",
+      "installationId": "f14514aa-c092-483b-b55f-5dd35695463b",
+      "provider": "AnkerGames",
+      "installedVersion": "V 1.5.9.0",
+      "installedSourceDate": "2026-09-07",
+      "pageUrl": "https://ankergames.net/game/marvel-vs-capcom-fighting-collection-arcade-classics",
+      "remoteVersion": "v1.0.0.4",
+      "remoteSourceDate": "2026-09-07",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "Megabonk",
+      "installationId": "eb643637-e025-4c09-85d5-27c083123cff",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.0.69",
+      "installedSourceDate": "2026-02-07",
+      "pageUrl": "https://ankergames.net/game/megabonk",
+      "remoteVersion": "v1.0.69",
+      "remoteSourceDate": "2026-02-07",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Minecraft Dungeons II",
+      "installationId": "05abbea6-ecbd-4d2c-a87f-a6302c125bab",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.1.2.0",
+      "installedSourceDate": "2026-10-08",
+      "pageUrl": "https://ankergames.net/game/minecraft-dungeons-ii",
+      "remoteVersion": "v1.1.2.0",
+      "remoteSourceDate": "2026-10-08",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "MOUSE: P.I. For Hire",
+      "installationId": "8f4d6929-4191-4a80-a96c-94d129d62545",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.2.2.8822.9f",
+      "installedSourceDate": "2026-07-27",
+      "pageUrl": "https://ankergames.net/game/mouse-p-i-for-hire",
+      "remoteVersion": "v1.2.2.8822.9fc6dc4",
+      "remoteSourceDate": "2026-07-27",
+      "status": "unknown",
+      "reason": "unknown"
+    },
+    {
+      "title": "Northgard (v4.3.24.43326)",
+      "installationId": "745404ba-1a85-458c-b1a6-963ff95e12c1",
+      "provider": "SteamRIP",
+      "installedVersion": "v4.3.24.43326 (Build 24930278)",
+      "installedSourceDate": "2026-08-26",
+      "pageUrl": "https://steamrip.com/northgard-free-download-2a/",
+      "remoteVersion": "v4.3.24.43326 (Build 24930278)",
+      "remoteSourceDate": "2026-08-26",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "OpenRCT2",
+      "installationId": "199e8b07-258c-4487-bcc0-3f422396a255",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "openttd-jgrpp-",
+      "installationId": "0294f7cc-3e1e-4cdd-8494-11dfa9387c89",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Outbound",
+      "installationId": "44e2c40b-323f-4423-a89e-1c718ee75268",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.2.2-1049",
+      "installedSourceDate": "2026-09-29",
+      "pageUrl": "https://ankergames.net/game/outbound",
+      "remoteVersion": "v1.2.2-1049 + Co-op",
+      "remoteSourceDate": "2026-09-29",
+      "status": "unknown",
+      "reason": "unknown"
+    },
+    {
+      "title": "Paralives",
+      "installationId": "f8eba604-6378-4d68-874b-cf2ff9244f1a",
+      "provider": "AnkerGames",
+      "installedVersion": "v0.1.9.20637",
+      "installedSourceDate": "2026-10-09",
+      "pageUrl": "https://ankergames.net/game/paralives",
+      "remoteVersion": "v0.1.9b.20995",
+      "remoteSourceDate": "2026-10-17",
+      "status": "update",
+      "reason": "date"
+    },
+    {
+      "title": "Parkitect",
+      "installationId": "62f4f660-ef79-42ae-a099-777f0bf21763",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.12f",
+      "installedSourceDate": "2026-09-19",
+      "pageUrl": "https://ankergames.net/game/parkitect",
+      "remoteVersion": "v1.12f7",
+      "remoteSourceDate": "2026-10-17",
+      "status": "update",
+      "reason": "date"
+    },
+    {
+      "title": "Phasmophobia",
+      "installationId": "077ffea4-1267-4ab8-9211-6fd17e568287",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Punch Club 2: Fast Forward (v1.101)",
+      "installationId": "90184b6c-d840-4bcb-acec-8e46751bcfa7",
+      "provider": "SteamRIP",
+      "installedVersion": "v1.101",
+      "installedSourceDate": "2024-09-04",
+      "pageUrl": "https://steamrip.com/punch-club-2-fast-forward-free-download-g1/",
+      "remoteVersion": "v1.101",
+      "remoteSourceDate": "2024-09-04",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "PVZ Replanted",
+      "installationId": "5a35e75e-d47e-46ed-9061-d22dfff5e6ff",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "REPLACED",
+      "installationId": "7cc7caf6-11d8-41b3-a7c5-8d1481d9dba4",
+      "provider": "AnkerGames",
+      "installedVersion": "V4.0.67",
+      "installedSourceDate": "2026-06-27",
+      "pageUrl": "https://ankergames.net/game/replaced",
+      "remoteVersion": "Build 23920604",
+      "remoteSourceDate": "2026-06-27",
+      "status": "unknown",
+      "reason": "unknown"
+    },
+    {
+      "title": "Romestead",
+      "installationId": "8685f464-e492-458b-8616-826036e3ea3c",
+      "provider": "AnkerGames",
+      "installedVersion": "v0.26.2_4",
+      "installedSourceDate": "2026-10-12",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "S.T.A.L.K.E.R 2 Heart of Chornobyl",
+      "installationId": "b04fd592-ca43-43dd-91f7-994adadd5064",
+      "provider": "AnkerGames",
+      "installedVersion": "v2.0.6",
+      "installedSourceDate": "2026-09-19",
+      "pageUrl": "https://ankergames.net/game/s-t-a-l-k-e-r-2-heart-of-chornobyl",
+      "remoteVersion": "v2.0.6",
+      "remoteSourceDate": "2026-09-19",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "ShantyTown",
+      "installationId": "015a9418-6ee8-46d9-b193-4a05e265d97e",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "SimCity 2013",
+      "installationId": "82e4c3a5-c57d-468f-ad74-b48d3b0f5166",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Skate",
+      "installationId": "50ebbb6d-22eb-4442-a595-7be9a8260e69",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Slay the Spire",
+      "installationId": "067de045-3322-4cc9-aa13-424662ff80ee",
+      "provider": "AnkerGames",
+      "installedVersion": "v2.3.4",
+      "installedSourceDate": "2026-03-06",
+      "pageUrl": "https://ankergames.net/game/slay-the-spire",
+      "remoteVersion": "v2.3.4",
+      "remoteSourceDate": "2026-03-06",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Sonic Mania",
+      "installationId": "f30263fc-ac16-484b-bb07-9aacc56fbc40",
+      "provider": "AnkerGames",
+      "installedVersion": "Build 3617885",
+      "installedSourceDate": "2026-09-03",
+      "pageUrl": "https://ankergames.net/game/sonic-mania",
+      "remoteVersion": "Build 3617885",
+      "remoteSourceDate": "2026-09-03",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Soulframe",
+      "installationId": "c5791857-4e97-490c-bcca-1cb5371fac8d",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "STAR WARS Zero Company",
+      "installationId": "c5b1aef6-e90e-4923-b90c-87ff6712a77f",
+      "provider": "AnkerGames",
+      "installedVersion": "Build 25513890",
+      "installedSourceDate": "2026-09-29",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "Stoneshard",
+      "installationId": "eb516288-7546-4ce5-ad50-83f14895eacb",
+      "provider": "AnkerGames",
+      "installedVersion": "V 46125.46",
+      "installedSourceDate": "2026-08-18",
+      "pageUrl": "https://ankergames.net/game/stoneshard",
+      "remoteVersion": "v0.9.4.25",
+      "remoteSourceDate": "2026-08-18",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "Stonewards",
+      "installationId": "3c0b078c-d37f-4632-bec8-b07b2bc1fbbf",
+      "provider": "Online-Fix",
+      "installedVersion": "v0.1.5",
+      "installedSourceDate": "2026-08-17",
+      "pageUrl": "https://online-fix.me/games/adventures/18197-stonewards-po-seti.html",
+      "remoteSourceDate": "2026-08-17",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "Super Woden GP 2",
+      "installationId": "85fa81e0-b3be-4172-b2bd-5c92b7a57de2",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Swag and Sorcery",
+      "installationId": "be2d7821-2f90-4a1c-ab53-2b77145fa943",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Tabletop Simulator (v14.2.2 + Co-op)",
+      "installationId": "385a78bd-8b04-452d-985b-c85c40d24ac7",
+      "provider": "SteamRIP",
+      "installedVersion": "v14.2.2 (Build 22252224)",
+      "installedSourceDate": "2026-09-12",
+      "pageUrl": "https://steamrip.com/tabletop-simulator-free-download-a2/",
+      "remoteVersion": "v14.2.2 (Build 22252224)",
+      "remoteSourceDate": "2026-09-12",
+      "status": "current",
+      "reason": "same"
+    },
+    {
+      "title": "TCG Card Shop Simulator",
+      "installationId": "b79dc18a-f118-4f58-97ca-9f905196f6ef",
+      "provider": "AnkerGames",
+      "installedVersion": "V 2.06",
+      "installedSourceDate": "2026-09-18",
+      "pageUrl": "https://ankergames.net/game/tcg-card-shop-simulator",
+      "remoteVersion": "v1.02",
+      "remoteSourceDate": "2026-09-18",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "The Settlers 4 Gold",
+      "installationId": "1ce29111-3bf5-4c36-ac21-8ed215b87c4f",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Transport Fever 3",
+      "installationId": "e6d0ca6d-678e-4b39-8778-62481c97f7bc",
+      "provider": "AnkerGames",
+      "installedVersion": "v40420",
+      "installedSourceDate": "2026-10-09",
+      "pageUrl": "https://ankergames.net/game/transport-fever-3",
+      "remoteVersion": "v40420",
+      "remoteSourceDate": "2026-10-15",
+      "status": "update",
+      "reason": "date"
+    },
+    {
+      "title": "Transport Tycoon",
+      "installationId": "9de962c3-ab46-4f9e-bbd6-e9edc352ac14",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Warhammer 40,000: Rogue Trader",
+      "installationId": "3224b5f2-5d56-4ead-8393-115cadb99167",
+      "provider": "AnkerGames",
+      "installedVersion": "V 1.08",
+      "installedSourceDate": "2026-09-04",
+      "pageUrl": "https://ankergames.net/game/warhammer-40-000-rogue-trader",
+      "remoteVersion": "v1.6.1.514",
+      "remoteSourceDate": "2026-09-04",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "Warhammer 40,000: Space Marine 2",
+      "installationId": "edc01404-9492-43bc-8cfb-b59ea757601c",
+      "provider": "AnkerGames",
+      "installedVersion": "v15.1",
+      "installedSourceDate": "2026-10-09",
+      "status": "unavailable",
+      "reason": "A fonte exige interação no navegador ou está indisponível (HTTP 403)."
+    },
+    {
+      "title": "Wartales",
+      "installationId": "a7d7d7e4-8ac2-44c6-98f1-bdedd6d31a9e",
+      "provider": "AnkerGames",
+      "installedVersion": "V 46125.46",
+      "installedSourceDate": "2026-09-19",
+      "pageUrl": "https://ankergames.net/game/wartales",
+      "remoteVersion": "v1.0.48274",
+      "remoteSourceDate": "2026-09-19",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "Whisper Mountain Outbreak",
+      "installationId": "5fbc5af0-d06a-41b2-ac8a-4fe929049c82",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    },
+    {
+      "title": "Windrose",
+      "installationId": "aa822abd-975c-4974-9616-05dd15962274",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.1.45",
+      "installedSourceDate": "2026-09-03",
+      "pageUrl": "https://ankergames.net/game/windrose",
+      "remoteVersion": "v0.10.0.9.32",
+      "remoteSourceDate": "2026-09-03",
+      "status": "current",
+      "reason": "version"
+    },
+    {
+      "title": "ZERO Sievert",
+      "installationId": "c0e52f0c-c9f9-45ca-a04d-3373354f6970",
+      "provider": "AnkerGames",
+      "installedVersion": "v1.3.3",
+      "installedSourceDate": "2026-09-13",
+      "pageUrl": "https://ankergames.net/game/zero-sievert",
+      "remoteVersion": "v1.4.2",
+      "remoteSourceDate": "2026-10-17",
+      "status": "update",
+      "reason": "date"
+    },
+    {
+      "title": "Zombieville USA 3-D",
+      "installationId": "32c288a4-e119-4c9d-9aaa-ac0a5c177d07",
+      "provider": "Sideload / Piratas",
+      "status": "unlinked",
+      "reason": "Fonte ou página da release instalada não registrada; não é possível confirmar update."
+    }
+  ],
+  "retried": 17
+}

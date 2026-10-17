@@ -1,4 +1,4 @@
-# Review das Alterações - 16/10/2026
+# Review das Alterações - 17/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -766,6 +766,16 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Leitor Público e Resiliente do r/CrackWatch para Status de DRM (`drmReddit.ts`, `drmRedditParser.ts`)**: Consulta em sessão Electron isolada e sem login, busca otimizada com aliases numéricos, prevenção contra tradução automática de nomes de grupos, tratamento independente de HTTP 403 e 429 com `Retry-After`, cache de 15 minutos e validação com 60 testes em 11 suítes.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 100% dos testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 50. Prioridade de LAST UPDATE em Atualizações Externas, Tag de Data Editável no Card, Status Manual de DRM e Resolução Boltgun 2
+* **Problema:** A comparação de atualizações de jogos da loja Piratas priorizava número de versão, falhando quando fontes atualizavam jogos sem alterar a numeração textual; versões 1.0 eram preenchidas artificialmente gerando dados falsos; datas de releases incorretas não podiam ser ajustadas pelo usuário; e inconsistências entre provedores de status de DRM (Denuvo/quebras) não permitiam correção manual pelo usuário nem resolução de desafios interativos na fonte.
+* **Solução:**
+  - **Motor Canônico de Atualizações com Prioridade LAST UPDATE + Versão (Regra 17/10/2026)**: Gravação atômica do par `LAST UPDATE` da release na fonte + versão em cada instalação/update. A data mais recente no provedor decide o update mesmo com texto de versão idêntico; datas iguais ou ausentes recorrem à comparação de versão; fim do preenchimento fictício de "v1.0" em instalações externas; cards da loja Piratas exibem versão e `LAST UPDATE` formatada em `dd/mm/aa` (ou "Data não registrada").
+  - **Tag LAST UPDATE Editável nas Configurações do Card (`InstalledReleaseLabel.tsx`)**: Possibilidade de editar diretamente a data da release instalada no card para corrigir dados divergentes ou orientar futuras checagens com o provedor, persistindo em `state.json` (`sourceDate` e `uploadDate`) e no manifesto físico `.ghost-manifest.json`.
+  - **Editor e Override de Status Manual de DRM (`ReleaseDrmEditor.tsx`, `drmOverrides.ts`)**: Implementação de modal Cyber Neon permitindo ao usuário definir e sobrepor manualmente o status de DRM (ex: *Quebra Relatada*, *Sem DRM*, *Não Quebrado*, *Não Confirmado*), com badge explicativo "Definido pelo usuário" e preservação do resultado automático em segundo plano.
+  - **Acesso Interativo por Clique na Fonte de DRM (HizSearch e SkidrowReloaded)**: Abertura de sessão Electron persistente em janela centralizada para resolução pontual de desafios/Cloudflare com validação no conteúdo real do jogo.
+  - **Evidência DRM em Anúncios de Release e Resolução Boltgun 2 (`DRM_BOLTGUN_2.md`)**: Validação de posts completos de grupos oficiais da cena com URL canônica, categoria de PC e metadados, respeitando limites e Retry-After de provedores.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), novos testes unitários Jest em `drmOverrides`, `drmContinuity`, `installedReleaseLabel` e `drmBatch`, e preservação absoluta da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -781,6 +791,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [docs/ALAZTERFLIX_FOLDER_TITLES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ALAZTERFLIX_FOLDER_TITLES.md)
 - [NEW] [docs/ALAZTERFLIX_PLAYER_STREAMING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ALAZTERFLIX_PLAYER_STREAMING.md)
 - [NEW] [docs/CRACKWATCH_DRM_SOURCE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/CRACKWATCH_DRM_SOURCE.md)
+- [NEW] [docs/DRM_BOLTGUN_2.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DRM_BOLTGUN_2.md)
+- [MODIFY] [docs/DRM_MANUAL.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DRM_MANUAL.md)
+- [NEW] [docs/DRM_MANUAL_STATUS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DRM_MANUAL_STATUS.md)
+- [NEW] [docs/audits/external-releases-2026-10-17.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/audits/external-releases-2026-10-17.md)
+- [NEW] [docs/audits/external-releases-2026-10-17.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/audits/external-releases-2026-10-17.json)
+- [NEW] [docs/audits/external-releases-2026-10-17-retry.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/audits/external-releases-2026-10-17-retry.json)
+- [NEW] [scripts/audit-external-releases.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/audit-external-releases.ts)
 - [NEW] [docs/DIRECT_DOWNLOAD_ENGINES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DIRECT_DOWNLOAD_ENGINES.md)
 - [NEW] [docs/DIRECT_DOWNLOAD_LEARNING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DIRECT_DOWNLOAD_LEARNING.md)
 - [NEW] [docs/ONLINE_FIX_DIRECT_DOWNLOAD.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ONLINE_FIX_DIRECT_DOWNLOAD.md)
@@ -870,6 +887,27 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/releases/drmRedditParser.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmRedditParser.ts)
 - [MODIFY] [src/backend/utils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils.ts)
 - [MODIFY] [src/backend/utils/aborthandler/aborthandler.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/aborthandler/aborthandler.ts)
+- [MODIFY] [src/backend/plugins/externalVersion.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/externalVersion.ts)
+- [MODIFY] [src/backend/plugins/ghostManifest.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ghostManifest.ts)
+- [MODIFY] [src/backend/plugins/__tests__/externalGames.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/externalGames.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/externalUpdateCheck.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/externalUpdateCheck.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/externalVersion.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/externalVersion.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/gameReleaseComparator.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/gameReleaseComparator.test.ts)
+- [NEW] [src/backend/plugins/__tests__/installedReleaseLabel.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/installedReleaseLabel.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/websiteSource.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/websiteSource.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/drmBatch.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/drmBatch.test.ts)
+- [NEW] [src/backend/releases/__tests__/drmContinuity.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/drmContinuity.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/drmManual.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/drmManual.test.ts)
+- [NEW] [src/backend/releases/__tests__/drmOverrides.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/drmOverrides.test.ts)
+- [NEW] [src/backend/releases/__tests__/drmPublicPage.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/drmPublicPage.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/drmSites.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/drmSites.test.ts)
+- [NEW] [src/backend/releases/drmAccessWindow.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmAccessWindow.ts)
+- [NEW] [src/backend/releases/drmContinuity.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmContinuity.ts)
+- [MODIFY] [src/backend/releases/drmManual.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmManual.ts)
+- [NEW] [src/backend/releases/drmOverrides.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmOverrides.ts)
+- [NEW] [src/backend/releases/drmPublicPage.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmPublicPage.ts)
+- [MODIFY] [src/backend/releases/drmSites.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmSites.ts)
+- [MODIFY] [src/backend/releases/drmSitesParser.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmSitesParser.ts)
 
 ### Common & Preload
 - [MODIFY] [src/common/types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
@@ -883,6 +921,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/common/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/directDownloadLearning.ts)
 - [MODIFY] [src/preload/api/plugins.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/plugins.ts)
 - [NEW] [src/preload/directDownloadLearning.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/directDownloadLearning.ts)
+- [NEW] [src/common/externalReleaseInfo.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalReleaseInfo.ts)
+- [MODIFY] [src/common/releaseDrm.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/releaseDrm.ts)
+- [MODIFY] [src/preload/api/releases.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/releases.ts)
 
 ### Frontend
 - [MODIFY] [src/frontend/App.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.tsx)
@@ -912,6 +953,12 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/frontend/components/DirectDownloadWait/](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/DirectDownloadWait/)
 - [NEW] [src/frontend/screens/Alazterflix/videoBuffering.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/videoBuffering.ts)
 - [NEW] [src/frontend/screens/ExternalGames/SearchStatus.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/SearchStatus.tsx)
+- [MODIFY] [src/frontend/helpers/releaseDrmRequests.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/releaseDrmRequests.ts)
+- [MODIFY] [src/frontend/screens/Library/components/InlineGameSettings/GameVersionBadge.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/GameVersionBadge.tsx)
+- [NEW] [src/frontend/screens/Library/components/InlineGameSettings/InstalledReleaseLabel.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/InstalledReleaseLabel.tsx)
+- [MODIFY] [src/frontend/screens/Releases/ReleaseDrm.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseDrm.tsx)
+- [NEW] [src/frontend/screens/Releases/ReleaseDrmEditor.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseDrmEditor.tsx)
+- [MODIFY] [src/frontend/screens/Releases/drm.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/drm.css)
 
 
 

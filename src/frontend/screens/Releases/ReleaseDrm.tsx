@@ -9,17 +9,24 @@ import {
   faUnlock
 } from '@fortawesome/free-solid-svg-icons'
 import type { ReleaseProduct } from 'common/types/releases'
-import type { ReleaseDrmReport, ReleaseDrmStatus } from 'common/releaseDrm'
+import type {
+  ReleaseDrmReport,
+  ReleaseDrmStatus,
+  ReleaseDrmSource
+} from 'common/releaseDrm'
 import {
   releaseDrmLabels,
   releaseDrmSourceLabels,
   safeDrmSourceUrl,
-  isConfirmedDrmReport
+  isConfirmedDrmReport,
+  displayedDrmStatus
 } from 'common/releaseDrm'
+import { ReleaseDrmEditor } from './ReleaseDrmEditor'
 import {
   requestReleaseDrm as request,
   subscribeReleaseDrm,
-  hasSavedDrmConfirmation
+  hasSavedDrmConfirmation,
+  publishReleaseDrm
 } from 'frontend/helpers/releaseDrmRequests'
 import './drm.css'
 
@@ -87,8 +94,8 @@ export function ReleaseDrmBadge({
       unsubscribe()
     }
   }, [product.id, product.title])
-  const status = report?.status || 'unknown'
-  const label = `DRM da versão PC: ${busy ? 'Consultando fontes' : releaseDrmLabels[status]}${report?.stale ? ' · consulta anterior' : ''}`
+  const status = displayedDrmStatus(report)
+  const label = `DRM da versão PC: ${busy ? 'Consultando fontes' : releaseDrmLabels[status]}${report?.manualOverride ? ' · definido pelo usuário' : report?.stale ? ' · consulta anterior' : ''}`
   return (
     <button
       ref={ref}
@@ -108,7 +115,13 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
+  const [accessingSource, setAccessingSource] = useState<string | null>(null)
+  const [sourceMessage, setSourceMessage] = useState('')
+  const sourceAction = useRef(0)
   useEffect(() => {
+    sourceAction.current++
+    setAccessingSource(null)
+    setSourceMessage('')
     let alive = true
     const unsubscribe = subscribeReleaseDrm(product, (report) => {
       if (alive) setReport(report)
@@ -127,16 +140,55 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
       })
     return () => {
       alive = false
+      sourceAction.current++
       unsubscribe()
     }
   }, [product.id, product.title, revision])
-  const status = report?.status || 'unknown'
+  const status = displayedDrmStatus(report)
   const primary = report?.sources.find(
     (source) => source.protection || source.crackDate || source.group
   )
-  const open = (url: string) => {
-    const safe = safeDrmSourceUrl(url)
-    if (safe) void window.api.openExternalUrl(safe)
+  const open = async (source: ReleaseDrmSource) => {
+    const safe = safeDrmSourceUrl(source.url)
+    if (!safe) return
+    if (source.name !== 'HizSearch' && source.name !== 'SkidrowReloaded') {
+      void window.api.openExternalUrl(safe)
+      return
+    }
+    const action = ++sourceAction.current
+    setAccessingSource(source.name)
+    setSourceMessage('')
+    setError('')
+    try {
+      const updated = await window.api.releasesDrmOpenSource({
+        id: product.id,
+        title: product.title,
+        url: safe,
+        source: source.name
+      })
+      publishReleaseDrm(updated)
+      const result = updated.sources.find((item) => item.name === source.name)
+      if (sourceAction.current === action)
+        setSourceMessage(
+          result?.requiresVerification
+            ? result.notice || 'A fonte ainda exige verificação.'
+            : result?.status
+              ? `Fonte consultada: ${releaseDrmLabels[result.status]}.`
+              : result?.availability === 'listed'
+                ? 'Jogo encontrado na sessão do Ghost. A listagem não confirma quebra de DRM.'
+                : result?.notice ||
+                  'Não foi possível confirmar o jogo nesta consulta.'
+        )
+    } catch (error) {
+      if (sourceAction.current === action)
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível liberar o acesso à fonte.'
+        )
+    } finally {
+      if (sourceAction.current === action) setAccessingSource(null)
+    }
   }
   return (
     <section className="nr-drm-details" aria-label="Status do DRM da versão PC">
@@ -144,7 +196,7 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
         <h3>DRM · versão PC</h3>
         <button
           aria-label="Atualizar status do DRM"
-          disabled={busy}
+          disabled={busy || !!accessingSource}
           onClick={() => setRevision((value) => value + 1)}
         >
           <Icon icon={faRotate} spin={busy} />
@@ -156,6 +208,19 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
           ? 'Consultando fontes de DRM…'
           : releaseDrmLabels[status]}
       </p>
+      {report?.manualOverride && (
+        <p className="nr-drm-note nr-drm-manual-label">
+          Definido pelo usuário em{' '}
+          {new Date(report.manualOverride.updatedAt).toLocaleString('pt-BR')}.
+          <br />
+          Resultado automático das fontes: {releaseDrmLabels[report.status]}.
+        </p>
+      )}
+      <ReleaseDrmEditor
+        key={product.id + ':' + product.title}
+        game={product}
+        report={report}
+      />
       {primary &&
         (primary.protection || primary.crackDate || primary.group) && (
           <dl>
@@ -181,7 +246,15 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
         )}
       {report?.sources.map((source, index) => (
         <div className="nr-drm-source" key={source.url + index}>
-          <button onClick={() => open(source.url)}>
+          <button
+            disabled={!!accessingSource}
+            title={
+              source.name === 'HizSearch' || source.name === 'SkidrowReloaded'
+                ? 'Abrir na sessão do Ghost para concluir a verificação e consultar esta fonte'
+                : 'Abrir fonte no navegador'
+            }
+            onClick={() => void open(source)}
+          >
             {releaseDrmSourceLabels[source.name]}
           </button>
           <span>
@@ -220,6 +293,17 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
           )}
         </div>
       ))}
+      {accessingSource && (
+        <p className="nr-drm-note" role="status">
+          Conclua a verificação na janela da fonte. O Ghost consultará o jogo em
+          seguida.
+        </p>
+      )}
+      {sourceMessage && (
+        <p className="nr-drm-note" role="status">
+          {sourceMessage}
+        </p>
+      )}
       {report && (
         <small className="nr-drm-checked">
           {report.stale ? 'Consulta anterior preservada' : 'Consultado em'} ·{' '}
@@ -231,8 +315,9 @@ export function ReleaseDrmDetails({ product }: { product: ReleaseProduct }) {
       )}
       {report && isConfirmedDrmReport(report) && (
         <p className="nr-drm-note">
-          Resultado salvo. Consultas automáticas encerradas para este jogo. Use
-          Atualizar ou Verificar DRM para consultar novamente.
+          {report.manualOverride
+            ? 'Status manual salvo. Consultas automáticas encerradas para este jogo. Atualizar consulta as fontes; Voltar ao automático remove sua escolha.'
+            : 'Resultado salvo. Consultas automáticas encerradas para este jogo. Use Atualizar ou Verificar DRM para consultar novamente.'}
         </p>
       )}
       {status === 'unknown' && !busy && (

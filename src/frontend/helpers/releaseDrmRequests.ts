@@ -1,6 +1,6 @@
 import type { ReleaseProduct } from 'common/types/releases'
-import type { ReleaseDrmReport } from 'common/releaseDrm'
-import { isConfirmedDrmReport } from 'common/releaseDrm'
+import type { ReleaseDrmReport, ManualDrmStatus } from 'common/releaseDrm'
+import { isConfirmedDrmReport, displayedDrmStatus } from 'common/releaseDrm'
 
 type Game = Pick<ReleaseProduct, 'id' | 'title'>
 const keyOf = (game: Game) => game.id + ':' + game.title
@@ -30,7 +30,7 @@ export function requestReleaseDrm(
     (previous.confirmed || Date.now() - previous.at < 15 * 60000)
   )
     return previous.promise
-  const promise = window.api
+  const promise: Promise<ReleaseDrmReport> = window.api
     .releasesDrm({
       id: game.id,
       title: game.title,
@@ -40,6 +40,8 @@ export function requestReleaseDrm(
     })
     .then((report) => {
       const entry = cache.get(key)
+      if (entry && entry.promise !== promise && entry.resolved)
+        return entry.promise
       if (entry?.promise === promise) {
         entry.resolved = true
         entry.confirmed = isConfirmedDrmReport(report)
@@ -54,6 +56,27 @@ export function requestReleaseDrm(
     if (cache.get(key)?.promise === promise) cache.delete(key)
   })
   return promise
+}
+
+export function publishReleaseDrm(report: ReleaseDrmReport) {
+  const key = keyOf(report)
+  cache.set(key, {
+    at: Date.now(),
+    promise: Promise.resolve(report),
+    resolved: true,
+    confirmed: isConfirmedDrmReport(report)
+  })
+  listeners.get(key)?.forEach((listener) => listener(report))
+  return report
+}
+
+export function setManualReleaseDrm(
+  game: Game,
+  status: ManualDrmStatus | null
+) {
+  return window.api
+    .releasesDrmSetManual({ id: game.id, title: game.title, status })
+    .then(publishReleaseDrm)
 }
 
 export const hasSavedDrmConfirmation = (game: Game) =>
@@ -124,7 +147,7 @@ export async function refreshReleaseDrmBatch(
               )
             )
               progress.hizVerification = true
-            if (report.status === 'unknown' || report.stale)
+            if (displayedDrmStatus(report) === 'unknown' || report.stale)
               progress.unconfirmed++
           } catch {
             progress.failed++

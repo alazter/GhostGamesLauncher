@@ -283,6 +283,17 @@ interface AsyncIPCFunctions {
     manual?: 'general' | 'hiz'
   }) => Promise<ReleaseDrmReport>
   releasesDrmVerifyHiz: () => Promise<boolean>
+  releasesDrmOpenSource: (query: {
+    id: string
+    title: string
+    url: string
+    source: import('common/releaseDrm').InteractiveDrmSource
+  }) => Promise<ReleaseDrmReport>
+  releasesDrmSetManual: (query: {
+    id: string
+    title: string
+    status: import('common/releaseDrm').ManualDrmStatus | null
+  }) => Promise<ReleaseDrmReport>
   releasesDrmEndManual: () => Promise<void>
   releasesNotifyToday: (
     entries: Array<{ id: string; title: string }>
@@ -653,6 +664,10 @@ interface AsyncIPCFunctions {
   externalGamesInstallLocal: () => Promise<ExternalActionResult>
   externalGamesAction: (
     action: ExternalGameAction
+  ) => Promise<ExternalActionResult>
+  externalGamesSetReleaseDate: (
+    installationId: string,
+    sourceDate: string
   ) => Promise<ExternalActionResult>
   externalGamesGetOrCreateInstallation: (
     appName: string,

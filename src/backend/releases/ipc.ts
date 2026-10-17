@@ -3,11 +3,17 @@ import { addHandler, sendFrontendMessage } from 'backend/ipc'
 import { getMainWindow } from 'backend/main_window'
 import { ensurePermanentAppIcon } from 'backend/constants/paths'
 import { getReleaseCatalog, getReleaseDetails } from './catalog'
-import { getReleaseDrm } from './drm'
+import { getReleaseDrm, setReleaseDrmManual, openReleaseDrmSource } from './drm'
 
 export function registerReleasesIPC() {
   addHandler('releasesCatalog', (_event, query) => getReleaseCatalog(query))
   addHandler('releasesDrm', (_event, query) => getReleaseDrm(query))
+  addHandler('releasesDrmOpenSource', (_event, query) =>
+    openReleaseDrmSource(query)
+  )
+  addHandler('releasesDrmSetManual', (_event, query) =>
+    setReleaseDrmManual(query)
+  )
   addHandler('releasesDrmVerifyHiz', async () =>
     (await import('./drmManual')).verifyHizAccess()
   )

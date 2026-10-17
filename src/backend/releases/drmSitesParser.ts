@@ -1,6 +1,7 @@
 import { parseDocument, DomUtils } from 'htmlparser2'
 import type { ReleaseDrmSource, ReleaseDrmStatus } from 'common/releaseDrm'
 import { normalizeDrmTitle, safeDrmSourceUrl } from 'common/releaseDrm'
+import { exactDate } from './parser'
 
 type Element = ReturnType<typeof DomUtils.findAll>[number]
 const text = (element: Element) => DomUtils.textContent(element).trim()
@@ -23,6 +24,14 @@ export function drmPageUnavailable(html: string) {
   if (/under maintenance|undergoing maintenance/i.test(headings))
     return 'Site em manutenção; consulte o link da fonte mais tarde.'
   if (
+    /rate limited|too many requests|error 1015/i.test(
+      DomUtils.textContent(root)
+    )
+  )
+    return 'Consulta indisponível: limite temporário de consultas atingido; aguarde antes de tentar novamente.'
+  if (/access denied/i.test(headings))
+    return 'A fonte restringiu o acesso nesta conexão; consulte o link mais tarde.'
+  if (
     /just a moment|verify.*human|verification required|attention required/i.test(
       headings
     ) ||
@@ -42,6 +51,94 @@ function matchingTitle(value: string, title: string, releaseName = false) {
         .replace(/\s+v\d+(?:\.\d+)+(?:\s+(?:build\s*)?\d+)?$/i, '')
     : value
   return !!title.trim() && normalizeDrmTitle(clean) === normalizeDrmTitle(title)
+}
+
+/** A complete scene-release announcement, not a download link or a bare scene tag. */
+function skidrowAnnouncement(
+  html: string,
+  title: string,
+  url: string
+): ReleaseDrmSource | undefined {
+  const root = parseDocument(html)
+  const canonical = DomUtils.findAll(
+    (e) => e.name === 'link' && e.attribs.rel === 'canonical',
+    root.children
+  )[0]?.attribs.href
+  if (canonical !== url) return undefined
+  const post = DomUtils.findAll(
+    (e) =>
+      /(?:^|\s)post-extended(?:\s|$)/.test(e.attribs.class || '') &&
+      !excluded(e),
+    root.children
+  )[0]
+  if (!post) return undefined
+  const heading = post.children.find(
+    (e) => DomUtils.isTag(e) && e.name === 'h2'
+  )
+  if (
+    !heading ||
+    !DomUtils.isTag(heading) ||
+    !matchingTitle(text(heading), title, true)
+  )
+    return undefined
+  const group = text(heading).match(
+    /-(RUNE|CODEX|SKIDROW|RELOADED|TENOKE|FLT|RAZOR1911|voices38)$/i
+  )?.[1]
+  if (
+    !group ||
+    /\b(update|hotfix|repack|dlc|demo|bypass|hypervisor)\b/i.test(text(heading))
+  )
+    return undefined
+  const meta = DomUtils.findAll(
+    (e) => /(?:^|\s)meta(?:\s|$)/.test(e.attribs.class || '') && !excluded(e),
+    post.children
+  )[0]
+  if (!meta) return undefined
+  const categories = DomUtils.findAll(
+    (e) => e.name === 'a' && /category/.test(e.attribs.rel || ''),
+    meta.children
+  ).map(text)
+  if (
+    !categories.includes('PC GAMES') ||
+    categories.some((category) => /UPDATE|REPACK/i.test(category))
+  )
+    return undefined
+  const posted = exactDate(
+    text(meta).match(/^Posted\s+(.+?)\s+in\b/i)?.[1] || ''
+  )
+  if (!posted || posted > new Date().toISOString().slice(0, 10))
+    return undefined
+  const paragraphs = DomUtils.findAll(
+    (e) => e.name === 'p' && !excluded(e),
+    post.children
+  ).map(text)
+  const metadata = paragraphs.find((value) => /^Title:\s*/.test(value))
+  const game = metadata?.match(/^Title:\s*([^\r\n]+)/)?.[1]
+  const releaseLabel = metadata?.match(/Release Date:\s*([^\r\n]+)/)?.[1] || ''
+  const releaseDate = exactDate(
+    releaseLabel.replace(/^(\d{1,2})\s+([A-Za-z]+),?\s+(\d{4})$/, '$2 $1, $3')
+  )
+  if (
+    !game ||
+    !matchingTitle(game, title) ||
+    !releaseDate ||
+    releaseDate > posted ||
+    !paragraphs.some(
+      (value) =>
+        value.startsWith(text(heading) + '\n') && /\bSize:\s*\d/.test(value)
+    )
+  )
+    return undefined
+  return {
+    name: 'SkidrowReloaded',
+    url,
+    title: text(heading),
+    status: 'cracked',
+    group,
+    availability: 'listed',
+    observedAt: new Date().toISOString(),
+    category: `Anúncio do grupo publicado em ${posted.split('-').reverse().join('/')}; quebra relatada pela fonte.`
+  }
 }
 
 /** Search results only identify a page; they never supply a DRM verdict. */
@@ -98,9 +195,15 @@ export function parseDrmSiteGame(
         parsedUrl.pathname === '/'
   )
     return undefined
+  if (name === 'SkidrowReloaded') {
+    const announcement = skidrowAnnouncement(html, title, safe)
+    if (announcement) return announcement
+  }
   const root = parseDocument(html)
   const heading = DomUtils.findAll(
-    (e) => e.name === 'h1' && !excluded(e),
+    (e) =>
+      (e.name === 'h1' || (name === 'SkidrowReloaded' && e.name === 'h2')) &&
+      !excluded(e),
     root.children
   ).find((e) => matchingTitle(text(e), title, name === 'SkidrowReloaded'))
   if (!heading) return undefined

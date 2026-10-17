@@ -6,6 +6,8 @@ import { GameInfo } from 'common/types'
 import { DetectedVersionResult } from 'common/types/ipc'
 import { useExternalGames, SourceBadge } from 'frontend/screens/ExternalGames/shared'
 import { openChooseDownloadModal } from 'frontend/state/ChooseDownloadModal'
+import { installedReleaseCandidate, formatSourceReleaseDate } from 'common/externalReleaseInfo'
+import InstalledReleaseLabel from './InstalledReleaseLabel'
 
 interface GameVersionBadgeProps {
   game: GameInfo
@@ -61,7 +63,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
       setLoading(true)
       try {
         const res: DetectedVersionResult | null = extInstallation
-          ? extInstallation.game.version ? { version: extInstallation.game.version, source: 'manifest', details: `Versão instalada registrada pelo Ghost · ${extInstallation.game.providerName}` } : null
+          ? installedReleaseCandidate(extInstallation.game).version ? { version: installedReleaseCandidate(extInstallation.game).version!, source: 'manifest', details: `Versão instalada registrada pelo Ghost · ${extInstallation.game.providerName}` } : null
           : await window.api.detectGameVersion(game)
         if (!isMounted) return
 
@@ -101,7 +103,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
     return () => {
       isMounted = false
     }
-  }, [game?.app_name, game?.version, extInstallation?.id, extInstallation?.game.version, extInstallation?.installedAt])
+  }, [game?.app_name, game?.version, extInstallation?.id, extInstallation?.game.version, extInstallation?.game.sourceDate, extInstallation?.game.uploadDate, extInstallation?.installedAt])
 
   if (loading && !versionInfo) {
     return (
@@ -135,7 +137,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
       }\n• Integridade protegida: a versão só é alterada através de atualização física ou migração de loja.`
 
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
       {extInstallation && (
         <SourceBadge
           name={extInstallation.game.providerName}
@@ -162,7 +164,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
           cursor: 'default',
           transition: 'all 0.2s ease',
           userSelect: 'none',
-          maxWidth: '220px',
+          maxWidth: '260px',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis'
@@ -198,15 +200,16 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
             style={{ fontSize: '11px', color: isPlaceholder ? '#888' : '#00ffff' }}
           />
         )}
-        <span
-          style={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {currentVer}
-        </span>
+        <InstalledReleaseLabel version={currentVer}
+          sourceDate={extInstallation ? installedReleaseCandidate(extInstallation.game).sourceDate : undefined}
+          disabled={checkingUpdate || extState.jobs.some(job => job.installationId === extInstallation?.id && !['completed', 'cancelled', 'error'].includes(job.status))}
+          onSaveDate={async sourceDate => {
+            const installation = extInstallation || await window.api.externalGamesGetOrCreateInstallation(game.app_name, game)
+            if (!installation) throw new Error('Não foi possível vincular a instalação do jogo.')
+            const result = await window.api.externalGamesSetReleaseDate(installation.id, sourceDate)
+            if (!result.success) throw new Error(result.error || 'Não foi possível salvar a data da release.')
+            setCheckError('')
+          }} />
       </div>
 
       {extInstallation?.availableUpdate && (
@@ -227,7 +230,7 @@ export default function GameVersionBadge({ game }: GameVersionBadgeProps) {
             })
           }}
           disabled={updating}
-          title={`Nova versão ${extInstallation.availableUpdate.version || ''} disponível via ${extInstallation.availableUpdate.providerName || extInstallation.game.providerName}!\nClique para escolher como baixar (Download Direto ou TorBox) e instalar na mesma pasta.`}
+          title={`Nova release ${extInstallation.availableUpdate.version || ''} · LAST UPDATE: ${formatSourceReleaseDate(extInstallation.availableUpdate.sourceDate || extInstallation.availableUpdate.uploadDate)} disponível via ${extInstallation.availableUpdate.providerName || extInstallation.game.providerName}!\nClique para escolher como baixar (Download Direto ou TorBox) e instalar na mesma pasta.`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',

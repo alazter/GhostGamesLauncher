@@ -130,6 +130,20 @@ export function registerPluginsIPC(): void {
       : ExternalGames.getInstance().action(action)
   )
   addHandler(
+    'externalGamesSetReleaseDate',
+    async (_event, installationId, sourceDate) => {
+      try {
+        ExternalGames.getInstance().setInstalledReleaseDate(installationId, sourceDate)
+        return { success: true }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Não foi possível salvar a data da release.'
+        }
+      }
+    }
+  )
+  addHandler(
     'externalGamesGetOrCreateInstallation',
     async (_event, appName: string, gameInfo?: any) =>
       ExternalGames.getInstance().getOrCreateInstallation(appName, gameInfo)

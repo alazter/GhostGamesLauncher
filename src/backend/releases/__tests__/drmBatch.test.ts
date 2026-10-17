@@ -2,12 +2,16 @@ import {
   drmBatchGames,
   refreshReleaseDrmBatch,
   requestReleaseDrm,
-  subscribeReleaseDrm
+  subscribeReleaseDrm,
+  publishReleaseDrm,
+  setManualReleaseDrm,
+  hasSavedDrmConfirmation
 } from 'frontend/helpers/releaseDrmRequests'
 import type { ReleaseProduct } from 'common/types/releases'
 import type { ReleaseDrmReport, ReleaseDrmStatus } from 'common/releaseDrm'
 
 const mockDrm = jest.fn()
+const mockSetManual = jest.fn()
 const game = (id: string, category = 'games'): ReleaseProduct => ({
   id,
   title: id,
@@ -39,10 +43,46 @@ beforeEach(() => {
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
     value: {
-      api: { releasesDrm: mockDrm, releasesDrmEndManual: async () => undefined }
+      api: {
+        releasesDrm: mockDrm,
+        releasesDrmSetManual: mockSetManual,
+        releasesDrmEndManual: async () => undefined
+      }
     }
   })
   mockDrm.mockImplementation(async ({ id }) => report(id))
+})
+
+it('publishes a user correction to all mounted views and prevents an older request overwriting it', async () => {
+  const product = game('manual-correction-race')
+  let resolve!: (value: ReleaseDrmReport) => void
+  mockDrm.mockImplementation(
+    () =>
+      new Promise<ReleaseDrmReport>((done) => {
+        resolve = done
+      })
+  )
+  const request = requestReleaseDrm(product)
+  const corrected = {
+    ...report(product.id, 'conflicting'),
+    manualOverride: {
+      status: 'cracked' as const,
+      updatedAt: new Date().toISOString()
+    }
+  }
+  mockSetManual.mockResolvedValue(corrected)
+  const listener = jest.fn()
+  const off = subscribeReleaseDrm(product, listener)
+  await setManualReleaseDrm(product, 'cracked')
+  expect(listener).toHaveBeenCalledWith(corrected)
+  expect(hasSavedDrmConfirmation(product)).toBe(true)
+  resolve(report(product.id, 'conflicting'))
+  expect(await request).toEqual(corrected)
+  expect(await requestReleaseDrm(product)).toEqual(corrected)
+  expect(mockDrm).toHaveBeenCalledTimes(1)
+  publishReleaseDrm(report(product.id, 'uncracked'))
+  expect(hasSavedDrmConfirmation(product)).toBe(false)
+  off()
 })
 afterEach(() => jest.restoreAllMocks())
 

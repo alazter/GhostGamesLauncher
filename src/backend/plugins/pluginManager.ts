@@ -5,6 +5,8 @@ import {
 } from './sourceSettings'
 import { initializeSourceEngines } from './sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
+import { installedReleaseCandidate } from 'common/externalReleaseInfo'
+import { externalTitleKey } from 'common/externalTitle'
 import {
   existsSync,
   readFileSync,
@@ -68,8 +70,7 @@ import {
   onlineFixGameUrl
 } from './onlineFixAccount'
 import {
-  isNewerGameRelease,
-  parseDateToIso
+  isNewerGameRelease
 } from './externalPolicy'
 import { builtinGameSources } from 'common/builtinGameSources'
 import { GlobalConfig } from 'backend/config'
@@ -147,7 +148,7 @@ export class PluginManager {
   private async pollExternalUpdates(
     force = false,
     options?: { scope?: string; appNames?: string[] }
-  ): Promise<{ success: boolean; message: string; updatesFound: number }> {
+  ): Promise<{ success: boolean; message: string; updatesFound: number; checked?: number; failed?: number }> {
     if (this.checkingUpdates) {
       return {
         success: false,
@@ -205,9 +206,13 @@ export class PluginManager {
       }
 
       let updatesFound = 0
+      let checked = 0
+      let failed = 0
       for (const installation of installations) {
         try {
           const result = await this.checkExternalUpdate(installation.id)
+          checked++
+          if (!result.success) failed++
           if (result?.update) {
             updatesFound++
             logInfo(
@@ -216,7 +221,8 @@ export class PluginManager {
             )
           }
         } catch {
-          // Falha individual silenciada
+          checked++
+          failed++
         }
         await new Promise((resolve) => setTimeout(resolve, 800))
       }
@@ -230,10 +236,14 @@ export class PluginManager {
       return {
         success: true,
         message:
-          updatesFound > 0
+          failed > 0
+            ? `${checked} jogo(s) consultado(s): ${updatesFound} atualização(ões); ${failed} verificação(ões) não confirmada(s).`
+            : updatesFound > 0
             ? `${updatesFound} atualização(ões) encontrada(s)!`
             : 'Todos os jogos verificados estão atualizados.',
-        updatesFound
+        updatesFound,
+        checked,
+        failed
       }
     } catch (err) {
       logError(
@@ -842,18 +852,16 @@ export class PluginManager {
       }
 
       // Se não encontrou via provider direto ou se providerId for sideload/desconhecido, busca pelo título nas fontes comunitárias ativas
-      if (!details || !details.version) {
+      if (!details || (!details.version && !details.sourceDate && !details.uploadDate)) {
         const titleToSearch = installation.game.title
         if (titleToSearch) {
           const searchRes = await this.searchExternalGames(titleToSearch)
-          const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
-          const cleanTarget = norm(titleToSearch)
+          const cleanTarget = externalTitleKey(titleToSearch)
           const matches = searchRes.games.filter((g) => {
-            const cleanG = norm(g.title)
             return (
-              cleanG === cleanTarget ||
-              cleanG.includes(cleanTarget) ||
-              cleanTarget.includes(cleanG)
+              externalTitleKey(g.title) === cleanTarget &&
+              g.platform === installation.game.platform &&
+              (!provider || g.providerId === installation.game.providerId)
             )
           })
           if (matches.length > 0) {
@@ -889,12 +897,8 @@ export class PluginManager {
         )
       }
 
-      const currentVersion = installation.game.version
-      const currentCandidate = {
-        version: currentVersion,
-        sourceDate: installation.game.sourceDate,
-        uploadDate: installation.game.uploadDate
-      }
+      const currentCandidate = installedReleaseCandidate(installation.game)
+      const currentVersion = currentCandidate.version
       const remoteCandidate = {
         version: details.version,
         sourceDate: details.sourceDate,
@@ -934,25 +938,6 @@ export class PluginManager {
       const message = update
         ? `Atualização disponível: ${update.version || 'Nova versão'}${dateInfo}`
         : 'Jogo já está na versão mais recente da fonte.'
-
-      // Se a instalação local não possuía sourceDate e está na mesma versão da loja, auto-atrela a data oficial
-      if (
-        !installation.game.sourceDate &&
-        (details.sourceDate || details.uploadDate) &&
-        currentVersion
-      ) {
-        const clean = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '')
-        if (clean(currentVersion) === clean(details.version || '')) {
-          const iso = details.sourceDate || parseDateToIso(details.uploadDate)
-          if (iso) {
-            ExternalGames.getInstance().attachSourceDate(
-              installation.id,
-              iso,
-              details.uploadDate
-            )
-          }
-        }
-      }
 
       ExternalGames.getInstance().recordUpdate(installation.id, update, message)
       return { success: true, update }

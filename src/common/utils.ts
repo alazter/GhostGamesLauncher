@@ -126,12 +126,24 @@ export function parseDateToIso(rawDate: string | undefined): string | undefined 
   if (!rawDate) return undefined
   let clean = rawDate
     .replace(/<[^>]+>/g, ' ')
-    .replace(/(?:last\s*updated|updated\s*on|published\s*on|posted\s*on|data\s*de\s*atualização|дата\s*обновления|date|data)[:\s_-]*/i, '')
+    .replace(/(?:last\s*update(?:d)?|updated\s*on|published\s*on|posted\s*on|data\s*de\s*atualização|дата\s*обновления|date|data)[:\s_-]*/i, '')
     .replace(/(?:at|às|в)\s+\d{1,2}:\d{2}(?::\d{2})?.*$/i, '')
     .replace(/\s+/g, ' ')
     .trim()
 
   if (!clean) return undefined
+
+  // Short dates shown by source sites, e.g. LAST UPDATE 16/10/26.
+  const shortDate = clean.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2})(?!\d)/)
+  if (shortDate) {
+    const year = 2000 + Number(shortDate[3])
+    const month = Number(shortDate[2])
+    const day = Number(shortDate[1])
+    const date = new Date(Date.UTC(year, month - 1, day))
+    if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day)
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return undefined
+  }
 
   // 1. ISO direto: YYYY-MM-DD (com ou sem timestamp T...)
   const isoMatch = clean.match(/(?:^|[^\d])(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s]|$|[^\d])/)
@@ -198,8 +210,8 @@ export interface ReleaseComparisonResult {
 }
 
 /**
- * Compare identified releases before publication dates. A page edit is not
- * evidence of a new package when its version is equal, older or incomparable.
+ * Compare the installed package's source release date with the source release
+ * date first. Installation/download timestamps must never be supplied here.
  */
 export function isNewerGameRelease(
   current: GameReleaseCandidate | undefined,
@@ -209,6 +221,10 @@ export function isNewerGameRelease(
 
   const curDate = (current.sourceDate ? parseDateToIso(current.sourceDate) : undefined) || parseDateToIso(current.uploadDate)
   const nextDate = (next.sourceDate ? parseDateToIso(next.sourceDate) : undefined) || parseDateToIso(next.uploadDate)
+
+  if (curDate && nextDate && curDate !== nextDate) {
+    return { isNewer: nextDate > curDate, reason: 'date' }
+  }
 
   if (current.version && next.version) {
     if (isNewerRelease(current.version, next.version)) {
@@ -239,7 +255,7 @@ export function isNewerGameRelease(
     return { isNewer: false, reason: 'unknown' }
   }
 
-  // Dates are a fallback only when at least one release has no version.
+  // Equal dates with unknown versions cannot establish a newer package.
   if (curDate && nextDate) {
     return { isNewer: nextDate > curDate, reason: nextDate === curDate ? 'same' : 'date' }
   }

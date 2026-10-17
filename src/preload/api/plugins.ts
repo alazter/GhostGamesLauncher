@@ -19,6 +19,9 @@ export const externalGamesAddPage = makeHandlerInvoker('externalGamesAddPage')
 export const externalGamesInstall = makeHandlerInvoker('externalGamesInstall')
 export const externalGamesInstallLocal = makeHandlerInvoker('externalGamesInstallLocal')
 export const externalGamesAction = makeHandlerInvoker('externalGamesAction')
+export const externalGamesSetReleaseDate = makeHandlerInvoker(
+  'externalGamesSetReleaseDate'
+)
 export const externalGamesGetOrCreateInstallation = makeHandlerInvoker('externalGamesGetOrCreateInstallation')
 export const externalGamesSyncPiratasSaves = makeHandlerInvoker('externalGamesSyncPiratasSaves')
 export const externalGamesDeleteGame = makeHandlerInvoker('externalGamesDeleteGame')
