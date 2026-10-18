@@ -198,3 +198,22 @@ Verificação final desta correção: **193 testes em 11 suítes**, TypeScript,
 lint dos cinco módulos envolvidos (zero erros/avisos) e build isolado
 aprovados. O teste Electron de recuperação também recebeu o arquivo correto
 após confirmação na página original.
+
+## Escolha do transporte sem espera na janela — 18/10/2026
+
+Ao escolher uma fonte válida, `submitChooseDownloadSource` fecha o seletor e
+navega para Downloads antes de aguardar `externalGamesInstall`. Consultas à
+fonte e preparação continuam no backend. O contador existente permanece no
+card, com o mesmo prazo informado por `directWait`; não há contador novo no
+seletor nem alteração na automação do navegador.
+
+O fechamento síncrono rejeita cliques duplicados. Falta de configuração do
+TorBox mantém a escolha aberta com a orientação existente. Respostas tardias
+não fecham outro seletor; erros posteriores são apresentados pelo diálogo de
+erro do Ghost, enquanto cancelamentos sem erro permanecem silenciosos.
+
+Validação: 12 testes em duas suítes, TypeScript e build isolado aprovados.
+Teste Electron com o componente real manteve o IPC pendente e verificou
+fechamento e navegação (22,3 ms nessa execução), interface responsiva,
+preservação de outro seletor e apresentação do erro assíncrono. Isso não mede
+o tempo de preparação do servidor ou a velocidade de uma transferência real.

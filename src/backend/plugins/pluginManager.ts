@@ -3,7 +3,9 @@ import {
   canonicalSourceUrl,
   sourceDomains
 } from './sourceSettings'
-import { initializeSourceEngines } from './sourceEngines'
+import { initializeSourceEngines, importSourceEngine, exportSourceEngine, sourceEnginesState } from './sourceEngines'
+import { isSourceEnginePackage } from './sourceEnginePackage'
+import type { SourceEngineId } from 'common/types/sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
 import { installedReleaseCandidate } from 'common/externalReleaseInfo'
 import { externalTitleKey } from 'common/externalTitle'
@@ -1206,7 +1208,7 @@ export class PluginManager {
       if (!targetPath) {
         const win = getMainWindow()
         const res = await dialog.showOpenDialog(win!, {
-          title: 'Instalar Plugin Ghost (*.ghost)',
+          title: 'Instalar plugin ou motor compartilhado (*.ghost)',
           filters: [
             {
               name: 'Ghost Plugin (*.ghost, *.zip)',
@@ -1221,6 +1223,11 @@ export class PluginManager {
         targetPath = res.filePaths[0]
       }
 
+      const sharedFile = readFileSync(targetPath)
+      if (isSourceEnginePackage(sharedFile)) {
+        const engine = await importSourceEngine(sharedFile)
+        return { success: true, engine: { id: engine.id, version: engine.version } }
+      }
       const tempExtractDir = join(this.pluginsDir, '__temp_unpacking__')
       const { manifest, checksum } = PluginPacker.unpack(
         targetPath,
@@ -1265,6 +1272,10 @@ export class PluginManager {
   ): Promise<PluginInstallResult> {
     try {
       const buffer = Buffer.from(bufferBase64, 'base64')
+      if (isSourceEnginePackage(buffer)) {
+        const engine = await importSourceEngine(buffer)
+        return { success: true, engine: { id: engine.id, version: engine.version } }
+      }
       const tempExtractDir = join(this.pluginsDir, '__temp_unpacking__')
       const { manifest, checksum } = PluginPacker.unpackFromBuffer(
         buffer,
@@ -1389,6 +1400,53 @@ export class PluginManager {
         LogPrefix.Backend
       )
       return { success: false, error: err.message || String(err) }
+    }
+  }
+
+  public async shareSourceEngine(id: SourceEngineId): Promise<PluginPackResult> {
+    try {
+      const engine = sourceEnginesState().engines.find((item) => item.id === id)
+      if (!engine?.installed) return { success: false, error: 'Instale o motor antes de compartilhar.' }
+      const result = await dialog.showSaveDialog(getMainWindow()!, {
+        title: `Compartilhar motor ${id === 'scrapling' ? 'Scrapling' : 'Obscura'}`,
+        defaultPath: join(app.getPath('downloads'), `${id}-v${engine.installed}.ghost`),
+        filters: [{ name: 'Motor Ghost', extensions: ['ghost'] }]
+      })
+      if (result.canceled || !result.filePath) return { success: false }
+      const outputPath = /\.ghost$/i.test(result.filePath) ? result.filePath : `${result.filePath}.ghost`
+      await exportSourceEngine(id, outputPath)
+      return { success: true, outputPath }
+    } catch (error) {
+      logError(['[PluginManager] Engine sharing failed:', error], LogPrefix.Backend)
+      return { success: false, error: error instanceof Error && !('code' in error) ? error.message : 'Não foi possível salvar o motor. Verifique a pasta de destino e tente novamente.' }
+    }
+  }
+
+  public async sharePlugin(id: string): Promise<PluginPackResult> {
+    try {
+      const plugin = this.getPlugins().find((item) => item.id === id)
+      if (!plugin) return { success: false, error: 'Plugin não encontrado.' }
+
+      const fileName = `${plugin.id}-v${plugin.version}`.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const result = await dialog.showSaveDialog(getMainWindow()!, {
+        title: `Compartilhar ${plugin.name}`,
+        defaultPath: join(app.getPath('downloads'), `${fileName}.ghost`),
+        filters: [{ name: 'Plugin Ghost', extensions: ['ghost'] }]
+      })
+      if (result.canceled || !result.filePath) return { success: false }
+      const outputPath = /\.ghost$/i.test(result.filePath)
+        ? result.filePath
+        : `${result.filePath}.ghost`
+      // Runtime settings and credentials live separately in plugins_data.
+      const packed = await PluginPacker.pack(plugin.installedPath, outputPath)
+      if (!packed.success) {
+        logError(['[PluginManager] Sharing failed:', packed.error], LogPrefix.Backend)
+        return { success: false, error: 'Não foi possível gerar o arquivo .ghost. Verifique os arquivos do plugin e a permissão para salvar na pasta escolhida.' }
+      }
+      return packed
+    } catch (error) {
+      logError(['[PluginManager] Sharing failed:', error], LogPrefix.Backend)
+      return { success: false, error: 'Não foi possível compartilhar o plugin. Verifique a pasta de destino e tente novamente.' }
     }
   }
 

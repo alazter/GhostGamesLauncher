@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useContext, useEffect, useId, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faTimes,
@@ -6,91 +6,72 @@ import {
   faCloud,
   faSpinner,
   faFolder,
-  faBolt,
   faGamepad,
-  faStore,
   faCheck,
-  faChevronDown,
-  faExchangeAlt
+  faArrowRight,
+  faPaintBrush,
+  faCalendarAlt,
+  faTag,
+  faHardDrive,
+  faList
 } from '@fortawesome/free-solid-svg-icons'
 import { useNavigate } from 'react-router-dom'
 import {
   useChooseDownloadModal,
   closeChooseDownloadModal,
-  switchChooseDownloadStore
+  switchChooseDownloadStore,
+  submitChooseDownloadSource
 } from 'frontend/state/ChooseDownloadModal'
-import ExternalStoreLogo from 'frontend/screens/DownloadManager/components/ExternalStoreLogo'
+import { useDownloadDialogLayout } from 'frontend/state/downloadDialogAppearance'
+import {
+  formatSourceReleaseDate,
+  installedReleaseCandidate
+} from 'common/externalReleaseInfo'
+import type { GhostDownloadSource } from 'common/types/plugins'
+import ContextProvider from 'frontend/state/ContextProvider'
+import CachedImage from 'frontend/components/UI/CachedImage'
+import ghostLogo from 'frontend/assets/ghost-logo.png'
+import DownloadAppearanceSettings from './DownloadAppearanceSettings'
+import SourcePicker from './SourcePicker'
 import './index.css'
 
 export function ChooseDownloadModalWrapper() {
   const modalState = useChooseDownloadModal()
+  const layout = useDownloadDialogLayout()
   const navigate = useNavigate()
-  const [submitting, setSubmitting] = useState(false)
+  const { showDialogModal } = useContext(ContextProvider)
+  const appearanceId = useId()
   const [notice, setNotice] = useState<string | null>(null)
   const [imgFailed, setImgFailed] = useState(false)
   const [showStoreSelector, setShowStoreSelector] = useState(false)
+  const [showAppearance, setShowAppearance] = useState(false)
+  const coverImage = modalState.cover || modalState.game?.coverUrl
 
+  useEffect(() => {
+    setImgFailed(false)
+  }, [coverImage, modalState.game])
   useEffect(() => {
     if (!modalState.isOpen) {
       setNotice(null)
-      setSubmitting(false)
-      setImgFailed(false)
       setShowStoreSelector(false)
+      setShowAppearance(false)
       return
     }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        e.stopPropagation()
-        closeChooseDownloadModal()
-      }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopPropagation()
+      if (showAppearance) setShowAppearance(false)
+      else if (showStoreSelector) setShowStoreSelector(false)
+      else closeChooseDownloadModal()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [modalState.isOpen])
+  }, [modalState.isOpen, showAppearance, showStoreSelector])
 
-  if (!modalState.isOpen || !modalState.game) {
-    return null
-  }
-
-  const handleSelectSource = async (sourceId: string, isTorbox: boolean) => {
-    if (!modalState.game) return
-    if (isTorbox && !modalState.isTorboxConfigured) {
-      setNotice(
-        'O TorBox ainda não está configurado. Conecte sua conta em Configurações > Integrações de downloads ou escolha a opção de Download Direto.'
-      )
-      return
-    }
-
-    setSubmitting(true)
-    setNotice(null)
-    try {
-      const res = await window.api.externalGamesInstall({
-        game: modalState.game,
-        sourceId,
-        replaceInstallationId: modalState.replaceInstallationId,
-        targetDirectory: modalState.targetDirectory,
-        confirmed: true
-      })
-
-      if (res.success) {
-        closeChooseDownloadModal()
-        navigate('/download-manager')
-        if (window.location.hash !== '#/download-manager') {
-          window.location.hash = '#/download-manager'
-        }
-      } else {
-        setNotice(res.error || 'Não foi possível iniciar o download. Verifique as configurações.')
-      }
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : String(err))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
+  if (!modalState.isOpen || !modalState.game) return null
   const {
+    game,
     title,
     version,
     providerName,
@@ -103,338 +84,319 @@ export function ChooseDownloadModalWrapper() {
     availableSources,
     searchingOtherStores
   } = modalState
+  const directSources = sources.filter(
+    (source) => source.type === 'external' || source.type === 'direct'
+  )
+  const torboxSource = sources.find((source) => source.type === 'torbox')
+  const releaseDate = formatSourceReleaseDate(
+    installedReleaseCandidate(game).sourceDate
+  )
+  const size = game.size?.trim()
 
-  const coverImage = !imgFailed
-    ? modalState.cover ||
-      modalState.game?.coverUrl ||
-      (modalState.game as any)?.cover ||
-      (modalState.game as any)?.art_cover
-    : null
-
-  const torboxSource = sources.find((s) => s.type === 'torbox')
-  const directSources = sources.filter((s) => s.type === 'external' || s.type === 'direct')
-  const hasDirect = directSources.length > 0
-  const hasTorbox = Boolean(torboxSource)
-
-  const renderDirectOption = () => {
-    if (hasDirect) {
-      return directSources.map((source) => (
-        <button
-          key={source.id}
-          type="button"
-          className="cdmChoiceBtn"
-          disabled={submitting}
-          onClick={() => void handleSelectSource(source.id, false)}
-        >
-          <div className="cdmBtnLeft">
-            <FontAwesomeIcon icon={faDownload} className="cdmBtnIcon" />
-            <div className="cdmBtnTexts">
-              <span className="cdmBtnLabel">
-                {source.id === 'online-fix-hosters-direct'
-                  ? 'Download direto — Jogo e fix'
-                  : ['anker-browser-direct', 'steamrip-browser-direct', 'rom-browser-direct'].includes(source.id)
-                  ? 'Download direto — Automático'
-                  : source.type === 'external'
-                  ? 'Download direto — Confirmar no site'
-                  : source.name || 'Download Direto'}
-              </span>
-              <span className="cdmBtnSub">
-                {source.id === 'online-fix-hosters-direct'
-                  ? 'Baixa o jogo e o fix, descompacta e instala automaticamente'
-                  : 'Download direto em alta velocidade (Buzzheavier, MegaDB)'}
-              </span>
-            </div>
-          </div>
-          <span className="cdmSpeedBadge">
-            <FontAwesomeIcon icon={faBolt} /> Alta Velocidade
-          </span>
-        </button>
-      ))
+  const handleSelectSource = async (sourceId: string, isTorbox: boolean) => {
+    if (isTorbox && !isTorboxConfigured) {
+      setNotice(
+        'O TorBox ainda não está configurado. Conecte sua conta em Configurações > Integrações de downloads ou escolha Download direto.'
+      )
+      return
     }
-
-    return (
-      <button
-        type="button"
-        className="cdmChoiceBtn"
-        style={{ opacity: 0.72 }}
-        disabled={submitting}
-        onClick={() => {
-          setNotice(
-            `A loja ${providerName || 'atual'} disponibiliza este jogo exclusivamente através de Torrent. Utilize a opção TorBox abaixo para baixar.`
-          )
-        }}
-      >
-        <div className="cdmBtnLeft">
-          <FontAwesomeIcon icon={faDownload} className="cdmBtnIcon" style={{ color: '#64748b' }} />
-          <div className="cdmBtnTexts">
-            <span className="cdmBtnLabel">Download direto</span>
-            <span className="cdmBtnSub">Não aplicável nesta loja (distribuição exclusiva via Torrent)</span>
-          </div>
-        </div>
-        <span className="cdmInfoBadge">Exclusivo TorBox</span>
-      </button>
-    )
+    setNotice(null)
+    const result = await submitChooseDownloadSource(sourceId, () => {
+      navigate('/download-manager')
+      if (window.location.hash !== '#/download-manager')
+        window.location.hash = '#/download-manager'
+    })
+    if (result?.error)
+      showDialogModal({
+        type: 'ERROR',
+        title: `Não foi possível iniciar o download de ${title}`,
+        message: result.error
+      })
   }
-
-  const renderTorboxOption = () => {
-    if (hasTorbox) {
-      const torboxMissing = !isTorboxConfigured
-      return (
-        <button
-          key={torboxSource!.id}
-          type="button"
-          className="cdmChoiceBtn"
-          disabled={submitting}
-          onClick={() => void handleSelectSource(torboxSource!.id, true)}
-        >
-          <div className="cdmBtnLeft">
-            <FontAwesomeIcon icon={faCloud} className="cdmBtnIcon" />
-            <div className="cdmBtnTexts">
-              <span className="cdmBtnLabel">TorBox — Torrent</span>
-              <span className="cdmBtnSub">
-                Download em nuvem rápida com descompactação e IP protegido
-              </span>
-            </div>
-          </div>
-          {torboxMissing ? (
-            <span className="cdmMissingBadge">Não configurado</span>
-          ) : (
-            <span className="cdmDebridBadge">
-              <FontAwesomeIcon icon={faCloud} /> Nuvem Debrid
-            </span>
-          )}
-        </button>
+  const changeDirectory = async () => {
+    const current = useChooseDownloadModal.getState().game
+    try {
+      const directory = await window.api.openDialog({
+        title: 'Escolha a pasta de instalação',
+        buttonLabel: 'Selecionar pasta',
+        properties: ['openDirectory']
+      })
+      const state = useChooseDownloadModal.getState()
+      if (
+        typeof directory === 'string' &&
+        directory.trim() &&
+        state.isOpen &&
+        state.game === current
+      )
+        useChooseDownloadModal.setState({ targetDirectory: directory.trim() })
+    } catch {
+      setNotice(
+        'Não foi possível escolher a pasta de instalação. Tente novamente.'
       )
     }
-
+  }
+  const renderMethod = (source: GhostDownloadSource, torbox = false) => {
+    const automatic = [
+      'anker-browser-direct',
+      'steamrip-browser-direct',
+      'rom-browser-direct',
+      'online-fix-hosters-direct'
+    ].includes(source.id)
+    const label = torbox
+      ? 'TorBox'
+      : source.type === 'direct'
+        ? source.name || 'Download direto'
+        : 'Download direto'
+    const badge = torbox
+      ? 'Torrent'
+      : automatic
+        ? 'Automático'
+        : source.type === 'external'
+          ? 'Confirmar no site'
+          : 'Direto'
     return (
       <button
+        key={source.id}
         type="button"
         className="cdmChoiceBtn"
-        style={{ opacity: 0.72 }}
-        disabled={submitting}
-        onClick={() => {
-          setNotice(
-            `A loja ${providerName || 'selecionada'} disponibiliza este jogo exclusivamente através de Download Direto de alta velocidade (servidores dedicados como Buzzheavier e MegaDB), sem necessidade de P2P ou Torrent. Escolha a opção "Download direto" acima para baixar com máxima velocidade.`
-          )
-        }}
+        onClick={() => void handleSelectSource(source.id, torbox)}
       >
-        <div className="cdmBtnLeft">
-          <FontAwesomeIcon icon={faCloud} className="cdmBtnIcon" style={{ color: '#64748b' }} />
-          <div className="cdmBtnTexts">
-            <span className="cdmBtnLabel">TorBox — Torrent</span>
-            <span className="cdmBtnSub">
-              Disponível em lojas com rede Torrent (AnkerGames / Online-Fix)
-            </span>
-          </div>
-        </div>
-        <span className="cdmInfoBadge">Exclusivo p/ fontes Torrent</span>
+        <FontAwesomeIcon
+          icon={torbox ? faCloud : faDownload}
+          className="cdmMethodIcon"
+        />
+        <span className="cdmMethodCopy">
+          <span className="cdmMethodTop">
+            <span className="cdmMethodTitle">{label}</span>
+            <span className="cdmMethodBadge">{badge}</span>
+          </span>
+          <span className="cdmMethodDescription">
+            {torbox
+              ? 'Processe o torrent na sua conta em nuvem.'
+              : source.id === 'online-fix-hosters-direct'
+                ? 'Baixe o jogo e o fix pelo Ghost.'
+                : automatic
+                  ? 'Baixe os arquivos diretamente pelo Ghost.'
+                  : source.type === 'external'
+                    ? 'Confirme o download na página da fonte.'
+                    : 'Baixe o arquivo disponibilizado pela fonte.'}
+          </span>
+          <span className="cdmMethodMeta">
+            {torbox ? (
+              <>
+                <FontAwesomeIcon
+                  icon={isTorboxConfigured ? faCheck : faCloud}
+                />
+                {isTorboxConfigured
+                  ? 'Conta TorBox conectada'
+                  : 'Conecte sua conta TorBox'}
+              </>
+            ) : automatic ? (
+              'Preparação e acompanhamento em Downloads'
+            ) : (
+              source.size || 'Acompanhamento em Downloads'
+            )}
+          </span>
+        </span>
+        <FontAwesomeIcon icon={faArrowRight} className="cdmMethodArrow" />
       </button>
     )
   }
-
+  const unavailable = (torbox: boolean) => (
+    <div className="cdmChoiceBtn cdmChoiceUnavailable" aria-disabled="true">
+      <FontAwesomeIcon
+        icon={torbox ? faCloud : faDownload}
+        className="cdmMethodIcon"
+      />
+      <span className="cdmMethodCopy">
+        <span className="cdmMethodTitle">
+          {torbox ? 'TorBox — Torrent' : 'Download direto'}
+        </span>
+        <span className="cdmMethodDescription">
+          Não disponível nesta fonte.
+        </span>
+      </span>
+    </div>
+  )
   return (
     <div className="cdmModalOverlay" onClick={closeChooseDownloadModal}>
       <div
-        className="cdmModalCard"
+        className={`cdmModalCard cdmModalCard--${layout}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cdmModalTitle"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
-        {/* Header Cyber Neon */}
-        <div className="cdmModalHeader">
-          <div className="cdmModalTitle">
-            <FontAwesomeIcon icon={faDownload} className="cdmModalTitleIcon" />
-            <span id="cdmModalTitle">Escolha como baixar</span>
+        {coverImage && !imgFailed && (
+          <CachedImage
+            key={`backdrop-${coverImage}`}
+            src={coverImage}
+            alt=""
+            aria-hidden="true"
+            className="cdmBackdropArt"
+            loading="eager"
+            hideOnError={false}
+          />
+        )}
+        <div className="cdmBackdropShade" aria-hidden="true" />
+        <header className="cdmModalHeader">
+          <div>
+            <div className="cdmBrandLine">
+              <span className="cdmBrand">
+                <img src={ghostLogo} alt="Logo do Ghost" />
+                Ghost
+              </span>
+              <span className="cdmBrandDivider" />
+              <span className="cdmDownloadsLabel">DOWNLOADS</span>
+              <button
+                type="button"
+                className="cdmIconAction cdmAppearanceButton"
+                aria-label="Personalizar janela de download"
+                title="Personalizar janela de download"
+                aria-expanded={showAppearance}
+                aria-controls={appearanceId}
+                onClick={() => setShowAppearance((value) => !value)}
+              >
+                <FontAwesomeIcon icon={faPaintBrush} />
+              </button>
+            </div>
+            <h2 id="cdmModalTitle">Escolha como baixar</h2>
           </div>
           <button
             type="button"
-            className="cdmModalCloseBtn"
+            className="cdmIconAction"
             aria-label="Fechar"
             onClick={closeChooseDownloadModal}
           >
             <FontAwesomeIcon icon={faTimes} />
           </button>
-        </div>
-
-        <div className="cdmModalBody">
-          {/* Showcase do Jogo */}
-          <div className="cdmGameCardShowcase">
-            <div className="cdmGameCoverWrap">
-              {coverImage ? (
-                <img
-                  src={coverImage}
-                  alt={title}
-                  className="cdmGameCover"
-                  onError={() => setImgFailed(true)}
-                />
-              ) : (
-                <div className="cdmGameCoverFallback">
-                  <FontAwesomeIcon icon={faGamepad} />
-                </div>
-              )}
+        </header>
+        <div className="cdmScrollContent">
+          {showAppearance && (
+            <div id={appearanceId} className="cdmAppearancePanel">
+              <DownloadAppearanceSettings />
             </div>
-
-            <div className="cdmGameInfoCol">
-              <strong className="cdmGameTitleText" title={title}>
-                {title}
-              </strong>
-
-              <div className="cdmGameMetaRow">
-                {version && (
-                  <span className="cdmVersionBadge">
-                    <FontAwesomeIcon icon={faBolt} style={{ fontSize: '10px' }} />
-                    <span>v{version.replace(/^v/i, '')}</span>
-                  </span>
-                )}
-                {availableSources.length > 1 && (
-                  <button
-                    type="button"
-                    className="cdmSwitchStoreInlineBtn"
-                    title="Clique para trocar a loja deste jogo"
-                    onClick={() => setShowStoreSelector((prev) => !prev)}
-                  >
-                    <FontAwesomeIcon icon={faExchangeAlt} />
-                    <span>Trocar loja ({availableSources.length})</span>
-                  </button>
+          )}
+          <div className="cdmModalBody">
+            <section
+              className="cdmGameShowcase"
+              aria-label="Jogo e fonte selecionada"
+            >
+              <div className="cdmGameCoverWrap">
+                {coverImage && !imgFailed ? (
+                  <CachedImage
+                    key={coverImage}
+                    src={coverImage}
+                    alt={`Capa de ${title} da ${providerName || 'fonte selecionada'}`}
+                    className="cdmGameCover"
+                    width={600}
+                    height={900}
+                    loading="eager"
+                    hideOnError={false}
+                    onError={() => setImgFailed(true)}
+                  />
+                ) : (
+                  <div className="cdmGameCoverFallback">
+                    <FontAwesomeIcon icon={faGamepad} />
+                  </div>
                 )}
               </div>
-
-              {targetDirectory && (
-                <div className="cdmPathNotice" title={targetDirectory}>
-                  <FontAwesomeIcon icon={faFolder} className="cdmPathIcon" />
-                  <span className="cdmPathText">{targetDirectory}</span>
+              <div className="cdmGameInfo">
+                <h3>{title}</h3>
+                <span className="cdmVersion">
+                  <FontAwesomeIcon icon={faTag} />
+                  {version
+                    ? `v${version.replace(/^v/i, '')}`
+                    : 'Versão não informada'}
+                </span>
+                <span className="cdmReleaseDate">
+                  <FontAwesomeIcon icon={faCalendarAlt} />
+                  <span>
+                    LAST UPDATE <strong>{releaseDate}</strong>
+                  </span>
+                </span>
+                <span className="cdmGameSize">
+                  <FontAwesomeIcon icon={faHardDrive} />
+                  <span>{size || 'Tamanho não informado'}</span>
+                </span>
+              </div>
+              <SourcePicker
+                name={providerName}
+                icon={providerIcon}
+                providerId={providerId}
+                stores={availableSources}
+                searching={searchingOtherStores}
+                open={showStoreSelector}
+                onOpenChange={setShowStoreSelector}
+                onSelect={(store) => {
+                  setNotice(null)
+                  void switchChooseDownloadStore(store)
+                }}
+              />
+            </section>
+            <div className="cdmDownloadDetails">
+              <div className="cdmPathRow">
+                <FontAwesomeIcon icon={faFolder} />
+                <div>
+                  <span className="cdmFieldLabel">Instalar em</span>
+                  <span className="cdmPathValue">
+                    {targetDirectory || 'Pasta padrão do Ghost'}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {providerName && (
-              <div className="cdmStoreBadgeCol">
                 <button
                   type="button"
-                  className={`cdmStoreBadgePill cdmStoreBadgeClickable ${showStoreSelector ? 'active' : ''}`}
-                  title="Clique para trocar de loja"
-                  onClick={() => setShowStoreSelector((prev) => !prev)}
+                  className="cdmTextAction"
+                  onClick={() => void changeDirectory()}
                 >
-                  <ExternalStoreLogo
-                    icon={providerIcon || (modalState.game as any)?.providerIcon}
-                    name={providerName}
-                    size={22}
-                  />
-                  <span className="cdmStoreName">{providerName}</span>
-                  <span className="cdmStoreChangeTag">
-                    <FontAwesomeIcon icon={faExchangeAlt} />
-                    <span>Trocar</span>
-                    <FontAwesomeIcon
-                      icon={faChevronDown}
-                      style={{
-                        fontSize: '9px',
-                        transform: showStoreSelector ? 'rotate(180deg)' : 'none',
-                        transition: 'transform 0.2s ease'
-                      }}
-                    />
-                  </span>
+                  Alterar
                 </button>
               </div>
-            )}
-          </div>
-
-          {/* GAVETA DE TROCA DE LOJA CYBER NEON */}
-          {showStoreSelector && (
-            <div className="cdmStoreSelectorDrawer">
-              <div className="cdmStoreSelectorHeader">
-                <div className="cdmStoreSelectorTitle">
-                  <FontAwesomeIcon icon={faStore} style={{ color: '#00ffff' }} />
-                  <span>Escolha a loja de onde deseja baixar:</span>
+              {notice && (
+                <p className="cdmNoticeBox" role="status">
+                  {notice}
+                </p>
+              )}
+              <h4 className="cdmSectionLabel">Método de download</h4>
+              {loadingSources ? (
+                <div className="cdmLoadingRow" role="status">
+                  <FontAwesomeIcon icon={faSpinner} spin /> Buscando opções de
+                  download disponíveis...
                 </div>
-                {searchingOtherStores && (
-                  <span className="cdmSearchingStoresHint">
-                    <FontAwesomeIcon icon={faSpinner} spin /> Buscando outras lojas...
-                  </span>
-                )}
-              </div>
-
-              <div className="cdmStoreGrid">
-                {availableSources.map((store) => {
-                  const isCurrent = store.providerId === providerId
-                  return (
-                    <button
-                      key={`${store.providerId}-${store.id}`}
-                      type="button"
-                      className={`cdmStoreCardBtn ${isCurrent ? 'active' : ''}`}
-                      onClick={() => {
-                        void switchChooseDownloadStore(store)
-                        setShowStoreSelector(false)
-                      }}
-                    >
-                      <div className="cdmStoreCardLeft">
-                        <ExternalStoreLogo
-                          icon={store.providerIcon}
-                          name={store.providerName}
-                          size={24}
-                        />
-                        <div className="cdmStoreCardInfo">
-                          <strong className="cdmStoreCardName">{store.providerName}</strong>
-                          <span className="cdmStoreCardVer">
-                            {store.version ? `v${store.version.replace(/^v/i, '')}` : 'Mais recente'}
-                          </span>
-                        </div>
-                      </div>
-                      {isCurrent ? (
-                        <span className="cdmStoreActiveBadge">
-                          <FontAwesomeIcon icon={faCheck} /> Ativa
-                        </span>
-                      ) : (
-                        <span className="cdmStoreSelectActionBadge">
-                          Selecionar
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {notice && <div className="cdmNoticeBox">{notice}</div>}
-
-          {loadingSources ? (
-            <div className="cdmLoadingRow">
-              <FontAwesomeIcon
-                icon={faSpinner}
-                spin
-                style={{ color: '#00ffff', marginRight: '8px' }}
-              />
-              <span>Buscando opções de download disponíveis...</span>
-            </div>
-          ) : (
-            <div className="cdmChoices">
-              {hasTorbox && !hasDirect ? (
-                <>
-                  {renderTorboxOption()}
-                  {renderDirectOption()}
-                </>
               ) : (
-                <>
-                  {renderDirectOption()}
-                  {renderTorboxOption()}
-                </>
+                <div className="cdmChoices">
+                  {torboxSource && !directSources.length ? (
+                    <>
+                      {renderMethod(torboxSource, true)}
+                      {unavailable(false)}
+                    </>
+                  ) : (
+                    <>
+                      {directSources.length
+                        ? directSources.map((source) => renderMethod(source))
+                        : unavailable(false)}
+                      {torboxSource
+                        ? renderMethod(torboxSource, true)
+                        : unavailable(true)}
+                    </>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
         </div>
-
-        <div className="cdmModalFooter">
+        <footer className="cdmModalFooter">
+          <span>
+            <FontAwesomeIcon icon={faList} /> Acompanhe o progresso em
+            Downloads.
+          </span>
           <button
             type="button"
             className="cdmBtnCancel"
             onClick={closeChooseDownloadModal}
-            disabled={submitting}
           >
             Cancelar
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   )

@@ -53,6 +53,7 @@ import RecentlyPlayed from './components/RecentlyPlayed'
 import LibraryContext from './LibraryContext'
 import { isPlaytestOrDemo } from 'frontend/helpers/customStoreFiltering'
 import {
+  clearUpdatesOnlyFromAllStoreFilters,
   loadStoreFilterSettings,
   saveStoreFilterSettings
 } from 'frontend/helpers/storeFiltersStorage'
@@ -1952,14 +1953,6 @@ export default memo(function Library(): JSX.Element {
         library = library.filter((game) => !!game.thirdPartyManagedApp)
       }
 
-      if (showUpdatesOnly) {
-        library = library.filter((game) => gameUpdates.includes(game.app_name))
-      }
-
-      if (showNewlyAddedOnly) {
-        library = library.filter((game) => isGameRecentlyAdded(game.app_name, game.runner, newGamesMap))
-      }
-
       if (!showNonAvailable) {
         const nonAvailbleGames = storage.getItem('nonAvailableGames') || '[]'
         const nonAvailbleGamesArray = JSON.parse(nonAvailbleGames) as string[]
@@ -2000,6 +1993,93 @@ export default memo(function Library(): JSX.Element {
       library = library.filter((game) => !isPlaytestOrDemo(game))
     }
 
+    const isSearchingNow = Boolean(filterText && filterText.trim().length > 0)
+    if (!isSearchingNow) {
+      const matchesStoreScope = (game: GameInfo) => {
+        if (!activeStoreFilter) return true
+        const explicitlyAssignedStore = (assignments[game.app_name] || '').toLowerCase()
+        const activeFilterLower = activeStoreFilter.toLowerCase()
+        const runnerLower = (game.runner || '').toLowerCase()
+
+        if (game.accountProvider) {
+          return explicitlyAssignedStore === activeFilterLower || game.accountProvider === activeFilterLower
+        }
+        if (explicitlyAssignedStore) {
+          if (explicitlyAssignedStore === activeFilterLower) return true
+          if (
+            (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+            (explicitlyAssignedStore === 'epic' ||
+              explicitlyAssignedStore === 'legendary' ||
+              explicitlyAssignedStore === 'epic games')
+          )
+            return true
+          if (
+            (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+            (explicitlyAssignedStore === 'amazon' ||
+              explicitlyAssignedStore === 'nile' ||
+              explicitlyAssignedStore === 'amazon games')
+          )
+            return true
+          if (activeFilterLower === 'gog' && explicitlyAssignedStore === 'gog') return true
+          if (activeFilterLower === 'steam' && explicitlyAssignedStore === 'steam') return true
+          if (activeFilterLower === 'zoom' && explicitlyAssignedStore === 'zoom') return true
+          if (
+            (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+            (explicitlyAssignedStore === 'sideload' || explicitlyAssignedStore === 'sideloaded')
+          )
+            return true
+        }
+        if (
+          (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+          (runnerLower === 'legendary' || runnerLower === 'epic')
+        )
+          return true
+        if (activeFilterLower === 'gog' && runnerLower === 'gog') return true
+        if (
+          (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+          (runnerLower === 'nile' || runnerLower === 'amazon')
+        )
+          return true
+        if (activeFilterLower === 'steam' && runnerLower === 'steam') return true
+        if (activeFilterLower === 'zoom' && runnerLower === 'zoom') return true
+        if (
+          (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+          (runnerLower === 'sideload' || runnerLower === 'sideloaded')
+        )
+          return true
+        return false
+      }
+
+      if (showUpdatesOnly) {
+        const hasUpdatableInScope =
+          gameUpdates.length > 0 &&
+          library.some(
+            (game) =>
+              Boolean(game.is_installed) &&
+              gameUpdates.includes(game.app_name) &&
+              matchesStoreScope(game)
+          )
+        if (hasUpdatableInScope) {
+          library = library.filter(
+            (game) => Boolean(game.is_installed) && gameUpdates.includes(game.app_name)
+          )
+        }
+      }
+
+      if (showNewlyAddedOnly) {
+        const hasNewlyAddedInScope = library.some(
+          (game) =>
+            isGameRecentlyAdded(game.app_name, game.runner, newGamesMap) &&
+            matchesStoreScope(game)
+        )
+        if (hasNewlyAddedInScope) {
+          library = library.filter((game) =>
+            isGameRecentlyAdded(game.app_name, game.runner, newGamesMap)
+          )
+        }
+      }
+    }
+
     return {
       gamesForAlphabetFilter: library,
       fullGamesForAlphabetFilter: rawLibrary
@@ -2022,7 +2102,103 @@ export default memo(function Library(): JSX.Element {
     gameUpdates,
     filterByPlatform,
     makeLibrary,
-    showPlaytestsAndDemos
+    showPlaytestsAndDemos,
+    activeStoreFilter,
+    assignments
+  ])
+
+  useEffect(() => {
+    if (!showUpdatesOnly && !showNewlyAddedOnly) return
+
+    const matchesStoreScope = (game: GameInfo) => {
+      if (!activeStoreFilter) return true
+      const explicitlyAssignedStore = (assignments[game.app_name] || '').toLowerCase()
+      const activeFilterLower = activeStoreFilter.toLowerCase()
+      const runnerLower = (game.runner || '').toLowerCase()
+
+      if (game.accountProvider) {
+        return explicitlyAssignedStore === activeFilterLower || game.accountProvider === activeFilterLower
+      }
+      if (explicitlyAssignedStore) {
+        if (explicitlyAssignedStore === activeFilterLower) return true
+        if (
+          (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+          (explicitlyAssignedStore === 'epic' ||
+            explicitlyAssignedStore === 'legendary' ||
+            explicitlyAssignedStore === 'epic games')
+        )
+          return true
+        if (
+          (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+          (explicitlyAssignedStore === 'amazon' ||
+            explicitlyAssignedStore === 'nile' ||
+            explicitlyAssignedStore === 'amazon games')
+        )
+          return true
+        if (activeFilterLower === 'gog' && explicitlyAssignedStore === 'gog') return true
+        if (activeFilterLower === 'steam' && explicitlyAssignedStore === 'steam') return true
+        if (activeFilterLower === 'zoom' && explicitlyAssignedStore === 'zoom') return true
+        if (
+          (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+          (explicitlyAssignedStore === 'sideload' || explicitlyAssignedStore === 'sideloaded')
+        )
+          return true
+      }
+      if (
+        (activeFilterLower === 'epic' || activeFilterLower === 'legendary') &&
+        (runnerLower === 'legendary' || runnerLower === 'epic')
+      )
+        return true
+      if (activeFilterLower === 'gog' && runnerLower === 'gog') return true
+      if (
+        (activeFilterLower === 'amazon' || activeFilterLower === 'nile') &&
+        (runnerLower === 'nile' || runnerLower === 'amazon')
+      )
+        return true
+      if (activeFilterLower === 'steam' && runnerLower === 'steam') return true
+      if (activeFilterLower === 'zoom' && runnerLower === 'zoom') return true
+      if (
+        (activeFilterLower === 'sideloaded' || activeFilterLower === 'sideload') &&
+        (runnerLower === 'sideload' || runnerLower === 'sideloaded')
+      )
+        return true
+      return false
+    }
+
+    if (showUpdatesOnly) {
+      const hasUpdatableInScope =
+        gameUpdates.length > 0 &&
+        fullGamesForAlphabetFilter.some(
+          (game) =>
+            Boolean(game.is_installed) &&
+            gameUpdates.includes(game.app_name) &&
+            matchesStoreScope(game)
+        )
+      if (!hasUpdatableInScope) {
+        saveStoreFilterSettings(activeStoreFilterRef.current, { showUpdatesOnly: false })
+        clearUpdatesOnlyFromAllStoreFilters()
+        setShowUpdatesOnly(false)
+      }
+    }
+
+    if (showNewlyAddedOnly) {
+      const hasNewlyAddedInScope = fullGamesForAlphabetFilter.some(
+        (game) =>
+          isGameRecentlyAdded(game.app_name, game.runner, newGamesMap) &&
+          matchesStoreScope(game)
+      )
+      if (!hasNewlyAddedInScope) {
+        setShowNewlyAddedOnly(false)
+      }
+    }
+  }, [
+    showUpdatesOnly,
+    showNewlyAddedOnly,
+    gameUpdates,
+    fullGamesForAlphabetFilter,
+    activeStoreFilter,
+    assignments,
+    newGamesMap
   ])
 
   const libraryToShow = useMemo(() => {

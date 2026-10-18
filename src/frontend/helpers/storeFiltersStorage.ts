@@ -156,5 +156,30 @@ export function saveStoreFilterSettings(
     if (settings.showPlaytestsAndDemos !== undefined) {
       localStorage.setItem('heroic_show_playtests_demos', String(settings.showPlaytestsAndDemos))
     }
+  } else if (settings.showUpdatesOnly !== undefined) {
+    localStorage.setItem('show_updates_only', JSON.stringify(settings.showUpdatesOnly))
   }
+
+  if (settings.showUpdatesOnly === false) {
+    clearUpdatesOnlyFromAllStoreFilters()
+  }
+}
+
+export function clearUpdatesOnlyFromAllStoreFilters(): void {
+  try {
+    localStorage.setItem('show_updates_only', 'false')
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || !key.startsWith('heroic_store_filters_')) continue
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      try {
+        const parsed = JSON.parse(raw)
+        if (parsed && parsed.showUpdatesOnly) {
+          parsed.showUpdatesOnly = false
+          localStorage.setItem(key, JSON.stringify(parsed))
+        }
+      } catch {}
+    }
+  } catch {}
 }

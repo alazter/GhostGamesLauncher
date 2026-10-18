@@ -63,6 +63,18 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     return candidateGames.filter((g) => g.is_installed && gameUpdates.includes(g.app_name))
   }, [candidateGames, gameUpdates])
 
+  useEffect(() => {
+    if (showUpdatesOnly && pendingUpdatesGames.length === 0) {
+      setShowUpdatesOnly?.(false)
+    }
+  }, [showUpdatesOnly, pendingUpdatesGames.length, setShowUpdatesOnly])
+
+  useEffect(() => {
+    if (showNewlyAddedOnly && recentNewGames.length === 0) {
+      setShowNewlyAddedOnly?.(false)
+    }
+  }, [showNewlyAddedOnly, recentNewGames.length, setShowNewlyAddedOnly])
+
   const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
     () => localStorage.getItem('heroic_active_store_filter')
   )

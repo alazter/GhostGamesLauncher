@@ -1,636 +1,681 @@
-/* ==========================================================================
-   MODAL CYBER NEON: ESCOLHA COMO BAIXAR (REGRAS 12 & 53)
-   ========================================================================== */
 .cdmModalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.82);
+  z-index: 10000;
+  background: #000000b8;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
-  animation: cdmModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 16px;
 }
-
-@keyframes cdmModalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 .cdmModalCard {
-  background: #131a20 !important;
-  border: 1.5px solid #00ffff;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 580px;
-  box-shadow: 0 0 35px rgba(0, 255, 255, 0.25), 0 24px 60px rgba(0, 0, 0, 0.95);
+  --cdm-accent: #50edf1;
+  --cdm-text: #edf1f6;
+  --cdm-muted: #b8c2d1;
+  --cdm-line: #c2d3e824;
+  width: 100%;
+  max-width: 660px;
+  max-height: calc(100dvh - 32px);
+  min-width: 0;
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: #ffffff;
+  border: 1px solid #c9e1ef35;
+  border-radius: 18px;
+  background: #080c13;
+  color: var(--cdm-text);
+  box-shadow:
+    0 26px 65px #0000007a,
+    inset 0 1px 0 #ffffff10;
+  font-family: 'Cabin', sans-serif;
 }
-
+.cdmModalCard::before {
+  content: '';
+  height: 2px;
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 28px;
+  right: 28px;
+  background: linear-gradient(90deg, transparent, #50edf177, transparent);
+  pointer-events: none;
+}
+.cdmModalCard *,
+.cdmModalCard *::before,
+.cdmModalCard *::after {
+  box-sizing: border-box;
+}
+.cdmModalCard button {
+  font: inherit;
+  cursor: pointer;
+}
+.cdmModalCard button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.cdmBackdropArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 33% center;
+  filter: blur(28px) saturate(0.8);
+  opacity: 0.6;
+  z-index: -2;
+  pointer-events: none;
+}
+.cdmBackdropShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, #171a3590, #07152166 48%, #080c14eb 94%);
+  z-index: -1;
+  pointer-events: none;
+}
 .cdmModalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-  background: rgba(0, 255, 255, 0.03);
-}
-
-.cdmModalTitle {
-  font-size: 18px;
-  font-weight: 700;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
   gap: 12px;
-  letter-spacing: 0.3px;
+  padding: 21px 26px 19px;
+  border-bottom: 1px solid var(--cdm-line);
+  background: #11172470;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  flex-shrink: 0;
 }
-
-.cdmModalTitleIcon {
-  color: #00ffff;
-  font-size: 19px;
-  filter: drop-shadow(0 0 6px #00ffff);
-}
-
-/* Regra Canônica 12: Fechamento com fundo 100% transparente, sem bordas/molduras */
-.cdmModalCloseBtn {
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px 8px;
-  transition: all 0.2s ease;
-  line-height: 1;
-}
-
-.cdmModalCloseBtn:hover {
-  color: #00ffff !important;
-  filter: drop-shadow(0 0 3px #00ffff) drop-shadow(0 0 8px rgba(0, 255, 255, 0.95)) !important;
-  transform: scale(1.15);
-}
-
-.cdmModalBody {
-  padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Showcase do Jogo */
-.cdmGameCardShowcase {
+.cdmBrandLine {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
-  background: rgba(0, 229, 255, 0.03);
-  border: 1px solid rgba(0, 229, 255, 0.2);
-  border-radius: 12px;
-  min-width: 0;
-  position: relative;
+  gap: 10px;
+  margin-bottom: 10px;
 }
-
-.cdmGameCoverWrap {
-  width: 76px;
-  height: 76px;
-  flex-shrink: 0;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1.5px solid #00ffff;
-  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
-  background: #0d1217;
-  display: flex;
+.cdmBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cdm-accent);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.cdmBrand img {
+  width: 26px;
+  height: 30px;
+  object-fit: contain;
+}
+.cdmBrandDivider {
+  width: 1px;
+  height: 12px;
+  background: var(--cdm-line);
+}
+.cdmDownloadsLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--cdm-muted);
+}
+.cdmModalHeader h2 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--cdm-text);
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+.cdmIconAction {
+  padding: 9px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--cdm-muted);
+  box-shadow: none;
 }
-
+.cdmIconAction:hover {
+  color: var(--cdm-accent);
+  background: #50edf10a;
+}
+.cdmAppearanceButton {
+  font-size: 13px !important;
+  padding: 7px;
+  margin: -3px 0;
+  color: var(--cdm-accent);
+}
+.cdmIconAction[aria-expanded='true'] {
+  background: #50edf118;
+}
+.cdmScrollContent {
+  overflow-y: auto;
+  min-height: 0;
+}
+.cdmAppearancePanel {
+  padding: 20px 26px 0;
+  background: #0b111c8a;
+}
+.cdmAppearancePanel .downloadAppearance {
+  margin-bottom: 0;
+}
+.cdmModalBody {
+  padding: 23px 26px;
+  background: linear-gradient(160deg, #0b111c52, #0b101bb5);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.cdmGameShowcase {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) 170px;
+  align-items: center;
+  gap: 17px;
+  min-width: 0;
+}
+.cdmGameCoverWrap {
+  width: 100px;
+  height: 150px;
+  aspect-ratio: 600/900;
+  overflow: hidden;
+  border: 1px solid #ffffff2b;
+  border-radius: 9px;
+  box-shadow: 0 9px 23px #0000005c;
+  background: #111b2b;
+}
 .cdmGameCover {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
+  object-position: 15% center;
 }
-
 .cdmGameCoverFallback {
-  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #00ffff;
-  font-size: 28px;
-  background: rgba(0, 229, 255, 0.08);
+  color: var(--cdm-accent);
+  font-size: 30px;
 }
-
-.cdmGameInfoCol {
+.cdmGameInfo {
+  min-width: 0;
+}
+.cdmGameInfo h3 {
+  color: var(--cdm-text);
+  margin: 0 0 11px;
+  font-weight: 700;
+  font-size: 23px;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+.cdmVersion {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 6px;
+  font-size: 12px;
+  color: var(--cdm-accent);
+  overflow-wrap: anywhere;
+}
+.cdmVersion svg {
+  width: 13px;
+  flex-shrink: 0;
+}
+.cdmReleaseDate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 11px;
+  font-size: 10px;
+  color: var(--cdm-muted);
+  line-height: 1.5;
+}
+.cdmReleaseDate svg {
+  width: 13px;
+  flex-shrink: 0;
+}
+.cdmReleaseDate strong {
+  color: var(--cdm-text);
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+.cdmGameSize {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cdm-text);
+  font-size: 12px;
+  margin-top: 9px;
+  overflow-wrap: anywhere;
+}
+.cdmGameSize svg {
+  width: 13px;
+  flex-shrink: 0;
+  color: var(--cdm-muted);
+}
+.cdmSourceField {
+  min-width: 0;
+}
+.cdmFieldLabel {
+  display: block;
+  color: var(--cdm-muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+.cdmSourceButton {
+  width: 100%;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 30px minmax(0, 1fr) 10px;
+  gap: 8px;
+  border: 1px solid var(--cdm-line);
+  border-radius: 8px;
+  background: #151e2a75;
+  padding: 10px;
+  color: var(--cdm-text);
+  text-align: left;
+}
+.cdmSourceButton:hover {
+  border-color: var(--cdm-accent);
+}
+.cdmSourceButton > span {
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.cdmSourceButton > svg {
+  color: var(--cdm-accent);
+  font-size: 10px;
+}
+.cdmModalCard .dmStoreLogoFloating {
+  position: static;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.cdmSourceHint {
+  display: block;
+  font-size: 11px;
+  color: var(--cdm-muted);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+.cdmPathRow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 19px 0 24px;
+  padding: 13px 0;
+  border-top: 1px solid var(--cdm-line);
+  border-bottom: 1px solid var(--cdm-line);
+}
+.cdmPathRow > svg {
+  color: var(--cdm-accent);
+  width: 18px;
+  flex: 0 0 auto;
+}
+.cdmPathRow > div {
   flex: 1;
   min-width: 0;
 }
-
-.cdmGameTitleText {
-  color: #ffffff;
+.cdmPathValue {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.cdmTextAction {
+  border: none;
+  background: transparent;
+  color: var(--cdm-accent);
+  padding: 9px 0 9px 8px;
+  font-size: 12px !important;
+}
+.cdmSectionLabel {
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  font-size: 11px;
+  color: var(--cdm-muted);
+  text-transform: uppercase;
+  margin: 0 0 11px;
+}
+.cdmChoices {
+  display: grid;
+  gap: 10px;
+}
+.cdmChoiceBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-align: left;
+  padding: 18px 17px;
+  background: #151c2b86;
+  border: 1px solid #a9c6df2c;
+  border-radius: 11px;
+  color: var(--cdm-text);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: inset 0 1px 0 #ffffff05;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+button.cdmChoiceBtn:hover {
+  background: #3b718335;
+  border-color: var(--cdm-accent);
+}
+.cdmMethodIcon {
+  font-size: 25px;
+  color: var(--cdm-accent);
+  width: 36px;
+  flex: 0 0 36px;
+}
+.cdmMethodCopy {
+  flex: 1;
+  min-width: 0;
+}
+.cdmMethodTop {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 5px;
+}
+.cdmMethodTitle {
+  display: block;
   font-weight: 700;
   font-size: 16px;
-  letter-spacing: 0.3px;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: -0.015em;
 }
-
-.cdmGameMetaRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.cdmVersionBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  background: rgba(0, 229, 255, 0.12);
-  border: 1px solid rgba(0, 229, 255, 0.45);
-  border-radius: 6px;
-  color: #00ffff;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.cdmPathNotice {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 4px 10px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px dashed rgba(0, 229, 255, 0.25);
-  border-radius: 6px;
-  font-size: 11.5px;
-  color: #94a3b8;
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.cdmPathIcon {
-  color: #00ffff;
-  flex-shrink: 0;
-  font-size: 12px;
-}
-
-.cdmPathText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cdmStoreBadgeCol {
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-left: auto;
-}
-
-.cdmStoreBadgePill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: rgba(0, 229, 255, 0.08);
-  border: 1.5px solid rgba(0, 229, 255, 0.45);
-  border-radius: 20px;
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
-  flex-shrink: 0;
-  color: #ffffff;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-}
-
-.cdmStoreBadgeClickable {
-  cursor: pointer;
-  outline: none;
-  font-family: inherit;
-}
-
-.cdmStoreBadgeClickable:hover,
-.cdmStoreBadgeClickable.active {
-  background: rgba(0, 229, 255, 0.18);
-  border-color: #00ffff;
-  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
-  transform: translateY(-1px);
-}
-
-.cdmStoreName {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.4px;
-  white-space: nowrap;
-}
-
-.cdmStoreChangeTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10.5px;
-  color: #00ffff;
-  background: rgba(0, 229, 255, 0.15);
-  border: 1px solid rgba(0, 229, 255, 0.35);
-  border-radius: 12px;
-  padding: 2px 7px;
-  margin-left: 4px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  transition: all 0.2s ease;
-}
-
-.cdmStoreBadgeClickable:hover .cdmStoreChangeTag,
-.cdmStoreBadgeClickable.active .cdmStoreChangeTag {
-  background: rgba(0, 229, 255, 0.3);
-  border-color: #00ffff;
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
-}
-
-.cdmSwitchStoreInlineBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  background: rgba(255, 183, 3, 0.12);
-  border: 1px solid rgba(255, 183, 3, 0.45);
-  border-radius: 6px;
-  color: #ffb703;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
-}
-
-.cdmSwitchStoreInlineBtn:hover {
-  background: rgba(255, 183, 3, 0.25);
-  border-color: #ffc107;
-  color: #ffffff;
-  box-shadow: 0 0 10px rgba(255, 183, 3, 0.4);
-  transform: translateY(-1px);
-}
-
-/* GAVETA DE SELEÇÃO DE LOJA CYBER NEON */
-.cdmStoreSelectorDrawer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(10, 15, 24, 0.95);
-  border: 1.5px solid rgba(0, 229, 255, 0.4);
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15) inset, 0 8px 24px rgba(0, 0, 0, 0.7);
-  animation: cdmDrawerSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes cdmDrawerSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.cdmStoreSelectorHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(0, 229, 255, 0.18);
-}
-
-.cdmStoreSelectorTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.3px;
-}
-
-.cdmSearchingStoresHint {
-  font-size: 11px;
-  color: #00ffff;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-}
-
-.cdmStoreGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.cdmStoreCardBtn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: rgba(19, 26, 32, 0.9);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-align: left;
-  outline: none;
-  font-family: inherit;
-  color: #ffffff;
-}
-
-.cdmStoreCardBtn:hover {
-  background: rgba(0, 229, 255, 0.1);
-  border-color: rgba(0, 229, 255, 0.6);
-  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
-  transform: translateY(-1px);
-}
-
-.cdmStoreCardBtn.active {
-  background: rgba(0, 229, 255, 0.15);
-  border-color: #00ffff;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
-}
-
-.cdmStoreCardLeft {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.cdmStoreCardInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.cdmStoreCardName {
-  font-size: 13px;
-  font-weight: 700;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cdmStoreCardVer {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 600;
-}
-
-.cdmStoreCardBtn.active .cdmStoreCardVer {
-  color: #00ffff;
-}
-
-.cdmStoreActiveBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #00ffff;
-  background: rgba(0, 229, 255, 0.18);
-  border: 1px solid rgba(0, 229, 255, 0.5);
-  padding: 3px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.cdmStoreSelectActionBadge {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 3px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.cdmStoreCardBtn:hover .cdmStoreSelectActionBadge {
-  color: #ffffff;
-  background: rgba(0, 229, 255, 0.25);
-  border-color: #00ffff;
-}
-
-/* Lista de Opções de Transporte */
-.cdmChoices {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.cdmChoiceBtn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  width: 100%;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, rgba(14, 20, 32, 0.95) 0%, rgba(20, 30, 48, 0.8) 100%);
-  border: 1.5px solid rgba(0, 229, 255, 0.35);
-  border-radius: 12px;
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-align: left;
-  box-sizing: border-box;
-}
-
-.cdmChoiceBtn:hover:not(:disabled) {
-  background: rgba(0, 229, 255, 0.12);
-  border-color: #00ffff;
-  box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
-  transform: translateY(-1px);
-}
-
-.cdmChoiceBtn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: none;
-  box-shadow: none;
-}
-
-.cdmBtnLeft {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.cdmBtnIcon {
-  font-size: 18px;
-  color: #00ffff;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.7));
-}
-
-.cdmBtnTexts {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.cdmBtnLabel {
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.2px;
-}
-
-.cdmBtnSub {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.65);
-  line-height: 1.35;
-}
-
-/* Badges Neon */
-.cdmSpeedBadge {
-  background: rgba(0, 229, 255, 0.15);
-  border: 1px solid rgba(0, 229, 255, 0.5);
-  border-radius: 6px;
-  color: #00ffff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.cdmDebridBadge {
-  background: rgba(0, 229, 255, 0.15);
-  border: 1px solid rgba(0, 229, 255, 0.5);
-  border-radius: 6px;
-  color: #00ffff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.cdmMissingBadge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: rgba(255, 107, 0, 0.15);
-  border: 1px solid rgba(255, 107, 0, 0.45);
-  color: #ff9900;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.cdmInfoBadge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: rgba(148, 163, 184, 0.15);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  color: #94a3b8;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.cdmActiveBadge {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 8px;
+.cdmMethodBadge {
+  display: inline-block;
+  color: var(--cdm-accent);
+  border: 1px solid #50edf140;
   border-radius: 4px;
-  background: rgba(0, 229, 255, 0.15);
-  border: 1px solid rgba(0, 229, 255, 0.45);
-  color: #00ffff;
-  flex-shrink: 0;
-  white-space: nowrap;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
-
-.cdmNoticeBox {
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: rgba(255, 183, 3, 0.1);
-  border: 1px solid rgba(255, 183, 3, 0.35);
-  color: #ffb703;
+.cdmMethodDescription {
+  display: block;
+  color: var(--cdm-muted);
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.45;
 }
-
+.cdmMethodMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  color: var(--cdm-muted);
+  font-size: 11px;
+}
+.cdmMethodMeta svg {
+  color: var(--cdm-accent);
+  width: 12px;
+}
+.cdmMethodArrow {
+  color: var(--cdm-muted);
+  width: 16px;
+  flex-shrink: 0;
+}
+.cdmChoiceUnavailable {
+  opacity: 0.55;
+}
+.cdmChoiceUnavailable .cdmMethodIcon {
+  color: var(--cdm-muted);
+}
 .cdmLoadingRow {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  gap: 10px;
+  padding: 25px 8px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--cdm-muted);
 }
-
+.cdmLoadingRow svg {
+  color: var(--cdm-accent);
+}
+.cdmNoticeBox {
+  padding: 12px;
+  margin: 0 0 15px;
+  border: 1px solid #50edf13d;
+  border-radius: 8px;
+  color: var(--cdm-text);
+  background: #183340a8;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .cdmModalFooter {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 14px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.25);
+  justify-content: space-between;
+  gap: 18px;
+  flex-shrink: 0;
+  padding: 14px 26px;
+  background: #090e18a8;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-top: 1px solid var(--cdm-line);
 }
-
+.cdmModalFooter > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--cdm-muted);
+}
+.cdmModalFooter svg {
+  width: 13px;
+  flex-shrink: 0;
+}
 .cdmBtnCancel {
-  background: #1a232c;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 22px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--cdm-text);
+  padding: 8px 15px;
+  border: 1px solid var(--cdm-line);
+  border-radius: 7px;
+  font-size: 12px !important;
 }
-
 .cdmBtnCancel:hover {
-  background: #24303d;
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--cdm-accent);
+  border-color: var(--cdm-accent);
+}
+.cdmSourceMenu {
+  position: fixed;
+  z-index: 10001;
+  min-width: 0;
+  padding: 5px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #9ac3d937;
+  border-radius: 10px;
+  background: #151c29;
+  color: #edf1f6;
+  box-shadow: 0 12px 24px #00000065;
+  font-family: 'Cabin', sans-serif;
+}
+.cdmSourceMenuOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cdmSourceMenuOption:hover,
+.cdmSourceMenuOption:focus-visible,
+.cdmSourceMenuOption[aria-checked='true'] {
+  background: #50edf10d;
+  color: #50edf1;
+}
+.cdmSourceMenuOption:focus-visible {
+  outline: 1px solid #50edf1;
+  outline-offset: -1px;
+}
+.cdmSourceMenuOption > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cdmSourceMenu .dmStoreLogoFloating {
+  position: static;
+  flex-shrink: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.cdmSourceMenuLoading {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #b8c2d1;
+}
+.cdmModalCard--cover .cdmModalBody {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 25px;
+  padding-top: 26px;
+  padding-bottom: 26px;
+}
+.cdmModalCard--cover .cdmGameShowcase {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 17px;
+}
+.cdmModalCard--cover .cdmGameCoverWrap {
+  width: 170px;
+  height: 255px;
+}
+.cdmModalCard--cover .cdmSourceField {
+  width: 100%;
+}
+.cdmModalCard--cover .cdmPathRow {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.cdmModalCard--cover .cdmChoiceBtn {
+  gap: 10px;
+  padding: 18px 12px;
+  align-items: flex-start;
+}
+.cdmModalCard--cover .cdmMethodIcon {
+  width: 27px;
+  flex-basis: 27px;
+  font-size: 23px;
+}
+.cdmModalCard--cover .cdmMethodTop {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+.cdmModalCard--cover .cdmMethodArrow {
+  margin-top: 5px;
+}
+@media (max-width: 580px) {
+  .cdmModalOverlay {
+    padding: 10px;
+  }
+  .cdmModalCard {
+    max-height: calc(100dvh - 20px);
+  }
+  .cdmModalHeader {
+    padding: 17px 18px;
+  }
+  .cdmModalHeader h2 {
+    font-size: 21px;
+  }
+  .cdmModalBody,
+  .cdmModalCard--cover .cdmModalBody {
+    display: block;
+    padding: 20px 18px;
+  }
+  .cdmGameShowcase,
+  .cdmModalCard--cover .cdmGameShowcase {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 15px;
+  }
+  .cdmGameCoverWrap,
+  .cdmModalCard--cover .cdmGameCoverWrap {
+    width: 96px;
+    height: 144px;
+  }
+  .cdmGameInfo h3 {
+    font-size: 21px;
+  }
+  .cdmSourceField {
+    grid-column: 1/-1;
+    width: 100%;
+  }
+  .cdmSourceHint {
+    display: none;
+  }
+  .cdmReleaseDate {
+    align-items: flex-start;
+  }
+  .cdmReleaseDate svg {
+    margin-top: 1px;
+  }
+  .cdmReleaseDate strong {
+    display: block;
+    margin: 3px 0 0;
+  }
+  .cdmPathRow,
+  .cdmModalCard--cover .cdmPathRow {
+    margin: 18px 0 22px;
+    padding: 13px 0;
+    border-top: 1px solid var(--cdm-line);
+  }
+  .cdmChoiceBtn,
+  .cdmModalCard--cover .cdmChoiceBtn {
+    padding: 15px 12px;
+    gap: 10px;
+  }
+  .cdmMethodIcon {
+    width: 27px;
+    flex-basis: 27px;
+    font-size: 23px;
+  }
+  .cdmMethodTitle {
+    font-size: 15px;
+  }
+  .cdmMethodArrow {
+    width: 13px;
+  }
+  .cdmModalFooter {
+    padding: 13px 18px;
+    gap: 12px;
+  }
+  .cdmAppearancePanel {
+    padding: 16px 18px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdmModalCard *,
+  .cdmModalCard *::before,
+  .cdmModalCard *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

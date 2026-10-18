@@ -186,6 +186,9 @@ export function registerPluginsIPC(): void {
     }
   )
 
+  addHandler('pluginsShare', async (_event, pluginId) => manager.sharePlugin(pluginId))
+  addHandler('pluginsShareSourceEngine', async (_event, id) => manager.shareSourceEngine(id))
+
   addHandler('pluginsInstall', async (event, filePath?: string) => {
     return await manager.installPlugin(filePath)
   })

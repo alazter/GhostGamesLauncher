@@ -1,5 +1,5 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, copyFileSync, rmSync } from 'graceful-fs'
-import { join, resolve, relative, dirname, basename } from 'path'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, lstatSync, copyFileSync, rmSync } from 'graceful-fs'
+import { join, resolve, relative, dirname, basename, isAbsolute, sep } from 'path'
 import { createHash } from 'crypto'
 import { deflateRawSync, inflateRawSync } from 'zlib'
 import type { PluginManifest, PluginPackResult } from 'common/types/plugins'
@@ -150,7 +150,8 @@ export class PluginPacker {
 
         // Zip Slip Security Protection
         const filePath = resolve(resolvedDest, fileName)
-        if (!filePath.startsWith(resolvedDest)) {
+      const relativePath = relative(resolvedDest, filePath)
+      if (relativePath === '..' || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
           throw new Error(`[GhostShield Security Alert] Malicious path traversal detected: "${fileName}"`)
         }
 
@@ -198,7 +199,10 @@ export class PluginPacker {
           }
           const fullPath = join(currentDir, entry)
           const relPath = relative(baseDir, fullPath).replace(/\\/g, '/')
-          const stat = statSync(fullPath)
+          const stat = lstatSync(fullPath)
+          if (stat.isSymbolicLink()) {
+            throw new Error('O plugin contém um link para outra pasta ou arquivo. Use arquivos locais no pacote para compartilhar.')
+          }
           if (stat.isDirectory()) {
             scan(fullPath, baseDir)
           } else if (stat.isFile()) {

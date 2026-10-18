@@ -1,4 +1,11 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import { faFolderOpen, faFileExport } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -15,15 +22,26 @@ interface LogBoxProps {
   logFileContent: string
 }
 
-const LogBox: React.FC<LogBoxProps> = ({ logFileContent }) => {
+const MAX_DISPLAY_LINE_CHARS = 2000
+
+const LogBox: React.FC<LogBoxProps> = React.memo(({ logFileContent }) => {
   const { t } = useTranslation()
   const maxLines = 1000
-  let sliced = false
-  let lines = logFileContent.split('\n')
-  if (lines.length > maxLines) {
-    lines = ['...', ...lines.slice(-maxLines)]
-    sliced = true
-  }
+
+  const { lines, sliced } = useMemo(() => {
+    let rawLines = logFileContent.split('\n')
+    let isSliced = rawLines[0] === '...'
+    if (rawLines.length > maxLines) {
+      rawLines = ['...', ...rawLines.slice(-maxLines)]
+      isSliced = true
+    }
+    const safeLines = rawLines.map((line) =>
+      line.length > MAX_DISPLAY_LINE_CHARS
+        ? `${line.slice(0, MAX_DISPLAY_LINE_CHARS)}... [line truncated]`
+        : line
+    )
+    return { lines: safeLines, sliced: isSliced }
+  }, [logFileContent])
 
   return (
     <>
@@ -37,13 +55,14 @@ const LogBox: React.FC<LogBoxProps> = ({ logFileContent }) => {
       )}
       <span className="setting log-box">
         {lines.map((line, key) => {
-          if (line.toLowerCase().includes(' err')) {
+          const lower = line.toLowerCase()
+          if (lower.includes(' err')) {
             return (
               <p key={key} className="log-error">
                 {line}
               </p>
             )
-          } else if (line.toLowerCase().includes(' warn')) {
+          } else if (lower.includes(' warn')) {
             return (
               <p key={key} className="log-warning">
                 {line}
@@ -60,7 +79,9 @@ const LogBox: React.FC<LogBoxProps> = ({ logFileContent }) => {
       </span>
     </>
   )
-}
+})
+
+LogBox.displayName = 'LogBox'
 
 export default function LogSettings() {
   const { t } = useTranslation()
@@ -73,6 +94,9 @@ export default function LogSettings() {
     !runner ? {} : { appName, runner }
   )
   const [refreshing, setRefreshing] = useState<boolean>(true)
+  const [isVisible, setIsVisible] = useState<boolean>(!isInSettingsMenu)
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const isFetchingRef = useRef<boolean>(false)
 
   const { epic, gog, amazon, zoom, sideloadedLibrary } =
     useContext(ContextProvider)
@@ -96,26 +120,56 @@ export default function LogSettings() {
     zoom.library
   ])
 
-  const getLogContent = () => {
-    void window.api.getLogContent(showLogOf).then((content: string) => {
-      if (!content) {
-        setLogFileContent(t('setting.log.no-file', 'No log file found.'))
-        setLogFileExist(false)
-        return setRefreshing(false)
-      }
-      setLogFileContent(content)
-      setLogFileExist(true)
-      setRefreshing(false)
-    })
-  }
+  useEffect(() => {
+    if (!isInSettingsMenu || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true)
+      return
+    }
+    const target = wrapperRef.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry) {
+          setIsVisible(entry.isIntersecting)
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [isInSettingsMenu])
+
+  const getLogContent = useCallback(() => {
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
+    void window.api
+      .getLogContent(showLogOf)
+      .then((content: string) => {
+        if (!content) {
+          const emptyMsg = t('setting.log.no-file', 'No log file found.')
+          setLogFileContent((prev) => (prev === emptyMsg ? prev : emptyMsg))
+          setLogFileExist(false)
+          setRefreshing(false)
+          return
+        }
+        setLogFileContent((prev) => (prev === content ? prev : content))
+        setLogFileExist(true)
+        setRefreshing(false)
+      })
+      .finally(() => {
+        isFetchingRef.current = false
+      })
+  }, [showLogOf, t])
 
   useEffect(() => {
     getLogContent()
+    if (!isVisible) return
     const interval = setInterval(() => {
       getLogContent()
-    }, 1000)
+    }, 3000)
     return () => clearInterval(interval)
-  }, [showLogOf])
+  }, [getLogContent, isVisible])
 
   function showLogFileInFolder() {
     window.api.showLogFileInFolder(showLogOf)
@@ -221,6 +275,7 @@ export default function LogSettings() {
         )}
       </p>
       <div
+        ref={wrapperRef}
         className={classNames('logs-wrapper', {
           'game-log': !isInSettingsMenu
         })}

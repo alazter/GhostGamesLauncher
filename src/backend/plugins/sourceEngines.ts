@@ -14,6 +14,15 @@ import { secureFetch } from './secureDns'
 import { engineProcess } from './engineProcess'
 import { validateEngineRelease } from './enginePolicy'
 import { engineFileOperation } from './engineFileOperation'
+import {
+  officialObscuraRelease,
+  testObscuraCompatibility
+} from './obscuraRelease'
+import {
+  createSourceEnginePackage,
+  readSourceEnginePackage,
+  engineArchiveLimit
+} from './sourceEnginePackage'
 
 const ids: SourceEngineId[] = ['scrapling', 'obscura']
 const repositories = {
@@ -201,7 +210,8 @@ async function smoke(release: EngineRelease, folder: string) {
   )
   if (release.id === 'scrapling') {
     const parsed: unknown = JSON.parse(output)
-    if (!parsed || typeof parsed !== 'object') throw new Error('O teste do Scrapling falhou.')
+    if (!parsed || typeof parsed !== 'object')
+      throw new Error('O teste do Scrapling falhou.')
     const result = parsed as Record<string, unknown>
     if (
       result.protocol !== 1 ||
@@ -211,27 +221,45 @@ async function smoke(release: EngineRelease, folder: string) {
         (!Array.isArray(result.capabilities) ||
           !result.capabilities.includes('online-fix-torrent-links-v1'))) ||
       ((release.integrationRevision || 0) >= 4 &&
-        (!Array.isArray(result.capabilities) || !result.capabilities.includes('direct-download-page-v1'))) ||
+        (!Array.isArray(result.capabilities) ||
+          !result.capabilities.includes('direct-download-page-v1'))) ||
       ((release.integrationRevision || 0) >= 5 &&
-        (!Array.isArray(result.capabilities) || !result.capabilities.includes('release-page-v1')))
+        (!Array.isArray(result.capabilities) ||
+          !result.capabilities.includes('release-page-v1')))
     )
       throw new Error('O teste do Scrapling falhou.')
   } else if (!output.includes(release.version))
     throw new Error('A versão do Obscura não corresponde ao pacote.')
   verifiedWorkers.add(release.sha256)
 }
-async function install(id: SourceEngineId) {
+async function install(
+  id: SourceEngineId,
+  shared?: { release: EngineRelease; archive: Buffer }
+) {
   if (!root) throw new Error('Motores ainda não inicializados.')
-  const release = candidate(id)
+  const release = shared?.release || candidate(id)
   if (!release)
     throw new Error(
       'Ainda não há pacote aprovado para este sistema. Verifique as atualizações mais tarde.'
     )
-  if (state.installed[id] && gt(state.installed[id]!.version, release.version))
+  if (state.installed[id] && gt(state.installed[id].version, release.version))
     throw new Error(
       'A versão instalada é mais recente que o pacote disponível.'
     )
+  if (
+    shared &&
+    state.installed[id]?.version === release.version &&
+    (state.installed[id]?.integrationRevision || 0) >
+      (release.integrationRevision || 0)
+  )
+    throw new Error(
+      'A integração instalada é mais recente que o pacote compartilhado.'
+    )
   if (active.has(id)) {
+    if (shared)
+      throw new Error(
+        'Motor em uso. Aguarde e tente instalar o arquivo novamente.'
+      )
     pending.add(id)
     messages[id] = 'Aguardando a operação atual terminar.'
     return
@@ -242,6 +270,17 @@ async function install(id: SourceEngineId) {
     if (state.installed[id]?.sha256 === release.sha256) {
       try {
         await smoke(release, directory(release))
+        if (shared) {
+          await cacheEngineArchive(release, shared.archive)
+          const enabled = state.enabled[id]
+          state.enabled[id] = true
+          try {
+            await persist()
+          } catch (error) {
+            state.enabled[id] = enabled
+            throw error
+          }
+        }
         messages[id] = 'A versão instalada está íntegra.'
         return
       } catch {
@@ -252,9 +291,9 @@ async function install(id: SourceEngineId) {
     await mkdir(staging, { recursive: true })
     let archive: Buffer
     try {
-      archive = await readFile(join(bundles, `${release.sha256}.zip`))
+      archive = shared?.archive || (await readEngineArchive(release))
     } catch {
-      archive = await boundedDownload(release.url, 250 * 1024 * 1024, 180000)
+      archive = await boundedDownload(release.url, engineArchiveLimit, 180000)
     }
     if (createHash('sha256').update(archive).digest('hex') !== release.sha256)
       throw new Error('O pacote não passou na verificação de integridade.')
@@ -274,6 +313,9 @@ async function install(id: SourceEngineId) {
       }
     })
     await smoke(release, content)
+    if (release.id === 'obscura')
+      await testObscuraCompatibility(join(content, release.executable))
+    await cacheEngineArchive(release, archive)
     const destination = directory(release)
     await mkdir(join(root, id), { recursive: true })
     // A verified folder from an interrupted activation may be reused.
@@ -286,13 +328,16 @@ async function install(id: SourceEngineId) {
     }
     const old = state.installed[id]
     const oldPrevious = state.previous[id]
+    const oldEnabled = state.enabled[id]
     if (old?.sha256 !== release.sha256) state.previous[id] = old
     state.installed[id] = release
+    if (shared) state.enabled[id] = true
     try {
       await persist()
     } catch (error) {
       state.installed[id] = old
       state.previous[id] = oldPrevious
+      state.enabled[id] = oldEnabled
       throw error
     }
     messages[id] = 'Motor atualizado e verificado.'
@@ -323,6 +368,146 @@ async function install(id: SourceEngineId) {
       retryDelay: 200
     })
   }
+}
+
+async function readEngineArchive(release: EngineRelease): Promise<Buffer> {
+  try {
+    const archive = await readFile(
+      join(root!, 'packages', `${release.sha256}.zip`)
+    )
+    if (createHash('sha256').update(archive).digest('hex') === release.sha256)
+      return archive
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+  return readFile(join(bundles, `${release.sha256}.zip`))
+}
+
+async function cacheEngineArchive(release: EngineRelease, archive: Buffer) {
+  await mkdir(join(root!, 'packages'), { recursive: true })
+  const target = join(root!, 'packages', `${release.sha256}.zip`)
+  const temporary = `${target}.${randomUUID()}.tmp`
+  try {
+    await writeFile(temporary, archive)
+    await engineFileOperation(() => rename(temporary, target))
+  } finally {
+    await rm(temporary, { force: true })
+  }
+}
+
+export async function exportSourceEngine(
+  id: SourceEngineId,
+  outputPath: string
+) {
+  if (!root || !ids.includes(id) || !state.installed[id])
+    throw new Error('Instale o motor antes de compartilhar.')
+  if (!(await claimEngine(id)))
+    throw new Error('Motor em uso. Aguarde e tente novamente.')
+  const temporary = `${outputPath}.${randomUUID()}.tmp`
+  try {
+    const release = state.installed[id]
+    await smoke(release, directory(release))
+    let archive: Buffer
+    try {
+      archive = await readEngineArchive(release)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      archive = await boundedDownload(release.url, engineArchiveLimit, 180000)
+    }
+    if (createHash('sha256').update(archive).digest('hex') !== release.sha256)
+      throw new Error(
+        'O pacote não passou na verificação de integridade. Reinstale o motor antes de compartilhar.'
+      )
+    await cacheEngineArchive(release, archive)
+    await writeFile(temporary, createSourceEnginePackage(release, archive))
+    await engineFileOperation(() => rename(temporary, outputPath))
+  } finally {
+    releaseEngine(id)
+    await rm(temporary, { force: true })
+  }
+}
+
+export async function importSourceEngine(
+  buffer: Buffer
+): Promise<EngineRelease> {
+  if (!root) throw new Error('Motores ainda não inicializados.')
+  const { release: raw, archive } = readSourceEnginePackage(buffer)
+  const release = validateEngineRelease(
+    raw,
+    ghostVersion,
+    process.platform,
+    process.arch
+  )
+  if (createHash('sha256').update(archive).digest('hex') !== release.sha256)
+    throw new Error('O pacote não passou na verificação de integridade.')
+
+  // Never let an arbitrary file self-approve a native executable or its command path.
+  const matches = (trusted: EngineRelease | undefined) =>
+    trusted !== undefined &&
+    trusted.id === release.id &&
+    trusted.version === release.version &&
+    trusted.sha256 === release.sha256 &&
+    trusted.executable === release.executable &&
+    trusted.url === release.url &&
+    trusted.minGhostVersion === release.minGhostVersion &&
+    (trusted.integrationRevision || 0) === (release.integrationRevision || 0)
+  let approved = [
+    ...releases,
+    ...Object.values(state.installed),
+    ...Object.values(state.previous)
+  ].some(matches)
+  if (!approved) {
+    try {
+      const catalog = JSON.parse(
+        (await boundedDownload(feed, 1024 * 1024)).toString()
+      )
+      approved =
+        Array.isArray(catalog.releases) &&
+        catalog.releases.some((item: EngineRelease) => {
+          try {
+            return matches(
+              validateEngineRelease(
+                item,
+                ghostVersion,
+                process.platform,
+                process.arch
+              )
+            )
+          } catch {
+            return false
+          }
+        })
+    } catch {
+      if (release.id !== 'obscura')
+        throw new Error(
+          'Não foi possível confirmar este motor no catálogo oficial. Conecte-se à internet e tente novamente.'
+        )
+    }
+  }
+  if (!approved && release.id === 'obscura') {
+    try {
+      const metadata: unknown = JSON.parse(
+        (
+          await boundedDownload(
+            `https://api.github.com/repos/h4ckf0r0day/obscura/releases/tags/${encodeURIComponent(`v${release.version}`)}`,
+            1024 * 1024
+          )
+        ).toString()
+      )
+      approved = matches(officialObscuraRelease(metadata, ghostVersion))
+    } catch {
+      throw new Error(
+        'Não foi possível confirmar o pacote na origem oficial do Obscura. Verifique a conexão e tente novamente.'
+      )
+    }
+  }
+  if (!approved)
+    throw new Error(
+      'Este pacote de motor não consta no catálogo aprovado. Atualize o Ghost ou peça um arquivo compatível.'
+    )
+  await install(release.id, { release, archive })
+  messages[release.id] = 'Motor compartilhado instalado, testado e ativado.'
+  return release
 }
 async function restore(id: SourceEngineId, alreadyActive = false) {
   if (active.has(id) && !alreadyActive)
@@ -388,8 +573,8 @@ export async function checkSourceEngines(force = false) {
         )
       if (data.rules) {
         const rules = validateSourceRules(data.rules)
-        await writeFile(join(root!, 'rules.tmp'), JSON.stringify(rules))
-        await rename(join(root!, 'rules.tmp'), join(root!, 'rules.json'))
+        await writeFile(join(root, 'rules.tmp'), JSON.stringify(rules))
+        await rename(join(root, 'rules.tmp'), join(root, 'rules.json'))
         installSourceRules(rules)
       }
       releases = [
@@ -408,7 +593,7 @@ export async function checkSourceEngines(force = false) {
       catalogError = undefined
     } catch (error) {
       catalogError =
-        `Catálogo de atualizações indisponível. Pacotes locais e versões instaladas preservados. ${error instanceof Error ? error.message : ''}`.trim()
+        `Catálogo do Ghost indisponível. Pacotes locais e versões instaladas preservados; o Obscura também é consultado na origem oficial. ${error instanceof Error ? error.message : ''}`.trim()
     }
     await Promise.all(
       ids.map(async (id) => {
@@ -417,9 +602,39 @@ export async function checkSourceEngines(force = false) {
             `https://api.github.com/repos/${repositories[id]}/releases/latest`,
             1024 * 1024
           )
-          upstream[id] = JSON.parse(response.toString()).tag_name
+          const metadata: unknown = JSON.parse(response.toString())
+          if (
+            metadata &&
+            typeof metadata === 'object' &&
+            'tag_name' in metadata &&
+            typeof metadata.tag_name === 'string'
+          ) {
+            upstream[id] = metadata.tag_name.replace(/^v/, '')
+          }
+          if (id === 'obscura') {
+            const release = officialObscuraRelease(metadata, ghostVersion)
+            if (release) {
+              await writeFile(
+                join(root!, 'obscura-release.tmp'),
+                JSON.stringify(release)
+              )
+              await engineFileOperation(() =>
+                rename(
+                  join(root!, 'obscura-release.tmp'),
+                  join(root!, 'obscura-release.json')
+                )
+              )
+              releases = [
+                ...releases.filter(
+                  (item) =>
+                    item.id !== 'obscura' || item.sha256 !== release.sha256
+                ),
+                release
+              ]
+            }
+          }
         } catch {
-          /* The approved feed, not upstream availability, decides activation. */
+          /* Keep the installed/local packages when official metadata is unavailable. */
         }
       })
     )
@@ -432,9 +647,9 @@ export async function checkSourceEngines(force = false) {
           state.enabled[id] &&
           next &&
           (!state.installed[id] ||
-            gt(next.version, state.installed[id]!.version) ||
-            (next.version === state.installed[id]!.version &&
-              next.sha256 !== state.installed[id]!.sha256))
+            gt(next.version, state.installed[id].version) ||
+            (next.version === state.installed[id].version &&
+              next.sha256 !== state.installed[id].sha256))
         ) {
           try {
             await install(id)
@@ -498,6 +713,19 @@ export async function initializeSourceEngines(
     releases = []
   }
   try {
+    const cached = validateEngineRelease(
+      JSON.parse(await readFile(join(root, 'obscura-release.json'), 'utf8')),
+      version,
+      process.platform,
+      process.arch
+    )
+    if (cached.id === 'obscura') releases.push(cached)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
+      catalogError =
+        'Não foi possível ler o pacote de atualização salvo. Use Verificar atualizações para consultar novamente.'
+  }
+  try {
     installSourceRules(
       JSON.parse(await readFile(join(root, 'rules.json'), 'utf8'))
     )
@@ -508,7 +736,7 @@ export async function initializeSourceEngines(
   for (const id of options.deferVerification ? [] : ids)
     if (state.installed[id]) {
       try {
-        await smoke(state.installed[id]!, directory(state.installed[id]!))
+        await smoke(state.installed[id], directory(state.installed[id]))
       } catch {
         try {
           await restore(id)
@@ -559,11 +787,12 @@ export async function withSourceEngine<T>(
     !(await claimEngine(id))
   )
     return undefined
-  const release = state.installed[id]!
+  const release = state.installed[id]
   try {
     // Startup can load engine metadata without spawning browsers/workers.
     // The first actual use still verifies the installed executable under its lock.
-    if (!verifiedWorkers.has(release.sha256)) await smoke(release, directory(release))
+    if (!verifiedWorkers.has(release.sha256))
+      await smoke(release, directory(release))
     const data = join(root, id, 'data')
     await mkdir(data, { recursive: true })
     return await run(join(directory(release), release.executable), data)

@@ -64,3 +64,11 @@ login continuam no Electron. Não há regras por título nem seleção automáti
 entre arquivos ambíguos. A captura real do UNO, com o novo pacote e perfil
 isolado, entregou 95.261 bytes de torrent válido. O jogo completo e a API TorBox
 pessoal não foram usados nesse teste. Detalhes: [ONLINE_FIX_TORRENT_DOWNLOAD.md](ONLINE_FIX_TORRENT_DOWNLOAD.md).
+
+## Compartilhamento dos motores — 18/10/2026
+
+Scrapling e Obscura também podem ser compartilhados no formato `.ghost`. Use **Compartilhar (.ghost)** no motor instalado, envie o arquivo e instale no destino em **Instalar motor compartilhado (.ghost)**. O arquivo inclui o executável e as dependências do pacote original; não copia sessões ou dados de navegação. O Ghost valida o catálogo, a compatibilidade e a integridade e testa o motor antes de ativar. O botão geral de importar e o arrastar/soltar reconhecem plugins e motores. Detalhes e limites: [PLUGIN_SHARING.md](PLUGIN_SHARING.md).
+
+## Atualizações oficiais do Obscura — 18/10/2026
+
+No Windows x64, o Ghost também reconhece o pacote estável oficial do Obscura através dos metadados e SHA-256 da API GitHub do projeto. A falta do catálogo Ghost não bloqueia esse caminho. O pacote precisa passar em versão, integridade e teste local de navegação/JavaScript antes da ativação. A versão 0.2.5 foi validada; o candidato pode ser instalado pelo botão existente mesmo com o motor desativado. A preferência de ativação permanece durante uma atualização. Scrapling conserva o catálogo de integração Ghost. Detalhes e evidências em [SOURCE_ENGINE_UPDATES.md](SOURCE_ENGINE_UPDATES.md).

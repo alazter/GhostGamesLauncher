@@ -114,6 +114,11 @@ export default class LogWriter {
 
     if (!message.trim().length) return
 
+    const maxSingleEntryChars = 65536
+    if (message.length > maxSingleEntryChars) {
+      message = `${message.slice(0, maxSingleEntryChars)}... [log entry truncated from ${message.length} chars]\n`
+    }
+
     // Append a newline only if there isn't one already. This is used in favor
     // of `.trim()`ing the message as it still allows for messages to insert
     // additional whitespace if desired

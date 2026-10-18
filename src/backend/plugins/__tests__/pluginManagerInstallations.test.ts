@@ -5,14 +5,17 @@ import { PluginManager } from '../pluginManager'
 import { PluginPacker } from '../pluginPacker'
 import { PluginHost } from '../pluginHost'
 import { readPluginInstallations } from '../pluginInstallations'
+import { createSourceEnginePackage } from '../sourceEnginePackage'
+import type { EngineRelease } from 'common/types/sourceEngines'
 
 jest.mock('electron', () => ({
   app: {
     isPackaged: false,
     getAppPath: jest.fn(),
+    getPath: jest.fn(() => 'downloads'),
     getVersion: () => '0.3.1-beta'
   },
-  dialog: {},
+  dialog: { showSaveDialog: jest.fn() },
   shell: {}
 }))
 jest.mock('backend/constants/paths', () => ({ userDataPath: '' }))
@@ -30,7 +33,12 @@ jest.mock('../sourceSettings', () => ({
   initializeSourceSettings: jest.fn(),
   sourceDomains: () => []
 }))
-jest.mock('../sourceEngines', () => ({ initializeSourceEngines: jest.fn() }))
+jest.mock('../sourceEngines', () => ({
+  initializeSourceEngines: jest.fn(),
+  importSourceEngine: jest.fn(),
+  exportSourceEngine: jest.fn(),
+  sourceEnginesState: jest.fn()
+}))
 jest.mock('../externalGames', () => ({
   ExternalGames: { getInstance: jest.fn() }
 }))
@@ -78,9 +86,10 @@ beforeEach(() => {
   }>('backend/constants/paths')
   paths.userDataPath = profile
   const electron = jest.requireMock<{
-    app: { getAppPath: jest.Mock<string, []> }
+    app: { getAppPath: jest.Mock<string, []>; getPath: jest.Mock<string, [string]> }
   }>('electron')
   electron.app.getAppPath.mockReturnValue(join(root, 'app'))
+  electron.app.getPath.mockReturnValue(root)
   jest.mocked(PluginHost).mockImplementation(
     (info) =>
       ({
@@ -210,4 +219,81 @@ it('uninstalls every alias of an ID without removing plugin data', async () => {
   expect(fs.readFileSync(data, 'utf8')).toBe('personal preferences')
   expect((await manager.uninstallPlugin('../plugins_data')).success).toBe(false)
   expect(fs.readFileSync(data, 'utf8')).toBe('personal preferences')
+})
+
+it('shares a portable .ghost and installs it in another profile without personal data', async () => {
+  const source = install(join(profile, 'plugins'), id, '1.2.0')
+  fs.mkdirSync(join(source, 'assets'))
+  fs.writeFileSync(join(source, 'assets', 'theme.css'), 'body { color: red; }')
+  fs.mkdirSync(join(profile, 'plugins_data'))
+  fs.writeFileSync(join(profile, 'plugins_data', `${id}.json`), 'private settings')
+  const save = jest.requireMock('electron').dialog.showSaveDialog
+  save.mockResolvedValue({ canceled: false, filePath: join(root, 'shared') })
+  const exported = await manager.sharePlugin(id)
+  expect(exported).toEqual({ success: true, outputPath: join(root, 'shared.ghost') })
+
+  const recipient = join(root, 'friend')
+  jest.requireMock('backend/constants/paths').userDataPath = recipient
+  Reflect.set(PluginManager, 'instance', undefined)
+  const friend = PluginManager.getInstance()
+  const imported = await friend.installPlugin(exported.outputPath)
+  expect(imported.success).toBe(true)
+  expect(imported.plugin?.id).toBe(id)
+  const installed = join(recipient, 'plugins', id)
+  expect(fs.readFileSync(join(installed, 'assets', 'theme.css'), 'utf8')).toBe('body { color: red; }')
+  expect(fs.readdirSync(installed).sort()).toEqual(['assets', 'checksum.json', 'index.js', 'plugin.json'])
+  expect(fs.existsSync(join(recipient, 'plugins_data', `${id}.json`))).toBe(false)
+})
+
+it('cancels sharing without creating a package and rejects unknown plugin IDs', async () => {
+  install(join(profile, 'plugins'), id, '1.0.0')
+  const save = jest.requireMock('electron').dialog.showSaveDialog
+  save.mockClear()
+  save.mockResolvedValue({ canceled: true })
+  expect(await manager.sharePlugin(id)).toEqual({ success: false })
+  expect(await manager.sharePlugin('../plugins_data')).toEqual({ success: false, error: 'Plugin não encontrado.' })
+  expect(save).toHaveBeenCalledTimes(1)
+})
+
+it('does not package linked folders and rejects archive paths escaping into sibling folders', async () => {
+  const source = install(join(profile, 'plugins'), id, '1.0.0')
+  const privateDir = join(root, 'private')
+  fs.mkdirSync(privateDir)
+  fs.writeFileSync(join(privateDir, 'secret.json'), 'private')
+  fs.symlinkSync(privateDir, join(source, 'linked'), 'junction')
+  expect((await PluginPacker.pack(source, join(root, 'unsafe.ghost'))).success).toBe(false)
+  expect(fs.existsSync(join(root, 'unsafe.ghost'))).toBe(false)
+  const archive = PluginPacker.createZipBuffer([{ name: '../target-sibling/secret.txt', content: Buffer.from('bad') }])
+  expect(() => PluginPacker.unpackFromBuffer(archive, join(root, 'target'))).toThrow('GhostShield')
+  expect(fs.existsSync(join(root, 'target-sibling', 'secret.txt'))).toBe(false)
+})
+
+it.each(['file', 'buffer'])('routes a shared engine from %s to the engine installer without creating a plugin', async (method) => {
+  const engine = { id: 'scrapling', version: '0.4.15' } as EngineRelease
+  const service = jest.requireMock('../sourceEngines')
+  service.importSourceEngine.mockResolvedValue(engine)
+  const bytes = createSourceEnginePackage(engine, Buffer.from('verified by engine installer'))
+  const file = join(root, 'motor.ghost')
+  fs.writeFileSync(file, bytes)
+  const result = method === 'file'
+    ? await manager.installPlugin(file)
+    : await manager.installFromBuffer('motor.ghost', bytes.toString('base64'))
+  expect(result).toEqual({ success: true, engine: { id: engine.id, version: engine.version } })
+  expect(service.importSourceEngine).toHaveBeenCalledWith(bytes)
+  expect(manager.getPlugins()).toEqual([])
+  expect(started).not.toHaveBeenCalled()
+})
+
+it('shares an installed engine using the save dialog and honors cancellation', async () => {
+  const service = jest.requireMock('../sourceEngines')
+  service.sourceEnginesState.mockReturnValue({ engines: [{ id: 'scrapling', installed: '0.4.15' }] })
+  service.exportSourceEngine.mockResolvedValue(undefined)
+  const save = jest.requireMock('electron').dialog.showSaveDialog
+  save.mockResolvedValue({ canceled: false, filePath: join(root, 'motor.ghost') })
+  expect(await manager.shareSourceEngine('scrapling')).toEqual({ success: true, outputPath: join(root, 'motor.ghost') })
+  expect(service.exportSourceEngine).toHaveBeenCalledWith('scrapling', join(root, 'motor.ghost'))
+  service.exportSourceEngine.mockClear()
+  save.mockResolvedValue({ canceled: true })
+  expect(await manager.shareSourceEngine('scrapling')).toEqual({ success: false })
+  expect(service.exportSourceEngine).not.toHaveBeenCalled()
 })

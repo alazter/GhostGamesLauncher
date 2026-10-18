@@ -1,6 +1,6 @@
 import './index.css'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 
 import { NavLink, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +18,7 @@ import {
   AdvancedSettings,
   SystemInfo
 } from './sections'
-import { AppSettings, WineInstallation } from 'common/types'
+import { WineInstallation } from 'common/types'
 import { UpdateComponent } from 'frontend/components/UI'
 import { SettingsContextType } from 'frontend/types'
 import useSettingsContext from 'frontend/hooks/useSettingsContext'
@@ -33,9 +33,6 @@ export const defaultWineVersion: WineInstallation = {
 
 function Settings() {
   const { t } = useTranslation()
-
-  const [currentConfig, setCurrentConfig] =
-    useState<Partial<AppSettings> | null>(null)
 
   const { type = 'general' } = useParams()
   const appName = 'default'
@@ -55,15 +52,6 @@ function Settings() {
     t('help.title.settings', 'Settings'),
     <p>{helpContent}</p>
   )
-
-  // Load Heroic's or game's config, only if not loaded already
-  useEffect(() => {
-    const getSettings = async () => {
-      const config = await window.api.requestAppSettings()
-      setCurrentConfig(config)
-    }
-    getSettings()
-  }, [])
 
   // Scroll to section dynamically when path type parameter changes
   useEffect(() => {
@@ -85,6 +73,8 @@ function Settings() {
   const contextValues: SettingsContextType | null = useSettingsContext({
     appName
   })
+
+  const currentConfig = contextValues?.config
 
   // render `loading` while we fetch the settings
   if (!currentConfig || !contextValues) {

@@ -331,6 +331,7 @@ export interface PluginPackResult {
 
 export interface PluginInstallResult {
   success: boolean
+  engine?: { id: import('./sourceEngines').SourceEngineId; version: string }
   plugin?: PluginInfo
   error?: string
 }

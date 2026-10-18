@@ -22,7 +22,8 @@ import {
   faDownload,
   faExternalLinkAlt,
   faSlidersH,
-  faFilm
+  faFilm,
+  faShareNodes
 } from '@fortawesome/free-solid-svg-icons'
 import type { PluginInfo, PluginType } from 'common/types/plugins'
 import './index.scss'
@@ -40,6 +41,25 @@ export default function PluginsScreen() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | PluginType>('all')
+  const [sharingPlugin, setSharingPlugin] = useState<string | null>(null)
+  const [engineRevision, setEngineRevision] = useState(0)
+  const [installing, setInstalling] = useState(false)
+
+  const handleShare = async (plugin: PluginInfo) => {
+    setSharingPlugin(plugin.id)
+    try {
+      const result = await window.api.pluginsShare(plugin.id)
+      if (result.success && result.outputPath) {
+        setFeedback({ type: 'success', text: `Arquivo salvo em: ${result.outputPath}. Envie o .ghost ao seu amigo. No Ghost dele, basta clicar em “Instalar plugin ou motor” e selecionar o arquivo.` })
+      } else if (result.error) {
+        setFeedback({ type: 'error', text: result.error })
+      }
+    } catch {
+      setFeedback({ type: 'error', text: 'Não foi possível compartilhar o plugin. Tente novamente.' })
+    } finally {
+      setSharingPlugin(null)
+    }
+  }
 
   const loadPlugins = useCallback(async () => {
     try {
@@ -108,16 +128,25 @@ export default function PluginsScreen() {
   }
 
   const handleInstallFile = async () => {
+    if (installing) return
+    setInstalling(true)
     try {
       const res = await window.api.pluginsInstall()
-      if (res.success && res.plugin) {
+      if (res.success && res.engine) {
+        showFeedback('success', `Motor ${res.engine.id === 'scrapling' ? 'Scrapling' : 'Obscura'} ${res.engine.version} instalado, testado e ativado!`)
+        setEngineRevision((value) => value + 1)
+      } else if (res.success && res.plugin) {
         showFeedback('success', `Plugin "${res.plugin.name}" instalado e ativado!`)
         loadPlugins()
       } else if (res.error && res.error !== 'Instalação cancelada.') {
         showFeedback('error', res.error)
       }
+      return res
     } catch (err: any) {
       showFeedback('error', err.message || 'Erro ao instalar arquivo.')
+      return undefined
+    } finally {
+      setInstalling(false)
     }
   }
 
@@ -179,7 +208,10 @@ export default function PluginsScreen() {
       const arrayBuffer = await file.arrayBuffer()
       const base64 = Buffer.from(arrayBuffer).toString('base64')
       const res = await window.api.pluginsInstallFromBuffer(file.name, base64)
-      if (res.success && res.plugin) {
+      if (res.success && res.engine) {
+        showFeedback('success', `Motor ${res.engine.id === 'scrapling' ? 'Scrapling' : 'Obscura'} ${res.engine.version} instalado, testado e ativado!`)
+        setEngineRevision((value) => value + 1)
+      } else if (res.success && res.plugin) {
         showFeedback('success', `Plugin "${res.plugin.name}" instalado via Drag & Drop!`)
         loadPlugins()
       } else {
@@ -324,9 +356,9 @@ export default function PluginsScreen() {
 
         <div className="ghost-plugins-header-actions">
           {plugins.some((plugin) => plugin.type === 'game-source' && plugin.isEnabled) && <Link className="button" to="/external-games"><FontAwesomeIcon icon={faSearch} /> Buscar jogos</Link>}
-          <button className="ghost-btn-primary" onClick={handleInstallFile}>
+          <button className="ghost-btn-primary" onClick={handleInstallFile} disabled={installing}>
             <FontAwesomeIcon icon={faCloudUploadAlt} />
-            <span>Instalar Plugin (.ghost)</span>
+            <span>{installing ? 'Instalando...' : 'Instalar plugin ou motor (.ghost)'}</span>
           </button>
         </div>
       </div>
@@ -382,6 +414,10 @@ export default function PluginsScreen() {
       {/* TAB 1: INSTALLED PLUGINS */}
       {activeTab === 'installed' && (
         <div className="ghost-tab-content">
+          <p className="ghost-plugins-subtitle">
+            Use <b>Compartilhar</b> no plugin para salvar um arquivo <b>.ghost</b> e enviá-lo ao seu amigo.
+            {' '}Para instalar um arquivo recebido, use o botão acima ou arraste o .ghost para esta página.
+          </p>
           {/* Filter and Search Bar */}
           <div className="ghost-plugins-controls-bar">
             <div className="ghost-plugins-search-box">
@@ -519,6 +555,15 @@ export default function PluginsScreen() {
                   )}
 
                   <div className="ghost-plugin-card-footer">
+                    <button
+                      className="ghost-btn-secondary"
+                      onClick={() => handleShare(plugin)}
+                      disabled={sharingPlugin !== null}
+                      title={`Salvar ${plugin.name} como arquivo .ghost para compartilhar`}
+                    >
+                      <FontAwesomeIcon icon={faShareNodes} />
+                      <span>{sharingPlugin === plugin.id ? 'Gerando arquivo...' : 'Compartilhar'}</span>
+                    </button>
                     {builtinGameSources.some(source => source.id === plugin.id) && (
                       <button className="ghost-btn-primary" onClick={() => setConfiguringSource({ id: plugin.id, name: plugin.name })}>
                         <FontAwesomeIcon icon={faSlidersH} /> Configurar
@@ -545,7 +590,7 @@ export default function PluginsScreen() {
         </div>
       )}
 
-      <SourceEnginesPanel />
+      <SourceEnginesPanel onInstall={handleInstallFile} refreshKey={engineRevision} />
       {configuringSource && <SourceSettingsDialog {...configuringSource} close={() => setConfiguringSource(undefined)} />}
       {configuringAlazterflix && <AlazterflixSettingsDialog close={() => setConfiguringAlazterflix(false)} />}
 

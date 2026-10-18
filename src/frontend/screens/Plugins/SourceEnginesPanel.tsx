@@ -1,13 +1,24 @@
 import { useEffect, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShareNodes, faDownload } from '@fortawesome/free-solid-svg-icons'
+import type { PluginInstallResult } from 'common/types/plugins'
 import type {
+  SourceEngineId,
   SourceEngineAction,
   SourceEnginesState
 } from 'common/types/sourceEngines'
 
-export default function SourceEnginesPanel() {
+export default function SourceEnginesPanel({
+  onInstall,
+  refreshKey = 0
+}: {
+  onInstall: () => Promise<PluginInstallResult | undefined>
+  refreshKey?: number
+}) {
   const [state, setState] = useState<SourceEnginesState>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [feedback, setFeedback] = useState('')
   useEffect(() => {
     let mounted = true
     const refresh = () =>
@@ -25,7 +36,24 @@ export default function SourceEnginesPanel() {
       mounted = false
       clearInterval(timer)
     }
-  }, [])
+  }, [refreshKey])
+  async function share(id: SourceEngineId) {
+    setBusy(true)
+    setError('')
+    setFeedback('')
+    try {
+      const result = await window.api.pluginsShareSourceEngine(id)
+      if (result.success) {
+        setFeedback(
+          `Arquivo salvo em: ${result.outputPath}. Envie o .ghost ao seu amigo para instalar em “Instalar motor compartilhado”.`
+        )
+      } else if (result.error) setError(result.error)
+    } catch {
+      setError('Não foi possível compartilhar o motor. Tente novamente.')
+    } finally {
+      setBusy(false)
+    }
+  }
   async function action(value: SourceEngineAction) {
     setBusy(true)
     setError('')
@@ -48,6 +76,42 @@ export default function SourceEnginesPanel() {
         experimental para páginas públicas. Login e downloads assistidos
         continuam no navegador do Ghost.
       </p>
+      <p>
+        Compartilhe um motor instalado em um arquivo <b>.ghost</b>. Quem receber
+        pode instalar aqui, sem extrair o arquivo. O Ghost testa a instalação
+        antes de ativar o motor.
+      </p>
+      <div className="ghost-engine-sharing-actions">
+        <button
+          className="ghost-btn-secondary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            setError('')
+            setFeedback('')
+            try {
+              const result = await onInstall()
+              if (result?.success && result.engine) {
+                setFeedback(
+                  `Motor ${result.engine.id === 'scrapling' ? 'Scrapling' : 'Obscura'} ${result.engine.version} instalado, testado e ativado.`
+                )
+              } else if (result?.success && result.plugin) {
+                setFeedback(`Plugin ${result.plugin.name} instalado.`)
+              } else if (
+                result?.error &&
+                result.error !== 'Instalação cancelada.'
+              ) {
+                setError(result.error)
+              }
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <FontAwesomeIcon icon={faDownload} /> Instalar motor compartilhado
+          (.ghost)
+        </button>
+      </div>
       {state && (
         <>
           <label>
@@ -130,6 +194,15 @@ export default function SourceEnginesPanel() {
               )}
               {engine.installed && (
                 <button
+                  className="ghost-btn-secondary"
+                  disabled={busy || engine.busy}
+                  onClick={() => void share(engine.id)}
+                >
+                  <FontAwesomeIcon icon={faShareNodes} /> Compartilhar (.ghost)
+                </button>
+              )}
+              {engine.installed && (
+                <button
                   disabled={busy || engine.busy}
                   onClick={() => void action({ type: 'verify', id: engine.id })}
                 >
@@ -156,7 +229,8 @@ export default function SourceEnginesPanel() {
           ))}
         </>
       )}
-      <p role="alert">{error}</p>
+      {feedback && <p role="status">{feedback}</p>}
+      {error && <p role="alert">{error}</p>}
     </details>
   )
 }

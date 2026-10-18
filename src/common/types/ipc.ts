@@ -698,6 +698,8 @@ interface AsyncIPCFunctions {
     pluginId: string
   ) => Promise<{ success: boolean; error?: string }>
   pluginsLoadUnpacked: (dirPath?: string) => Promise<PluginInstallResult>
+  pluginsShare: (pluginId: string) => Promise<PluginPackResult>
+  pluginsShareSourceEngine: (id: import('./sourceEngines').SourceEngineId) => Promise<PluginPackResult>
   pluginsPack: (
     sourceDir?: string,
     outputDir?: string

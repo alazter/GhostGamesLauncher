@@ -1,4 +1,4 @@
-# Review das Alterações - 17/10/2026
+# Review das Alterações - 18/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -776,6 +776,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Evidência DRM em Anúncios de Release e Resolução Boltgun 2 (`DRM_BOLTGUN_2.md`)**: Validação de posts completos de grupos oficiais da cena com URL canônica, categoria de PC e metadados, respeitando limites e Retry-After de provedores.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), novos testes unitários Jest em `drmOverrides`, `drmContinuity`, `installedReleaseLabel` e `drmBatch`, e preservação absoluta da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 51. Seletor de Lojas na Janela de Download, Compartilhamento de Plugins (.ghost) e Atualização Direta do Motor Obscura v0.2.5
+* **Problema:** A janela de download ("Escolha como baixar") exibia apenas a fonte inicial do card sem permitir selecionar outra loja disponível para o mesmo jogo; faltava um mecanismo portátil para exportar e compartilhar plugins e motores de scraping entre usuários (.ghost); e o catálogo estável do Ghost respondeu HTTP 404, impossibilitando a atualização do motor Obscura v0.2.5 para Windows x64.
+* **Solução:**
+  - **Seletor de Lojas no Diálogo de Download (`SourcePicker.tsx`, Conquista 183)**: Menu suspenso compacto ancorado ao botão da loja com posicionamento automático (acima/abaixo), seleção rápida por teclado (Setas, Enter, Home/End) e logos oficiais de cada loja; sincronização instantânea de versão, `sourceDate`/`uploadDate` e tamanho (`size`) da fonte selecionada; isolamento de capas para impedir vazamento de arte de lojas anteriores; e novos layouts personalizáveis **Ghost compacto** e **Ghost com capa** (600:900 desfocado) compartilhados entre o diálogo e a tela de Personalização.
+  - **Compartilhamento de Plugins e Motores em Pacotes `.ghost` (`pluginPacker.ts`, `sourceEnginePackage.ts`, `PLUGIN_SHARING.md`, Conquista 184)**: Exportação autossuficiente de plugins e motores em formato `.ghost` com metadados `GHOST-ENGINE/1`; importador com conferência de integridade SHA-256, versão mínima do Ghost e proteção rígida contra symlinks/directory traversal; preservação de dados sensíveis e isolamento de `plugins_data`.
+  - **Atualização Oficial do Motor Obscura v0.2.5 (`obscuraRelease.ts`, `SOURCE_ENGINE_UPDATES.md`)**: Consulta resiliente e direta à API do GitHub de releases oficiais do projeto Obscura para Windows x64 (SHA-256 `9e56fa1c...`), teste funcional do executável no runtime do Ghost e cache persistido em `source-engines/obscura-release.json`.
+  - **Correções & Performance (Conquistas 181 e 182)**: Leitura de cauda de logs (`readLogFileTail` em 0.5ms) e higienização imediata do `ghost.log`, eliminando travamentos na página de Configurações; auto-desativação síncrona (0ms) do filtro `showUpdatesOnly` na Biblioteca ao concluir todas as atualizações.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 55+ testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -816,6 +825,11 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [scripts/engines/scrapling_worker.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/scrapling_worker.py)
 - [NEW] [scripts/engines/direct_download_page.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/direct_download_page.py)
 - [NEW] [scripts/engines/release_page.py](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/release_page.py)
+- [NEW] [scripts/engines/sharing_smoke.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/engines/sharing_smoke.ts)
+- [NEW] [docs/DOWNLOAD_DIALOG_APPEARANCE.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DOWNLOAD_DIALOG_APPEARANCE.md)
+- [NEW] [docs/PLUGIN_SHARING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/PLUGIN_SHARING.md)
+- [MODIFY] [docs/SOURCE_ENGINES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/SOURCE_ENGINES.md)
+- [MODIFY] [docs/SOURCE_ENGINE_UPDATES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/SOURCE_ENGINE_UPDATES.md)
 
 ### Backend & Core
 - [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
@@ -908,6 +922,19 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/releases/drmPublicPage.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmPublicPage.ts)
 - [MODIFY] [src/backend/releases/drmSites.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmSites.ts)
 - [MODIFY] [src/backend/releases/drmSitesParser.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/drmSitesParser.ts)
+- [MODIFY] [src/backend/logger/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/logger/index.ts)
+- [MODIFY] [src/backend/logger/ipc_handler.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/logger/ipc_handler.ts)
+- [MODIFY] [src/backend/logger/log_writer.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/logger/log_writer.ts)
+- [NEW] [src/backend/logger/__tests__/log_tail_and_sanitization.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/logger/__tests__/log_tail_and_sanitization.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/pluginManagerInstallations.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/pluginManagerInstallations.test.ts)
+- [NEW] [src/backend/plugins/__tests__/chooseDownloadSources.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/chooseDownloadSources.test.ts)
+- [NEW] [src/backend/plugins/__tests__/chooseDownloadSubmission.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/chooseDownloadSubmission.test.ts)
+- [NEW] [src/backend/plugins/__tests__/obscuraRelease.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/obscuraRelease.test.ts)
+- [NEW] [src/backend/plugins/obscuraRelease.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/obscuraRelease.ts)
+- [MODIFY] [src/backend/plugins/pluginPacker.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/pluginPacker.ts)
+- [NEW] [src/backend/plugins/sourceEnginePackage.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceEnginePackage.ts)
+- [MODIFY] [src/backend/storeManagers/connectedAccounts/__tests__/customStores.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/connectedAccounts/__tests__/customStores.test.ts)
+- [MODIFY] [src/backend/utils/systeminfo/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/systeminfo/index.ts)
 
 ### Common & Preload
 - [MODIFY] [src/common/types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
@@ -959,6 +986,22 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/screens/Releases/ReleaseDrm.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseDrm.tsx)
 - [NEW] [src/frontend/screens/Releases/ReleaseDrmEditor.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseDrmEditor.tsx)
 - [MODIFY] [src/frontend/screens/Releases/drm.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/drm.css)
+- [MODIFY] [src/frontend/components/ChooseDownloadModal/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/index.css)
+- [NEW] [src/frontend/components/ChooseDownloadModal/DownloadAppearanceSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/DownloadAppearanceSettings.tsx)
+- [NEW] [src/frontend/components/ChooseDownloadModal/SourcePicker.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/SourcePicker.tsx)
+- [NEW] [src/frontend/components/ChooseDownloadModal/appearance.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/appearance.css)
+- [NEW] [src/frontend/assets/ghost-logo.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/assets/ghost-logo.png)
+- [NEW] [src/frontend/state/downloadDialogAppearance.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/state/downloadDialogAppearance.ts)
+- [MODIFY] [src/frontend/state/ChooseDownloadModal.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/state/ChooseDownloadModal.ts)
+- [MODIFY] [src/frontend/helpers/storeFiltersStorage.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/storeFiltersStorage.ts)
+- [MODIFY] [src/frontend/screens/Library/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/index.tsx)
+- [MODIFY] [src/frontend/screens/Personalization/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Personalization/index.tsx)
+- [MODIFY] [src/frontend/screens/Plugins/SourceEnginesPanel.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Plugins/SourceEnginesPanel.tsx)
+- [MODIFY] [src/frontend/screens/Plugins/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Plugins/index.scss)
+- [MODIFY] [src/frontend/screens/Plugins/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Plugins/index.tsx)
+- [MODIFY] [src/frontend/screens/Settings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/index.tsx)
+- [MODIFY] [src/frontend/screens/Settings/sections/LogSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/LogSettings/index.tsx)
+- [MODIFY] [src/frontend/screens/Settings/sections/SystemInfo/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/SystemInfo/index.tsx)
 
 
 

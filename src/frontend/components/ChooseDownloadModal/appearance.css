@@ -1,0 +1,144 @@
+.downloadAppearance {
+  color: #edf1f6;
+  border: 1px solid #b1cfec26;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 0 0 20px;
+  min-width: 0;
+  background: #10172299;
+}
+.downloadAppearance legend {
+  color: #64edf2;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.downloadAppearance > p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #bac3d1;
+  margin: 0 0 13px;
+}
+.downloadAppearanceOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.downloadAppearanceOption {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #b1cfec29;
+  border-radius: 9px;
+  background: #171e2a;
+  cursor: pointer;
+  min-width: 0;
+}
+.downloadAppearanceOption.is-selected {
+  border-color: #50edf1;
+  background: #142731;
+}
+.downloadAppearanceOption:focus-within {
+  outline: 2px solid #50edf1;
+  outline-offset: 2px;
+}
+.downloadAppearanceOption input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.downloadAppearanceName {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.downloadAppearanceName svg {
+  color: #50edf1;
+  width: 12px;
+  flex-shrink: 0;
+}
+.downloadAppearanceDescription {
+  color: #b4c0cf;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.downloadAppearanceMini {
+  position: relative;
+  display: block;
+  height: 85px;
+  border: 1px solid #728da13d;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #59495888, #12323f66 70%, #121a25);
+  overflow: hidden;
+}
+.downloadAppearanceMini span {
+  position: absolute;
+  border-radius: 2px;
+}
+.downloadAppearanceMiniHeader {
+  top: 8px;
+  left: 8px;
+  width: 50%;
+  height: 4px;
+  background: #afced77a;
+}
+.downloadAppearanceMiniPoster {
+  top: 20px;
+  left: 8px;
+  width: 16px;
+  height: 24px;
+  background: linear-gradient(150deg, #ca8293, #407f95);
+}
+.downloadAppearanceMiniInfo {
+  top: 23px;
+  left: 30px;
+  right: 12px;
+  height: 4px;
+  background: #abc8d272;
+}
+.downloadAppearanceMiniChoice {
+  top: 51px;
+  left: 8px;
+  right: 8px;
+  height: 10px;
+  border: 1px solid #6bd7df70;
+  background: #142532;
+}
+.downloadAppearanceMiniChoice.second {
+  top: 66px;
+  border-color: #b7c6db45;
+}
+.downloadAppearanceMini--cover .downloadAppearanceMiniPoster {
+  top: 22px;
+  width: 25px;
+  height: 38px;
+}
+.downloadAppearanceMini--cover .downloadAppearanceMiniInfo {
+  left: 40px;
+  top: 23px;
+}
+.downloadAppearanceMini--cover .downloadAppearanceMiniChoice {
+  left: 40px;
+  top: 37px;
+  height: 15px;
+}
+.downloadAppearanceMini--cover .downloadAppearanceMiniChoice.second {
+  top: 58px;
+}
+@media (max-width: 380px) {
+  .downloadAppearance {
+    padding: 12px;
+  }
+  .downloadAppearanceOptions {
+    gap: 7px;
+  }
+  .downloadAppearanceOption {
+    padding: 8px;
+  }
+}

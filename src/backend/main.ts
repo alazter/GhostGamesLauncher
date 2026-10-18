@@ -1167,7 +1167,22 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
   }
 })
 
+let lastSyncedBackupSignature = ''
 const syncBackupPreferences = createBackupPreferenceSync((snapshot) => {
+  const serialized = JSON.stringify(snapshot)
+  if (serialized === lastSyncedBackupSignature) {
+    return
+  }
+  const existingBackup = GlobalConfig.get().getSettings().localStorageBackup
+  if (
+    !lastSyncedBackupSignature &&
+    existingBackup &&
+    JSON.stringify(existingBackup) === serialized
+  ) {
+    lastSyncedBackupSignature = serialized
+    return
+  }
+  lastSyncedBackupSignature = serialized
   GlobalConfig.get().setSetting('localStorageBackup', snapshot)
 })
 
@@ -1562,7 +1577,14 @@ addHandler('readConfig', async (event, configClass) => {
   return userInfo?.displayName ?? ''
 })
 
-addHandler('requestAppSettings', () => GlobalConfig.get().getSettings())
+addHandler('requestAppSettings', () => {
+  const settings = GlobalConfig.get().getSettings()
+  if (!settings || !('localStorageBackup' in settings)) {
+    return settings
+  }
+  const { localStorageBackup: _omit, ...uiSettings } = settings
+  return uiSettings
+})
 addHandler(
   'requestGameSettings',
   async (_e, appName) => await GameConfig.get(appName).getSettings()

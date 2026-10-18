@@ -4,6 +4,11 @@ import {
 } from 'frontend/helpers/connectedAccountStores'
 import { isGameAssignedToStore } from 'frontend/helpers/customStoreFiltering'
 import { syncAutoStoreAssignments } from 'frontend/helpers/autoStoreAssignments'
+import {
+  clearUpdatesOnlyFromAllStoreFilters,
+  loadStoreFilterSettings,
+  saveStoreFilterSettings
+} from 'frontend/helpers/storeFiltersStorage'
 import { GameInfo } from 'common/types'
 
 describe('Connected Account Custom Stores', () => {
@@ -40,8 +45,10 @@ describe('Connected Account Custom Stores', () => {
       clear: jest.fn(() => {
         localStorageMock = {}
       }),
-      key: jest.fn(),
-      length: 0
+      key: jest.fn((idx: number) => Object.keys(localStorageMock)[idx] ?? null),
+      get length() {
+        return Object.keys(localStorageMock).length
+      }
     }
     ;(global as any).window.dispatchEvent = jest.fn()
   })
@@ -164,4 +171,25 @@ describe('Connected Account Custom Stores', () => {
       expect.objectContaining({ type: 'gameAssignmentsChanged' })
     )
   })
+
+  it('clears showUpdatesOnly across all store filter scopes when updates are completed', () => {
+    saveStoreFilterSettings(null, { showUpdatesOnly: true })
+    saveStoreFilterSettings('store-piratas', { showUpdatesOnly: true })
+    saveStoreFilterSettings('epic', { showUpdatesOnly: true })
+
+    expect(loadStoreFilterSettings(null).showUpdatesOnly).toBe(true)
+    expect(loadStoreFilterSettings('store-piratas').showUpdatesOnly).toBe(true)
+    expect(loadStoreFilterSettings('epic').showUpdatesOnly).toBe(true)
+    expect(localStorageMock['show_updates_only']).toBe('true')
+
+    // Clearing updates-only on one store or globally resets all stuck showUpdatesOnly flags
+    saveStoreFilterSettings('store-piratas', { showUpdatesOnly: false })
+    clearUpdatesOnlyFromAllStoreFilters()
+
+    expect(loadStoreFilterSettings(null).showUpdatesOnly).toBe(false)
+    expect(loadStoreFilterSettings('store-piratas').showUpdatesOnly).toBe(false)
+    expect(loadStoreFilterSettings('epic').showUpdatesOnly).toBe(false)
+    expect(localStorageMock['show_updates_only']).toBe('false')
+  })
 })
+

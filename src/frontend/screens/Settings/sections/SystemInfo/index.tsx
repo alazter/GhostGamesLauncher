@@ -90,7 +90,7 @@ export default function SystemInfo() {
   const { t } = useTranslation()
 
   const systemInformation = useAwaited(async () =>
-    window.api.systemInfo.get(false)
+    window.api.systemInfo.get(true)
   )
   if (!systemInformation) return <CircularProgress />
 

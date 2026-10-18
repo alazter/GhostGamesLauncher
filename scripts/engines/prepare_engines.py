@@ -22,7 +22,7 @@ def get(url):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--scrapling', default='0.4.15')
-    parser.add_argument('--obscura', default='0.2.4')
+    parser.add_argument('--obscura', default='0.2.5')
     parser.add_argument('--out', default='public/engine-bundles')
     args = parser.parse_args()
     if sys.platform != 'win32' or os.environ.get('PROCESSOR_ARCHITECTURE', '').lower() != 'amd64':

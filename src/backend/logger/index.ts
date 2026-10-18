@@ -58,6 +58,32 @@ async function createGameLogWriter(
   )
 }
 
+function formatSettingValueForLog(key: string, value: unknown): unknown {
+  if (key === 'localStorageBackup') {
+    if (value && typeof value === 'object') {
+      return `[localStorageBackup: ${Object.keys(value as Record<string, unknown>).length} keys]`
+    }
+    return '[localStorageBackup]'
+  }
+  if (typeof value === 'string' && value.length > 500) {
+    return `${value.slice(0, 200)}... [truncated ${value.length} chars]`
+  }
+  if (value && typeof value === 'object') {
+    try {
+      const serialized = JSON.stringify(value)
+      if (serialized && serialized.length > 1000) {
+        const keyCount = Array.isArray(value)
+          ? value.length
+          : Object.keys(value as Record<string, unknown>).length
+        return `[Object/Array: ${keyCount} items, ${serialized.length} chars]`
+      }
+    } catch {
+      return '[Object]'
+    }
+  }
+  return value
+}
+
 function init() {
   // Add a basic error handler to our stdout/stderr. If we don't do this,
   // the main `process.on('uncaughtException', ...)` handler catches them (and
@@ -96,9 +122,9 @@ function init() {
       'Settings key',
       key,
       'changed from',
-      oldValue,
+      formatSettingValueForLog(String(key), oldValue),
       'to',
-      newValue
+      formatSettingValueForLog(String(key), newValue)
     ])
   )
 }
@@ -111,6 +137,7 @@ export {
   logError,
   getRunnerLogWriter,
   createGameLogWriter,
+  formatSettingValueForLog,
   LogPrefix,
   RunnerToLogPrefixMap,
   getLogFilePath

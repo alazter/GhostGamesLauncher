@@ -72,7 +72,19 @@ let cachedSystemInfo: SystemInformation | null = null
  * @param cache Whether cached information should be returned if possible
  */
 async function getSystemInfo(cache = true): Promise<SystemInformation> {
-  if (cache && cachedSystemInfo) return cachedSystemInfo
+  if (cache && cachedSystemInfo) {
+    const memory = await getMemoryInfo()
+    cachedSystemInfo = {
+      ...cachedSystemInfo,
+      memory: {
+        total: memory.total,
+        used: memory.used,
+        totalFormatted: filesize(memory.total, { base: 2 }),
+        usedFormatted: filesize(memory.used, { base: 2 })
+      }
+    }
+    return cachedSystemInfo
+  }
 
   const cpus = os.cpus()
   const memory = await getMemoryInfo()

@@ -102,6 +102,10 @@ abstract class GlobalConfig {
    * @returns GlobalConfig instance.
    */
   public static get(): GlobalConfig {
+    if (GlobalConfig.globalInstance) {
+      return GlobalConfig.globalInstance
+    }
+
     let version: GlobalConfigVersion
 
     // Config file doesn't already exist, make one with the current version.
@@ -126,9 +130,7 @@ abstract class GlobalConfig {
       }
     }
 
-    if (!GlobalConfig.globalInstance) {
-      GlobalConfig.reload(version)
-    }
+    GlobalConfig.reload(version)
 
     return GlobalConfig.globalInstance
   }

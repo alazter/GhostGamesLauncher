@@ -25,6 +25,7 @@ import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
 import SteamLogo from 'frontend/assets/steam-logo.svg?react'
 import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
+import DownloadAppearanceSettings from 'frontend/components/ChooseDownloadModal/DownloadAppearanceSettings'
 
 interface CustomStore {
   id: string
@@ -6194,6 +6195,7 @@ export default function PersonalizationScreen() {
             </>
           ) : rightPanelMode === 'headerSearch' ? (
             <>
+              <DownloadAppearanceSettings />
               {/* PAINEL 3: BARRA DE BUSCA & ADICIONAR JOGO */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <span style={styles.sectionTitle}>BUSCA E ADICIONAR JOGOS</span>
