@@ -230,6 +230,8 @@ export function matchesQuery(title: string, query: string): boolean {
 }
 
 export interface ExtractedGameMetadata {
+  publicationDate?: string
+  ratingCount?: number
   releaseDate?: string
   uploadDate?: string
   sourceDate?: string
@@ -337,6 +339,9 @@ export function extractGameMetadataFromHtml(
   const releaseText = plain(cleanContent.replace(/<\/[^>]+>/g, '$& ')).split(/Recommended For You/i)[0]
   const explicitReleaseDate = releaseText.match(/\bLAST\s+UPDATE(?:D)?\s*[:\-]?\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[/.]\d{1,2}[/.]\d{2,4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\s+(?:de\s+)?[A-Za-z]+\s+(?:de\s+)?\d{4})/i)?.[1]
   const contentUpdatedDate = cleanContent.match(/(?:Updated by|Last Updated)[^(]*\(([^)]+)\)/i)?.[1]
+
+  // Publication and release update are separate dates in the details card.
+  const publicationDate = parseDateToIso(jsonLdDatePublished || metaDatePublished)
 
   const rawDate =
     explicitReleaseDate ||
@@ -460,6 +465,9 @@ export function extractGameMetadataFromHtml(
   if (recMatch) {
     recommendPercent = recMatch[1]
   }
+  const ratingCountMatch = cleanContent.match(/"(?:ratingCount|reviewCount)"\s*:\s*"?(\d+)\b/i)
+  const ratingCountValue = ratingCountMatch ? Number(ratingCountMatch[1]) : undefined
+  const ratingCount = ratingCountValue !== undefined && Number.isSafeInteger(ratingCountValue) ? ratingCountValue : undefined
 
   // 13. Description / Synopsis
   const descMatch =
@@ -473,6 +481,8 @@ export function extractGameMetadataFromHtml(
   }
 
   return {
+    publicationDate,
+    ratingCount,
     releaseDate,
     uploadDate,
     sourceDate,
@@ -630,6 +640,8 @@ export function parseWebsiteGames(
         releaseDate: meta.releaseDate,
         cracker: meta.cracker,
         uploader: meta.uploader,
+        publicationDate: meta.publicationDate,
+        ratingCount: meta.ratingCount,
         mode: meta.mode,
         genre: meta.genre,
         developer: meta.developer,
@@ -786,6 +798,8 @@ export function parseWebsiteGames(
           releaseDate: meta.releaseDate || existing?.releaseDate,
           cracker: meta.cracker || existing?.cracker,
           uploader: meta.uploader || existing?.uploader,
+          publicationDate: meta.publicationDate || existing?.publicationDate,
+          ratingCount: meta.ratingCount ?? existing?.ratingCount,
           mode: meta.mode || existing?.mode,
           genre: meta.genre || existing?.genre,
           developer: meta.developer || existing?.developer,
@@ -1228,6 +1242,8 @@ export function websiteSource(
         releaseDate: meta.releaseDate,
         cracker: meta.cracker,
         uploader: meta.uploader,
+        publicationDate: meta.publicationDate,
+        ratingCount: meta.ratingCount,
         mode: meta.mode,
         genre: meta.genre,
         developer: meta.developer,

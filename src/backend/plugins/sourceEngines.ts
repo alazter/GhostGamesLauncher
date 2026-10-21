@@ -225,7 +225,10 @@ async function smoke(release: EngineRelease, folder: string) {
           !result.capabilities.includes('direct-download-page-v1'))) ||
       ((release.integrationRevision || 0) >= 5 &&
         (!Array.isArray(result.capabilities) ||
-          !result.capabilities.includes('release-page-v1')))
+          !result.capabilities.includes('release-page-v1'))) ||
+      ((release.integrationRevision || 0) >= 6 &&
+        (!Array.isArray(result.capabilities) ||
+          !result.capabilities.includes('direct-download-learning-v1')))
     )
       throw new Error('O teste do Scrapling falhou.')
   } else if (!output.includes(release.version))

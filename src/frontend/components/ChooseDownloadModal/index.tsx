@@ -33,6 +33,7 @@ import CachedImage from 'frontend/components/UI/CachedImage'
 import ghostLogo from 'frontend/assets/ghost-logo.png'
 import DownloadAppearanceSettings from './DownloadAppearanceSettings'
 import SourcePicker from './SourcePicker'
+import { useExternalGameCover } from 'frontend/hooks/useExternalGameCover'
 import './index.css'
 
 export function ChooseDownloadModalWrapper() {
@@ -42,14 +43,14 @@ export function ChooseDownloadModalWrapper() {
   const { showDialogModal } = useContext(ContextProvider)
   const appearanceId = useId()
   const [notice, setNotice] = useState<string | null>(null)
-  const [imgFailed, setImgFailed] = useState(false)
   const [showStoreSelector, setShowStoreSelector] = useState(false)
   const [showAppearance, setShowAppearance] = useState(false)
-  const coverImage = modalState.cover || modalState.game?.coverUrl
+  const { cover: coverImage, rejectCover } = useExternalGameCover(
+    modalState.game,
+    modalState.availableSources,
+    modalState.isOpen
+  )
 
-  useEffect(() => {
-    setImgFailed(false)
-  }, [coverImage, modalState.game])
   useEffect(() => {
     if (!modalState.isOpen) {
       setNotice(null)
@@ -227,7 +228,7 @@ export function ChooseDownloadModalWrapper() {
         aria-labelledby="cdmModalTitle"
         onClick={(event) => event.stopPropagation()}
       >
-        {coverImage && !imgFailed && (
+        {coverImage && (
           <CachedImage
             key={`backdrop-${coverImage}`}
             src={coverImage}
@@ -283,17 +284,17 @@ export function ChooseDownloadModalWrapper() {
               aria-label="Jogo e fonte selecionada"
             >
               <div className="cdmGameCoverWrap">
-                {coverImage && !imgFailed ? (
+                {coverImage ? (
                   <CachedImage
                     key={coverImage}
                     src={coverImage}
-                    alt={`Capa de ${title} da ${providerName || 'fonte selecionada'}`}
+                    alt={`Capa de ${title}`}
                     className="cdmGameCover"
                     width={600}
                     height={900}
                     loading="eager"
                     hideOnError={false}
-                    onError={() => setImgFailed(true)}
+                    onError={rejectCover}
                   />
                 ) : (
                   <div className="cdmGameCoverFallback">

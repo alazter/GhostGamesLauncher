@@ -1,4 +1,4 @@
-# Review das Alterações - 18/10/2026
+# Review das Alterações - 21/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -785,6 +785,15 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Correções & Performance (Conquistas 181 e 182)**: Leitura de cauda de logs (`readLogFileTail` em 0.5ms) e higienização imediata do `ghost.log`, eliminando travamentos na página de Configurações; auto-desativação síncrona (0ms) do filtro `showUpdatesOnly` na Biblioteca ao concluir todas as atualizações.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 55+ testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 52. Modal "Mover Jogo de HD" Inspirado na Steam, Painel de Detalhes de Buscar Jogos, Prioridade de Capas (Anker ➔ Google ➔ SGDB) e Portabilidade de Extração
+* **Problema:** Usuários precisavam transferir pastas de instalação entre discos/HDs/NVMes diretamente pelas configurações dos cards sem intervenção manual em pastas do sistema; a tela de detalhes de Buscar Jogos precisava de layout alinhado ao mockup com cards lado a lado de fontes em vez de menus suspensos; capas de jogos externos demandavam hierarquia de qualidade unificada; e descompactação de pacotes RAR/7Z em diferentes máquinas falhava por falta de dependências universais ou travas de extração prévia.
+* **Solução:**
+  - **Ação e Modal "Mover Jogo de HD" com Engrenagem (`MoveGameModal.tsx`, Conquista 185)**: Nova ação `move-install` em Ações do Jogo e Organizar Seções; engrenagem `⚙️ Configurar HDs` que permite ao usuário pré-definir suas próprias unidades e diretórios (`ghost_move_game_drive_paths`); visualização com barras de ocupação do disco, espaço livre (`GB / TB LIVRE(S)`), badge `UNIDADE ATUAL`, realce azul Steam (`#2a80eb`) e progresso em tempo real; backend universal de movimentação para `sideload`/`ExternalGames`, `steam`, `legendary` (Epic), `gog` e `nile` (Amazon) via `robocopy /MOVE /E /R:2 /W:1` sem duplicação de diretório e preservando executável, manifesto e saves do GhostShield.
+  - **Card de Detalhes de Buscar Jogos & Cards de Lojas Lado a Lado (`GameDetailsPanel.tsx`, `StoreSourceCards.tsx`, `InstallDestination.tsx`, Conquista 186)**: Pôster 230×345px em desktop com fundo de vidro fosco desfocado, alinhamento à esquerda, tipografia Cabin local, tags de compatibilidade (Steam Deck, controle) e metadados; seção "Fontes disponíveis para download" com cards lado a lado contendo logo/nome, versão, tamanho e grupo da release com borda ciano e check mark; descoberta reativa de todas as lojas habilitadas via `useGameStoreSources.ts`; seletor de pasta de instalação com espaço livre em disco em tempo real via `checkDiskSpace` e validação mínima sem bloquear atualizações ou migrações.
+  - **Resolvedor Canônico de Capas em Buscar Jogos (`externalCoverResolver.ts`, `PreferredGameCover.tsx`)**: Hierarquia estrita: AnkerGames (imediata) ➔ Google Imagens vertical (janela Electron oculta, serializada e sem Node) ➔ SteamGridDB 600×900 estático com chave do Ghost; compartilhamento idêntico de arte e fundo desfocado entre vitrine, detalhes e diálogo de download; intocabilidade total das capas da Biblioteca (Regra Canônica 62: `aspect-ratio: 173/275`).
+  - **Portabilidade de Extração (7-Zip / UnRAR) & Retomada Resiliente TorBox (`archiveTools.ts`, `archiveReader.ts`, `rangedCheckpoint.ts`, `directDownloadDefaults.ts`)**: Suporte a 7-Zip e console do WinRAR/UnRAR sem abrir janelas; limpeza segura de resíduos parciais que geravam o erro "Uma extração anterior já existe"; distribuição de receitas de download direto genéricas da Anker com desativação preventiva após falhas; retomada de downloads TorBox via Range/If-Range e ETag (`package.ext.resume.json`).
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 83+ testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -830,7 +839,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [docs/PLUGIN_SHARING.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/PLUGIN_SHARING.md)
 - [MODIFY] [docs/SOURCE_ENGINES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/SOURCE_ENGINES.md)
 - [MODIFY] [docs/SOURCE_ENGINE_UPDATES.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/SOURCE_ENGINE_UPDATES.md)
-
+- [NEW] [docs/DOWNLOAD_INSTALL_PORTABILITY.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DOWNLOAD_INSTALL_PORTABILITY.md)
+- [NEW] [docs/EXTERNAL_COVER_PRIORITY.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_COVER_PRIORITY.md)
+- [NEW] [docs/EXTERNAL_GAME_DETAILS_DESIGN.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_GAME_DETAILS_DESIGN.md)
 ### Backend & Core
 - [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
 - [NEW] [src/backend/__tests__/abortAllOperations.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/abortAllOperations.test.ts)
@@ -935,7 +946,28 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/plugins/sourceEnginePackage.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceEnginePackage.ts)
 - [MODIFY] [src/backend/storeManagers/connectedAccounts/__tests__/customStores.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/connectedAccounts/__tests__/customStores.test.ts)
 - [MODIFY] [src/backend/utils/systeminfo/index.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/systeminfo/index.ts)
-
+- [NEW] [src/backend/__tests__/moveGameModal.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/moveGameModal.test.ts)
+- [NEW] [src/backend/plugins/__tests__/archiveReader.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/archiveReader.test.ts)
+- [NEW] [src/backend/plugins/__tests__/downloadEngineMemory.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/downloadEngineMemory.test.ts)
+- [NEW] [src/backend/plugins/__tests__/externalCoverResolver.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/externalCoverResolver.test.ts)
+- [NEW] [src/backend/plugins/__tests__/externalCoverSources.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/externalCoverSources.test.ts)
+- [NEW] [src/backend/plugins/__tests__/gameDetailsMetadata.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/gameDetailsMetadata.test.ts)
+- [NEW] [src/backend/plugins/archiveReader.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/archiveReader.ts)
+- [NEW] [src/backend/plugins/archiveTools.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/archiveTools.ts)
+- [NEW] [src/backend/plugins/directDownloadDefaults.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/directDownloadDefaults.ts)
+- [NEW] [src/backend/plugins/downloadEngineMemory.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/downloadEngineMemory.ts)
+- [NEW] [src/backend/plugins/externalCoverResolver.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/externalCoverResolver.ts)
+- [NEW] [src/backend/plugins/externalCoverSources.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/externalCoverSources.ts)
+- [NEW] [src/backend/plugins/rangedCheckpoint.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/rangedCheckpoint.ts)
+- [MODIFY] [src/backend/plugins/archiveSize.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/archiveSize.ts)
+- [MODIFY] [src/backend/plugins/externalFiles.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/externalFiles.ts)
+- [MODIFY] [src/backend/plugins/rangedDownload.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/rangedDownload.ts)
+- [MODIFY] [src/backend/storeManagers/steam/games.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/steam/games.ts)
+- [MODIFY] [src/backend/utils/filesystem/drives.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/utils/filesystem/drives.ts)
+- [MODIFY] [src/backend/plugins/__tests__/archiveSize.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/archiveSize.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/directDownloadLearning.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/directDownloadLearning.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/directPageEngines.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/directPageEngines.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/rangedDownload.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/rangedDownload.test.ts)
 ### Common & Preload
 - [MODIFY] [src/common/types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
 - [MODIFY] [src/common/externalDownloadStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalDownloadStatus.ts)
@@ -951,7 +983,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/common/externalReleaseInfo.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalReleaseInfo.ts)
 - [MODIFY] [src/common/releaseDrm.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/releaseDrm.ts)
 - [MODIFY] [src/preload/api/releases.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/releases.ts)
-
+- [NEW] [src/common/externalGameCover.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalGameCover.ts)
+- [MODIFY] [src/common/types/electron_store.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/electron_store.ts)
+- [MODIFY] [src/preload/api/misc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/misc.ts)
 ### Frontend
 - [MODIFY] [src/frontend/App.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.tsx)
 - [MODIFY] [src/frontend/components/ChooseDownloadModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/index.tsx)
@@ -1002,6 +1036,13 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/screens/Settings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/index.tsx)
 - [MODIFY] [src/frontend/screens/Settings/sections/LogSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/LogSettings/index.tsx)
 - [MODIFY] [src/frontend/screens/Settings/sections/SystemInfo/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Settings/sections/SystemInfo/index.tsx)
-
-
-
+- [NEW] [src/frontend/components/PreferredGameCover.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/PreferredGameCover.tsx)
+- [NEW] [src/frontend/hooks/useExternalGameCover.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/useExternalGameCover.ts)
+- [NEW] [src/frontend/hooks/useGameStoreSources.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/hooks/useGameStoreSources.ts)
+- [NEW] [src/frontend/screens/ExternalGames/GameDetailsPanel.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/GameDetailsPanel.tsx)
+- [NEW] [src/frontend/screens/ExternalGames/InstallDestination.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/InstallDestination.tsx)
+- [NEW] [src/frontend/screens/ExternalGames/StoreSourceCards.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/StoreSourceCards.tsx)
+- [NEW] [src/frontend/screens/ExternalGames/gameDetails.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/gameDetails.css)
+- [NEW] [src/frontend/screens/ExternalGames/gameDetailsMetadata.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/gameDetailsMetadata.ts)
+- [NEW] [src/frontend/screens/Library/components/InlineGameSettings/MoveGameModal.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/MoveGameModal.tsx)
+- [MODIFY] [src/frontend/screens/Library/components/InlineGameSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/index.tsx)

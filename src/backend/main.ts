@@ -89,7 +89,10 @@ import {
   isAccessibleWithinFlatpakSandbox,
   isWritable
 } from './utils/filesystem'
-import { getAvailableStorageDrives } from './utils/filesystem/drives'
+import {
+  getAvailableStorageDrives,
+  getFolderSize
+} from './utils/filesystem/drives'
 import { SteamAuthModal } from './storeManagers/steam/authModal'
 import { configStore as steamConfigStore } from './storeManagers/steam/electronStores'
 
@@ -1745,9 +1748,18 @@ addHandler('repair', async (event, appName, runner) => {
   })
 })
 
+addHandler('getGameFolderSize', async (_e, folderPath) =>
+  getFolderSize(folderPath)
+)
+
 addHandler(
   'moveInstall',
-  async (event, { appName, path, runner }): Promise<void> => {
+  async (
+    event,
+    { appName, path, runner }
+  ): Promise<
+    { status: 'done'; installPath?: string } | { status: 'error'; error?: string }
+  > => {
     sendGameStatusUpdate({
       appName,
       runner,
@@ -1783,6 +1795,7 @@ addHandler(
     if (moveRes.status === 'done') {
       notify({ title, body: i18next.t('notify.moved') })
       logInfo(`Finished moving ${appName} to ${path}.`, LogPrefix.Backend)
+      sendFrontendMessage('refreshLibrary', runner)
     }
 
     sendGameStatusUpdate({
@@ -1790,6 +1803,14 @@ addHandler(
       runner,
       status: 'done'
     })
+
+    return moveRes as {
+      status: 'done'
+      installPath?: string
+    } | {
+      status: 'error'
+      error?: string
+    }
   }
 )
 

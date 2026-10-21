@@ -1,4 +1,4 @@
-import { open, rm, statfs } from 'fs/promises'
+import { open, rm, statfs, writeFile, rename } from 'fs/promises'
 import { dirname } from 'path'
 import { setTimeout as delay } from 'timers/promises'
 
@@ -21,9 +21,14 @@ export async function rangedDownload(options: {
 }): Promise<boolean> {
   const { destination, total, etag, signal } = options
   const offset = options.resumeFrom ?? 0
-  if (!Number.isSafeInteger(offset) || offset < 0 || offset >= total) return false
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset >= total)
+    return false
   const event = (name: string) => {
-    try { options.event(name) } catch { /* Telemetry must not restart a transfer. */ }
+    try {
+      options.event(name)
+    } catch {
+      /* Telemetry must not restart a transfer. */
+    }
   }
   if (
     !Number.isSafeInteger(total) ||
@@ -68,15 +73,35 @@ export async function rangedDownload(options: {
   }
   const disk = await statfs(dirname(destination))
   if (disk.bavail * disk.bsize < total - offset) return false
-  const file = await open(destination, options.resumeFrom === undefined ? 'wx' : offset ? 'r+' : 'w+')
+  const file = await open(
+    destination,
+    options.resumeFrom === undefined ? 'wx' : offset ? 'r+' : 'w+'
+  )
   if (offset && (await file.stat()).size !== offset) {
     await file.close()
-    throw new Error('O tamanho do arquivo parcial mudou. Tente retomar novamente.')
+    throw new Error(
+      'O tamanho do arquivo parcial mudou. Tente retomar novamente.'
+    )
   }
   let success = false
   let next = offset
   let completed = offset
   let contiguous = offset
+  let checkpoint = Promise.resolve()
+  const saveCheckpoint = () => {
+    if (options.resumeFrom === undefined) return Promise.resolve()
+    const prefix = contiguous
+    checkpoint = checkpoint.then(async () => {
+      await file.sync()
+      const marker = `${destination}.resume.json`
+      await writeFile(
+        `${marker}.tmp`,
+        JSON.stringify({ revision: 1, total, etag, offset: prefix })
+      )
+      await rename(`${marker}.tmp`, marker)
+    })
+    return checkpoint
+  }
   const finished = new Map<number, number>()
   let reduced = false
   const pending = new Map<number, number>()
@@ -134,6 +159,7 @@ export async function rangedDownload(options: {
             contiguous = finished.get(previous)!
             finished.delete(previous)
           }
+          await saveCheckpoint()
           pending.delete(start)
           report()
           break
@@ -153,6 +179,8 @@ export async function rangedDownload(options: {
     }
   }
   try {
+    // Persist a zero/previous prefix before any out-of-order write is possible.
+    await saveCheckpoint()
     const workers = Array.from({ length: 4 }, (_, id) =>
       worker(id).catch((error) => {
         controller.abort()
@@ -169,8 +197,13 @@ export async function rangedDownload(options: {
     return true
   } finally {
     try {
-      if (!success && options.resumeFrom !== undefined) await file.truncate(contiguous)
-    } finally { await file.close() }
-    if (!success && options.resumeFrom === undefined) await rm(destination, { force: true })
+      await checkpoint.catch(() => undefined)
+      if (!success && options.resumeFrom !== undefined)
+        await file.truncate(contiguous)
+    } finally {
+      await file.close()
+    }
+    if (!success && options.resumeFrom === undefined)
+      await rm(destination, { force: true })
   }
 }

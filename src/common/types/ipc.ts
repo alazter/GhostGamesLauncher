@@ -232,6 +232,7 @@ interface AsyncIPCFunctions {
   kill: (appName: string, runner: Runner) => Promise<void>
   checkDiskSpace: (folder: string) => Promise<DiskSpaceData>
   getAvailableStorageDrives: (runner?: Runner) => Promise<StorageDrive[]>
+  getGameFolderSize: (folderPath: string) => Promise<number>
   steamLoginWebView: () => Promise<boolean>
   steamLogout: () => Promise<void>
   steamGetConfig: () => Promise<{
@@ -365,7 +366,11 @@ interface AsyncIPCFunctions {
     shouldRemoveSetting: boolean
   ) => Promise<void>
   repair: (appName: string, runner: Runner) => Promise<void>
-  moveInstall: (args: MoveGameArgs) => Promise<void>
+  moveInstall: (
+    args: MoveGameArgs
+  ) => Promise<
+    { status: 'done'; installPath?: string } | { status: 'error'; error?: string } | void
+  >
   importGame: (args: ImportGameArgs) => StatusPromise
   updateGame: (args: UpdateParams) => Promise<void>
   changeInstallPath: (args: MoveGameArgs) => Promise<void>
@@ -705,6 +710,7 @@ interface AsyncIPCFunctions {
     outputDir?: string
   ) => Promise<PluginPackResult>
   pluginsSearchSources: (query: string) => Promise<GhostSearchResult[]>
+  pluginsResolveGameCover: (request: import('common/externalGameCover').ExternalCoverRequest) => Promise<import('common/externalGameCover').ExternalCoverResult | null>
   pluginsGetDownloadSources: (
     providerId: string,
     gameId: string

@@ -1,0 +1,11 @@
+# Prioridade das capas em Buscar jogos
+
+Preferência solicitada em 20/10/2026: **AnkerGames → Google → SteamGridDB**, somente para as capas automáticas de Buscar jogos (vitrines, catálogo, detalhes e outros resultados) e da janela Escolha como baixar. A Biblioteca, suas capas manuais, arquivos e dimensões não são alterados. Os registros originais das fontes e o pedido de instalação permanecem intactos.
+
+Capas Anker conhecidas aparecem imediatamente, sem esperar consultas externas. Se faltarem ou não carregarem, o resolvedor procura Anker pelo título e plataforma, depois Google e por último SteamGridDB. URLs que falharam são excluídas da tentativa seguinte; imagens de outro jogo, sequência ou plataforma não ganham prioridade pela ordem das respostas. O SteamGridDB exige correspondência exata de título e consulta capas estáticas 600×900 usando a chave já configurada no Ghost.
+
+O Google é consultado em uma janela oculta, isolada das sessões de contas e sem permissões de Node. Somente imagens originais verticais são consideradas; miniaturas, banners e imagens pequenas são descartados. Se houver desafio, consentimento ou bloqueio, a consulta encerra e segue para a próxima fonte. O acesso recusado ao Google suspende novas tentativas por dez minutos. Não há interação automática com desafios. Na verificação de rede deste trabalho, o Google recusou acesso; o caso de sucesso foi validado com dados controlados, não como uma consulta pública bem-sucedida.
+
+Consultas têm prazo, cache curto e deduplicação; a consulta do Google é serializada. Cards fora de vista não iniciam consultas externas. A interface usa o cache de imagens existente e ignora respostas antigas ao trocar de jogo. A capa e o fundo da janela de download usam o mesmo resultado. Sem imagem válida nas três fontes, permanece o placeholder, sem escolher uma arte arbitrária de outra loja.
+
+Validação: 34 testes de política, fontes, isolamento/encerramento da janela, cache, exclusão de imagens quebradas, disponibilidade da chave e regressões de busca/envio. Componentes reais em navegador isolado verificaram resposta atrasada, fallback após falha, capa/fundo compartilhados e preservação do registro original. TypeScript e build de produção isolado também verificados. Os testes não modificam contas ou bibliotecas pessoais.

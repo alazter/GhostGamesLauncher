@@ -2,6 +2,7 @@ import { externalErrorMessage } from 'common/externalErrors'
 import { downloadProgress } from './downloadProgress'
 import { confirmDirectDownloadLearning } from './directDownloadLearning'
 import { rangedDownload } from './rangedDownload'
+import { rangedResumeOffset } from './rangedCheckpoint'
 import { app, dialog, shell } from 'electron'
 
 function logGhost(message: string) {
@@ -33,6 +34,7 @@ import {
   rm,
   stat,
   statfs,
+  truncate,
   writeFile
 } from 'fs/promises'
 import { randomUUID } from 'crypto'
@@ -47,7 +49,7 @@ import { archiveSize } from './archiveSize'
 import { planInstallSpace, sizeBytes, spaceReserve } from './installSpace'
 import { gameDirectoryName, prepareNewInstallDirectory } from './installDirectory'
 import type { GameInfo } from 'common/types'
-import { basename, dirname, join, relative, resolve } from 'path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'path'
 import { Readable, Transform } from 'stream'
 import { pipeline } from 'stream/promises'
 import { userDataPath } from 'backend/constants/paths'
@@ -117,6 +119,7 @@ interface StoredJob extends ExternalDownloadJob {
   old?: ExternalInstallation
   backupId?: string
   etag?: string
+  rangeCheckpointRequired?: boolean
   commitStarted?: boolean
   previousLibrary?: GameInfo
   autoFinish?: boolean
@@ -1778,6 +1781,7 @@ export class ExternalGames {
         job.temporaryDirectory = undefined
         job.bytes = 0
         job.etag = undefined
+        job.rangeCheckpointRequired = false
       }
     }
     if (!job.temporaryDirectory && (!plan.missingOriginal || (acceptAlternative && plan.temporaryDirectory && !plan.missingDestination))) {
@@ -2080,6 +2084,19 @@ export class ExternalGames {
           () => 0
         )
       : 0
+    if (job.rangeCheckpointRequired) {
+      offset = job.etag && job.total ? rangedResumeOffset(job.archive, job.total, job.etag) : 0
+      if (existsSync(job.archive)) await truncate(job.archive, offset)
+      if (job.total && offset === job.total) {
+        if (job.source.sha256 && (await hashFile(job.archive)) !== job.source.sha256.toLowerCase())
+          throw new Error('O checksum do pacote não corresponde ao informado pela fonte.')
+        job.bytes = offset
+        job.packageDownloaded = true
+        this.save()
+        await this.prepare(job, job.archive)
+        return
+      }
+    }
     const headers: Record<string, string> = {
       ...job.source.headers,
       'Accept-Encoding': 'identity'
@@ -2114,6 +2131,9 @@ export class ExternalGames {
       if (
         !range ||
         Number(range[1]) !== offset ||
+        !Number.isSafeInteger(Number(range[3])) || Number(range[3]) <= offset ||
+        Number(range[2]) !== Number(range[3]) - 1 ||
+        (offset > 0 && job.total !== undefined && Number(range[3]) !== job.total) ||
         (job.etag && response.headers.get('etag') !== job.etag)
       ) {
         await response.body.cancel()
@@ -2155,6 +2175,8 @@ export class ExternalGames {
     let segmented = false
     if (resolved && job.total && job.etag) {
       try {
+        job.rangeCheckpointRequired = true
+        this.save()
         segmented = await rangedDownload({
           destination: job.archive, total: job.total, etag: job.etag,
           resumeFrom: offset, signal: controller.signal,
@@ -2173,6 +2195,8 @@ export class ExternalGames {
       }
       if (segmented) await response.body.cancel().catch(() => undefined)
       else {
+        job.rangeCheckpointRequired = false
+        this.save()
         job.bytes = offset
         report(offset, true)
       }
@@ -2200,6 +2224,7 @@ export class ExternalGames {
   private canRetryPackage(job: StoredJob): boolean {
     if (!['torbox', 'anker-direct', 'steamrip-direct', 'rom-direct', 'online-fix-direct'].includes(job.transport || '') || job.commitStarted || job.removalStarted) return false
     try {
+      if (job.rangeCheckpointRequired && (!job.total || !job.etag || rangedResumeOffset(job.archive, job.total, job.etag) !== job.total)) return false
       if (job.transport === 'online-fix-direct') {
         const packages = job.onlineFixPackages
         return job.packageDownloaded === true && Boolean(packages?.some(file => file.role === 'game') &&
@@ -2209,7 +2234,7 @@ export class ExternalGames {
           }))
       }
       const file = statSync(job.archive)
-      return file.isFile() && file.size > 0 && (!job.total || file.size === job.total) && (job.packageDownloaded === true ||
+      return file.isFile() && file.size > 0 && (!job.total || file.size === job.total) && (job.packageDownloaded === true || job.rangeCheckpointRequired === true ||
         (job.transport === 'torbox' && job.transferPhase === 'local' && Boolean(job.total) && job.bytes === job.total && file.size === job.total))
     } catch { return false }
   }
@@ -2734,6 +2759,7 @@ export class ExternalGames {
       job.pendingArchive = undefined
       job.bytes = 0
       job.etag = undefined
+      job.rangeCheckpointRequired = false
     }
   }
 
@@ -2834,6 +2860,19 @@ export class ExternalGames {
             ]
           })
           if (file.canceled || !file.filePaths[0]) return { success: false }
+          if (job.status === 'error' && existsSync(job.stage)) {
+            // Retry only this task's failed staging directory. Never remove an
+            // installation, redirected folder or the archive selected by user.
+            const expected = resolve(dirname(job.directory), `.ghost-stage-${job.id}`)
+            const selected = await realpath(file.filePaths[0])
+            if (resolve(job.stage) !== expected || !inside(resolve(dirname(job.directory)), expected) ||
+                resolve(await realpath(job.stage)).toLowerCase() !== expected.toLowerCase() ||
+                inside(expected, selected) || resolve(selected).toLowerCase() === expected.toLowerCase())
+              throw new Error('A pasta temporária não pôde ser reutilizada com segurança. Selecione o pacote fora dela ou inicie uma nova instalação.')
+            await rm(expected, { recursive: true, force: true })
+            job.candidates = []
+            job.error = undefined
+          }
           await this.prepare(job, file.filePaths[0])
         } else if (action.type === 'finish') {
           if (job.status === 'completed') return { success: true }
@@ -2933,6 +2972,7 @@ export class ExternalGames {
           job.total = undefined
           job.speed = 0
           job.etag = undefined
+          job.rangeCheckpointRequired = false
           job.error = undefined
           job.canResume = true
 
@@ -3078,6 +3118,68 @@ export class ExternalGames {
   setLastUpdateCheckTime(time: number): void {
     this.state.lastUpdateCheckTime = time
     this.save()
+  }
+
+  relocateInstallation(
+    appName: string,
+    oldDir: string,
+    newDir: string,
+    newExecutable?: string
+  ): { updated: boolean; newExecutable?: string } {
+    try {
+      const normOld = oldDir ? resolve(oldDir).toLowerCase() : ''
+      const installation = this.state.installations.find(
+        (item) =>
+          item.appName === appName ||
+          item.id === appName ||
+          (normOld && item.directory && resolve(item.directory).toLowerCase() === normOld)
+      )
+      if (!installation) {
+        return { updated: false, newExecutable }
+      }
+
+      const prevDir = installation.directory || oldDir
+      installation.directory = newDir
+
+      if (newExecutable) {
+        installation.executable = newExecutable
+      } else if (installation.executable && prevDir) {
+        const relExe = relative(prevDir, installation.executable)
+        if (!relExe.startsWith('..') && !isAbsolute(relExe)) {
+          installation.executable = join(newDir, relExe)
+        }
+      }
+
+      if (installation.savePath && prevDir && inside(prevDir, installation.savePath)) {
+        const relSave = relative(prevDir, installation.savePath)
+        if (!relSave.startsWith('..') && !isAbsolute(relSave)) {
+          installation.savePath = join(newDir, relSave)
+        }
+      }
+
+      try {
+        if (existsSync(newDir)) {
+          writeGhostManifest(newDir, {
+            ghostAppId: installation.appName || appName,
+            title: installation.game?.title || appName,
+            version: installation.game?.version,
+            storeId: installation.game?.providerId,
+            storeName: installation.game?.providerName,
+            storePageUrl: installation.game?.pageUrl,
+            executableRelPath: installation.executable
+              ? relative(newDir, installation.executable)
+              : undefined,
+            installedAt: installation.installedAt
+          })
+        }
+      } catch {}
+
+      this.save()
+      sendFrontendMessage('external-games-updated', this.snapshot())
+      return { updated: true, newExecutable: installation.executable }
+    } catch {
+      return { updated: false, newExecutable }
+    }
   }
 
   async deleteInstallationAndFiles(

@@ -57,6 +57,8 @@ export interface GhostSearchResult {
   uploadDate?: string
   sourceDate?: string
   uploader?: string
+  publicationDate?: string
+  ratingCount?: number
   cracker?: string
   genre?: string
   mode?: string

@@ -1094,30 +1094,56 @@ export async function moveOnWindows(
 ): Promise<
   { status: 'done'; installPath: string } | { status: 'error'; error: string }
 > {
-  const {
-    install: { install_path },
-    title
-  } = gameInfo
+  const sourcePath =
+    gameInfo.install?.install_path ||
+    gameInfo.folder_name ||
+    (gameInfo.install?.executable ? dirname(gameInfo.install.executable) : '')
+  const { title } = gameInfo
 
-  if (!install_path) {
-    return { status: 'error', error: 'No install path found' }
+  if (!sourcePath || !existsSync(sourcePath)) {
+    return { status: 'error', error: 'Pasta de instalação original não encontrada no disco.' }
   }
 
-  newInstallPath = join(newInstallPath, basename(install_path))
+  const targetDirName = basename(normalize(sourcePath))
+  const normalizedDestParent = normalize(newInstallPath)
+  const destinationPath =
+    basename(normalizedDestParent).toLowerCase() === targetDirName.toLowerCase()
+      ? normalizedDestParent
+      : join(normalizedDestParent, targetDirName)
+
+  if (normalize(sourcePath).toLowerCase() === normalize(destinationPath).toLowerCase()) {
+    return { status: 'error', error: 'O jogo já está instalado nesta mesma pasta.' }
+  }
+
+  try {
+    mkdirSync(dirname(destinationPath), { recursive: true })
+  } catch {}
 
   let currentFile = ''
+
+  sendFrontendMessage('progressUpdate', {
+    appName: gameInfo.app_name,
+    runner: gameInfo.runner,
+    status: 'moving',
+    progress: {
+      percent: 1,
+      file: basename(sourcePath),
+      bytes: '',
+      eta: ''
+    }
+  })
 
   // move using robocopy and show progress of the current file being copied
   const { code, stderr } = await spawnAsync(
     'robocopy',
-    [install_path, newInstallPath, '/MOVE', '/MIR', '/NJH', '/NJS', '/NDL'],
+    [sourcePath, destinationPath, '/MOVE', '/E', '/R:2', '/W:1', '/NJH', '/NJS', '/NDL'],
     { stdio: 'pipe' },
     (data) => {
       let percent = 0
       const percentMatch = data.match(/(\d+)(?:\.\d+)?%/)?.[1]
       if (percentMatch) percent = Number(percentMatch)
 
-      const filenameMatch = data.match(/([\w.:\\]+)$/)?.[1]
+      const filenameMatch = data.match(/([\w.:\\ -]+)$/)?.[1]?.trim()
       if (filenameMatch) currentFile = filenameMatch
 
       sendFrontendMessage('progressUpdate', {
@@ -1127,20 +1153,38 @@ export async function moveOnWindows(
         progress: {
           percent,
           file: currentFile,
-          // FIXME: Robocopy does not report bytes moved / an ETA, so we have to
-          //        leave these blank for now
           bytes: '',
           eta: ''
         }
       })
     }
   )
-  if (code !== 0) {
-    logInfo(`Finished Moving ${title}`, LogPrefix.Backend)
-  } else {
-    logError(`Error: ${stderr}`, LogPrefix.Backend)
+
+  // Robocopy exit codes 0-7 indicate success; >= 8 indicates an error
+  if (code !== null && code >= 8) {
+    logError(`Error moving ${title} (robocopy exit code ${code}): ${stderr}`, LogPrefix.Backend)
+    return {
+      status: 'error',
+      error:
+        stderr?.trim() ||
+        `Não foi possível mover todos os arquivos (código ${code}). Verifique se o jogo está fechado e se há espaço livre suficiente no HD de destino.`
+    }
   }
-  return { status: 'done', installPath: newInstallPath }
+
+  sendFrontendMessage('progressUpdate', {
+    appName: gameInfo.app_name,
+    runner: gameInfo.runner,
+    status: 'moving',
+    progress: {
+      percent: 100,
+      file: currentFile,
+      bytes: '',
+      eta: ''
+    }
+  })
+
+  logInfo(`Finished Moving ${title} to ${destinationPath}`, LogPrefix.Backend)
+  return { status: 'done', installPath: destinationPath }
 }
 
 export async function moveOnUnix(
@@ -1149,15 +1193,21 @@ export async function moveOnUnix(
 ): Promise<
   { status: 'done'; installPath: string } | { status: 'error'; error: string }
 > {
-  const {
-    install: { install_path },
-    title
-  } = gameInfo
+  const install_path =
+    gameInfo.install?.install_path ||
+    gameInfo.folder_name ||
+    (gameInfo.install?.executable ? dirname(gameInfo.install.executable) : '')
+  const { title } = gameInfo
   if (!install_path) {
     return { status: 'error', error: 'No install path found' }
   }
 
-  const destination = join(newInstallPath, basename(install_path))
+  const targetDirName = basename(normalize(install_path))
+  const normalizedDestParent = normalize(newInstallPath)
+  const destination =
+    basename(normalizedDestParent).toLowerCase() === targetDirName.toLowerCase()
+      ? normalizedDestParent
+      : join(normalizedDestParent, targetDirName)
 
   let currentFile = ''
 

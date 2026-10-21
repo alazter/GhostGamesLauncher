@@ -10,8 +10,10 @@ import {
   writeFile
 } from 'fs/promises'
 import { createHash } from 'crypto'
-import { dirname, join, resolve } from 'path'
-import { execFile } from 'child_process'
+import { dirname, join, resolve, sep } from 'path'
+import { listArchive, archiveCommand } from './archiveReader'
+export { resolve7zPath } from './archiveTools'
+import { resolve7zPath } from './archiveTools'
 import { archivePathIsSafe, inside } from './externalPolicy'
 
 type ExtractZipType = (
@@ -44,106 +46,17 @@ async function getExtractZip(): Promise<ExtractZipType | null> {
   return null
 }
 
-let cached7zPath: string | null = null
-
-export async function resolve7zPath(): Promise<string | null> {
-  if (cached7zPath !== null) return cached7zPath
-  const candidates = [
-    '7z',
-    '7z.exe',
-    join(process.env.USERPROFILE || '', 'scoop', 'shims', '7z.exe'),
-    'C:\\Program Files\\7-Zip\\7z.exe',
-    'C:\\Program Files (x86)\\7-Zip\\7z.exe',
-    join(process.env.LOCALAPPDATA || '', 'Programs', '7-Zip', '7z.exe')
-  ]
-  for (const candidate of candidates) {
-    try {
-      if (candidate === '7z' || candidate === '7z.exe') {
-        const works = await new Promise<boolean>((res) => {
-          execFile(candidate, ['--help'], (err) => res(!err))
-        })
-        if (works) {
-          cached7zPath = candidate
-          return candidate
-        }
-        continue
-      }
-      if (existsSync(candidate)) {
-        cached7zPath = candidate
-        return candidate
-      }
-    } catch {
-      // continue
-    }
-  }
-  return null
-}
-
-async function extractWith7z(file: string, destination: string, password?: string): Promise<void> {
-  const sevenZip = await resolve7zPath()
-  if (!sevenZip) {
-    throw new Error('Instale o 7-Zip para extrair arquivos RAR/7Z ou pacotes protegidos por senha.')
-  }
-  const passwordArgs = password ? [`-p${password}`] : []
-  // Inspeciona os cabeçalhos do pacote antes de permitir a escrita de qualquer arquivo
-  const listing = await new Promise<string>((res, rej) => {
-    execFile(
-      sevenZip,
-      ['l', '-slt', '-ba', '-sccUTF-8', ...passwordArgs, '--', resolve(file)],
-      { maxBuffer: 32 * 1024 * 1024, timeout: 60000 },
-      (error, stdout) => {
-        if (error) {
-          if (password)
-            rej(
-              new Error(
-                'Não foi possível abrir o pacote com a senha padrão do Online-Fix. O arquivo pode estar incompleto ou usar outra senha.'
-              )
-            )
-          else rej(new Error(`Falha ao ler pacote com 7-Zip: ${error.message}`))
-        } else res(stdout)
-      }
-    )
-  })
+async function extractWithArchiveTool(file: string, destination: string, password?: string): Promise<void> {
+  const { tool, entries, bytes } = await listArchive(file, password)
   const disk = await statfs(dirname(destination))
-  let bytes = 0
-  const seen = new Set<string>()
-  for (const block of listing.trim().split(/\r?\n\r?\n/)) {
-    if (!block.trim()) continue
-    const fields = Object.fromEntries(
-      block.split(/\r?\n/).map((line) => {
-        const separator = line.indexOf(' = ')
-        return [line.slice(0, separator), line.slice(separator + 3)]
-      })
-    )
-    const name = fields.Path?.replace(/\\/g, '/')
-    if (
-      !name ||
-      !archivePathIsSafe(name) ||
-      !inside(destination, join(destination, name)) ||
-      fields['Symbolic Link'] ||
-      fields['Hard Link'] ||
-      /(?:^|\s)l[rwx-]{9}/.test(fields.Attributes || '')
-    )
-      throw new Error('O pacote contém caminho inseguro ou link. Extração interrompida.')
-    const key = name.toLowerCase().replace(/\/$/, '')
-    if (seen.has(key)) throw new Error('O pacote contém caminhos duplicados.')
-    seen.add(key)
-    const size = Number(fields.Size || 0)
-    if (!Number.isSafeInteger(size) || size < 0)
-      throw new Error('Tamanho inválido no pacote.')
-    bytes += size
-    if (bytes > disk.bavail * disk.bsize || bytes > 1024 ** 4 || seen.size > 200000)
-      throw new Error('Espaço insuficiente ou limite de extração excedido.')
-  }
-  return new Promise((res, rej) => {
-    execFile(sevenZip, ['x', `-o${resolve(destination)}`, '-y', '-aoa', ...passwordArgs, '--', resolve(file)], (error, _stdout, stderr) => {
-      if (error) {
-        if (password) return rej(new Error('Falha ao extrair o pacote Online-Fix. Confira se o arquivo está completo e usa a senha padrão online-fix.me.'))
-        return rej(new Error(`Falha na extração com 7-Zip: ${error.message} (${stderr || ''})`))
-      }
-      res()
-    })
-  })
+  if (bytes > disk.bavail * disk.bsize)
+    throw new Error('Espaço insuficiente para extrair o pacote. A instalação anterior foi preservada.')
+  for (const entry of entries) if (!inside(destination, join(destination, entry.name)))
+    throw new Error('O pacote contém caminho inseguro. Extração interrompida.')
+  const passwordArg = password ? `-p${password}` : '-p-'
+  await archiveCommand(tool, tool.kind === '7zip'
+    ? ['x', `-o${resolve(destination)}`, '-y', '-aoa', passwordArg, '--', resolve(file)]
+    : ['x', '-y', '-o+', '-idq', '-cfg-', '-scu', passwordArg, '--', resolve(file), resolve(destination) + sep])
 }
 
 export async function hashFile(file: string): Promise<string> {
@@ -186,7 +99,7 @@ export async function extractGame(
   const isRarOr7z = /\.(rar|7z|tar|gz|bz2|xz|iso)$/i.test(file)
 
   if (isRarOr7z) {
-    await extractWith7z(file, destination, password)
+    await extractWithArchiveTool(file, destination, password)
   } else {
     // Para .zip, tenta o motor extract-zip com validação atômica; caso indisponível, usa 7-Zip
     const extract = await getExtractZip()
@@ -238,16 +151,16 @@ export async function extractGame(
 
         const sevenZip = await resolve7zPath()
         if (password && (errMsg.includes('encrypted') || errMsg.includes('criptografado'))) {
-          await extractWith7z(file, destination, password)
+          await extractWithArchiveTool(file, destination, password)
         } else if (sevenZip && !isSecurityOrSpaceErr) {
-          await extractWith7z(file, destination, password)
+          await extractWithArchiveTool(file, destination, password)
         } else {
           throw zipErr
         }
       }
     } else {
       // Se extract-zip não estiver disponível no runtime, utiliza o 7-Zip diretamente
-      await extractWith7z(file, destination, password)
+      await extractWithArchiveTool(file, destination, password)
     }
   }
 

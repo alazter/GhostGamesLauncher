@@ -8,10 +8,16 @@ import {
 import { libraryStore } from './electronStores'
 import { GameConfig } from '../../game_config'
 import { GlobalConfig } from 'backend/config'
-import { killPattern, sendGameStatusUpdate, shutdownWine } from '../../utils'
+import {
+  killPattern,
+  moveOnUnix,
+  moveOnWindows,
+  sendGameStatusUpdate,
+  shutdownWine
+} from '../../utils'
 import { sendFrontendMessage } from '../../ipc'
 import { logError, logInfo, LogPrefix, logWarning } from 'backend/logger'
-import { dirname, basename } from 'path'
+import { dirname, basename, join, relative, resolve, isAbsolute } from 'path'
 import { existsSync, rmSync } from 'graceful-fs'
 import i18next from 'i18next'
 import {
@@ -247,11 +253,126 @@ export default class SideloadGame implements Game {
     )
   }
 
-  async moveInstall(): Promise<InstallResult> {
-    logWarning(
-      `moveInstall not implemented on Sideload Game Manager. called for ID = ${this.id}`
-    )
-    return { status: 'error' }
+  async moveInstall(
+    newInstallPath: string
+  ): Promise<
+    { status: 'done'; installPath?: string } | { status: 'error'; error?: string }
+  > {
+    try {
+      const gameInfo = this.getGameInfo()
+      if (!gameInfo || !gameInfo.app_name) {
+        return { status: 'error', error: 'Jogo não encontrado na biblioteca.' }
+      }
+
+      const oldExecutable = gameInfo.install?.executable || ''
+      const extInst = ExternalGames.getInstance()
+        .snapshot()
+        .installations.find((i) => i.appName === this.id || i.id === this.id)
+
+      const candidateDirs = [
+        extInst?.directory,
+        gameInfo.install?.install_path,
+        gameInfo.folder_name,
+        oldExecutable ? dirname(oldExecutable) : ''
+      ].filter((p): p is string => Boolean(p && p.trim().length > 0))
+
+      const sourceDir = candidateDirs.find((dir) => existsSync(dir))
+      if (!sourceDir) {
+        return {
+          status: 'error',
+          error: 'Pasta de instalação original do jogo não foi encontrada no disco.'
+        }
+      }
+
+      const resolvedSource = resolve(sourceDir)
+      if (resolvedSource === dirname(resolvedSource)) {
+        return {
+          status: 'error',
+          error: 'Não é permitido mover a raiz de uma unidade de disco.'
+        }
+      }
+
+      logInfo(
+        `[SideloadGame] Moving ${gameInfo.title} from ${sourceDir} to ${newInstallPath}`,
+        LogPrefix.Backend
+      )
+
+      const moveImpl = isWindows ? moveOnWindows : moveOnUnix
+      const moveResult = await moveImpl(newInstallPath, {
+        ...gameInfo,
+        install: {
+          ...gameInfo.install,
+          install_path: sourceDir
+        }
+      })
+
+      if (moveResult.status === 'error') {
+        logError(
+          ['[SideloadGame] Error moving', gameInfo.title, 'to', newInstallPath, moveResult.error],
+          LogPrefix.Backend
+        )
+        return { status: 'error', error: moveResult.error }
+      }
+
+      const finalInstallPath = moveResult.installPath
+      let newExecutable = oldExecutable
+
+      if (oldExecutable) {
+        const relExe = relative(sourceDir, oldExecutable)
+        if (!relExe.startsWith('..') && !isAbsolute(relExe)) {
+          const candidateExe = join(finalInstallPath, relExe)
+          if (existsSync(candidateExe)) {
+            newExecutable = candidateExe
+          } else {
+            const fallbackExe = join(finalInstallPath, basename(oldExecutable))
+            newExecutable = existsSync(fallbackExe) ? fallbackExe : candidateExe
+          }
+        }
+      }
+
+      const games = libraryStore.get('games', [])
+      const idx = games.findIndex((g) => g.app_name === this.id)
+      if (idx !== -1) {
+        const current = games[idx]
+        games[idx] = {
+          ...current,
+          folder_name: finalInstallPath,
+          install: {
+            ...current.install,
+            install_path: finalInstallPath,
+            executable: newExecutable || current.install?.executable || ''
+          }
+        }
+        libraryStore.set('games', games)
+      }
+
+      try {
+        const gameSettings = await this.getSettings()
+        if (gameSettings.targetExe) {
+          const relTarget = relative(sourceDir, gameSettings.targetExe)
+          if (!relTarget.startsWith('..') && !isAbsolute(relTarget)) {
+            GameConfig.get(this.id).setSetting(
+              'targetExe',
+              join(finalInstallPath, relTarget)
+            )
+          }
+        }
+      } catch {}
+
+      ExternalGames.getInstance().relocateInstallation(
+        this.id,
+        sourceDir,
+        finalInstallPath,
+        newExecutable
+      )
+
+      sendFrontendMessage('refreshLibrary', 'sideload')
+      return { status: 'done', installPath: finalInstallPath }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      logError(['[SideloadGame] Unexpected error in moveInstall:', err], LogPrefix.Backend)
+      return { status: 'error', error: errorMsg }
+    }
   }
 
   async repair(): Promise<ExecResult> {

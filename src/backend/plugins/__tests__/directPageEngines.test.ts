@@ -3,6 +3,7 @@ import { builtinGameSources } from 'common/builtinGameSources'
 import type { PluginManifest } from 'common/types/plugins'
 import {
   DirectPageEngines,
+  engineActionsFromHtml,
   directPageNavigation,
   readDirectPage,
   validateDirectPageData
@@ -12,6 +13,10 @@ import { engineProcess } from '../engineProcess'
 import { experimentalPage } from '../adaptiveSource'
 import { evaluateAnkerPage } from '../ankerNavigation'
 import { onlineFixPackagesFromEntries } from '../onlineFixHosters'
+import { DownloadEngineMemory } from '../downloadEngineMemory'
+import { mkdtempSync, rmSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
 
 jest.mock('../sourceEngines', () => ({ withSourceEngine: jest.fn() }))
 jest.mock('../engineProcess', () => ({ engineProcess: jest.fn() }))
@@ -34,9 +39,130 @@ const response = (
   links: Array<{ url: string; title: string }>,
   entries: unknown[] = []
 ) => ({ capability: 'direct-download-page-v1', links, entries })
+let memoryRoot: string
+let knowledge: DownloadEngineMemory
 beforeEach(() => {
+  memoryRoot = mkdtempSync(join(tmpdir(), 'ghost-engine-reader-'))
+  knowledge = new DownloadEngineMemory(join(memoryRoot, 'memory.json'))
   jest.resetAllMocks()
   jest.mocked(withSourceEngine).mockResolvedValue(undefined)
+})
+afterEach(() => rmSync(memoryRoot, { recursive: true, force: true }))
+
+it('matches a learned control after its DOM identifier changes, without accepting ambiguous or hidden actions', () => {
+  const reference = {
+    tag: 'BUTTON' as const,
+    label: 'obter pacote',
+    id: 'old-download'
+  }
+  expect(
+    engineActionsFromHtml(
+      '<section><button id="new-download">Obter pacote</button></section>',
+      [reference]
+    )
+  ).toEqual([{ ...reference, id: 'new-download' }])
+  for (const html of [
+    '<button>Obter pacote</button><button>Obter pacote</button>',
+    '<form><button>Obter pacote</button></form>',
+    '<aside hidden><button>Obter pacote</button></aside>',
+    '<button disabled>Obter pacote</button>',
+    '<button form="private">Obter pacote</button>'
+  ])
+    expect(engineActionsFromHtml(html, [reference])).toEqual([])
+})
+
+it('uses proven engine preference after restart and returns to the fallback when the preferred engine misses', async () => {
+  knowledge.success(manifest.id, {
+    engine: 'obscura',
+    page: base,
+    controls: []
+  })
+  jest
+    .mocked(experimentalPage)
+    .mockResolvedValue(`<a href="${url}">Download</a>`)
+  expect(
+    (
+      await readDirectPage(
+        '<main/>',
+        base,
+        manifest,
+        allowed,
+        () => true,
+        knowledge
+      )
+    ).links
+  ).toHaveLength(1)
+  expect(withSourceEngine).not.toHaveBeenCalled()
+  jest.mocked(experimentalPage).mockResolvedValue('<main>Unavailable</main>')
+  jest
+    .mocked(withSourceEngine)
+    .mockImplementation(async (_id, run) => run('worker', '/unused'))
+  jest
+    .mocked(engineProcess)
+    .mockResolvedValue(JSON.stringify(response([{ url, title: 'Download' }])))
+  for (let i = 0; i < 2; i++)
+    await readDirectPage(
+      '<main/>',
+      base,
+      manifest,
+      allowed,
+      () => true,
+      knowledge
+    )
+  expect(knowledge.order(manifest.id, base)[0]).toBe('scrapling')
+})
+
+it('passes manually learned semantics to Scrapling and revalidates its action results', async () => {
+  const control = {
+    tag: 'BUTTON' as const,
+    label: 'obter pacote',
+    id: 'new-file'
+  }
+  knowledge.manual(manifest.id, base, [control])
+  jest
+    .mocked(withSourceEngine)
+    .mockImplementation(async (_id, run) => run('worker', '/unused'))
+  jest.mocked(engineProcess).mockResolvedValue(
+    JSON.stringify({
+      ...response([]),
+      actions: [control, { tag: 'BUTTON', label: 'login' }]
+    })
+  )
+  expect(
+    (
+      await readDirectPage(
+        '<main/>',
+        base,
+        manifest,
+        allowed,
+        () => true,
+        knowledge
+      )
+    ).actions
+  ).toEqual([control])
+  const request = JSON.parse(jest.mocked(engineProcess).mock.calls[0][2]!) as {
+    learnedControls: unknown[]
+  }
+  expect(request.learnedControls).toEqual([control])
+})
+
+it('keeps unavailable optional engines from erasing previously validated knowledge', async () => {
+  knowledge.success(manifest.id, {
+    engine: 'obscura',
+    page: base,
+    controls: []
+  })
+  jest.mocked(experimentalPage).mockRejectedValue(new Error('disabled'))
+  for (let i = 0; i < 3; i++)
+    await readDirectPage(
+      '<main/>',
+      base,
+      manifest,
+      allowed,
+      () => true,
+      knowledge
+    )
+  expect(knowledge.order(manifest.id, base)[0]).toBe('obscura')
 })
 
 it.each(builtinGameSources)(
@@ -125,6 +251,25 @@ it('does not render Online-Fix authenticated subdomains separately, including de
     { ...manifest, id: 'com.ghost.online-fix-source' },
     () => true
   )
+  expect(experimentalPage).not.toHaveBeenCalled()
+})
+
+it('preserves Scrapling parsing of approved Online-Fix port 2053 without fetching it through Obscura', async () => {
+  jest
+    .mocked(withSourceEngine)
+    .mockImplementation(async (_id, run) => run('worker', '/unused'))
+  jest
+    .mocked(engineProcess)
+    .mockResolvedValue(JSON.stringify(response([{ url, title: 'Download' }])))
+  const data = await readDirectPage(
+    '<main/>',
+    'https://hosters.online-fix.me:2053/Test',
+    { ...manifest, id: 'com.ghost.online-fix-source' },
+    () => true,
+    () => true,
+    knowledge
+  )
+  expect(data.links).toEqual([{ url, title: 'Download' }])
   expect(experimentalPage).not.toHaveBeenCalled()
 })
 

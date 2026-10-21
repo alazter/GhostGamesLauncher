@@ -91,6 +91,40 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true })
 })
 
+it.each([true, false])(
+  'requires the learning capability for integration revision 6: present=%s',
+  async (present) => {
+    catalog = [await packageVersion('0.4.15', 'scrapling', 6)]
+    await writeFile(
+      join(bundles, 'catalog.json'),
+      JSON.stringify({ releases: catalog })
+    )
+    await initializeSourceEngines(root, bundles, '0.3.0-beta')
+    await sourceEngineAction({ type: 'automatic', enabled: false })
+    jest
+      .mocked(engineProcess)
+      .mockResolvedValue(
+        JSON.stringify({
+          ok: true,
+          protocol: 1,
+          version: '0.4.15',
+          capabilities: [
+            'online-fix-torrent-links-v1',
+            'direct-download-page-v1',
+            'release-page-v1',
+            ...(present ? ['direct-download-learning-v1'] : [])
+          ]
+        })
+      )
+    const bytes = await readFile(join(bundles, `${catalog[0].sha256}.zip`))
+    const install = importSourceEngine(
+      createSourceEnginePackage(catalog[0], bytes)
+    )
+    if (present) await expect(install).resolves.toBeDefined()
+    else await expect(install).rejects.toThrow('teste do Scrapling')
+  }
+)
+
 it('installs a verified package and restores the previous version after update', async () => {
   await sourceEngineAction({ type: 'install', id: 'scrapling' })
   catalog = [await packageVersion('0.4.16')]

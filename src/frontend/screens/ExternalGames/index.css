@@ -722,7 +722,7 @@
 }
 
 .externalHeroPosterWrapper:hover .externalHeroPosterImg {
-  transform: scale(1.04);
+  transform: none;
 }
 
 /* Coluna de Detalhes Principal */

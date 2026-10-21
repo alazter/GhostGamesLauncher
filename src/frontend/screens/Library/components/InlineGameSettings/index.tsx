@@ -42,7 +42,8 @@ import {
   VisibilityOff as EyeOffIcon,
   Terminal as TerminalIcon,
   Title as TitleIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  DriveFileMove as DriveFileMoveIcon
 } from '@mui/icons-material'
 
 // Componentes Globais do Heroic
@@ -53,6 +54,7 @@ import UninstallModal from 'frontend/components/UI/UninstallModal'
 import { openInstallGameModal } from 'frontend/state/InstallGameModal'
 import GameVersionBadge from './GameVersionBadge'
 import GhostShieldSaveManager from 'frontend/components/UI/GhostShieldSaveManager'
+import MoveGameModal from './MoveGameModal'
 import ExternalGameLink from 'frontend/screens/ExternalGames/GameLink'
 import { isPirateOrNonOfficialGame } from 'frontend/helpers/customStoreFiltering'
 
@@ -73,6 +75,7 @@ const DEFAULT_ACTIONS: ActionItem[] = [
   { id: 'edit-cover', name: 'Editar capa do jogo', iconKey: 'edit', isVisible: true },
   { id: 'shortcut', name: 'Adicionar atalho', iconKey: 'shortcut', isVisible: true },
   { id: 'browse', name: 'Navegar pelos arquivos', iconKey: 'browse', isVisible: true },
+  { id: 'move-install', name: 'Mover Jogo de HD', iconKey: 'move-install', isVisible: true },
   { id: 'categories', name: 'Categorias', iconKey: 'categories', isVisible: true },
   { id: 'saves', name: 'GhostShield Saves', iconKey: 'saves', isVisible: true },
   { id: 'steam', name: 'Adicionar ao Steam', iconKey: 'steam', isVisible: true },
@@ -360,15 +363,22 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   const [hasShortcuts, setHasShortcuts] = useState<boolean>(false)
   const [showUninstallModal, setShowUninstallModal] = useState<boolean>(false)
   const [showSaveManager, setShowSaveManager] = useState<boolean>(false)
+  const [showMoveModal, setShowMoveModal] = useState<boolean>(false)
+  const [movedInstallPath, setMovedInstallPath] = useState<string>('')
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false)
   const [isDeletingGame, setIsDeletingGame] = useState<boolean>(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
+  useEffect(() => {
+    setMovedInstallPath('')
+  }, [game.app_name, game.runner])
+
   const effectiveInstallDirectory = useMemo(() => {
+    if (movedInstallPath) return movedInstallPath
     if (game.install?.install_path) return game.install.install_path
     if (game.folder_name) return game.folder_name
     return ''
-  }, [game.install?.install_path, game.folder_name])
+  }, [movedInstallPath, game.install?.install_path, game.folder_name])
 
   useEffect(() => {
     if (!showDeleteModal) return
@@ -592,14 +602,63 @@ export default function InlineGameSettings({ game, onClose }: Props) {
 
   const onBrowseFiles = () => {
     const target =
+      movedInstallPath ||
       game.install?.install_path ||
       sideloadExe ||
       game.install?.executable ||
       game.folder_name
     if (target) {
-      openGameFolder(target, Boolean(sideloadExe || game.install?.executable))
+      openGameFolder(
+        target,
+        !movedInstallPath && !game.install?.install_path && Boolean(sideloadExe || game.install?.executable)
+      )
     }
   }
+
+  const handleGameMoved = useCallback(
+    async (newInstallPath: string, newExecutable?: string) => {
+      setMovedInstallPath(newInstallPath)
+      if (newExecutable) {
+        setSideloadExe(newExecutable)
+      }
+      game.folder_name = newInstallPath
+      if (game.install) {
+        game.install.install_path = newInstallPath
+        if (newExecutable) {
+          game.install.executable = newExecutable
+        }
+      }
+
+      if (game.runner === 'sideload') {
+        const updatedGame: GameInfo = {
+          ...game,
+          folder_name: newInstallPath,
+          install: {
+            ...game.install,
+            install_path: newInstallPath,
+            executable: newExecutable || sideloadExe || game.install?.executable || ''
+          }
+        }
+        syncFrontendStoreForSideload(updatedGame)
+      }
+
+      clearAvailabilityCache(game.app_name, game.runner)
+      window.dispatchEvent(
+        new CustomEvent('heroicAvailabilityChanged', {
+          detail: { appName: game.app_name, runner: game.runner }
+        })
+      )
+
+      if (refreshLibrary) {
+        await refreshLibrary({
+          library: game.runner,
+          runInBackground: true,
+          checkForUpdates: false
+        })
+      }
+    },
+    [game, refreshLibrary, sideloadExe]
+  )
 
   const handleEdit = () => {
     // Para a interface nova e linda, a página de capas do SteamGridDB ocupará toda a interface
@@ -768,6 +827,16 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             onClick={onBrowseFiles}
           />
         )
+      case 'move-install':
+        return (
+          <ActionButton
+            key="move-install"
+            icon={<DriveFileMoveIcon style={{ color: '#66c0f4' }} />}
+            label="Mover Jogo de HD"
+            onClick={() => setShowMoveModal(true)}
+            steamBrandColor={true}
+          />
+        )
       case 'categories':
         return (
           <ActionButton
@@ -844,12 +913,14 @@ export default function InlineGameSettings({ game, onClose }: Props) {
     if (act.id === 'steam') isSteamBrand = addedToSteam
     else if (act.id === 'logs') isSteamBrand = verboseLogs
     else if (act.id === 'shortcut') isSteamBrand = hasShortcuts
+    else if (act.id === 'move-install') isSteamBrand = true
     
     let iconNode = null
     if (act.id === 'rename') iconNode = <TitleIcon />
     else if (act.id === 'edit-cover') iconNode = <ImageIcon />
     else if (act.id === 'shortcut') iconNode = <ShortcutIcon />
     else if (act.id === 'browse') iconNode = <FolderIcon />
+    else if (act.id === 'move-install') iconNode = <DriveFileMoveIcon />
     else if (act.id === 'categories') iconNode = <FormatListBulletedIcon />
     else if (act.id === 'saves') iconNode = <FontAwesomeIcon icon={faShieldAlt} />
     else if (act.id === 'steam') iconNode = <FontAwesomeIcon icon={faSteam} />
@@ -1329,6 +1400,28 @@ export default function InlineGameSettings({ game, onClose }: Props) {
             isOpen={showSaveManager}
             onClose={() => setShowSaveManager(false)}
             game={game}
+          />
+        )}
+        {showMoveModal && (
+          <MoveGameModal
+            isOpen={showMoveModal}
+            game={
+              movedInstallPath
+                ? {
+                    ...game,
+                    folder_name: movedInstallPath,
+                    install: {
+                      ...game.install,
+                      install_path: movedInstallPath,
+                      executable: sideloadExe || game.install?.executable || ''
+                    }
+                  }
+                : game
+            }
+            currentTitle={currentTitle}
+            currentExecutable={sideloadExe || game.install?.executable}
+            onClose={() => setShowMoveModal(false)}
+            onMoved={handleGameMoved}
           />
         )}
         {showDeleteModal && (

@@ -2,6 +2,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { rangedDownload } from '../rangedDownload'
+import { rangedResumeOffset } from '../rangedCheckpoint'
 
 const total = 32 * 1024 * 1024
 const etag = '"fixture"'
@@ -57,7 +58,9 @@ it('writes concurrent ranges in the right order without duplicating the package'
     expect(headers['If-Range']).toBe(etag)
     return response(headers)
   })
-  args.event.mockImplementation(() => { throw new Error('Diagnostic sink unavailable') })
+  args.event.mockImplementation(() => {
+    throw new Error('Diagnostic sink unavailable')
+  })
   expect(await rangedDownload(args)).toBe(true)
   const bytes = await readFile(args.destination)
   expect(bytes.length).toBe(total)
@@ -111,24 +114,54 @@ it('does not attempt segmentation without a strong file validator', async () => 
 it('resumes a partial file without requesting its existing prefix again', async () => {
   const offset = total / 4
   const calls: string[] = []
-  const args = options(async headers => { calls.push(headers.Range); return response(headers) })
+  const args = options(async (headers) => {
+    calls.push(headers.Range)
+    return response(headers)
+  })
   await writeFile(args.destination, Buffer.alloc(offset, 0))
   expect(await rangedDownload({ ...args, resumeFrom: offset })).toBe(true)
+  expect(rangedResumeOffset(args.destination, total, etag)).toBe(total)
   expect(calls).not.toContain(`bytes=0-${offset - 1}`)
   const bytes = await readFile(args.destination)
-  for (let part = 0; part < 4; part++) expect(bytes.subarray(part * offset, (part + 1) * offset).equals(Buffer.alloc(offset, part))).toBe(true)
+  for (let part = 0; part < 4; part++)
+    expect(
+      bytes
+        .subarray(part * offset, (part + 1) * offset)
+        .equals(Buffer.alloc(offset, part))
+    ).toBe(true)
 })
 
 it('truncates unfinished out-of-order parts and preserves the contiguous prefix on failure', async () => {
   const offset = total / 4
-  const args = options(async headers => {
-    if (headers.Range === `bytes=${2 * offset}-${3 * offset - 1}`) throw new Error('connection reset')
+  const args = options(async (headers) => {
+    if (headers.Range === `bytes=${2 * offset}-${3 * offset - 1}`)
+      throw new Error('connection reset')
     return response(headers)
   })
   await writeFile(args.destination, Buffer.alloc(offset, 0))
-  await expect(rangedDownload({ ...args, resumeFrom: offset })).rejects.toThrow()
+  await expect(
+    rangedDownload({ ...args, resumeFrom: offset })
+  ).rejects.toThrow()
   const bytes = await readFile(args.destination)
   expect(bytes.length).toBe(2 * offset)
   expect(bytes.subarray(0, offset).equals(Buffer.alloc(offset, 0))).toBe(true)
   expect(bytes.subarray(offset).equals(Buffer.alloc(offset, 1))).toBe(true)
+  expect(rangedResumeOffset(args.destination, total, etag)).toBe(bytes.length)
+})
+
+it('recovers only the synced prefix after an abrupt exit with out-of-order data on disk', async () => {
+  const destination = join(root, 'crashed.zip')
+  await writeFile(destination, Buffer.alloc(total)) // Size alone cannot prove completion.
+  await writeFile(
+    destination + '.resume.json',
+    JSON.stringify({ revision: 1, total, etag, offset: total / 4 })
+  )
+  expect(rangedResumeOffset(destination, total, etag)).toBe(total / 4)
+  expect(rangedResumeOffset(destination, total, '"another-file"')).toBe(0)
+  expect(rangedResumeOffset(destination, total + 1, etag)).toBe(0)
+  await writeFile(
+    destination + '.resume.json',
+    JSON.stringify({ revision: 1, total, etag, offset: total + 1 })
+  )
+  expect(rangedResumeOffset(destination, total, etag)).toBe(0)
 })

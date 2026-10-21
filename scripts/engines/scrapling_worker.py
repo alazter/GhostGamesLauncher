@@ -193,7 +193,7 @@ def self_test():
                       'base': 'https://uploads.online-fix.me:2053/torrents/Test/',
                       'html': '<a href="Test.torrent">Test.torrent</a><a href="https://evil.test/Test.torrent">Ad</a>'}
     assert parse(torrent_request) == [{'url': 'https://uploads.online-fix.me:2053/torrents/Test/Test.torrent', 'title': 'Test.torrent'}]
-    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1', 'direct-download-page-v1', 'release-page-v1']}
+    return {'protocol': 1, 'version': version('scrapling'), 'ok': True, 'capabilities': ['release-selectors-v1', 'manual-drm-page-v1', 'online-fix-torrent-links-v1', 'direct-download-page-v1', 'direct-download-learning-v1', 'release-page-v1']}
 
 
 if __name__ == '__main__':

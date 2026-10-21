@@ -853,6 +853,36 @@ it('downloads a ZIP and resumes from the confirmed byte offset', async () => {
   }
 })
 
+it('imports a valid archive after failed extraction without deleting the selected package or another installation', async () => {
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [root] })
+  const result = await service.enqueue(game, source, manifest)
+  const live = (service as unknown as { state: { jobs: Array<{ id: string; stage: string; status: string }> } }).state.jobs.find(item => item.id === result.jobId)!
+  await mkdir(live.stage, { recursive: true })
+  await writeFile(join(live.stage, 'incomplete.bin'), 'partial')
+  live.status = 'error'
+  const archive = join(root, 'retry.zip')
+  await writeFile(archive, PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('recovered') }]))
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [archive] })
+  expect(await service.action({ type: 'import-archive', jobId: result.jobId! })).toEqual({ success: true })
+  expect(service.snapshot().jobs[0].status).toBe('ready')
+  await expect(readFile(join(live.stage, 'incomplete.bin'))).rejects.toThrow()
+  expect((await readFile(archive)).length).toBeGreaterThan(0)
+})
+
+it('preserves a selected archive inside the failed stage instead of deleting the user selection', async () => {
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [root] })
+  const result = await service.enqueue(game, source, manifest)
+  const live = (service as unknown as { state: { jobs: Array<{ id: string; stage: string; status: string }> } }).state.jobs.find(item => item.id === result.jobId)!
+  await mkdir(live.stage, { recursive: true })
+  const archive = join(live.stage, 'only-copy.zip')
+  const bytes = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('keep') }])
+  await writeFile(archive, bytes)
+  live.status = 'error'
+  jest.mocked(dialog.showOpenDialog).mockResolvedValueOnce({ canceled: false, filePaths: [archive] })
+  expect(await service.action({ type: 'import-archive', jobId: result.jobId! })).toMatchObject({ success: false, error: expect.stringContaining('fora dela') })
+  expect(await readFile(archive)).toEqual(bytes)
+})
+
 it('does not treat an HTML page as a completed game download', async () => {
   const network = jest.spyOn(NetworkGuard, 'fetchResponse').mockResolvedValue(
     new Response('<html>Login required</html>', {
@@ -1285,6 +1315,37 @@ it('restores a failed TorBox job after restarting without requesting or uploadin
   expect(AnkerAccount.torrent).toHaveBeenCalledTimes(1)
   expect(client.create).not.toHaveBeenCalled()
   expect(client.link).toHaveBeenCalledTimes(2)
+})
+
+it('resumes TorBox after restart from its committed prefix rather than the size of a sparse partial file', async () => {
+  const { client, remote, enqueue } = torboxFixture()
+  client.list.mockResolvedValue([remote])
+  jest.mocked(NetworkGuard.fetchResponse).mockRejectedValue(new Error('disconnected'))
+  const result = await enqueue()
+  await waitForJob(() => service.snapshot().jobs[0]?.status === 'error')
+  await waitForJob(() => !(service as unknown as { active: boolean }).active)
+  const zip = PluginPacker.createZipBuffer([{ name: 'game.exe', content: Buffer.from('resumed safely') }])
+  const split = Math.floor(zip.length / 2)
+  const internal = service as unknown as { state: { jobs: Array<{ archive: string; etag: string; total: number; bytes: number; rangeCheckpointRequired: boolean }> }; save: () => void }
+  const job = internal.state.jobs[0]
+  job.etag = '"same-torbox-file"'
+  job.total = zip.length
+  job.bytes = zip.length // A crash can persist optimistic/out-of-order progress.
+  job.rangeCheckpointRequired = true
+  await writeFile(job.archive, Buffer.concat([zip.subarray(0, split), Buffer.alloc(zip.length - split)]))
+  await writeFile(job.archive + '.resume.json', JSON.stringify({ revision: 1, total: zip.length, etag: job.etag, offset: split }))
+  internal.save()
+  ;(ExternalGames as unknown as { instance?: ExternalGames }).instance = undefined
+  const restarted = ExternalGames.getInstance()
+  jest.mocked(NetworkGuard.fetchResponse).mockResolvedValue(new Response(new Uint8Array(zip.subarray(split)), {
+    status: 206, headers: { 'content-type': 'application/zip', 'content-range': `bytes ${split}-${zip.length - 1}/${zip.length}`, etag: job.etag }
+  }))
+  expect(await restarted.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
+  await waitForJob(() => restarted.snapshot().jobs[0]?.status === 'ready')
+  expect(jest.mocked(NetworkGuard.fetchResponse).mock.calls.at(-1)?.[3]).toMatchObject({ Range: `bytes=${split}-`, 'If-Range': job.etag })
+  expect(await readFile(job.archive)).toEqual(zip)
+  expect(AnkerAccount.torrent).toHaveBeenCalledTimes(1)
+  expect(client.create).not.toHaveBeenCalled()
 })
 
 it('refreshes the TorBox file link after a temporary network failure without resubmitting', async () => {

@@ -50,6 +50,7 @@ export interface StoreStructure {
     'window-props': WindowProps
     settings: AppSettings
     skipVcRuntime: boolean
+    moveGameDrivePaths?: Record<string, string>
   }
   wineDownloaderInfoStore: {
     'wine-releases': WineVersionInfo[]

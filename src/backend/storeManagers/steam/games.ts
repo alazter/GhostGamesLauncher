@@ -10,16 +10,18 @@ import { GameConfig } from '../../game_config'
 import { Game, InstallResult } from 'common/types/game_manager'
 import { shell } from 'electron'
 import { STEAM_PROTOCOL } from './constants'
-import { sendGameStatusUpdate } from '../../utils'
-import { logInfo, LogPrefix } from 'backend/logger'
+import { moveOnUnix, moveOnWindows, sendGameStatusUpdate } from '../../utils'
+import { sendFrontendMessage } from '../../ipc'
+import { isWindows } from 'backend/constants/environment'
+import { logError, logInfo, LogPrefix } from 'backend/logger'
 import type LogWriter from 'backend/logger/log_writer'
 import {
   watchSteamGameSession,
   killSteamGameProcesses,
   findGameExecutables
 } from './processWatcher'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { dirname, basename, join } from 'path'
+import { existsSync, renameSync, copyFileSync, unlinkSync } from 'fs'
 import { SteamDownloader } from './downloader'
 import { SteamQueueWatcher } from './queueWatcher'
 import { SteamUser } from './user'
@@ -175,8 +177,77 @@ export default class SteamGame implements Game {
     return SteamDownloader.watchDownload(this.id)
   }
 
-  async moveInstall(): Promise<InstallResult> {
-    return { status: 'done' }
+  async moveInstall(newInstallPath: string): Promise<InstallResult> {
+    try {
+      const gameInfo = this.getGameInfo()
+      const sourceDir = gameInfo.install?.install_path || gameInfo.folder_name || ''
+      if (!sourceDir || !existsSync(sourceDir)) {
+        return {
+          status: 'error',
+          error: 'Pasta de instalação original do jogo Steam não encontrada no disco.'
+        }
+      }
+
+      const moveImpl = isWindows ? moveOnWindows : moveOnUnix
+      const moveResult = await moveImpl(newInstallPath, {
+        ...gameInfo,
+        install: {
+          ...gameInfo.install,
+          install_path: sourceDir
+        }
+      })
+
+      if (moveResult.status === 'error') {
+        logError(['[SteamGame] Error moving', gameInfo.title, 'to', newInstallPath, moveResult.error], LogPrefix.Steam)
+        return { status: 'error', error: moveResult.error }
+      }
+
+      // Se a origem possuir um appmanifest_<appid>.acf em steamapps e o destino também estiver em steamapps/common, mover o manifesto .acf
+      try {
+        const oldCommonDir = dirname(sourceDir)
+        const oldSteamappsDir = dirname(oldCommonDir)
+        const acfName = `appmanifest_${this.id}.acf`
+        const oldAcfPath = join(oldSteamappsDir, acfName)
+        const newCommonDir = dirname(moveResult.installPath)
+        const newSteamappsDir = dirname(newCommonDir)
+        if (
+          existsSync(oldAcfPath) &&
+          basename(newCommonDir).toLowerCase() === 'common' &&
+          existsSync(newSteamappsDir)
+        ) {
+          const newAcfPath = join(newSteamappsDir, acfName)
+          try {
+            renameSync(oldAcfPath, newAcfPath)
+          } catch {
+            copyFileSync(oldAcfPath, newAcfPath)
+            unlinkSync(oldAcfPath)
+          }
+        }
+      } catch {}
+
+      const games = libraryStore.get('games', [])
+      const idx = games.findIndex((g) => g.app_name === this.id)
+      if (idx !== -1) {
+        games[idx] = {
+          ...games[idx],
+          folder_name: moveResult.installPath,
+          install: {
+            ...games[idx].install,
+            install_path: moveResult.installPath,
+            executable: moveResult.installPath
+          }
+        }
+        libraryStore.set('games', games)
+      }
+
+      sendFrontendMessage('refreshLibrary', 'steam')
+      return { status: 'done' }
+    } catch (err) {
+      return {
+        status: 'error',
+        error: err instanceof Error ? err.message : String(err)
+      }
+    }
   }
 
   async syncSaves(): Promise<string> {

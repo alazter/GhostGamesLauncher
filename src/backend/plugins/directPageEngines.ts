@@ -1,6 +1,20 @@
 import type { BrowserWindow } from 'electron'
 import type { PluginManifest } from 'common/types/plugins'
-import { Parser } from 'htmlparser2'
+import { Parser, parseDocument, DomUtils } from 'htmlparser2'
+import {
+  describeDownloadAction,
+  type DownloadAction
+} from 'common/directDownloadLearning'
+import {
+  DownloadEngineMemory,
+  downloadEngineMemory,
+  sameEngineControl,
+  validEngineControl,
+  engineControlLabel,
+  enginePageKey,
+  type DownloadEngine
+} from './downloadEngineMemory'
+import type { DirectDownloadLearning } from './directDownloadLearning'
 import { builtinGameSources } from 'common/builtinGameSources'
 import { withSourceEngine } from './sourceEngines'
 import { engineProcess } from './engineProcess'
@@ -12,7 +26,12 @@ import { directNonDownloadUrl } from './directHosters'
 export interface DirectPageData {
   links: Array<{ url: string; title: string }>
   entries: unknown[]
+  actions?: DownloadAction[]
 }
+const provenance = new WeakMap<
+  DirectPageData,
+  { engine: DownloadEngine; page: string }
+>()
 const operation = 'direct-download-page-v1'
 const empty = (): DirectPageData => ({ links: [], entries: [] })
 const excluded =
@@ -26,7 +45,7 @@ export function directPageSnapshotScript() {
     const copy = document.documentElement.cloneNode(true);
     copy.querySelectorAll('script, style, iframe, input, textarea, meta, link, [contenteditable]').forEach(node => node.remove());
     for (const node of [copy, ...copy.querySelectorAll('*')]) for (const attr of [...node.attributes])
-      if (!['href','title','aria-label','alt','download','data-links'].includes(attr.name)) node.removeAttribute(attr.name);
+      if (!['href','title','aria-label','aria-disabled','aria-hidden','alt','download','data-links','id','name','data-testid','type','disabled','hidden'].includes(attr.name)) node.removeAttribute(attr.name);
     const html = copy.outerHTML;
     return html.length <= 2097152 ? { url: location.href, html } : null;
   })()`
@@ -74,10 +93,68 @@ function publicLinks(html: string, base: string): DirectPageData {
   return result
 }
 
+/** Obscura supplies HTML; Ghost matches only previously validated semantics.
+ * Execution still checks the live Electron DOM and destination before clicking. */
+export function engineActionsFromHtml(
+  html: string,
+  references: DownloadAction[]
+): DownloadAction[] {
+  if (!references.length || html.length > 2 * 1024 * 1024) return []
+  const nodes = DomUtils.findAll(
+    (node) => ['a', 'button', 'input'].includes(node.name),
+    parseDocument(html).children
+  ).slice(0, 200)
+  const actions = nodes.flatMap((node) => {
+    let parent = node.parent
+    let row: string | undefined
+    while (parent) {
+      if ('name' in parent && 'attribs' in parent) {
+        if (
+          parent.name === 'form' ||
+          parent.attribs.hidden !== undefined ||
+          parent.attribs['aria-hidden'] === 'true'
+        )
+          return []
+        if (!row && parent.name === 'li') row = DomUtils.textContent(parent)
+      }
+      parent = parent.parent
+    }
+    if (
+      node.attribs.form ||
+      node.attribs.hidden !== undefined ||
+      node.attribs['aria-hidden'] === 'true'
+    )
+      return []
+    const candidate = describeDownloadAction({
+      tagName: node.name.toUpperCase(),
+      id: node.attribs.id || '',
+      textContent: DomUtils.textContent(node),
+      getAttribute: (name: string) => node.attribs[name] ?? null,
+      hasAttribute: (name: string) => node.attribs[name] !== undefined,
+      getClientRects: () => [{}],
+      closest: (selector: string) =>
+        selector === 'li' && row ? { textContent: row } : null
+    } as unknown as Element)
+    return candidate &&
+      validEngineControl(candidate) &&
+      references.some((reference) => sameEngineControl(candidate, reference))
+      ? [candidate]
+      : []
+  })
+  // Similarity is not identity: ambiguous controls remain manual.
+  return actions
+    .filter(
+      (action) =>
+        actions.filter((other) => sameEngineControl(action, other)).length === 1
+    )
+    .slice(0, 12)
+}
+
 export function validateDirectPageData(
   value: unknown,
   base: string,
-  allowed: (url: string) => boolean
+  allowed: (url: string) => boolean,
+  references: DownloadAction[] = []
 ): DirectPageData {
   if (
     !value ||
@@ -138,7 +215,25 @@ export function validateDirectPageData(
     }
   }
   // Package entries are validated by Online-Fix's existing game/fix parser.
-  return { links, entries: value.entries }
+  const actions =
+    'actions' in value &&
+    Array.isArray(value.actions) &&
+    value.actions.length <= 12
+      ? (value.actions as unknown[])
+          .filter(validEngineControl)
+          .filter((action) =>
+            references.some((reference) => sameEngineControl(action, reference))
+          )
+      : []
+  const unique = actions.filter(
+    (action) =>
+      actions.filter((other) => sameEngineControl(action, other)).length === 1
+  )
+  return {
+    links,
+    entries: value.entries,
+    ...(unique.length ? { actions: unique } : {})
+  }
 }
 
 export function directPageNavigation(
@@ -174,7 +269,8 @@ export async function readDirectPage(
   base: string,
   manifest: PluginManifest,
   allowed: (url: string) => boolean,
-  current: () => boolean = () => true
+  current: () => boolean = () => true,
+  knowledge?: DownloadEngineMemory
 ): Promise<DirectPageData> {
   if (
     !current() ||
@@ -184,32 +280,12 @@ export async function readDirectPage(
   )
     return empty()
   try {
-    const adaptive = await withSourceEngine('scrapling', async (executable) => {
-      if (!current()) return empty()
-      // Old workers may treat an unknown operation as a catalog request. Never
-      // interpret that output as a download instruction or roll back that worker.
-      try {
-        const raw: unknown = JSON.parse(
-          await engineProcess(
-            executable,
-            [],
-            JSON.stringify({ protocol: 1, operation, html, base }),
-            4000
-          )
-        )
-        return validateDirectPageData(raw, base, allowed)
-      } catch {
-        return empty()
-      }
-    })
-    if (!current()) return empty()
-    if (adaptive && (adaptive.links.length || adaptive.entries.length))
-      return adaptive
+    enginePageKey(manifest.id, base)
   } catch {
-    /* Optional engine; native controls remain available. */
+    return empty()
   }
-  // Only an original, public source page may be rendered separately. Signed
-  // redirects, hoster forms and authenticated package directories keep their session.
+  const memory = knowledge || (await downloadEngineMemory(validEngineControl))
+  const references = memory.controls(manifest.id, base)
   let publicPage = false
   try {
     const url = new URL(base)
@@ -222,25 +298,63 @@ export async function readDirectPage(
   } catch {
     /* Invalid base. */
   }
-  if (!publicPage || !current()) return empty()
-  try {
-    const rendered = await experimentalPage(base, {
-      ...manifest,
-      allowedDomains: [
-        ...sourceDomains(manifest.id),
-        'challenges.cloudflare.com'
-      ]
-    })
-    if (!current() || !rendered || rendered.length > 2 * 1024 * 1024)
-      return empty()
-    return validateDirectPageData(
-      { capability: operation, ...publicLinks(rendered, base) },
-      base,
-      allowed
-    )
-  } catch {
-    return empty()
+  for (const engine of memory.order(manifest.id, base)) {
+    if (!current()) return empty()
+    try {
+      let data: DirectPageData | undefined
+      if (engine === 'scrapling') {
+        data = await withSourceEngine('scrapling', async (executable) => {
+          if (!current()) return empty()
+          const raw: unknown = JSON.parse(
+            await engineProcess(
+              executable,
+              [],
+              JSON.stringify({
+                protocol: 1,
+                operation,
+                html,
+                base,
+                learnedControls: references
+              }),
+              4000
+            )
+          )
+          return validateDirectPageData(raw, base, allowed, references)
+        })
+      } else if (publicPage) {
+        const rendered = await experimentalPage(base, {
+          ...manifest,
+          allowedDomains: [
+            ...sourceDomains(manifest.id),
+            'challenges.cloudflare.com'
+          ]
+        })
+        if (rendered && rendered.length <= 2 * 1024 * 1024)
+          data = validateDirectPageData(
+            {
+              capability: operation,
+              ...publicLinks(rendered, base),
+              actions: engineActionsFromHtml(rendered, references)
+            },
+            base,
+            allowed,
+            references
+          )
+      }
+      if (!current()) return empty()
+      if (
+        data &&
+        (data.links.length || data.entries.length || data.actions?.length)
+      ) {
+        provenance.set(data, { engine, page: base })
+        return data
+      }
+      if (data) memory.failure(manifest.id, base, engine)
+    } catch {
+      /* An unavailable engine does not erase successful knowledge. */
+    }
   }
+  return empty()
 }
 
 /** Background reader: optional engine latency never holds the manual watchdog. */
@@ -252,8 +366,55 @@ export class DirectPageEngines {
   >()
   constructor(
     private manifest: PluginManifest,
-    private allowed: (url: string) => boolean
+    private allowed: (url: string) => boolean,
+    private learning?: DirectDownloadLearning
   ) {}
+  private acted = new Set<string>()
+  observe(member: BrowserWindow, data: DirectPageData) {
+    const observation = provenance.get(data)
+    if (!observation || !this.active || member.isDestroyed()) return
+    const controls =
+      data.actions ||
+      data.links
+        .map((link) => ({
+          tag: 'A' as const,
+          label: engineControlLabel(link.title)
+        }))
+        .filter(validEngineControl)
+    this.learning?.observeEngine(observation.engine, observation.page, controls)
+  }
+  async act(
+    member: BrowserWindow,
+    data: DirectPageData | undefined
+  ): Promise<boolean> {
+    if (
+      !data?.actions ||
+      data.actions.length !== 1 ||
+      !this.active ||
+      member.isDestroyed()
+    )
+      return false
+    const page = member.webContents.getURL()
+    const key = page + JSON.stringify(data.actions[0])
+    if (!this.allowed(page) || this.acted.has(key) || this.acted.size >= 128)
+      return false
+    const { learnedDownloadScript } = await import('./directDownloadLearning')
+    if (
+      !this.active ||
+      member.isDestroyed() ||
+      member.webContents.getURL() !== page
+    )
+      return false
+    const clicked = await evaluateAnkerPage(
+      member,
+      learnedDownloadScript(data.actions[0], this.manifest.allowedDomains || [])
+    )
+    if (clicked !== true || !this.active) return false
+    this.acted.add(key)
+    this.observe(member, data)
+    this.pages.delete(member.webContents.id)
+    return true
+  }
   stop() {
     this.active = false
     this.pages.clear()
@@ -301,7 +462,8 @@ export class DirectPageEngines {
             this.active &&
             !member.isDestroyed() &&
             member.webContents.getURL() === url &&
-            this.pages.get(member.webContents.id) === state
+            this.pages.get(member.webContents.id) === state,
+          this.learning?.engines
         )
         if (
           this.active &&

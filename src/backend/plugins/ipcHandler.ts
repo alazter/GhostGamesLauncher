@@ -12,9 +12,13 @@ import {
   resolveYouTubeTrailerId
 } from './gameMediaResolver'
 import { MediaStreamServer } from './mediaStreamServer'
+import { resolveExternalGameCover } from './externalCoverSources'
 
 export function registerPluginsIPC(): void {
   const manager = PluginManager.getInstance()
+  addHandler('pluginsResolveGameCover', (_event, request) =>
+    resolveExternalGameCover(request, () => manager.findAnkerCoverGames(request.title, request.platform))
+  )
   addHandler('pluginsSourceEnginesState', async () => sourceEnginesState())
   addHandler('pluginsSourceEngineAction', async (_event, action) => {
     try {

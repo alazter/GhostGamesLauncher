@@ -9,6 +9,7 @@ import type { SourceEngineId } from 'common/types/sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
 import { installedReleaseCandidate } from 'common/externalReleaseInfo'
 import { externalTitleKey } from 'common/externalTitle'
+import { externalCoverTitle } from 'common/externalGameCover'
 import {
   existsSync,
   readFileSync,
@@ -1505,6 +1506,22 @@ export class PluginManager {
     }
 
     return cssMap
+  }
+
+  public async findAnkerCoverGames(title: string, platform = 'windows'): Promise<GhostSearchResult[]> {
+    const known = [...this.sourceResults.values()].filter(game =>
+      game.providerId === ANKER_SOURCE_ID && (game.platform || 'windows') === platform && externalCoverTitle(game.title) === externalCoverTitle(title) && game.coverUrl)
+    if (known.length) return known
+    const plugin = this.getPlugins().find(item => item.isEnabled && /anker/i.test(item.id))
+    const provider = plugin && this.hosts.get(plugin.id)?.getSourceProvider()
+    if (!provider || !plugin) return []
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        provider.search(externalCoverTitle(title)).then(games => games.map(game => this.remember(game, plugin))),
+        new Promise<GhostSearchResult[]>(resolve => { timer = setTimeout(() => resolve([]), 4000) })
+      ])
+    } finally { clearTimeout(timer) }
   }
 
   public async searchSources(query: string): Promise<GhostSearchResult[]> {

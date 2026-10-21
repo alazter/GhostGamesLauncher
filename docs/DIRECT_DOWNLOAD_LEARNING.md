@@ -35,17 +35,18 @@ do Anker, sem afirmar uma transferência real pelo servidor externo DataNodes.
    registra valores dos campos, senhas, cookies, HTML ou código JavaScript.
 3. O recebimento completo de ZIP/RAR/7Z com tamanho e assinatura coerentes
    prepara a instrução em memória. **Não basta chegar um DownloadItem.** A
-   instrução só é promovida a conhecimento persistente depois que o instalador
-   extrai o pacote, aplica o fix quando necessário e encontra o executável.
-   Confirmação em `ExternalGames.prepare`; a memória provisória expira em 1h.
+   instrução é promovida após validar os metadados do pacote completo, sem
+   depender da escolha de executável ou da instalação. Se essa inspeção não
+   puder validar o arquivo, a extração bem-sucedida ainda pode confirmá-la em
+   `ExternalGames.prepare`; a memória provisória expira em 1h.
 4. A próxima tentativa lê as regras locais e busca o mesmo controle por
    origem, formato da rota e descritor. Exige uma única correspondência visível
    e revalida link/formulário no manifesto antes de clicar. A regra armazena
    dados, nunca scripts ou o link assinado do arquivo anterior.
 5. Se não corresponder ao DOM atual, segue o resolvedor normal e a confirmação
    manual. Receitas executadas sem sucesso perdem validade após duas falhas;
-   regras persistidas expiram em 30 dias. Pausar/cancelar uma transferência não
-   é tratado como prova de que uma instrução de clique falhou.
+   regras estáveis permanecem válidas até falharem, sem expiração de 30 dias.
+   Pausar/cancelar uma transferência não é tratado como prova de falha do controle.
 
 O aprendizado cobre AnkerGames, SteamRIP, as fontes ROM no controlador
 compartilhado e as páginas de hosters do Online-Fix. Pacotes concluídos do
@@ -68,11 +69,13 @@ senhas/login. Se o layout muda, há ambiguidade ou o controle deixa de existir,
 o Ghost pede confirmação novamente. Não há promessa de automação universal
 após uma única visita a qualquer site.
 
-Falhas de rede e arquivos incompletos não ensinam. Falhas de extração ou
-pacotes sem executável não promovem a instrução. A sequência aprendida é local;
-não é enviada a serviços externos nem a outros usuários.
+Falhas de rede e arquivos incompletos não ensinam. Um pacote completo com
+metadados válidos pode ensinar mesmo se sua instalação precisar de outro
+procedimento (por exemplo, um setup). O aprendizado individual é local; não é
+enviado a serviços externos nem a outros usuários. Duas receitas genéricas da
+Anker, sem dados pessoais, são agora distribuídas como padrão do aplicativo.
 
-## Validação
+## Validação original de 15/10/2026
 
 - Teste Electron do aprendizado: primeiro download exigiu uma janela manual;
   clique nativo recebido pelo preload; ZIP extraído e regra salva; segundo jogo
@@ -94,3 +97,51 @@ nova implementação e ainda aguardam seu teste no uso real.
 
 Verificação final: **182 testes em 11 suítes**, TypeScript e build isolado
 aprovados; oito módulos do fluxo passaram no lint com zero erros/avisos.
+
+
+## Revisão de 21/10/2026 — perfis limpos e reaprendizado
+
+`directDownloadDefaults.ts` contém apenas as ações validadas Download → Direct
+na rota /game/* e Download Now em /download/*/*. São controles de interface,
+sem sessões, cookies, IDs de jogos ou links de arquivos. Entram antes do fallback
+na primeira execução de uma instalação limpa. A receita local sempre tem
+prioridade. Após duas falhas, um registro desativa o padrão sem recriá-lo a cada
+reinício; o próximo sucesso manual o substitui. O formato 2 lê os dados do formato
+1. Regras desativadas dos padrões são conservadas mesmo quando o limite de regras
+locais é atingido. Ações automáticas já concluídas são preservadas ao aprender
+uma correção manual; retornar à página original após um erro descarta o percurso
+falho antes de aprender novamente.
+
+O teste Electron em perfil isolado usou o preload real minificado e cliques
+nativos: padrão sem janela → controle desconhecido com uma confirmação →
+repetição automática → botão alterado com nova confirmação → repetição automática.
+Todos receberam ZIP válido. O aprendizado foi lido do disco antes de qualquer
+instalação. Nenhum site real, jogo do usuário ou conta pessoal foi usado.
+
+Detalhes de extração, retomada do TorBox e distribuição em
+[DOWNLOAD_INSTALL_PORTABILITY.md](DOWNLOAD_INSTALL_PORTABILITY.md).
+
+## Memória compartilhada de Electron, Scrapling e Obscura — 21/10/2026
+
+O Ghost compartilha os controles aprendidos no Electron com os leitores dos dois
+motores. `download-engine-learning.json`, ao lado das regras de cliques, contém
+somente fonte, origem/rota genérica, descritores de controles e contadores de
+resultado. Não contém HTML, cookies, valores de formulários, links de arquivos
+ou parâmetros de sessão. A gravação é atômica, limitada a 128 páginas/128 KiB.
+
+O motor encontra um candidato; o Electron revalida o controle único, visível e
+permitido antes de clicar. Scrapling e o leitor do HTML do Obscura podem recuperar
+o mesmo rótulo/tag/contexto quando o identificador do botão muda. Controles
+ambíguos e formulários permanecem no fluxo nativo/manual existente. Obscura
+continua restrito a páginas públicas; a sessão autenticada permanece no Electron.
+
+Encontrar um link ou executar um clique não confirma aprendizado. A observação
+só é promovida depois do pacote completo e da validação de seus metadados, ou
+da extração bem-sucedida. O motor comprovado pode ganhar preferência nas próximas
+tentativas. Duas falhas retiram essa preferência; cancelamento ou motor
+desabilitado não apagam o conhecimento. O próximo sucesso manual atualiza os
+controles compartilhados. Tentativas abandonadas não contaminam o novo percurso.
+
+Trata-se de estratégias persistidas pelo Ghost a partir dos resultados dos
+motores; não de treinamento de um modelo no executável Obscura. A instalação
+nova recebe os padrões genéricos e desenvolve seu próprio aprendizado local.

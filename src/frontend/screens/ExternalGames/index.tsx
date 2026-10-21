@@ -1,13 +1,14 @@
 import { externalTitleKey, externalTitleGroupKey } from 'common/externalTitle'
 import { groupGamesByTitle, getCanonicalGameTitle } from 'common/externalGameGroups'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import PreferredGameCover from 'frontend/components/PreferredGameCover'
+import { useGameStoreSources } from 'frontend/hooks/useGameStoreSources'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { sameExternalGameIdentity } from 'common/externalGameIdentity'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faSearch,
   faDownload,
-  faCloud,
   faPuzzlePiece,
   faCheckCircle,
   faCheck,
@@ -15,18 +16,12 @@ import {
   faExchangeAlt,
   faPlay,
   faShieldAlt,
-  faServer,
   faSyncAlt,
   faUsers,
   faGamepad,
-  faUser,
-  faCalendarAlt,
-  faUserCheck,
   faLayerGroup,
   faTimes,
   faStar,
-  faThumbsUp,
-  faHardDrive,
   faPlus,
   faFire,
   faLightbulb,
@@ -42,7 +37,6 @@ import {
   faTrashAlt,
   faBroom,
   faStore,
-  faKey,
   faEye,
   faEyeSlash
 } from '@fortawesome/free-solid-svg-icons'
@@ -78,9 +72,11 @@ import fallbackImage from 'frontend/assets/heroic_card.jpg'
 import ankerLogo from 'frontend/assets/ankergames-logo.png'
 import steamripLogo from 'frontend/assets/steamrip-logo.png'
 import onlineFixLogo from 'frontend/assets/onlinefix-logo.png'
-import CachedImage from 'frontend/components/UI/CachedImage'
 import './index.css'
 import SearchStatus from './SearchStatus'
+import GameDetailsPanel from './GameDetailsPanel'
+import InstallDestination from './InstallDestination'
+import { detailsVersion } from './gameDetailsMetadata'
 
 export function normalizeAcronymTitle(title: string): string {
   return title
@@ -136,13 +132,6 @@ export function getCardCracker(src: GhostSearchResult): string {
   if (id.includes('steamrip')) return 'Clean Steam Files'
   if (id.includes('anker')) return 'OFME / RUNE'
   return 'Comunitário'
-}
-
-function getGameDescription(game: GhostSearchResult): string {
-  if (game.description && game.description.length > 20) {
-    return game.description
-  }
-  return `Explore e jogue ${getCanonicalGameTitle(game.title)} com download automatizado e verificação de arquivos. Todas as atualizações e backups de saves são gerenciados com segurança pela tecnologia GhostShield.`
 }
 
 const POPULAR_FEED_CATEGORIES = [
@@ -768,7 +757,6 @@ export default function ExternalGamesScreen() {
   const [message, setMessage] = useState('')
   const [selected, setSelected] = useState<GhostSearchResult>()
   const [selectedGroupKey, setSelectedGroupKey] = useState('')
-  const [showDownloadOptions, setShowDownloadOptions] = useState(false)
   const [sources, setSources] = useState<GhostDownloadSource[]>([])
   const [localGames, setLocalGames] = useState<LocalCandidateGame[]>([])
   const [replacement, setReplacement] = useState(
@@ -1057,7 +1045,6 @@ export default function ExternalGamesScreen() {
     setSelectedGroupKey('')
     setProvider('')
     setSources([])
-    setShowDownloadOptions(false)
     setCatalogGames([])
     setCatalogLetter('All')
     setCatalogTheme('all')
@@ -1458,6 +1445,28 @@ export default function ExternalGamesScreen() {
 
   const installedDirectory = currentInstStatus.installedGame?.directory
 
+  const knownDetailsSources = useMemo(() => {
+    if (!activeGroup) return []
+    const matching = search.games.filter(game => externalTitleGroupKey(game.title, game.platform || 'windows') === activeGroup.key && (!plugins.length || plugins.some(plugin => isMatchingProvider(plugin.id, game.providerId))))
+    return [...new Map([...matching, ...activeGroup.allSources].map(game => [`${game.providerId}:${game.id}`, game])).values()]
+  }, [activeGroup, search.games, plugins])
+
+  const { sources: detailsCoverSources, loading: storesLoading, failed: storesFailed } = useGameStoreSources(
+    activeSource, knownDetailsSources, plugins.map(plugin => plugin.id)
+  )
+  const storeSearchResults = useMemo(() => [...new Map(
+    [...search.games, ...detailsCoverSources].map(game => [`${game.providerId}:${game.pageUrl || game.id}`, game])
+  ).values()], [search.games, detailsCoverSources])
+
+  const detailsAction = (() => {
+    const version = activeSource ? detailsVersion(activeSource) : ''
+    if (currentInstStatus.status === 'installed_up_to_date') return { label: 'Jogar agora', icon: faPlay, status: 'Instalado e atualizado' }
+    if (currentInstStatus.status === 'update_available') return { label: 'Atualizar agora', icon: faBolt, status: `Atualização disponível · Instalado: ${currentInstStatus.currentVersion || 'Versão não informada'} → ${version}` }
+    if (currentInstStatus.status === 'migrate_available') return { label: 'Migrar e baixar', icon: faExchangeAlt, status: `Migrar de ${currentInstStatus.installedGame?.game.providerName || 'outra fonte'} para ${activeSource?.providerName || 'a fonte selecionada'} · Saves preservados` }
+    if (currentInstStatus.installedGame) return { label: 'Baixar e reinstalar', icon: faDownload, status: `Pasta preservada: ${currentInstStatus.installedGame.directory}` }
+    return { label: 'Baixar e instalar', icon: faDownload, status: undefined }
+  })()
+
   const effectiveInstallPaths = useMemo(() => {
     if (installedDirectory && installedDirectory.trim()) {
       const norm = installedDirectory.trim()
@@ -1581,7 +1590,6 @@ export default function ExternalGamesScreen() {
     setSelected(undefined)
     setSelectedGroupKey('')
     setSources([])
-    setShowDownloadOptions(false)
     setMessage('')
     // These disk scans already run on mount/focus and library events.
     void window.api.externalGamesSearch(trimmed, id).then(results => {
@@ -1599,12 +1607,19 @@ export default function ExternalGamesScreen() {
   const selectSearchProvider = (nextProvider: string) => {
     requestNumber.current++
     setProvider(nextProvider)
-    setSelected(undefined)
-    setSelectedGroupKey('')
-    setSources([])
-    setShowDownloadOptions(false)
-    setBusy(false)
-    setDetailsLoading(false)
+    const sameGame = nextProvider ? storeSearchResults.find(game =>
+      isMatchingProvider(game.providerId, nextProvider) &&
+      externalTitleGroupKey(game.title, game.platform || 'windows') === activeGroup?.key
+    ) : activeSource
+    setSelected(sameGame)
+    setSelectedGroupKey(sameGame ? externalTitleGroupKey(sameGame.title, sameGame.platform || 'windows') : '')
+    if (sameGame && sameGame.id === activeSource?.id && sameGame.providerId === activeSource.providerId) {
+      void details(sameGame)
+    } else {
+      setSources([])
+      setBusy(false)
+      setDetailsLoading(false)
+    }
   }
 
   const lastProcessedUrlQueryRef = useRef<string | null>(null)
@@ -1775,7 +1790,7 @@ export default function ExternalGamesScreen() {
       void openChooseDownloadModal({
         game: activeSource,
         title: activeSource.title,
-        cover: activeSource.coverUrl || (activeSource as any).cover || activeGroup?.coverUrl,
+        cover: activeSource.coverUrl,
         version: getCardVersion(activeSource),
         providerName: activeSource.providerName,
         providerIcon: activeSource.providerIcon,
@@ -1783,7 +1798,7 @@ export default function ExternalGamesScreen() {
         replaceInstallationId: replaceId,
         targetDirectory: selectedInstallPath || instStatus.installedGame?.directory || undefined,
         sources: options,
-        availableSources: activeGroup?.allSources && activeGroup.allSources.length > 0 ? activeGroup.allSources : [activeSource]
+        availableSources: detailsCoverSources.length ? detailsCoverSources : [activeSource]
       })
     })
   }
@@ -1868,7 +1883,7 @@ export default function ExternalGamesScreen() {
   }
 
   return (
-    <main className="externalGamesPage">
+    <main className={`externalGamesPage${activeGroup ? ' hasGameDetails' : ''}`}>
       <div className="externalGamesContainer">
         {/* TOP BAR UNIFICADA COM AUTOCOMPLETE FLUTUANTE */}
         <div className="searchRowWrapper">
@@ -1954,12 +1969,12 @@ export default function ExternalGamesScreen() {
               >
                 <FontAwesomeIcon icon={faLayerGroup} style={{ fontSize: '13px' }} />
                 <span>Todos</span>
-                {searched && search.games.length > 0 && (
-                  <span className="pillCountBadge">{search.games.length}</span>
+                {searched && storeSearchResults.length > 0 && (
+                  <span className="pillCountBadge">{storeSearchResults.length}</span>
                 )}
               </button>
               {plugins.map((plugin) => {
-                const storeCount = search.games.filter((g) => isMatchingProvider(g.providerId, plugin.id)).length
+                const storeCount = storeSearchResults.filter((g) => isMatchingProvider(g.providerId, plugin.id)).length
                 const isActive = provider === plugin.id || isMatchingProvider(provider, plugin.id)
                 return (
                   <button
@@ -2212,10 +2227,10 @@ export default function ExternalGamesScreen() {
                             onClick={() => handleSelectHomeGame(g)}
                           >
                             <div className="modernStoreCoverWrapper">
-                              <CachedImage
+                              <PreferredGameCover
                                 className="modernStoreCoverImg"
-                                src={g.coverUrl || fallbackImage}
-                                fallback={fallbackImage}
+                                game={g}
+                                placeholder={fallbackImage}
                                 alt={g.title}
                                 loading="lazy"
                                 decoding="async"
@@ -2357,8 +2372,9 @@ export default function ExternalGamesScreen() {
                           {displayVer && (
                             <div className="catalogCardVersionBadge">{displayVer}</div>
                           )}
-                          <CachedImage
-                            src={game.coverUrl || fallbackImage}
+                          <PreferredGameCover
+                            game={game}
+                            placeholder={fallbackImage}
                             alt={game.title}
                             className="catalogCoverImg"
                           />
@@ -2408,398 +2424,50 @@ export default function ExternalGamesScreen() {
               </div>
             )}
 
-            {/* HERO CARD PRINCIPAL (100% FIEL AO MOCKUP CYBER NEON E ANKERGAMES) */}
             {activeGroup && activeSource && (
-              <div className="externalHeroCard">
-                <div className="externalHeroGlowBg" />
-                <div className="externalHeroGlowPurple" />
-
-                {/* POSTER 3D VERTICAL COM BOTÃO ASSISTIR GAMEPLAY LOGO ABAIXO */}
-                <div className="externalHeroPosterCol">
-                  <div className="externalHeroPosterWrapper">
-                    <CachedImage
-                      className="externalHeroPosterImg"
-                      src={activeGroup.coverUrl || fallbackImage}
-                      fallback={fallbackImage}
-                      alt={activeGroup.canonicalTitle}
-                      loading="eager"
-                      decoding="async"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="externalGameplayBtn"
-                    onClick={handleOpenYoutubeModal}
-                  >
-                    <FontAwesomeIcon icon={faPlay} /> Assistir Gameplay
-                  </button>
-                </div>
-
-                {/* COLUNA DE DETALHES (DIREITA) */}
-                <div className="externalHeroDetailsCol">
-                  {/* TÍTULO PRINCIPAL */}
-                  <h1 className="externalHeroTitle">{activeGroup.canonicalTitle}</h1>
-
-                  {/* METADATA BADGES (LOGO ABAIXO DO TÍTULO) */}
-                  <div className="externalHeroMetaRow">
-                    <span className="externalMetaTag">
-                      {activeSource.genre ? activeSource.genre.split(',')[0].trim() : inferCategoryTag(activeGroup.canonicalTitle)}
-                    </span>
-                    <span className="externalMetaTag">
-                      <FontAwesomeIcon icon={faDownload} /> Download: {activeSource.size || activeGroup.size || 'Não informado'}
-                    </span>
-                    {Boolean((activeSource.installedSize || activeGroup.installedSize) &&
-                     (activeSource.installedSize || activeGroup.installedSize) !== (activeSource.size || activeGroup.size)) && (
-                      <span className="externalMetaTag">
-                        <FontAwesomeIcon icon={faHardDrive} /> Espaço em Disco: {activeSource.installedSize || activeGroup.installedSize}
-                      </span>
-                    )}
-                    <span className="externalMetaTag">
-                      <FontAwesomeIcon icon={activeGroup.platform === 'switch' ? faGamepad : faWindows} />{' '}
-                      {activeGroup.platform === 'switch' ? 'Nintendo Switch' : 'PC Windows'}
-                    </span>
-                    <span className="externalMetaTag">
-                      {activeSource.mode ? (
-                        activeSource.mode.toLowerCase().includes('multiplayer') ||
-                        activeSource.mode.toLowerCase().includes('co-op') ? (
-                          <>
-                            <FontAwesomeIcon icon={faUsers} /> {activeSource.mode}
-                          </>
-                        ) : (
-                          <>
-                            <FontAwesomeIcon icon={faUser} /> {activeSource.mode}
-                          </>
-                        )
-                      ) : activeSource.providerId.includes('onlinefix') ? (
-                        <>
-                          <FontAwesomeIcon icon={faUsers} /> Multiplayer / Co-op
-                        </>
-                      ) : (
-                        <>
-                          <FontAwesomeIcon icon={faUser} /> Singleplayer
-                        </>
-                      )}
-                    </span>
-                    {/* DATA EXPLÍCITA DE LANÇAMENTO */}
-                    <span className="externalMetaTag">
-                      <FontAwesomeIcon icon={faCalendarAlt} />{' '}
-                      Lançamento: {formatPublicationDate(activeSource.releaseDate || activeGroup.releaseDate) || 'Não informado'}
-                    </span>
-                    {/* DATA EXPLÍCITA DE ATUALIZAÇÃO */}
-                    <span className="externalMetaTag">
-                      <FontAwesomeIcon icon={faSyncAlt} />{' '}
-                      Atualizado em: {formatPublicationDate(activeSource.uploadDate) || 'Recente'}
-                    </span>
-                  </div>
-
-                  {/* AVALIAÇÃO & REVIEW (ESTILO ANKERGAMES) */}
-                  <div className="ratingReviewRow">
-                    <div className="starsGroup">
-                      {activeSource.rating && <span>⭐</span>}
-                      <strong style={{ color: '#fff', marginLeft: '4px' }}>{activeSource.rating || 'Sem avaliação informada'}</strong>
+              <GameDetailsPanel
+                game={activeSource}
+                title={activeGroup.canonicalTitle}
+                sources={detailsCoverSources}
+                sourcesLoading={storesLoading}
+                sourcesFailed={storesFailed}
+                description={portugueseDescriptions[activeGroup.key] || activeSource.description || activeGroup.description || ''}
+                onGameplay={handleOpenYoutubeModal}
+                onSelectSource={source => {
+                  setProvider(resolveCanonicalPluginId(source.providerId, plugins))
+                  setSelectedGroupKey(externalTitleGroupKey(source.title, source.platform || 'windows'))
+                  void details(source)
+                }}
+              >
+                <InstallDestination
+                  paths={effectiveInstallPaths}
+                  value={selectedInstallPath}
+                  installedDirectory={installedDirectory}
+                  installedSize={activeSource.installedSize}
+                  busy={busy}
+                  isPlaying={currentInstStatus.status === 'installed_up_to_date'}
+                  isReplacement={Boolean(currentInstStatus.installedGame)}
+                  actionLabel={detailsAction.label}
+                  actionIcon={detailsAction.icon}
+                  status={detailsAction.status}
+                  onChange={handleSelectInstallPath}
+                  onAdd={handleAddInstallPath}
+                  onManage={() => handleOpenSettingsModal('pastas')}
+                  onAction={() => void handlePrimaryAction()}
+                />
+                {installedDirectory && selectedInstallPath.trim().toLowerCase() !== installedDirectory.trim().toLowerCase() && (
+                  <p className="gdpInstallStatus">Nova pasta selecionada. A nova versão será instalada no diretório escolhido.</p>
+                )}
+                <details className="gdpOptions" key={`${activeSource.providerId}:${activeSource.id}`}>
+                  <summary>Opções de download · {sources.length} {sources.length === 1 ? 'servidor' : 'servidores'}</summary>
+                  {sources.length === 0 ? <p>A fonte ainda não retornou espelhos diretos. O botão principal consulta as opções disponíveis.</p> : sources.map(source => (
+                    <div className="gdpMirror" key={source.id}>
+                      <span>{source.name}</span>
+                      <button type="button" className="gdpButton" disabled={busy} onClick={() => void handleInstallFromSource(source.id)}><FontAwesomeIcon icon={faDownload} /> Baixar deste servidor</button>
                     </div>
-                    <div className="recommendBadge">
-                      <FontAwesomeIcon icon={faThumbsUp} /> {activeSource.recommendPercent ? `${activeSource.recommendPercent} Recomendam` : 'Recomendação não informada'}
-                    </div>
-                  </div>
-
-                  {/* SINOPSE / DESCRIÇÃO UNIFICADA EM PORTUGUÊS */}
-                  <div className="gameDescriptionBox">
-                    {portugueseDescriptions[activeGroup.key] ||
-                      activeGroup.description ||
-                      getGameDescription(activeGroup.mainGame)}
-                  </div>
-
-                  {/* GRID DE CHIPS DE DADOS TÉCNICOS */}
-                  <div className="richMetaGrid">
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Download</span>
-                      <span className="richMetaValue">{activeSource.size || activeGroup.size || 'Não informado'}</span>
-                    </div>
-                    {Boolean(activeSource.installedSize || activeGroup.installedSize) && (
-                      <div className="richMetaChip">
-                        <span className="richMetaLabel">Espaço em Disco</span>
-                        <span className="richMetaValue">{activeSource.installedSize || activeGroup.installedSize}</span>
-                      </div>
-                    )}
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Cracker</span>
-                      <span className="richMetaValue">{getCardCracker(activeSource)}</span>
-                    </div>
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Uploader</span>
-                      <span className="richMetaValue">{activeSource.uploader || 'Não informado'}</span>
-                    </div>
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Desenvolvedor</span>
-                      <span className="richMetaValue">{activeSource.developer || 'Não informado'}</span>
-                    </div>
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Distribuidora</span>
-                      <span className="richMetaValue">{activeSource.publisher || 'Não informado'}</span>
-                    </div>
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Steam Deck</span>
-                      <span className="richMetaValue">{activeSource.deckCompatibility || 'Não informado'}</span>
-                    </div>
-                    <div className="richMetaChip">
-                      <span className="richMetaLabel">Controle</span>
-                      <span className="richMetaValue">{activeSource.controllerSupport || 'Não informado'}</span>
-                    </div>
-                  </div>
-
-                  {/* COMPARADOR DE FONTES LADO A LADO */}
-                  <div className="externalSectionLabel">Fontes disponíveis para download</div>
-                  <div className="sourceCompareGrid">
-                    {activeGroup.allSources.map((src) => {
-                      const isSelected =
-                        activeSource.id === src.id &&
-                        activeSource.providerId === src.providerId
-                      const cardCracker = getCardCracker(src)
-                      const cardDate = formatPublicationDate(src.uploadDate)
-                      const cardSub = `${cardCracker}${cardDate ? ` · ${cardDate.split(' de ')[0]} ${cardDate.split(' de ')[1] || ''}` : ''}`
-                      return (
-                        <button
-                          type="button"
-                          key={`${src.providerId}:${src.id}`}
-                          className={`sourceCompareCard ${isSelected ? 'active' : ''}`}
-                          onClick={() => {
-                            setSelected(src)
-                            void details(src)
-                          }}
-                        >
-                          <div className="sourceCompareCardTop">
-                            <span className="sourceCompareName">
-                              {renderProviderIcon(src.providerId, src.providerName, src.providerIcon)}
-                              <span>{src.providerName}</span>
-                            </span>
-                            {isSelected ? (
-                              <span className="sourceCompareBadgeChecked">
-                                <FontAwesomeIcon icon={faCheck} />
-                              </span>
-                            ) : (
-                              <span className="sourceCompareBadgeEmpty" />
-                            )}
-                          </div>
-                          <div className="sourceCompareVer">{getCardVersion(src)}</div>
-                          <div className="sourceCompareSub" style={{ fontSize: '11px', color: '#00ffff', fontWeight: 600 }}>
-                            {getCardBuildAndSize(src)}
-                          </div>
-                          <div className="sourceCompareSub" style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                            {cardSub}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* STATUS INTELIGENTE + BOTÕES EMPILHADOS À DIREITA */}
-                  <div className="externalSectionLabel">Status inteligente</div>
-                  {(() => {
-                    const instStatus = currentInstStatus
-                    const isUpdate = instStatus.status === 'update_available'
-                    const isMigrate = instStatus.status === 'migrate_available'
-                    const isUpToDate = instStatus.status === 'installed_up_to_date'
-
-                    let statusBoxClass = 'smartStatusBox notInstalled'
-                    let statusIcon = faDownload
-                    let statusTitle = 'Pronto para Download e Instalação'
-                    let statusVerText = `${getCardVersion(activeSource)} · Instalação automatizada`
-                    let shieldText = 'Proteção GhostShield ativada'
-                    let primaryBtnClass = 'smartPrimaryBtn cyan'
-                    let primaryBtnIcon = faDownload
-                    let primaryBtnLabel = 'Baixar e Instalar'
-
-                    if (isUpdate) {
-                      statusBoxClass = 'smartStatusBox update'
-                      statusIcon = faSyncAlt
-                      statusTitle = 'Atualização Disponível'
-                      statusVerText = `Instalado: v${instStatus.currentVersion?.replace(/^v/i, '') || '1.0'} → Loja: ${getCardVersion(activeSource)}`
-                      shieldText = 'Backup de saves automático'
-                      primaryBtnClass = 'smartPrimaryBtn cyan'
-                      primaryBtnIcon = faBolt
-                      primaryBtnLabel = 'Atualizar Agora'
-                    } else if (isMigrate) {
-                      statusBoxClass = 'smartStatusBox migrate'
-                      statusIcon = faExchangeAlt
-                      statusTitle = 'Migração de Loja Disponível'
-                      statusVerText = `${instStatus.installedGame?.game.providerName} → ${activeSource.providerName}`
-                      shieldText = 'Restauração automática de saves'
-                      primaryBtnClass = 'smartPrimaryBtn amber'
-                      primaryBtnIcon = faExchangeAlt
-                      primaryBtnLabel = isUpdate ? 'Migrar e Atualizar' : 'Migrar e Baixar'
-                    } else if (isUpToDate) {
-                      statusBoxClass = 'smartStatusBox upToDate'
-                      statusIcon = faCheckCircle
-                      statusTitle = 'Instalado e Atualizado'
-                      statusVerText = `${getCardVersion(activeSource)} · Versão mais recente instalada`
-                      shieldText = 'Sincronização de integridade ativa'
-                      primaryBtnClass = 'smartPrimaryBtn emerald'
-                      primaryBtnIcon = faPlay
-                      primaryBtnLabel = 'Jogar Agora'
-                    } else if (instStatus.installedGame && !instStatus.installedGame.executable) {
-                      statusBoxClass = 'smartStatusBox notInstalled'
-                      statusIcon = faDownload
-                      statusTitle = 'Pronto para Download e Reinstalação'
-                      statusVerText = `${getCardVersion(activeSource)} · Pasta preservada: ${instStatus.installedGame.directory}`
-                      shieldText = 'Proteção GhostShield e saves preservados'
-                      primaryBtnClass = 'smartPrimaryBtn cyan'
-                      primaryBtnIcon = faDownload
-                      primaryBtnLabel = 'Baixar e Reinstalar'
-                    }
-
-                    return (
-                      <>
-                        <div className="smartStatusRow">
-                          <div className={statusBoxClass}>
-                            <div className="smartStatusIconWrapper">
-                              <FontAwesomeIcon icon={statusIcon} />
-                            </div>
-                            <div className="smartStatusTextWrapper">
-                              <div className="smartStatusMainTitle">{statusTitle}</div>
-                              <div className="smartStatusSubVer">{statusVerText}</div>
-                              <div className="smartStatusShieldNotice">
-                                <FontAwesomeIcon icon={faShieldAlt} />
-                                <span>{shieldText}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="smartStatusActionCol">
-                            <button
-                              type="button"
-                              className={primaryBtnClass}
-                              disabled={busy}
-                              onClick={handlePrimaryAction}
-                            >
-                              <FontAwesomeIcon icon={primaryBtnIcon} />
-                              <span>{primaryBtnLabel}</span>
-                            </button>
-                            <button
-                              type="button"
-                              className="smartSecondaryBtn"
-                              onClick={() => setShowDownloadOptions((prev) => !prev)}
-                            >
-                              Opções de Download
-                            </button>
-                          </div>
-                        </div>
-
-                        {message && (
-                          <div className="externalNotice" role="alert">
-                            <p>{message}</p>
-                            {activeSource.providerId.toLowerCase().includes('anker') && (
-                              <Link to="/settings/download-integrations">Configurar AnkerGames e TorBox</Link>
-                            )}
-                          </div>
-                        )}
-
-                        {/* SELETOR DE PASTAS DE INSTALAÇÃO (LAYOUT EM 2 LINHAS - 100% LARGURA SUPERIOR E BOTÕES INFERIORES) */}
-                        <div className="installPathSelectorBox">
-                          {/* LINHA 1: Rótulo e Dropdown com 100% de largura livre */}
-                          <div className="installPathTopRow">
-                            <span className="installPathLabel">
-                              <FontAwesomeIcon icon={faHardDrive} /> Instalar em:
-                            </span>
-                            <select
-                              className="installPathSelect"
-                              value={selectedInstallPath}
-                              onChange={(e) => handleSelectInstallPath(e.target.value)}
-                            >
-                              {effectiveInstallPaths.map((p) => {
-                                const isInstalledFolder =
-                                  Boolean(installedDirectory) &&
-                                  p.trim().toLowerCase() ===
-                                    installedDirectory?.trim().toLowerCase()
-                                return (
-                                  <option key={p} value={p}>
-                                    {isInstalledFolder
-                                      ? `${p} (Pasta Atual do Jogo)`
-                                      : p}
-                                  </option>
-                                )
-                              })}
-                            </select>
-                          </div>
-
-                          {/* LINHA 2: Botões de Ação com Espaçamento Amplo (Pular de Linha) */}
-                          <div className="installPathBottomRow">
-                            <div className="installPathSummaryInfo">
-                              <FontAwesomeIcon icon={faFolder} />
-                              <span>
-                                Pastas salvas no launcher: <strong>{installPaths.length}</strong>
-                              </span>
-                            </div>
-
-                            <div className="installPathActionsGroup">
-                              <button
-                                type="button"
-                                className="addPathBtn"
-                                title="Adicionar nova pasta de instalação estilo Steam"
-                                onClick={handleAddInstallPath}
-                              >
-                                <FontAwesomeIcon icon={faPlus} /> Adicionar Pasta
-                              </button>
-                              <button
-                                type="button"
-                                className="managePathsBtn"
-                                title="Gerenciar e excluir pastas salvas de instalação"
-                                onClick={() => handleOpenSettingsModal('pastas')}
-                              >
-                                <FontAwesomeIcon icon={faCog} /> Gerenciar Pastas
-                                <span className="managePathsBadge">{installPaths.length}</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        {installedDirectory &&
-                          selectedInstallPath.trim().toLowerCase() ===
-                            installedDirectory.trim().toLowerCase() && (
-                            <div className="installPathDetectedBadge">
-                              <FontAwesomeIcon icon={faCheckCircle} /> Pasta do jogo instalada detectada no computador. Atualização direta in-place.
-                            </div>
-                          )}
-                        {installedDirectory &&
-                          selectedInstallPath.trim().toLowerCase() !==
-                            installedDirectory.trim().toLowerCase() && (
-                            <div className="installPathChangeNotice">
-                              <FontAwesomeIcon icon={faExchangeAlt} /> Nova pasta selecionada. A nova versão será instalada no diretório escolhido.
-                            </div>
-                          )}
-
-                        {/* DRAWER DE ESPELHOS/OPÇÕES DE DOWNLOAD */}
-                        {showDownloadOptions && (
-                          <div className="heroDownloadOptionsDrawer">
-                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8', marginBottom: '6px' }}>
-                              Servidores e espelhos disponíveis ({sources.length}):
-                            </div>
-                            {sources.length === 0 ? (
-                              <div style={{ fontSize: '13px', color: '#94a3b8', padding: '6px 0' }}>
-                                Nenhum espelho direto retornado pela fonte. O download principal usará o servidor padrão.
-                              </div>
-                            ) : (
-                              sources.map((s) => (
-                                <div className="heroDownloadOptionItem" key={s.id}>
-                                  <span style={{ fontWeight: 600 }}>{s.name}</span>
-                                  <button
-                                    type="button"
-                                    className="heroSecondaryBtn"
-                                    style={{ padding: '6px 14px', fontSize: '12px' }}
-                                    disabled={busy}
-                                    onClick={() => void handleInstallFromSource(s.id)}
-                                  >
-                                    <FontAwesomeIcon icon={faDownload} /> Baixar deste servidor
-                                  </button>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
-              </div>
+                  ))}
+                </details>
+              </GameDetailsPanel>
             )}
 
             {/* MINI-GRID DE OUTROS JOGOS ENCONTRADOS */}
@@ -2823,10 +2491,11 @@ export default function ExternalGamesScreen() {
                           window.scrollTo({ top: 0, behavior: 'smooth' })
                         }}
                       >
-                        <CachedImage
+                        <PreferredGameCover
                           className="otherGameMiniCover"
-                          src={g.coverUrl || fallbackImage}
-                          fallback={fallbackImage}
+                          game={g.mainGame}
+                          sources={g.allSources}
+                          placeholder={fallbackImage}
                           alt={g.canonicalTitle}
                           loading="lazy"
                           decoding="async"

@@ -46,7 +46,7 @@ fallback Obscura. Os motores são opcionais e usados somente se instalados e
 habilitados; esta integração não altera essas preferências.
 
 O aprendizado manual continua compartilhado no Ghost, antes do fallback. Uma
-receita só é persistida após recebimento válido e preparação bem-sucedida.
+receita é persistida após recebimento completo e validação dos metadados do pacote; a preparação bem-sucedida continua como confirmação alternativa.
 Não há novo banco de cookies/senhas no Scrapling nem reconhecimento universal de
 hosters desconhecidos. Plugins de terceiros não entram automaticamente.
 
@@ -87,3 +87,45 @@ Logs em `.system_generated/tasks/direct-engines/`: `native-all-sources.log`,
 `lint-final.json` e `app-build.log`.
 São arquivos/páginas controlados; não representam instalação completa de jogos
 reais de todos os hosters.
+
+## Revisão 6 — aprendizado compartilhado (21/10/2026)
+
+Scrapling 0.4.15 revisão de integração **6** acrescenta
+`direct-download-learning-v1`; a verificação do motor exige essa capacidade.
+O novo pacote SHA-256 é
+`09b29947330fc613ce203ed88e40b0ee6ee23d19c20b0b028d2d68f77b333d82`.
+Obscura permanece na versão 0.2.5, com o digest oficial verificado novamente.
+Os resultados históricos acima pertencem às revisões anteriores.
+
+`DirectPageEngines` recebe a memória de cada operação e envia os controles já
+validados ao Scrapling. O HTML público do Obscura passa pelo mesmo reconhecimento
+semântico. A origem de cada resultado permanece em memória até o download ser
+validado; somente os resultados efetivamente usados entram no aprendizado.
+A preferência por motor persiste após reiniciar, mas não o habilita à força.
+Workers antigos continuam fornecendo links compatíveis, sem a nova recuperação
+de controles. A atualização automática segue a preferência existente do usuário;
+com ela desativada, atualizar Scrapling em Motores de navegação.
+
+Os três motores participam do mesmo ciclo: confirmar manualmente quando
+necessário, validar o pacote, reutilizar a estratégia e reaprender após mudanças.
+Detalhes e limites: [DIRECT_DOWNLOAD_LEARNING.md](DIRECT_DOWNLOAD_LEARNING.md).
+Nenhum pacote foi publicado remotamente.
+
+Verificação desta revisão: 289 testes em 18 suítes, mais 40 verificações
+específicas após preservar a porta Online-Fix; TypeScript e lint sem erros
+(avisos existentes no módulo de motores e nos testes). Worker empacotado e
+Obscura passaram nas verificações reais. O runtime controlado Electron comprovou
+dois sucessos de recuperação semântica com Scrapling, intercalados com dois
+aprendizados manuais; o HTML dinâmico real do Obscura também produziu um controle
+validado no Electron e resultado persistido. Artefatos e logs em
+`.system_generated/tasks/engine-download-learning/`. A mesma sequência é repetida
+com o preload de produção antes da conferência do pacote. Os testes não usam
+contas, jogos reais ou os computadores dos amigos.
+
+O ciclo também passou com o preload minificado de produção (saída 0). Pacote
+portátil concluído e conferido: `dist/ghost-engine-learning-20261021/Ghost Games
+Launcher-0.3.8-beta-Portable-x64.exe`, 337.583.930 bytes. Conferidos entrada,
+backend, preloads, dependências, recursos, interface preservada e hashes dos dois
+motores, incluindo revisão 6. O preload do asar é idêntico ao testado. Evidência:
+`package-proof.json` na pasta desta tarefa. Distribuição anterior preservada;
+nenhuma publicação realizada. Fechar a instância anterior antes de abrir a cópia.
