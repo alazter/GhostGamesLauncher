@@ -11,6 +11,9 @@ from scrapling.core.storage import SQLiteStorageSystem
 from release_selectors import release_selectors, self_test as release_self_test
 from direct_download_page import direct_download_page, self_test as direct_self_test
 from release_page import release_page, self_test as release_page_self_test
+import logging
+
+logging.getLogger('scrapling').setLevel(logging.ERROR)
 
 
 class GhostStorage(SQLiteStorageSystem.__wrapped__):

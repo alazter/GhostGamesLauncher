@@ -21,14 +21,14 @@ def get(url):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scrapling', default='0.4.15')
+    parser.add_argument('--scrapling', default='0.5')
     parser.add_argument('--obscura', default='0.2.5')
     parser.add_argument('--out', default='public/engine-bundles')
     args = parser.parse_args()
     if sys.platform != 'win32' or os.environ.get('PROCESSOR_ARCHITECTURE', '').lower() != 'amd64':
         raise RuntimeError('Initial engine bundles target Windows x64 only')
     for value in [args.scrapling, args.obscura]:
-        if not re.fullmatch(r'\d+\.\d+\.\d+', value):
+        if not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', value):
             raise ValueError('Stable release required')
     output = Path(args.out).resolve()
     output.mkdir(parents=True, exist_ok=True)

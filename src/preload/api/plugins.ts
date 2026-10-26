@@ -67,6 +67,7 @@ export const cinemaStremioGetStreams = makeHandlerInvoker('cinemaStremioGetStrea
 export const cinemaUpdateMovie = makeHandlerInvoker('cinemaUpdateMovie')
 export const cinemaUpdateMediaPreferences = makeHandlerInvoker('cinemaUpdateMediaPreferences')
 export const cinemaPickCoverImage = makeHandlerInvoker('cinemaPickCoverImage')
+export const cinemaResolveImdbImage = makeHandlerInvoker('cinemaResolveImdbImage')
 export const cinemaEnrichMovie = makeHandlerInvoker('cinemaEnrichMovie')
 export const cinemaAutoCatalog = makeHandlerInvoker('cinemaAutoCatalog')
 export const cinemaSearchMetadata = makeHandlerInvoker('cinemaSearchMetadata')

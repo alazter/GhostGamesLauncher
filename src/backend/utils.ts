@@ -88,6 +88,7 @@ import { parse } from '@node-steam/vdf'
 
 import type LogWriter from 'backend/logger/log_writer'
 import { isRunning } from './downloadmanager/downloadqueue'
+import { LegendaryUser } from './storeManagers/legendary/user'
 import { isOnline } from './online_monitor'
 import type { Game } from 'common/types/game_manager'
 
@@ -304,7 +305,13 @@ async function errorHandler(
     'IndexError: list index out of range',
     // Happens with the Zipapp build of Legendary on Linux, if the user updates
     // dependencies requests relies on
-    'RequestsDependencyWarning'
+    'RequestsDependencyWarning',
+    '502 Server Error',
+    '503 Server Error',
+    '504 Server Error',
+    'Gateway Timeout',
+    'ConnectionError',
+    'ReadTimeout'
   ]
 
   if (!error) return
@@ -317,6 +324,28 @@ async function errorHandler(
   }
 
   if (legendaryRegex.test(error)) {
+    if (error.includes(expiredCredentials)) {
+      LegendaryUser.clearInvalidCredentials()
+      if (
+        LegendaryUser.isAuthTransitioning() ||
+        !LegendaryUser.isLoggedIn() ||
+        !appName
+      ) {
+        logWarning(
+          'Suppressed Legendary "No saved credentials" modal during background sync or auth transition.',
+          LogPrefix.Legendary
+        )
+        return
+      }
+      return showDialogBoxModalAuto({
+        title: plat,
+        message: i18next.t(
+          'box.error.credentials.message',
+          'Your Crendentials have expired, Logout and Login Again!'
+        ),
+        type: 'ERROR'
+      })
+    }
     const MemoryError = 'MemoryError: '
     if (error.includes(MemoryError)) {
       return

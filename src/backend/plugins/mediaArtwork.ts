@@ -14,6 +14,12 @@ import type { PluginManifest } from 'common/types/plugins'
 import { NetworkGuard } from './networkGuard'
 import { invalidateLocalImage } from '../images_cache'
 import { logWarning, LogPrefix } from 'backend/logger'
+import {
+  isImdbUrl,
+  isImdbWebPageUrl,
+  normalizeImdbImageUrl,
+  resolveImdbCoverImage
+} from './imdbImageResolver'
 
 const VIDEO =
   /\.(mp4|mkv|webm|avi|mov|m4v|ts|wmv|flv|rmvb|vob|divx|ogv|mpg|mpeg|m2ts)$/i
@@ -143,6 +149,21 @@ export async function saveMediaArtwork(
 ): Promise<{ localPath: string; streamUrl: string }> {
   if (!['poster', 'backdrop'].includes(type))
     throw new Error('Tipo de imagem inválido.')
+
+  let effectiveSource = source.trim()
+  if (isImdbUrl(effectiveSource)) {
+    if (isImdbWebPageUrl(effectiveSource)) {
+      const resolved = await resolveImdbCoverImage(effectiveSource)
+      if (!resolved) {
+        throw new Error(
+          'Não foi possível extrair a imagem do link do IMDb informado. Verifique o link e tente novamente.'
+        )
+      }
+      effectiveSource = resolved
+    } else {
+      effectiveSource = normalizeImdbImageUrl(effectiveSource)
+    }
+  }
   if (
     !existsSync(filePath) ||
     !statSync(filePath).isFile() ||
@@ -162,21 +183,24 @@ export async function saveMediaArtwork(
     targetDirectory = showDir
   }
   let buffer: Buffer
-  const local = localImagePath(source)
+  const local = localImagePath(effectiveSource)
   if (local) {
     if (statSync(local).size > MAX_IMAGE_BYTES)
       throw new Error('A imagem deve ter até 20 MB.')
     buffer = readFileSync(local)
-  } else if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(source)) {
-    if (source.length > MAX_IMAGE_BYTES * 1.4)
+  } else if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(effectiveSource)) {
+    if (effectiveSource.length > MAX_IMAGE_BYTES * 1.4)
       throw new Error('A imagem deve ter até 20 MB.')
-    buffer = Buffer.from(source.slice(source.indexOf(',') + 1), 'base64')
+    buffer = Buffer.from(
+      effectiveSource.slice(effectiveSource.indexOf(',') + 1),
+      'base64'
+    )
   } else {
-    const check = NetworkGuard.validateUrl(source, manifest)
+    const check = NetworkGuard.validateUrl(effectiveSource, manifest)
     if (!check.allowed) throw new Error(check.reason)
     // Redirects and DNS are checked by the same guard used by plugin requests.
     const response = await NetworkGuard.fetchResponse(
-      source,
+      effectiveSource,
       manifest,
       AbortSignal.timeout(15000),
       {},
@@ -213,7 +237,7 @@ export async function saveMediaArtwork(
   const image = nativeImage.createFromBuffer(buffer)
   if (image.isEmpty())
     throw new Error('O arquivo escolhido não é uma imagem válida.')
-  if (type === 'backdrop' && !local && /^https?:\/\//i.test(source)) {
+  if (type === 'backdrop' && !local && /^https?:\/\//i.test(effectiveSource)) {
     const { width, height } = image.getSize()
     if (width <= height)
       throw new Error('A imagem de fundo recebida precisa ser horizontal.')

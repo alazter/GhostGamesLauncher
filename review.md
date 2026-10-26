@@ -1,4 +1,4 @@
-# Review das Alterações - 21/10/2026
+# Review das Alterações - 26/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -794,6 +794,18 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Portabilidade de Extração (7-Zip / UnRAR) & Retomada Resiliente TorBox (`archiveTools.ts`, `archiveReader.ts`, `rangedCheckpoint.ts`, `directDownloadDefaults.ts`)**: Suporte a 7-Zip e console do WinRAR/UnRAR sem abrir janelas; limpeza segura de resíduos parciais que geravam o erro "Uma extração anterior já existe"; distribuição de receitas de download direto genéricas da Anker com desativação preventiva após falhas; retomada de downloads TorBox via Range/If-Range e ETag (`package.ext.resume.json`).
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 83+ testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 53. Suporte a Links IMDb, Edição Completa de Mídias/Episódios no Alazterflix, Scrapling v0.5 e Resolução Legendary Auth
+* **Problema:** Ao colar pôsteres verticais do IMDb ou links diretos de capa no Alazterflix, a validação de proporção horizontal de backdrop lançava erro fatal impedindo o salvamento da obra; páginas de mídia do IMDb sofriam bloqueio por WAF; episódios e temporadas de séries não possuíam campos dedicados no modal nem sincronização no player; a nota TMDB não era editável manualmente; o toast de feedback ficava travado na tela sem auto-dismiss; o motor Scrapling falhava ao atualizar para v0.5 por incompatibilidade com versão de 2 segmentos; e o login do Legendary lançava erro "No saved credentials".
+* **Solução:**
+  - **Blindagem de Backdrop e Entradas Dedicadas no Alazterflix (`plugins/alazterflix/index.js`, `Alazterflix/index.tsx`, Conquista 193)**: Gravação de backdrop encapsulada em bloco try/catch com supressão preventiva em links verticais e preservação integral de dados salvos (capa física, notas, títulos, episódios); campos dedicados no modal para URL da Capa e Imagem de Fundo (Backdrop 16:9) com botão rápido "Escolher Fundo PC".
+  - **Resolvedor Headless de Capas do IMDb (`imdbImageResolver.ts`, Conquista 188)**: Resolução de páginas `/mediaviewer/rm...` em janela Electron headless isolada contornando o WAF, extração da imagem original de alta qualidade e gravação física nas pastas de mídia com canal IPC `cinemaResolveImdbImage`.
+  - **Edição Explícita de Episódios e Temporadas (`Alazterflix/index.tsx`, Conquista 190)**: Campos dedicados para Temporada [S], Episódio [E] e Título do Episódio, com botão de conversão rápida para série e sincronização em tempo real no menu lateral direito do player de vídeo com botões de edição rápida.
+  - **Edição Manual da Nota TMDB (0 a 10) (Conquista 191)**: Desbloqueio do campo de nota TMDB aceitando ponto ou vírgula decimal com propagação automática para todos os episódios da mesma obra.
+  - **Botão "Abrir Local do Arquivo" & Auto-Dismiss de Toast (`toastUtils.ts`, Conquistas 187 e 189)**: Botão interativo Cyber Neon no banner de arquivo original abrindo e destacando o arquivo no Windows Explorer; utilitário de duração inteligente com auto-dismiss (4s comum / 20s assíncrono) e botão manual de fechamento.
+  - **Motor Scrapling v0.5 & Cards de Motores Sempre Visíveis (`SourceEnginesPanel.tsx`, `sourceEngines.ts`, Conquista 192)**: Normalização SemVer de 2 segmentos (`0.5` -> `0.5.0`), empacotamento do executável nativo `ghost-scrapling.exe` v0.5 e seção de motores sempre visível estilizada no padrão dos cards de plugins.
+  - **Autocura e Blindagem do Legendary Auth (`library.ts`, `user.ts`, `utils.ts`, Conquista 186)**: Restauração de `LEGENDARY_CONFIG_PATH`, autocura de `user.json` e bloqueio de corrida na transição de autenticação.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 85/85 testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -968,6 +980,18 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/backend/plugins/__tests__/directDownloadLearning.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/directDownloadLearning.test.ts)
 - [MODIFY] [src/backend/plugins/__tests__/directPageEngines.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/directPageEngines.test.ts)
 - [MODIFY] [src/backend/plugins/__tests__/rangedDownload.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/rangedDownload.test.ts)
+- [NEW] [src/backend/__tests__/legendaryAuth.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/legendaryAuth.test.ts)
+- [NEW] [src/backend/plugins/__tests__/alazterflixEpisodeEditing.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixEpisodeEditing.test.ts)
+- [NEW] [src/backend/plugins/__tests__/alazterflixToast.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixToast.test.ts)
+- [NEW] [src/backend/plugins/__tests__/imdbImageResolver.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/imdbImageResolver.test.ts)
+- [NEW] [src/backend/plugins/imdbImageResolver.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/imdbImageResolver.ts)
+- [MODIFY] [src/backend/plugins/enginePolicy.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/enginePolicy.ts)
+- [MODIFY] [src/backend/plugins/mediaArtwork.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/mediaArtwork.ts)
+- [MODIFY] [src/backend/plugins/__tests__/enginePolicy.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/enginePolicy.test.ts)
+- [MODIFY] [src/backend/plugins/__tests__/mediaArtwork.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/mediaArtwork.test.ts)
+- [MODIFY] [src/backend/storeManagers/legendary/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/legendary/library.ts)
+- [MODIFY] [src/backend/storeManagers/legendary/user.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/legendary/user.ts)
+- [MODIFY] [src/backend/updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
 ### Common & Preload
 - [MODIFY] [src/common/types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
 - [MODIFY] [src/common/externalDownloadStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalDownloadStatus.ts)
@@ -1046,3 +1070,5 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/frontend/screens/ExternalGames/gameDetailsMetadata.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ExternalGames/gameDetailsMetadata.ts)
 - [NEW] [src/frontend/screens/Library/components/InlineGameSettings/MoveGameModal.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/MoveGameModal.tsx)
 - [MODIFY] [src/frontend/screens/Library/components/InlineGameSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/index.tsx)
+- [NEW] [src/frontend/screens/Alazterflix/toastUtils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/toastUtils.ts)
+- [MODIFY] [src/frontend/screens/Alazterflix/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/index.scss)

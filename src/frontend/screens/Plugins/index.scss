@@ -814,15 +814,140 @@
   button:disabled { opacity: .5; cursor: wait; }
 }
 .ghost-engine-panel {
-  border: 1px solid #355363;
-  border-radius: 12px;
-  background: #131a20;
-  color: #e6f8fa;
-  padding: 18px;
-  margin: 20px 0;
-  summary { cursor: pointer; color: #6ffaff; font-size: 18px; }
-  section { border-top: 1px solid #355363; margin-top: 16px; padding-top: 10px; }
-  button { margin: 8px; padding: 8px 12px; color: #6ffaff; background: #172832; border: 1px solid #42636a; border-radius: 6px; }
-  button:disabled { opacity: .5; }
-  small { display: block; }
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 24px;
+  margin-top: 8px;
+  text-align: left;
+
+  h2,
+  h3,
+  p {
+    text-align: left;
+  }
+
+  .ghost-engine-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: #141a23;
+    border: 1px solid rgba(0, 255, 255, 0.22);
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  }
+
+  .ghost-engine-panel-title-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 280px;
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+      color: #ffffff;
+      text-shadow: 0 0 12px rgba(0, 255, 255, 0.25);
+    }
+  }
+
+  .ghost-engine-panel-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .ghost-engine-auto-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #cbd5e1;
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      accent-color: #00ffff;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+  }
+
+  .ghost-engine-toolbar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .ghost-engine-checked-at {
+    font-size: 12px;
+    color: #64748b;
+  }
+
+  .ghost-engine-card {
+    text-align: left;
+
+    .ghost-engine-version-summary {
+      font-size: 12px;
+      color: #94a3b8;
+      margin: 0 0 4px 0;
+    }
+
+    .ghost-engine-inline-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+
+      input[type='checkbox'] {
+        accent-color: #00ffff;
+        width: 15px;
+        height: 15px;
+        cursor: pointer;
+      }
+    }
+
+    .ghost-engine-notice {
+      margin: 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fcd34d;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .ghost-engine-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }

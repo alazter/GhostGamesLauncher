@@ -353,23 +353,28 @@ function initializeWindow(): BrowserWindow {
       join(publicDir, 'index.html'),
       startHash ? { hash: startHash } : undefined
     )
-    if (globalConf.checkForUpdatesOnStartup) {
-      autoUpdater.checkForUpdates()
+    if (
+      globalConf.checkForUpdatesOnStartup &&
+      existsSync(path.join(process.resourcesPath || '', 'app-update.yml'))
+    ) {
+      void autoUpdater.checkForUpdates().catch((err) => {
+        logWarning(`AutoUpdater check skipped: ${err}`, LogPrefix.Backend)
+      })
     }
   }
 
   // Changelog links workaround
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const pattern = app.isPackaged ? publicDir : 'localhost:5173'
-    if (!url.match(pattern)) {
+    const pattern = (app.isPackaged ? publicDir : 'localhost:5173').replace(/\\/g, '/')
+    if (!url.replace(/\\/g, '/').includes(pattern)) {
       event.preventDefault()
       openUrlOrFile(url)
     }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    const pattern = app.isPackaged ? publicDir : 'localhost:5173'
-    return { action: !details.url.match(pattern) ? 'allow' : 'deny' }
+    const pattern = (app.isPackaged ? publicDir : 'localhost:5173').replace(/\\/g, '/')
+    return { action: !details.url.replace(/\\/g, '/').includes(pattern) ? 'allow' : 'deny' }
   })
 
   addListener('setZoomFactor', async (event, zoomFactor) => {
@@ -420,7 +425,11 @@ if (!gotTheLock) {
     // Someone tried to run a second instance, we should focus our window.
     const mainWindow = getMainWindow()
     if (!shouldHideWindowForProtocolArgs(argv)) {
+      if (mainWindow?.isMinimized()) {
+        mainWindow.restore()
+      }
       mainWindow?.show()
+      mainWindow?.focus()
     }
 
     handleProtocol(argv)
@@ -429,14 +438,25 @@ if (!gotTheLock) {
     configureSecureDns()
     initLogger()
 
-    await MigrationSystem.get().applyMigrations()
+    try {
+      await MigrationSystem.get().applyMigrations()
+    } catch (err) {
+      logError(`Failed to apply migrations on startup: ${err}`, LogPrefix.Backend)
+    }
 
     initOnlineMonitor()
     initStoreManagers()
     initImagesCache()
     registerPluginsIPC()
     registerReleasesIPC()
-    await PluginManager.getInstance().init()
+    try {
+      await PluginManager.getInstance().init()
+    } catch (err) {
+      logError(
+        `Failed to initialize PluginManager on startup: ${err}`,
+        LogPrefix.Backend
+      )
+    }
 
     installRendererRequestHeaders(
       session.defaultSession,
@@ -508,29 +528,41 @@ if (!gotTheLock) {
         const iconToUse = ensurePermanentAppIcon()
 
         const normalizedExePath = currentExePath.toLowerCase()
+        const isTempExePath =
+          normalizedExePath.includes('\\appdata\\local\\temp\\') ||
+          normalizedExePath.includes('/temp/')
         const isDevOrRepoBuild =
           !app.isPackaged ||
+          isTempExePath ||
           normalizedExePath.includes('node_modules') ||
           normalizedExePath.includes('heroicgameslauncher') ||
           normalizedExePath.includes('\\dist\\') ||
           normalizedExePath.includes('/dist/')
 
         // Start Menu shortcut (crucial for Windows Notifications to display "Ghost Games Launcher" instead of "Electron")
-        if (existsSync(startMenuFolder) && !isDevOrRepoBuild) {
+        if (
+          existsSync(startMenuFolder) &&
+          existsSync(currentExePath) &&
+          !isDevOrRepoBuild
+        ) {
           const startMenuShortcutPath = path.join(
             startMenuFolder,
             'Ghost Games Launcher.lnk'
           )
-          shell.writeShortcutLink(startMenuShortcutPath, 'create', {
-            target: currentExePath,
-            description: 'Ghost Games Launcher',
-            icon: iconToUse,
-            iconIndex: 0,
-            appUserModelId: 'com.ghostgameslauncher.ghost'
-          })
+          shell.writeShortcutLink(
+            startMenuShortcutPath,
+            existsSync(startMenuShortcutPath) ? 'replace' : 'create',
+            {
+              target: currentExePath,
+              description: 'Ghost Games Launcher',
+              icon: iconToUse,
+              iconIndex: 0,
+              appUserModelId: 'com.ghostgameslauncher.ghost'
+            }
+          )
         }
 
-        if (app.isPackaged && !isDevOrRepoBuild) {
+        if (app.isPackaged && existsSync(currentExePath) && !isDevOrRepoBuild) {
           const desktopFolder = app.getPath('desktop')
 
           // Remove old Ghost.lnk shortcut
@@ -546,13 +578,17 @@ if (!gotTheLock) {
             desktopFolder,
             'Ghost Games Launcher.lnk'
           )
-          shell.writeShortcutLink(desktopShortcutPath, 'create', {
-            target: currentExePath,
-            description: 'Ghost Games Launcher',
-            icon: iconToUse,
-            iconIndex: 0,
-            appUserModelId: 'com.ghostgameslauncher.ghost'
-          })
+          shell.writeShortcutLink(
+            desktopShortcutPath,
+            existsSync(desktopShortcutPath) ? 'replace' : 'create',
+            {
+              target: currentExePath,
+              description: 'Ghost Games Launcher',
+              icon: iconToUse,
+              iconIndex: 0,
+              appUserModelId: 'com.ghostgameslauncher.ghost'
+            }
+          )
         }
 
         // Registrar associação de arquivos .GhostBackup com o ícone oficial do Ghost
@@ -649,20 +685,25 @@ if (!gotTheLock) {
     const isOpenedAtLogin =
       process.argv.includes('--hidden') ||
       process.argv.includes('--minimized') ||
-      Boolean(app.getLoginItemSettings?.().wasOpenedAsHidden) ||
-      Boolean(app.getLoginItemSettings?.().wasOpenedAtLogin)
+      (isMac &&
+        (Boolean(app.getLoginItemSettings?.().wasOpenedAsHidden) ||
+          Boolean(app.getLoginItemSettings?.().wasOpenedAtLogin)))
 
     const headless =
       isCLINoGui ||
       hideForProtocol ||
-      (settings.startInTray && !settings.noTrayIcon) ||
-      (settings.startAtLogin && isOpenedAtLogin && !settings.noTrayIcon)
+      ((settings.startInTray || settings.startAtLogin) &&
+        isOpenedAtLogin &&
+        !settings.noTrayIcon)
 
     if (headless) {
       mainWindow.hide()
     } else {
       const isWayland = Boolean(process.env.WAYLAND_DISPLAY)
+      let windowShown = false
       const showWindow = () => {
+        if (windowShown || mainWindow.isDestroyed()) return
+        windowShown = true
         const props = configStore.get('window-props', {
           height: 690,
           width: 1200,
@@ -674,12 +715,19 @@ if (!gotTheLock) {
           mainWindow.maximize()
         }
         mainWindow.show()
+        mainWindow.focus()
+        logInfo(
+          `Main window shown on screen (bounds: ${JSON.stringify(mainWindow.getBounds())})`,
+          LogPrefix.Backend
+        )
       }
       if (isWayland) {
         // Electron + Wayland don't send ready-to-show
         mainWindow.webContents.once('did-finish-load', showWindow)
       } else {
         mainWindow.once('ready-to-show', showWindow)
+        mainWindow.webContents.once('did-finish-load', showWindow)
+        setTimeout(showWindow, 1500)
       }
     }
 

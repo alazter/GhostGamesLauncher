@@ -826,6 +826,7 @@ interface AsyncIPCFunctions {
     preferences: CinemaMediaPreferences
   ) => Promise<CinemaLibraryState>
   cinemaPickCoverImage: () => Promise<string | null>
+  cinemaResolveImdbImage: (url: string) => Promise<string | null>
   cinemaEnrichMovie: (movieId: string) => Promise<GhostMovie | null>
   cinemaAutoCatalog: () => Promise<GhostMovie[]>
   cinemaSearchMetadata: (

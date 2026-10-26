@@ -1,5 +1,23 @@
-import { satisfies, valid } from 'semver'
+import { gt, satisfies, valid } from 'semver'
 import type { EngineRelease } from 'common/types/sourceEngines'
+
+export function normalizeEngineVersion(
+  version: string | undefined
+): string | null {
+  if (!version || typeof version !== 'string') return null
+  const trimmed = version.trim().replace(/^v/i, '')
+  if (/^\d+\.\d+$/.test(trimmed)) {
+    return valid(`${trimmed}.0`)
+  }
+  return valid(trimmed)
+}
+
+export function engineVersionGt(a: string, b: string): boolean {
+  const normA = normalizeEngineVersion(a)
+  const normB = normalizeEngineVersion(b)
+  if (!normA || !normB) return false
+  return gt(normA, normB)
+}
 
 export function validateEngineRelease(
   value: EngineRelease,
@@ -10,7 +28,7 @@ export function validateEngineRelease(
   if (
     !value ||
     !['scrapling', 'obscura'].includes(value.id) ||
-    !valid(value.version) ||
+    !normalizeEngineVersion(value.version) ||
     value.protocol !== 1 ||
     (value.integrationRevision !== undefined &&
       (!Number.isSafeInteger(value.integrationRevision) ||

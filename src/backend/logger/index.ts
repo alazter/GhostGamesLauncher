@@ -112,10 +112,17 @@ function init() {
       { forceLog: true }
     )
 
-  heroicLogWriter.logInfo(
-    ['System Information:', getSystemInfo().then(formatSystemInfo)],
-    LogPrefix.Backend
-  )
+  void getSystemInfo()
+    .then(formatSystemInfo)
+    .then((sysInfo) => {
+      heroicLogWriter.logInfo(['System Information:', sysInfo], LogPrefix.Backend)
+    })
+    .catch((err) => {
+      heroicLogWriter.logWarning(
+        ['Failed to gather System Information:', err],
+        LogPrefix.Backend
+      )
+    })
 
   backendEvents.on('settingChanged', ({ key, oldValue, newValue }) =>
     heroicLogWriter.logInfo([

@@ -92,6 +92,7 @@ export default class LogWriter {
     }
 
     if (!this.#wasWrittenTo) {
+      this.#wasWrittenTo = true
       this.#archiveOldLogFile()
 
       // print this message only once when a new log file is created and it's not the general log
@@ -108,7 +109,9 @@ export default class LogWriter {
     // Any future calls to `writeString` will then wait on the new chain with
     // this message added
     if (message instanceof Promise) {
-      this.#messageWaitPromise = this.#messageWaitPromise.then(() => message)
+      this.#messageWaitPromise = this.#messageWaitPromise
+        .then(() => message)
+        .catch(() => '')
       message = await message
     }
 

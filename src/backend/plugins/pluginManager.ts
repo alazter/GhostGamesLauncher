@@ -970,14 +970,21 @@ export class PluginManager {
 
   public async init(): Promise<void> {
     initializeSourceSettings(userDataPath)
-    await initializeSourceEngines(
-      userDataPath,
-      app.isPackaged
-        ? join(process.resourcesPath, 'engine-bundles')
-        : join(app.getAppPath(), 'public', 'engine-bundles'),
-      app.getVersion(),
-      { deferVerification: true }
-    )
+    try {
+      await initializeSourceEngines(
+        userDataPath,
+        app.isPackaged
+          ? join(process.resourcesPath, 'engine-bundles')
+          : join(app.getAppPath(), 'public', 'engine-bundles'),
+        app.getVersion(),
+        { deferVerification: true }
+      )
+    } catch (error) {
+      logWarning(
+        `[PluginManager] Falha ao inicializar motores de fonte na abertura: ${String(error)}`,
+        LogPrefix.Backend
+      )
+    }
     ExternalGames.getInstance()
     mkdirSync(this.pluginsDir, { recursive: true })
     mkdirSync(this.dataRootDir, { recursive: true })

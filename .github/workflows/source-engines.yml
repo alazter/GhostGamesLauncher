@@ -30,7 +30,7 @@ jobs:
         run: |
           $scrapling = (gh api repos/D4Vinci/Scrapling/releases/latest | ConvertFrom-Json).tag_name.TrimStart('v')
           $obscura = (gh api repos/h4ckf0r0day/obscura/releases/latest | ConvertFrom-Json).tag_name.TrimStart('v')
-          if ($scrapling -notmatch '^\d+\.\d+\.\d+$' -or $obscura -notmatch '^\d+\.\d+\.\d+$') { throw 'Stable versions required' }
+          if ($scrapling -notmatch '^\d+\.\d+(?:\.\d+)?$' -or $obscura -notmatch '^\d+\.\d+(?:\.\d+)?$') { throw 'Stable versions required' }
           "SCRAPLING_VERSION=$scrapling" >> $env:GITHUB_ENV
           "OBSCURA_VERSION=$obscura" >> $env:GITHUB_ENV
           # Revalidate when the integration itself changes, even without an upstream release.

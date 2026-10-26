@@ -3,7 +3,6 @@ import { mkdir, readFile, writeFile, rename, rm, stat } from 'fs/promises'
 import { join, resolve } from 'path'
 import { createHash, randomUUID } from 'crypto'
 import extractZip from 'extract-zip'
-import { gt, valid } from 'semver'
 import type {
   EngineRelease,
   SourceEngineAction,
@@ -12,7 +11,11 @@ import type {
 } from 'common/types/sourceEngines'
 import { secureFetch } from './secureDns'
 import { engineProcess } from './engineProcess'
-import { validateEngineRelease } from './enginePolicy'
+import {
+  validateEngineRelease,
+  normalizeEngineVersion,
+  engineVersionGt
+} from './enginePolicy'
 import { engineFileOperation } from './engineFileOperation'
 import {
   officialObscuraRelease,
@@ -106,9 +109,9 @@ function candidate(id: SourceEngineId) {
   return releases
     .filter((item) => item.id === id && state.rejected[id] !== item.sha256)
     .sort((a, b) =>
-      gt(a.version, b.version)
+      engineVersionGt(a.version, b.version)
         ? -1
-        : gt(b.version, a.version)
+        : engineVersionGt(b.version, a.version)
           ? 1
           : (b.integrationRevision || 0) - (a.integrationRevision || 0)
     )[0]
@@ -121,7 +124,7 @@ export function sourceEnginesState(): SourceEnginesState {
     engines: ids.map((id) => {
       const next = candidate(id)
       const installed = state.installed[id]
-      const published = valid(upstream[id] || '')
+      const published = normalizeEngineVersion(upstream[id] || '')
       return {
         id,
         installed: state.installed[id]?.version,
@@ -131,12 +134,13 @@ export function sourceEnginesState(): SourceEnginesState {
         updateAvailable: Boolean(
           installed &&
           next &&
-          (gt(next.version, installed.version) ||
-            (next.version === installed.version &&
+          (engineVersionGt(next.version, installed.version) ||
+            (normalizeEngineVersion(next.version) ===
+              normalizeEngineVersion(installed.version) &&
               next.sha256 !== installed.sha256))
         ),
         upstreamUpdateAvailable: Boolean(
-          published && installed && gt(published, installed.version)
+          published && installed && engineVersionGt(published, installed.version)
         ),
         enabled: state.enabled[id],
         busy: active.has(id),
@@ -245,13 +249,17 @@ async function install(
     throw new Error(
       'Ainda não há pacote aprovado para este sistema. Verifique as atualizações mais tarde.'
     )
-  if (state.installed[id] && gt(state.installed[id].version, release.version))
+  if (
+    state.installed[id] &&
+    engineVersionGt(state.installed[id].version, release.version)
+  )
     throw new Error(
       'A versão instalada é mais recente que o pacote disponível.'
     )
   if (
     shared &&
-    state.installed[id]?.version === release.version &&
+    normalizeEngineVersion(state.installed[id]?.version) ===
+      normalizeEngineVersion(release.version) &&
     (state.installed[id]?.integrationRevision || 0) >
       (release.integrationRevision || 0)
   )
@@ -558,6 +566,38 @@ export async function checkSourceEngines(force = false) {
   checking = true
   try {
     try {
+      const localCatalog = JSON.parse(
+        await readFile(join(bundles, 'catalog.json'), 'utf8')
+      )
+      if (Array.isArray(localCatalog.releases)) {
+        const localApproved = (localCatalog.releases as EngineRelease[])
+          .filter(
+            (item) =>
+              item.platform === process.platform && item.arch === process.arch
+          )
+          .map((item) =>
+            validateEngineRelease(
+              item,
+              ghostVersion,
+              process.platform,
+              process.arch
+            )
+          )
+        for (const item of localApproved) {
+          if (
+            !releases.some(
+              (existing) =>
+                existing.id === item.id && existing.sha256 === item.sha256
+            )
+          ) {
+            releases.push(item)
+          }
+        }
+      }
+    } catch {
+      /* Existing in-memory releases remain active. */
+    }
+    try {
       const data = JSON.parse(
         (await boundedDownload(feed, 1024 * 1024)).toString()
       )
@@ -587,7 +627,8 @@ export async function checkSourceEngines(force = false) {
             !approved.some(
               (item) =>
                 item.id === old.id &&
-                item.version === old.version &&
+                normalizeEngineVersion(item.version) ===
+                  normalizeEngineVersion(old.version) &&
                 (item.integrationRevision || 0) >=
                   (old.integrationRevision || 0)
             )
@@ -650,8 +691,9 @@ export async function checkSourceEngines(force = false) {
           state.enabled[id] &&
           next &&
           (!state.installed[id] ||
-            gt(next.version, state.installed[id].version) ||
-            (next.version === state.installed[id].version &&
+            engineVersionGt(next.version, state.installed[id].version) ||
+            (normalizeEngineVersion(next.version) ===
+              normalizeEngineVersion(state.installed[id].version) &&
               next.sha256 !== state.installed[id].sha256))
         ) {
           try {

@@ -47,7 +47,10 @@ export function writeGhostManifest(
     writeFileSync(manifestPath, JSON.stringify(fullManifest, null, 2), 'utf8')
     return true
   } catch (err) {
-    console.error(`[GhostManifest]: Erro ao gravar manifesto em "${targetDir}":`, err)
+    const code = (err as NodeJS.ErrnoException | undefined)?.code
+    if (code !== 'EPERM' && code !== 'EACCES') {
+      console.error(`[GhostManifest]: Erro ao gravar manifesto em "${targetDir}":`, err)
+    }
     return false
   }
 }

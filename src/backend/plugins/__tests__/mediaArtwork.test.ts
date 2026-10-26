@@ -174,3 +174,27 @@ test('artwork downloads reject private network URLs and oversized responses', as
     saveMediaArtwork(manifest, path, 'https://example.com/cover.jpg', 'poster')
   ).rejects.toThrow('20 MB')
 })
+
+
+test('saveMediaArtwork automatically resolves IMDb mediaviewer links and downloads artwork', async () => {
+  const folder = join(root, 'Filmes', 'Police Squad')
+  const path = video(folder, 'Police Squad E01.mkv')
+  const imdbUrl =
+    'https://www.imdb.com/pt/title/tt8579674/mediaviewer/rm4236618753/'
+  const resolvedImageUrl =
+    'https://m.media-amazon.com/images/M/MV5BNjQ4ZTZiZmUtNThiOC00ZTM0LWJkZGYtYmI0ODEyNzJlMDJmXkEyXkFqcGc@._V1_.jpg'
+
+  const imdbResolver = await import('../imdbImageResolver')
+  jest
+    .spyOn(imdbResolver, 'resolveImdbCoverImage')
+    .mockResolvedValue(resolvedImageUrl)
+
+  jest.spyOn(NetworkGuard, 'fetchResponse').mockResolvedValue(new Response(jpeg))
+
+  const saved = await saveMediaArtwork(manifest, path, imdbUrl, 'poster')
+
+  expect(imdbResolver.resolveImdbCoverImage).toHaveBeenCalledWith(imdbUrl)
+  expect(saved.localPath).toBe(join(folder, 'poster.jpg'))
+  expect(readFileSync(saved.localPath)).toEqual(jpeg)
+  expect(readFileSync(join(folder, 'cover.jpg'))).toEqual(jpeg)
+})

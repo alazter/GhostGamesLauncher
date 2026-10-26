@@ -749,3 +749,43 @@ windowsTest(
     })
   }
 )
+
+it('detects and installs two-part Scrapling release 0.5 over 0.4.15', async () => {
+  await sourceEngineAction({ type: 'install', id: 'scrapling' })
+  const next = await packageVersion('0.5', 'scrapling', 6)
+  catalog = [next]
+  jest.mocked(engineProcess).mockImplementation(async (executable) => {
+    const version = await readFile(executable, 'utf8')
+    return JSON.stringify({
+      ok: true,
+      protocol: 1,
+      version,
+      capabilities: [
+        'online-fix-torrent-links-v1',
+        'direct-download-page-v1',
+        'release-page-v1',
+        'direct-download-learning-v1'
+      ]
+    })
+  })
+  jest.mocked(secureFetch).mockImplementation(
+    async (url) =>
+      new Response(
+        JSON.stringify(
+          url.includes('catalog.json')
+            ? { releases: catalog }
+            : { tag_name: 'v0.5' }
+        )
+      )
+  )
+  await sourceEngineAction({ type: 'automatic', enabled: true })
+  await sourceEngineAction({ type: 'check' })
+  expect(sourceEnginesState().engines[0]).toMatchObject({
+    installed: '0.5',
+    previous: '0.4.15',
+    available: '0.5',
+    upstream: '0.5',
+    updateAvailable: false,
+    upstreamUpdateAvailable: false
+  })
+})

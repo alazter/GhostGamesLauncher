@@ -75,6 +75,9 @@ autoUpdater.on('update-downloaded', async () => {
 })
 
 autoUpdater.on('error', (error) => {
+  if (String(error).includes('app-update.yml')) {
+    return
+  }
   showDialogBoxModalAuto({
     title: t('box.error.update.title', 'Update Error'),
     message: t(

@@ -13,6 +13,7 @@ import {
 } from './gameMediaResolver'
 import { MediaStreamServer } from './mediaStreamServer'
 import { resolveExternalGameCover } from './externalCoverSources'
+import { resolveImdbCoverImage } from './imdbImageResolver'
 
 export function registerPluginsIPC(): void {
   const manager = PluginManager.getInstance()
@@ -519,6 +520,10 @@ export function registerPluginsIPC(): void {
 
   addHandler('cinemaPickCoverImage', async () => {
     return await manager.cinemaPickCoverImage()
+  })
+
+  addHandler('cinemaResolveImdbImage', async (_event, url: string) => {
+    return await resolveImdbCoverImage(url)
   })
 
   addHandler('cinemaEnrichMovie', async (_event, movieId: string) => {

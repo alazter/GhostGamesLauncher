@@ -700,6 +700,8 @@ export default class LegendaryLibraryManager implements LibraryManager {
       options.env = {}
     }
 
+    options.env.LEGENDARY_CONFIG_PATH = legendaryConfigPath
+
     const commandParts = this.commandToArgsArray(command)
 
     return callRunner(

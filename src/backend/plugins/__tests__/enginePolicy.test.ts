@@ -1,4 +1,8 @@
-import { validateEngineRelease } from '../enginePolicy'
+import {
+  validateEngineRelease,
+  normalizeEngineVersion,
+  engineVersionGt
+} from '../enginePolicy'
 import { validateSourceRules } from '../sourceRules'
 import { isAdaptiveGamePath } from '../adaptiveSource'
 import type { EngineRelease } from 'common/types/sourceEngines'
@@ -14,10 +18,24 @@ const release: EngineRelease = {
   executable: 'obscura.exe',
   url: 'https://github.com/h4ckf0r0day/obscura/releases/download/v0.2.3/obscura.zip'
 }
-it('accepts the approved platform and version', () =>
+it('accepts the approved platform and version', () => {
   expect(validateEngineRelease(release, '0.3.0-beta', 'win32', 'x64')).toEqual(
     release
-  ))
+  )
+  const scraplingTwoPart: EngineRelease = {
+    ...release,
+    id: 'scrapling',
+    version: '0.5',
+    executable: 'ghost-scrapling.exe',
+    url: 'https://github.com/alazter/GhostGamesLauncher/releases/download/engines-scrapling-0.5/scrapling.zip'
+  }
+  expect(
+    validateEngineRelease(scraplingTwoPart, '0.3.0-beta', 'win32', 'x64')
+  ).toEqual(scraplingTwoPart)
+  expect(normalizeEngineVersion('0.5')).toBe('0.5.0')
+  expect(engineVersionGt('0.5', '0.4.15')).toBe(true)
+  expect(engineVersionGt('0.4.15', '0.5')).toBe(false)
+})
 it.each([
   { executable: '../outside.exe' },
   { executable: 'C:/outside.exe' },
