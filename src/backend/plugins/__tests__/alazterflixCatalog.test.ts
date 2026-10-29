@@ -309,7 +309,9 @@ describe('Alazterflix catalog and artwork persistence', () => {
       'https://example.com/custom.jpg',
       'poster',
       undefined,
-      true
+      true,
+      true,
+      undefined
     )
   })
 
@@ -991,4 +993,234 @@ describe('Alazterflix catalog and artwork persistence', () => {
     expect(storage.movies[0].title).toBe('Gladiador (2000)')
     expect(storage.movies[0].cleanTitle).toBe('Gladiador (2000)')
   })
-})
+  test('moved files are reconnected to their new path while preserving metadata and cover without triggering metadata refresh', async () => {
+    const original = item('T:/Séries/Anime/ep01.mkv', {
+      title: 'Custom Title',
+      cleanTitle: 'Anime Clean',
+      coverUrl: 'https://example.com/poster.jpg',
+      customCoverUrl: 'https://example.com/poster.jpg',
+      synopsis: 'Synopsis of anime',
+      progressSeconds: 120,
+      season: 1,
+      episode: 1,
+      isSeries: true
+    })
+    const { provider, scanFolder, storage } = harness([original])
+    storage.folders = ['T:/Séries']
+
+    // File was moved into a subfolder "Season 01"
+    const movedFiles = [
+      {
+        name: 'ep01.mkv',
+        path: 'T:/Séries/Anime/Season 01/ep01.mkv',
+        size: 100
+      }
+    ]
+    scanFolder.mockResolvedValue(movedFiles)
+
+    // Revalidate paths with skipMetadata: true
+    const revalidated = await provider.scanFolders(['T:/Séries'], { skipMetadata: true })
+    expect(revalidated).toHaveLength(1)
+    expect(revalidated[0].filePath).toBe('T:/Séries/Anime/Season 01/ep01.mkv')
+    expect(revalidated[0].title).toBe('Custom Title')
+    expect(revalidated[0].coverUrl).toBe('https://example.com/poster.jpg')
+    expect(revalidated[0].synopsis).toBe('Synopsis of anime')
+    expect(revalidated[0].progressSeconds).toBe(120)
+  })
+
+  test('revalidateWithStremio fetches official title, poster and backdrop from Cinemeta and saves artwork to disk', async () => {
+    const { provider, storage, http, saveArtwork } = harness()
+    storage.movies = [
+      {
+        id: 'movie-1',
+        title: 'shawshank.redemption.1994.1080p',
+        cleanTitle: 'shawshank redemption',
+        fileName: 'shawshank.redemption.1994.1080p.mkv',
+        filePath: 'T:/Filmes/shawshank.redemption.1994.1080p.mkv',
+        isSeries: false,
+        mediaCategory: 'movie'
+      }
+    ]
+
+    http.mockImplementation(async (url: string) => {
+      if (url.includes('/catalog/movie/top/search=')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            metas: [
+              {
+                id: 'tt0111161',
+                name: 'The Shawshank Redemption',
+                year: '1994',
+                poster: 'https://images.metahub.space/poster/medium/tt0111161/img'
+              }
+            ]
+          })
+        }
+      }
+      if (url.includes('/meta/movie/tt0111161.json')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            meta: {
+              id: 'tt0111161',
+              name: 'The Shawshank Redemption',
+              year: '1994',
+              imdbRating: '9.3',
+              genres: ['Drama'],
+              description: 'Two imprisoned men bond over a number of years.',
+              poster: 'https://images.metahub.space/poster/medium/tt0111161/img',
+              background: 'https://images.metahub.space/background/medium/tt0111161/img'
+            }
+          })
+        }
+      }
+      return { ok: false, status: 404 }
+    })
+
+    saveArtwork.mockImplementation(async (_filePath: string, url: string, type: string) => {
+      return {
+        localPath: `T:/Filmes/${type}.jpg`,
+        streamUrl: url
+      }
+    })
+
+    const result = await (provider as any).revalidateWithStremio('movie-1')
+    expect(result.updatedCount).toBe(1)
+    expect(result.movies[0].title).toBe('The Shawshank Redemption')
+    expect(result.movies[0].imdbId).toBe('tt0111161')
+    expect(result.movies[0].rating).toBe('9.3')
+    expect(result.movies[0].synopsis).toBe('Two imprisoned men bond over a number of years.')
+    expect(result.movies[0].genres).toEqual(['Drama'])
+    expect(result.movies[0].localCoverPath).toBe('T:/Filmes/poster.jpg')
+    expect(result.movies[0].localBackdropPath).toBe('T:/Filmes/backdrop.jpg')
+    expect(saveArtwork).toHaveBeenCalledWith(
+      'T:/Filmes/shawshank.redemption.1994.1080p.mkv',
+      'https://images.metahub.space/poster/medium/tt0111161/img',
+      'poster',
+      undefined,
+      false
+    )
+    expect(saveArtwork).toHaveBeenCalledWith(
+      'T:/Filmes/shawshank.redemption.1994.1080p.mkv',
+      'https://images.metahub.space/background/medium/tt0111161/img',
+      'backdrop',
+      undefined
+    )
+  })
+
+  test('persists isSeries: false for anime movies (Akira) and saves multiple categories (anime + movie)', async () => {
+    const akiraMovie = item('T:/Alazter Multimídia/Animes/Akira/Akira - 30th Anniversary.mkv', {
+      id: 'akira-1',
+      title: 'Akira - QUALIDADE 1',
+      cleanTitle: 'Akira',
+      showTitle: 'Akira',
+      mediaCategory: 'anime',
+      isSeries: true,
+      season: 1,
+      episode: 1
+    })
+    const { provider, storage } = harness([akiraMovie])
+
+    const updated = await provider.updateMovie({
+      ...akiraMovie,
+      isSeries: false,
+      categories: ['anime', 'movie'],
+      customCategories: ['anime', 'movie']
+    })
+
+    expect(updated.isSeries).toBe(false)
+    expect(updated.customIsSeries).toBe(false)
+    expect(updated.season).toBeUndefined()
+    expect(updated.episode).toBeUndefined()
+    expect(updated.categories).toEqual(['anime', 'movie'])
+    expect(updated.customCategories).toEqual(['anime', 'movie'])
+    expect(storage.movies[0].isSeries).toBe(false)
+    expect(storage.movies[0].season).toBeUndefined()
+
+    // Grouping into shows must treat this as a standalone movie with multiple categories
+    const shows = groupMoviesIntoShows(storage.movies)
+    expect(shows).toHaveLength(1)
+    expect(shows[0].isSeries).toBe(false)
+    expect(shows[0].seasonsCount).toBe(0)
+    expect(shows[0].categories).toEqual(['anime', 'movie'])
+  })
+
+  test('supports multiple categories including OVA and validates categories correctly', async () => {
+    const ovaMovie = item('T:/Animes/Hellsing/Hellsing Ultimate OVA 1.mkv', {
+      id: 'hellsing-ova-1',
+      title: 'Hellsing Ultimate OVA 1',
+      mediaCategory: 'anime',
+      isSeries: true,
+      season: 1,
+      episode: 1
+    })
+    const { provider, storage, internals } = harness([ovaMovie])
+
+    const updated = await provider.updateMovie({
+      ...ovaMovie,
+      categories: ['anime', 'ova', 'movie', 'invalid-cat' as any]
+    })
+
+    expect(updated.categories).toEqual(['anime', 'ova', 'movie'])
+    expect(storage.movies[0].categories).toEqual(['anime', 'ova', 'movie'])
+
+    // parseMediaHierarchy identifies OVA folders
+    const parsed = internals.parseMediaHierarchy(
+      'T:/Alazter Multimídia/OVAs/Gundam/Gundam 01.mkv',
+      'Gundam 01.mkv'
+    )
+    expect(parsed.mediaCategory).toBe('ova')
+  })
+  test('integrates multiple quality files of the same movie (Akira) into a single card without splitting', async () => {
+    const file1 = item('T:/Alazter Multimídia/Animes/Akira/Akira.80.1080p.mkv', {
+      id: 'akira-1080p',
+      title: 'Akira - QUALIDADE 1',
+      cleanTitle: 'Akira',
+      showTitle: 'Akira',
+      showDirectory: 'T:/Alazter Multimídia/Animes/Akira',
+      mediaCategory: 'anime',
+      isSeries: true,
+      resolution: '1080p'
+    })
+    const file2 = item('T:/Alazter Multimídia/Animes/Akira/Akira - 30th Anniversary.mkv', {
+      id: 'akira-remaster',
+      title: 'Akira - QUALIDADE 2',
+      cleanTitle: 'Akira - 30th Anniversary',
+      showTitle: 'Akira',
+      showDirectory: 'T:/Alazter Multimídia/Animes/Akira',
+      mediaCategory: 'anime',
+      isSeries: true,
+      resolution: 'HD'
+    })
+
+    const { provider, storage } = harness([file1, file2])
+
+    // User marks movie as single movie/documentary (isSeries = false) with Anime + Movie categories
+    await provider.updateMovie({
+      ...file1,
+      isSeries: false,
+      categories: ['anime', 'movie'],
+      mediaCategory: 'anime'
+    })
+
+    const movies = storage.movies as GhostMovie[]
+    expect(movies).toHaveLength(2)
+    // Sibling (file2) also got isSeries: false and categories propagated
+    expect(movies.every((m) => m.isSeries === false)).toBe(true)
+
+    // Grouping must yield EXACTLY ONE show/card (never split into two covers)
+    const shows = groupMoviesIntoShows(movies)
+    expect(shows).toHaveLength(1)
+    expect(shows[0].showTitle).toBe('Akira')
+    expect(shows[0].isSeries).toBe(false)
+    expect(shows[0].episodesCount).toBe(2)
+    expect(shows[0].seasons[0].seasonLabel).toBe('Versões / Qualidades')
+    expect(shows[0].seasons[0].episodes.map((e) => e.title)).toEqual([
+      'Akira - QUALIDADE 2',
+      'Akira - QUALIDADE 1'
+    ])
+  })
+});

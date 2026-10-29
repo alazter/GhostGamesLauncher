@@ -33,7 +33,7 @@ import '../ExternalGames/index.css'
 
 export default function PluginsScreen() {
   const [configuringSource, setConfiguringSource] = useState<{ id: string; name: string }>()
-  const [configuringAlazterflix, setConfiguringAlazterflix] = useState(false)
+  const [configuringAlazterflix, setConfiguringAlazterflix] = useState<false | 'folders' | 'playback'>(false)
   const [activeTab, setActiveTab] = useState<'installed' | 'store' | 'dev'>('installed')
   const [plugins, setPlugins] = useState<PluginInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -525,6 +525,29 @@ export default function PluginsScreen() {
                         <FontAwesomeIcon icon={faCode} /> Dev
                       </span>
                     )}
+
+                    {(plugin.repository || plugin.homepage) && (
+                      <a
+                        href={
+                          plugin.homepage ||
+                          (plugin.repository && plugin.repository.startsWith('http')
+                            ? plugin.repository
+                            : 'https://github.com/' + plugin.repository)
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ghost-badge-dev"
+                        title={'Repositório / Homepage oficial: ' + (plugin.repository || plugin.homepage)}
+                        style={{
+                          textDecoration: 'none',
+                          color: '#f5c518',
+                          borderColor: 'rgba(245, 197, 24, 0.4)',
+                          background: 'rgba(245, 197, 24, 0.12)'
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faExternalLinkAlt} /> {plugin.repository || 'GitHub'}
+                      </a>
+                    )}
                   </div>
 
                   <p className="ghost-plugin-description">{plugin.description}</p>
@@ -569,8 +592,8 @@ export default function PluginsScreen() {
                         <FontAwesomeIcon icon={faSlidersH} /> Configurar
                       </button>
                     )}
-                    {(plugin.id === 'com.ghost.alazterflix' || plugin.id === 'com.ghost.cinema') && (
-                      <button className="ghost-btn-primary" onClick={() => setConfiguringAlazterflix(true)}>
+                    {(plugin.id === 'com.ghost.alazterflix' || plugin.id === 'com.ghost.cinema' || plugin.id === 'com.nuvio.player.addon') && (
+                      <button className="ghost-btn-primary" onClick={() => setConfiguringAlazterflix(plugin.id === 'com.nuvio.player.addon' ? 'playback' : 'folders')}>
                         <FontAwesomeIcon icon={faSlidersH} /> Configurar
                       </button>
                     )}
@@ -592,7 +615,7 @@ export default function PluginsScreen() {
 
       <SourceEnginesPanel onInstall={handleInstallFile} refreshKey={engineRevision} />
       {configuringSource && <SourceSettingsDialog {...configuringSource} close={() => setConfiguringSource(undefined)} />}
-      {configuringAlazterflix && <AlazterflixSettingsDialog close={() => setConfiguringAlazterflix(false)} />}
+      {configuringAlazterflix && <AlazterflixSettingsDialog initialSubTab={configuringAlazterflix} close={() => setConfiguringAlazterflix(false)} />}
 
       {/* TAB 2: COMMUNITY STORE */}
       {activeTab === 'store' && (

@@ -99,7 +99,8 @@ export const createMainWindow = () => {
       webviewTag: true,
       contextIsolation: true,
       nodeIntegration: true,
-      preload: mainPreloadPath
+      preload: mainPreloadPath,
+      webSecurity: false
     }
   })
 

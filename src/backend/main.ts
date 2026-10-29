@@ -37,6 +37,7 @@ import { createBackupPreferenceSync } from './backup/preferenceSync'
 import { getReleaseArchive, validateReleaseArchive } from './releases/archive'
 import { PluginManager } from './plugins/pluginManager'
 
+import { StreamHeaderStore } from './streamHeaders'
 import Backend from 'i18next-fs-backend'
 import i18next from 'i18next'
 import { join } from 'path'
@@ -59,6 +60,7 @@ if (process.platform === 'win32') {
 
 // Habilita suporte nativo a múltiplas faixas de áudio (Dual Áudio / Multi Áudio) e Spatial Navigation no Chromium
 app.commandLine.appendSwitch('enable-blink-features', 'AudioVideoTracks')
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required')
 app.commandLine.appendSwitch('enable-spatial-navigation')
 import {
   clearCache,
@@ -328,18 +330,20 @@ function initializeWindow(): BrowserWindow {
     isCLIConsoleMode || globalConf.startInConsoleMode ? '/console' : undefined
 
   if (process.env.ELECTRON_RENDERER_URL) {
-    // Optional extension installation can reach the network; it must not delay loadURL.
-    void (async () => {
-      try {
-        const devToolsModule = 'electron-devtools-installer'
-        const { installExtension, REACT_DEVELOPER_TOOLS } = await import(
-          /* @vite-ignore */ devToolsModule
-        )
-        await installExtension(REACT_DEVELOPER_TOOLS)
-      } catch {
-        // optional dev dependency
-      }
-    })()
+    // Optional extension installation - only when explicitly enabled to prevent startup stalls in dev mode
+    if (process.env.ENABLE_REACT_DEVTOOLS === 'true') {
+      void (async () => {
+        try {
+          const devToolsModule = 'electron-devtools-installer'
+          const { installExtension, REACT_DEVELOPER_TOOLS } = await import(
+            /* @vite-ignore */ devToolsModule
+          )
+          await installExtension(REACT_DEVELOPER_TOOLS)
+        } catch {
+          // optional dev dependency
+        }
+      })()
+    }
 
     const devUrl = startHash
       ? `${process.env.ELECTRON_RENDERER_URL}#${startHash}`
@@ -492,6 +496,14 @@ if (!gotTheLock) {
       session.defaultSession.webRequest.onBeforeRequest(
         { urls: ['*://*/*'] },
         (details, callback) => {
+          if (
+            details.url.startsWith('http://localhost') ||
+            details.url.startsWith('http://127.0.0.1') ||
+            details.url.startsWith('devtools:') ||
+            details.url.startsWith('chrome-extension:')
+          ) {
+            return callback({ cancel: false })
+          }
           const isAd = AD_TRACKER_DOMAINS.some((domain) =>
             details.url.includes(domain)
           )
@@ -508,6 +520,90 @@ if (!gotTheLock) {
       )
     } catch (err) {
       logError(`Failed to setup network ad blocker: ${err}`, LogPrefix.Backend)
+    }
+
+    // CORS, Headers Sanitizer & Stream Proxy Shield for IPTV, Stremio & Local Media
+    try {
+      session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['*://*/*'] },
+        (details, callback) => {
+          if (
+            details.url.startsWith('http://localhost:') ||
+            details.url.startsWith('http://127.0.0.1:') ||
+            details.url.startsWith('devtools:') ||
+            details.url.startsWith('chrome-extension:')
+          ) {
+            return callback({ requestHeaders: details.requestHeaders })
+          }
+
+          const requestHeaders = { ...details.requestHeaders }
+          const customHeaders =
+            StreamHeaderStore.getInstance().getHeadersForUrl(details.url)
+
+          if (customHeaders) {
+            for (const [key, val] of Object.entries(customHeaders)) {
+              if (typeof val === 'string' && val.trim().length > 0) {
+                requestHeaders[key] = val.trim()
+              }
+            }
+          } else {
+            const isMediaStream =
+              details.url.includes('.m3u8') ||
+              details.url.includes('.ts') ||
+              details.url.includes('.mpd') ||
+              details.resourceType === 'media' ||
+              details.resourceType === 'xhr' ||
+              details.resourceType === 'other'
+
+            if (isMediaStream) {
+              if (
+                requestHeaders['Origin'] &&
+                requestHeaders['Origin'].includes('localhost')
+              ) {
+                delete requestHeaders['Origin']
+              }
+              if (
+                requestHeaders['Referer'] &&
+                requestHeaders['Referer'].includes('localhost')
+              ) {
+                delete requestHeaders['Referer']
+              }
+              if (
+                !requestHeaders['User-Agent'] ||
+                requestHeaders['User-Agent'].includes('Electron')
+              ) {
+                requestHeaders['User-Agent'] =
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+              }
+            }
+          }
+
+          callback({ requestHeaders })
+        }
+      )
+
+      session.defaultSession.webRequest.onHeadersReceived(
+        { urls: ['*://*/*'] },
+        (details, callback) => {
+          // 0ms immediate bypass for Vite Dev Server (Conquista 208)
+          if (details.url.startsWith('http://localhost:')) {
+            return callback({})
+          }
+
+          const responseHeaders = { ...details.responseHeaders }
+          responseHeaders['access-control-allow-origin'] = ['*']
+          responseHeaders['access-control-allow-methods'] = [
+            'GET, HEAD, OPTIONS'
+          ]
+          responseHeaders['access-control-allow-headers'] = ['*']
+          responseHeaders['access-control-expose-headers'] = [
+            'Content-Length, Content-Range, Accept-Ranges'
+          ]
+          callback({ responseHeaders })
+        }
+      )
+    } catch (err) {
+      logError(`Failed to setup media CORS headers: ${err}`, LogPrefix.Backend)
     }
 
     // try to fix notification app name on windows

@@ -5,6 +5,7 @@ import {
 } from './sourceSettings'
 import { initializeSourceEngines, importSourceEngine, exportSourceEngine, sourceEnginesState } from './sourceEngines'
 import { isSourceEnginePackage } from './sourceEnginePackage'
+import { initializeNuvioAddonUpdate } from './nuvioAddonUpdate'
 import type { SourceEngineId } from 'common/types/sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
 import { installedReleaseCandidate } from 'common/externalReleaseInfo'
@@ -970,6 +971,7 @@ export class PluginManager {
 
   public async init(): Promise<void> {
     initializeSourceSettings(userDataPath)
+    initializeNuvioAddonUpdate(userDataPath)
     try {
       await initializeSourceEngines(
         userDataPath,
@@ -1831,8 +1833,8 @@ export class PluginManager {
         properties: ['openFile'],
         filters: [
           {
-            name: 'Imagens (JPG, PNG, WebP)',
-            extensions: ['jpg', 'jpeg', 'png', 'webp']
+            name: 'Imagens (JPG, PNG, WebP, AVIF)',
+            extensions: ['jpg', 'jpeg', 'png', 'webp', 'avif', 'jfif']
           }
         ]
       }
@@ -1840,6 +1842,254 @@ export class PluginManager {
     if (result.canceled || result.filePaths.length === 0) return null
     const filePath = result.filePaths[0]
     return `imagecache://localhost/${encodeURIComponent(filePath)}`
+  }
+
+  public async cinemaPickM3uFile(): Promise<string | null> {
+    const mainWindow = getMainWindow()
+    const result = await dialog.showOpenDialog(
+      mainWindow || (undefined as any),
+      {
+        title: 'Selecionar lista M3U / M3U8',
+        properties: ['openFile'],
+        filters: [
+          {
+            name: 'Listas IPTV (M3U, M3U8)',
+            extensions: ['m3u', 'm3u8', 'txt']
+          }
+        ]
+      }
+    )
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  }
+
+  public async cinemaTvReadM3uFile(filePath: string): Promise<any> {
+    const fs = await import('fs/promises')
+    const { parseM3u } = await import('../../common/m3uParser')
+    const path = await import('path')
+
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Caminho de arquivo inválido.')
+    }
+
+    const ext = path.extname(filePath).toLowerCase()
+    if (!['.m3u', '.m3u8', '.txt'].includes(ext)) {
+      throw new Error('Apenas arquivos .m3u, .m3u8 ou .txt são aceitos.')
+    }
+
+    const content = await fs.readFile(filePath, 'utf-8')
+    const playlistName = path.basename(filePath, ext)
+    const result = parseM3u(content, {
+      playlistId: `local-${Date.now()}`,
+      defaultGroup: 'Geral'
+    })
+
+    return {
+      success: true,
+      playlistName,
+      filePath,
+      channels: result.channels,
+      groups: result.groups,
+      totalCount: result.totalCount,
+      epgUrl: result.epgUrl
+    }
+  }
+
+  public async cinemaTvFetchM3u(rawUrl: string): Promise<any> {
+    const { parseM3u, isSafeStreamUrl } = await import('../../common/m3uParser')
+
+    if (!isSafeStreamUrl(rawUrl)) {
+      throw new Error('URL de lista inválida ou não permitida pelo GhostShield.')
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15000)
+
+    try {
+      const response = await fetch(rawUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Falha ao obter lista (HTTP ${response.status})`)
+      }
+
+      const contentLength = Number(response.headers.get('content-length') || 0)
+      if (contentLength > 25 * 1024 * 1024) {
+        throw new Error('Lista excede o tamanho máximo de segurança (25 MB).')
+      }
+
+      const content = await response.text()
+      const urlObj = new URL(rawUrl)
+      const pathname = urlObj.pathname
+      const playlistName =
+        pathname.split('/').filter(Boolean).pop() || urlObj.hostname
+
+      const result = parseM3u(content, {
+        playlistId: `remote-${Date.now()}`,
+        defaultGroup: 'Geral'
+      })
+
+      return {
+        success: true,
+        playlistName,
+        url: rawUrl,
+        channels: result.channels,
+        groups: result.groups,
+        totalCount: result.totalCount
+      }
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+
+  public async cinemaPickEpgFile(): Promise<string | null> {
+    const mainWindow = getMainWindow()
+    const result = await dialog.showOpenDialog(
+      mainWindow || (undefined as any),
+      {
+        title: 'Selecionar arquivo de EPG (XMLTV)',
+        properties: ['openFile'],
+        filters: [
+          {
+            name: 'Guia de Programação XMLTV (*.xml, *.xml.gz, *.gz)',
+            extensions: ['xml', 'gz']
+          }
+        ]
+      }
+    )
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  }
+
+  public async cinemaTvReadEpgFile(filePath: string): Promise<any> {
+    const fs = await import('fs/promises')
+    const zlib = await import('zlib')
+    const { parseXmltv } = await import('../../common/epgParser')
+    const path = await import('path')
+
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Caminho de arquivo inválido.')
+    }
+
+    const ext = path.extname(filePath).toLowerCase()
+    if (!['.xml', '.gz'].includes(ext) && !filePath.toLowerCase().endsWith('.xml.gz')) {
+      throw new Error('Apenas arquivos .xml, .xml.gz ou .gz são aceitos.')
+    }
+
+    const rawBuffer = await fs.readFile(filePath)
+    let xmlContent = ''
+
+    // Decompress if gzip magic bytes (0x1f 0x8b) or .gz extension
+    if (rawBuffer.length >= 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
+      const decompressed = zlib.gunzipSync(rawBuffer)
+      xmlContent = decompressed.toString('utf-8')
+    } else {
+      xmlContent = rawBuffer.toString('utf-8')
+    }
+
+    const sourceName = path.basename(filePath, ext)
+    const result = parseXmltv(xmlContent)
+
+    return {
+      success: true,
+      sourceName,
+      filePath,
+      channels: result.channels,
+      programs: result.programs,
+      totalChannels: result.totalChannels,
+      totalPrograms: result.totalPrograms
+    }
+  }
+
+  public async cinemaTvFetchEpg(rawUrl: string): Promise<any> {
+    const zlib = await import('zlib')
+    const { parseXmltv } = await import('../../common/epgParser')
+    const { isSafeStreamUrl } = await import('../../common/m3uParser')
+
+    if (!isSafeStreamUrl(rawUrl)) {
+      throw new Error('URL de EPG inválida ou não permitida pelo GhostShield.')
+    }
+
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
+
+    try {
+      const response = await fetch(rawUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Falha ao obter EPG (HTTP ${response.status})`)
+      }
+
+      const arrayBuf = await response.arrayBuffer()
+      const rawBuffer = Buffer.from(arrayBuf)
+
+      if (rawBuffer.length > 50 * 1024 * 1024) {
+        throw new Error('Arquivo EPG excede o tamanho máximo de segurança (50 MB).')
+      }
+
+      let xmlContent = ''
+      if (rawBuffer.length >= 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
+        const decompressed = zlib.gunzipSync(rawBuffer)
+        xmlContent = decompressed.toString('utf-8')
+      } else {
+        xmlContent = rawBuffer.toString('utf-8')
+      }
+
+      const urlObj = new URL(rawUrl)
+      const pathname = urlObj.pathname
+      const sourceName = pathname.split('/').filter(Boolean).pop() || urlObj.hostname
+
+      const result = parseXmltv(xmlContent)
+
+      return {
+        success: true,
+        sourceName,
+        url: rawUrl,
+        channels: result.channels,
+        programs: result.programs,
+        totalChannels: result.totalChannels,
+        totalPrograms: result.totalPrograms
+      }
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  public async cinemaTvGetEpgData(): Promise<any> {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const cacheFile = path.join(app.getPath('userData'), 'ghost_epg_cache.json')
+    try {
+      const content = await fs.readFile(cacheFile, 'utf-8')
+      return JSON.parse(content)
+    } catch {
+      return { channels: [], programs: [], updatedAt: null }
+    }
+  }
+
+  public async cinemaTvSaveEpgData(data: any): Promise<boolean> {
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    const cacheFile = path.join(app.getPath('userData'), 'ghost_epg_cache.json')
+    try {
+      await fs.writeFile(cacheFile, JSON.stringify(data), 'utf-8')
+      return true
+    } catch (e) {
+      console.error('[Ghost EPG] Erro ao gravar cache em disco:', e)
+      return false
+    }
   }
 
   public broadcastUpdates(): void {

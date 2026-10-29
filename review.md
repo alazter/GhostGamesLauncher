@@ -1,4 +1,4 @@
-# Review das Alterações - 26/10/2026
+# Review das Alterações - 29/10/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -806,6 +806,19 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Autocura e Blindagem do Legendary Auth (`library.ts`, `user.ts`, `utils.ts`, Conquista 186)**: Restauração de `LEGENDARY_CONFIG_PATH`, autocura de `user.json` e bloqueio de corrida na transição de autenticação.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 85/85 testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 54. Ecossistema Alazterflix & Nuvio Player, Integração Stremio e Refinamento Cyber-Neon
+* **Problema:** A reprodução e catalogação no Alazterflix necessitavam de paridade total com os mockups aprovados (hover com centro cristalino e desobstruído, restauração do layout clássico de 2 colunas na edição de mídia sem cockpit horizontal, e detalhes Premiere Theater); mídias locais com múltiplas versões/qualidades dividiam-se indevidamente em múltiplos cards; faltava suporte soberano ao formato de filme único combinado a múltiplas categorias (Anime + Filme, OVA); imagens modernas WebP/AVIF geravam falha de IPC ao salvar; a reprodução do Stremio não aproveitava arquivos já baixados localmente; e faltava integração completa de IPTV & EPG no ecossistema.
+* **Solução:**
+  - **Fidelidade 1:1 ao Mockup no Hover dos Cards (`CatalogPoster.tsx`, `cardStyles.scss`, Conquista 230)**: Centro 100% livre e cristalino (`.catalog-hover-spacer` com `flex: 1`), sem desfoque artificial no centro da arte; topbar neon com categoria tipográfica ciano e botões circulares translúcidos; badges de repouso ocultadas compulsoriamente no hover; rodapé editorial cinematográfico com botões de 32px e contorno luminous cyan (`rgba(70, 216, 231, 0.65)`).
+  - **Restauração Soberana do Layout de 2 Colunas na Edição de Mídia (`index.tsx`, `index.scss`, Conquista 231)**: Eliminação definitiva do cockpit de 3 colunas; modal centralizado de 820px com prévia autêntica de cinema (2:3), busca de títulos/IMDb, URLs explícitas de capa/backdrop e seletor de categorias em pills de múltipla seleção.
+  - **Reprodução Fullscreen do Stremio na Biblioteca Local (`ShowDetailsModal`, Conquistas 227 e 228)**: Estrutura `stremio-fullscreen-details-view` com fundo imersivo, metadados completos, pills de gênero/elenco e gaveta flutuante direita com cards de episódio e badge verde neon `NO PC`.
+  - **Reintegração de Múltiplas Qualidades/Versões de Filmes no Mesmo Card (`mediaCatalog.ts`, Conquista 226)**: Agrupamento inteligente por pasta dedicada de obra (`directory:workTitle`), mantendo arquivos irmãos com diferentes resoluções unidos na aba "Versões / Qualidades".
+  - **Soberania de Filme Único e Múltiplas Categorias com Badges Flutuantes (Conquista 225)**: Desacoplamento da heurística que forçava animes a séries; suporte a categorias simultâneas (ex: Anime + Filme) e categoria oficial OVA (`'ova'`) com badges Cyber-Neon na arte.
+  - **Motor Universal de Decodificação de Capas com Fallback Chromium (`mediaArtwork.ts`, Conquista 224)**: Decodificação de WebP/AVIF que falhavam em `nativeImage.createFromBuffer()` via renderização offscreen no Skia/Blink do Chromium com exportação JPEG 95%; normalização de URIs `file://` e extração inteligente de Google Imagens.
+  - **Nuvio Video Player & Stremio Addons (`NuvioVideoPlayer.tsx`, `nuvioPlayerConfig.ts`, Conquistas 216 a 219, 222)**: Sovereign RAF Ticker a 60-120 FPS para legendas com AutoSync inteligente inspirado no NuvioTV-Reshaped; integração dos addons AIOStreams v2.36.0 (RemuxDB) e SubMaker (Legendas IA); reprodução soberana de arquivos locais baixados (`📁 DISCO LOCAL` / `⚡ 0 BUFFERING`) nas opções de stream do Stremio; e motor de atualização de plugins com escudo de proteção de customizações.
+  - **Hub de TV ao Vivo & EPG (`AlazterflixTvHub.tsx`, `m3uParser.ts`, `epgParser.ts`)**: Parser de listas M3U/M3U8 e guia eletrônico de programação (XMLTV/EPG) com mapeamento de canais, grade de programação e player HLS nativo.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), dezenas de suítes de testes unitários Jest aprovadas e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -854,6 +867,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [docs/DOWNLOAD_INSTALL_PORTABILITY.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/DOWNLOAD_INSTALL_PORTABILITY.md)
 - [NEW] [docs/EXTERNAL_COVER_PRIORITY.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_COVER_PRIORITY.md)
 - [NEW] [docs/EXTERNAL_GAME_DETAILS_DESIGN.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_GAME_DETAILS_DESIGN.md)
+- [MODIFY] [scripts/patch_dev_exe.js](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/patch_dev_exe.js)
 ### Backend & Core
 - [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
 - [NEW] [src/backend/__tests__/abortAllOperations.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/abortAllOperations.test.ts)
@@ -992,6 +1006,22 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/backend/storeManagers/legendary/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/legendary/library.ts)
 - [MODIFY] [src/backend/storeManagers/legendary/user.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/legendary/user.ts)
 - [MODIFY] [src/backend/updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
+- [NEW] [src/backend/plugins/__tests__/alazterflixStremioAddons.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixStremioAddons.test.ts)
+- [NEW] [src/backend/plugins/__tests__/cinemaDownloader.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/cinemaDownloader.test.ts)
+- [NEW] [src/backend/plugins/__tests__/epgParser.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/epgParser.test.ts)
+- [NEW] [src/backend/plugins/__tests__/m3uParser.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/m3uParser.test.ts)
+- [NEW] [src/backend/plugins/__tests__/nuvioAddonUpdate.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/nuvioAddonUpdate.test.ts)
+- [NEW] [src/backend/plugins/__tests__/nuvioPlayerIntegration.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/nuvioPlayerIntegration.test.ts)
+- [NEW] [src/backend/plugins/__tests__/stremioLocalPlayback.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/stremioLocalPlayback.test.ts)
+- [NEW] [src/backend/plugins/__tests__/stremioServerManager.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/stremioServerManager.test.ts)
+- [NEW] [src/backend/plugins/cinemaDownloader.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/cinemaDownloader.ts)
+- [NEW] [src/backend/plugins/nuvioAddonUpdate.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/nuvioAddonUpdate.ts)
+- [NEW] [src/backend/plugins/stremioServerManager.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/stremioServerManager.ts)
+- [NEW] [src/backend/streamHeaders.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/streamHeaders.ts)
+- [MODIFY] [src/backend/main_window.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main_window.ts)
+- [MODIFY] [src/backend/plugins/__tests__/alazterflixCoverSizes.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixCoverSizes.test.ts)
+- [MODIFY] [src/backend/plugins/networkGuard.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/networkGuard.ts)
+- [MODIFY] [src/backend/plugins/pluginHost.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/pluginHost.ts)
 ### Common & Preload
 - [MODIFY] [src/common/types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
 - [MODIFY] [src/common/externalDownloadStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalDownloadStatus.ts)
@@ -1010,6 +1040,12 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/common/externalGameCover.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalGameCover.ts)
 - [MODIFY] [src/common/types/electron_store.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/electron_store.ts)
 - [MODIFY] [src/preload/api/misc.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/preload/api/misc.ts)
+- [NEW] [src/common/epgParser.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/epgParser.ts)
+- [NEW] [src/common/m3uParser.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/m3uParser.ts)
+- [NEW] [src/common/stremioAddonUtils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/stremioAddonUtils.ts)
+- [NEW] [src/common/types/nuvioUpdate.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/nuvioUpdate.ts)
+- [MODIFY] [src/common/mediaCatalog.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/mediaCatalog.ts)
+- [MODIFY] [src/common/subtitleEngine.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/subtitleEngine.ts)
 ### Frontend
 - [MODIFY] [src/frontend/App.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.tsx)
 - [MODIFY] [src/frontend/components/ChooseDownloadModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/index.tsx)
@@ -1072,3 +1108,21 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/screens/Library/components/InlineGameSettings/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/InlineGameSettings/index.tsx)
 - [NEW] [src/frontend/screens/Alazterflix/toastUtils.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/toastUtils.ts)
 - [MODIFY] [src/frontend/screens/Alazterflix/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/index.scss)
+- [NEW] [src/frontend/screens/Alazterflix/AlazterflixAssignEpgModal.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/AlazterflixAssignEpgModal.tsx)
+- [NEW] [src/frontend/screens/Alazterflix/AlazterflixChannelScheduleModal.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/AlazterflixChannelScheduleModal.tsx)
+- [NEW] [src/frontend/screens/Alazterflix/AlazterflixTvHub.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/AlazterflixTvHub.tsx)
+- [NEW] [src/frontend/screens/Alazterflix/IptvPlaylistsSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/IptvPlaylistsSettings.tsx)
+- [NEW] [src/frontend/screens/Alazterflix/NuvioVideoPlayer.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/NuvioVideoPlayer.tsx)
+- [NEW] [src/frontend/screens/Alazterflix/nuvioPlayer.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/nuvioPlayer.scss)
+- [NEW] [src/frontend/screens/Alazterflix/nuvioPlayerConfig.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/nuvioPlayerConfig.ts)
+- [NEW] [src/frontend/screens/Alazterflix/stremioPlay.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/stremioPlay.scss)
+- [NEW] [src/frontend/assets/alazterflix/categories/tv.jpg](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/assets/alazterflix/categories/tv.jpg)
+- [MODIFY] [src/frontend/components/UI/Sidebar/components/SidebarLinks/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/SidebarLinks/index.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/AlazterflixSettingsDialog.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/AlazterflixSettingsDialog.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/CatalogNavigation.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/CatalogNavigation.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/CatalogPoster.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/CatalogPoster.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/CategoryShortcuts.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/CategoryShortcuts.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/MetadataSettings.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/MetadataSettings.tsx)
+- [MODIFY] [src/frontend/screens/Alazterflix/cardStyles.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/cardStyles.scss)
+- [MODIFY] [src/frontend/screens/Alazterflix/coverSizes.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/coverSizes.ts)
+- [MODIFY] [src/frontend/screens/Alazterflix/errors.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/errors.ts)

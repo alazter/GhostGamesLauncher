@@ -1,4 +1,5 @@
 export interface ParsedSubtitleCue {
+  id?: string
   startTime: number
   endTime: number
   text: string
@@ -106,4 +107,68 @@ export function sanitizeSubtitleHtml(rawText: string): string {
   )
   html = html.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
   return html
+}
+
+
+/**
+ * Localiza a fala mais próxima ao timestamp atual (janela de busca de até 30 segundos).
+ * Usado pelo mecanismo de AutoSync (Nuvio Reshaped Style) para alinhar legendas externas com o áudio.
+ */
+export function findClosestCue(
+  cues: ParsedSubtitleCue[],
+  time: number,
+  maxWindowSeconds = 30
+): ParsedSubtitleCue | null {
+  if (!cues || !cues.length) return null
+  let closest: ParsedSubtitleCue | null = null
+  let minDiff = Infinity
+
+  for (let i = 0; i < cues.length; i++) {
+    const c = cues[i]
+    const diff = Math.abs(c.startTime - time)
+    if (diff < minDiff && diff <= maxWindowSeconds) {
+      minDiff = diff
+      closest = c
+    }
+  }
+  return closest
+}
+
+/**
+ * Calcula o offset de sincronização automática (AutoSync) entre a posição do vídeo e a fala mais próxima.
+ * Retorna o novo delay em segundos e o texto da fala sincronizada.
+ */
+export function calculateAutoSyncOffset(
+  cues: ParsedSubtitleCue[],
+  currentTime: number,
+  currentDelay = 0
+): { newDelay: number; deltaSeconds: number; matchedCueText?: string } | null {
+  if (!cues || cues.length === 0 || currentTime <= 0) return null
+
+  // O tempo em que a legenda está sendo renderizada no momento
+  const adjustedTime = currentTime - currentDelay
+  const closest = findClosestCue(cues, adjustedTime)
+  if (!closest) return null
+
+  // Queremos que closest.startTime passe a aparecer exatamente em currentTime.
+  // Novo delay = currentTime - closest.startTime
+  const newDelay = Number((currentTime - closest.startTime).toFixed(2))
+  const deltaSeconds = Number((newDelay - currentDelay).toFixed(2))
+
+  return {
+    newDelay,
+    deltaSeconds,
+    matchedCueText: closest.text.replace(/<[^>]*>/g, '').trim()
+  }
+}
+
+/**
+ * Aplica fator de compensação de Framerate (23.976 fps -> 25 fps ou 25 fps -> 23.976 fps).
+ */
+export function applyFramerateCorrection(
+  currentDelay: number,
+  direction: 'to25' | 'to23976'
+): number {
+  const ratio = direction === 'to25' ? 25 / 23.976 : 23.976 / 25
+  return Number((currentDelay * ratio).toFixed(2))
 }

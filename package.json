@@ -73,6 +73,7 @@
     "fs-extra": "^11.3.0",
     "fuse.js": "^6.6.2",
     "graceful-fs": "^4.2.11",
+    "hls.js": "^1.7.3",
     "htmlparser2": "8.0.2",
     "i18next": "^22.5.1",
     "i18next-fs-backend": "^2.6.0",

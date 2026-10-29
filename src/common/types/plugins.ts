@@ -30,6 +30,7 @@ export interface PluginManifest {
   allowedDomains?: string[]
   tier?: 1 | 2 // 1 = Verificado pela Comunidade & Admin, 2 = Sideload/Externo
   homepage?: string
+  repository?: string
   minGhostVersion?: string
 }
 
@@ -370,6 +371,72 @@ export type GhostMediaCategory =
   | 'anime'
   | 'cartoon'
   | 'documentary'
+  | 'tv'
+  | 'ova'
+
+export interface GhostEpgProgram {
+  id?: string
+  channelId: string
+  title: string
+  description?: string
+  category?: string
+  start: number
+  stop: number
+  startFormatted: string
+  stopFormatted: string
+  progressPercent?: number
+  icon?: string
+}
+
+export interface GhostEpgChannel {
+  id: string
+  displayName: string
+  icon?: string
+}
+
+export interface GhostEpgSource {
+  id: string
+  name: string
+  url?: string
+  filePath?: string
+  channelCount: number
+  programCount: number
+  addedAt: string
+  lastSyncAt?: string
+  autoSync?: boolean
+}
+
+export interface GhostTvChannel {
+  id: string
+  name: string
+  logo?: string
+  url: string
+  group: string
+  tvgId?: string
+  tvgName?: string
+  isFavorite?: boolean
+  sourceType: 'm3u' | 'm3u8' | 'stremio'
+  playlistId?: string
+  addonId?: string
+  assignedEpgId?: string
+  currentProgram?: GhostEpgProgram
+  nextProgram?: GhostEpgProgram
+  stremioMetaId?: string
+  stremioType?: string
+  customHeaders?: Record<string, string>
+}
+
+export interface GhostTvPlaylist {
+  id: string
+  name: string
+  url?: string
+  filePath?: string
+  channelCount: number
+  addedAt: string
+  lastSyncAt?: string
+  autoSync?: boolean
+  epgUrl?: string
+}
 
 export interface GhostMovie {
   id: string
@@ -388,7 +455,11 @@ export interface GhostMovie {
   container?: string
   coverUrl?: string
   backdropUrl?: string
+  logoUrl?: string
+  runtime?: string
+  cast?: string[]
   synopsis?: string
+  tagline?: string
   genres?: string[]
   rating?: string
   imdbId?: string
@@ -412,6 +483,8 @@ export interface GhostMovie {
   showDirectory?: string
   customShowTitle?: string
   customCategory?: GhostMediaCategory
+  categories?: GhostMediaCategory[]
+  customCategories?: GhostMediaCategory[]
   customIsSeries?: boolean
   customSeason?: number | null
   customEpisode?: number | null
@@ -419,20 +492,28 @@ export interface GhostMovie {
   artworkLocked?: boolean
   artworkRevision?: number
   artworkMissing?: boolean
-  artworkLanguage?: 'pt' | 'local'
+  artworkLanguage?: 'pt' | 'local' | 'stremio' | string
   artworkScope?: 'show' | 'item'
   portuguesePosterUnavailable?: boolean
-  metadataProvider?: 'tmdb' | 'cinemeta'
+  metadataProvider?: 'tmdb' | 'cinemeta' | 'stremio'
   tmdbRating?: number | null
   userRating?: number
   manualWatched?: boolean
   metadataId?: string
   metadataStatus?: 'matched' | 'needs-identification' | 'error'
   lastMetadataAttempt?: string
+  isLiveStream?: boolean
+  tvChannelId?: string
+  tvGroup?: string
+  tvCurrentProgram?: GhostEpgProgram
+  tvNextProgram?: GhostEpgProgram
+  tvMatchedEpgId?: string
+  streamHeaders?: Record<string, string>
+  customHeaders?: Record<string, string>
 }
 
 export interface CinemaMetadataCandidate {
-  provider: 'tmdb' | 'cinemeta'
+  provider: 'tmdb' | 'cinemeta' | 'stremio'
   id: string
   type: 'movie' | 'series'
   title: string
@@ -446,7 +527,8 @@ export interface CinemaMetadataCandidate {
   genres?: string[]
   runtime?: string
   posters?: string[]
-  posterLanguage?: 'pt'
+  posterLanguage?: 'pt' | 'stremio' | string
+  useStremioArtwork?: boolean
   backdrops?: string[]
 }
 
@@ -457,6 +539,7 @@ export interface CinemaMetadataSettings {
   language: 'pt-BR' | 'en-US' | 'ja-JP'
   tmdbConfigured: boolean
   titleSource?: MediaTitleSource
+  useStremioArtwork?: boolean
 }
 
 export interface CinemaMetadataJob {
@@ -473,6 +556,7 @@ export interface CinemaMetadataJob {
 
 export interface CinemaUpdateOptions {
   applyToShow?: boolean
+  deleteOldArtwork?: boolean
 }
 
 export interface CinemaMediaPreferences {
@@ -490,9 +574,11 @@ export interface GhostShow {
   id: string
   showTitle: string
   mediaCategory: GhostMediaCategory
+  categories?: GhostMediaCategory[]
   coverUrl?: string
   backdropUrl?: string
   synopsis?: string
+  tagline?: string
   rating?: string
   year?: number
   resolution?: string
@@ -522,6 +608,8 @@ export interface StremioAddonManifest {
     extra?: Array<{ name: string; isRequired?: boolean; options?: string[] }>
   }>
   isEnabled?: boolean
+  idPrefixes?: string[]
+  officialId?: string
 }
 
 export interface StremioMetaPreview {
@@ -530,10 +618,27 @@ export interface StremioMetaPreview {
   name: string
   poster?: string
   background?: string
+  logo?: string
   genres?: string[]
+  trailers?: Array<{ source?: string; type?: string }> | string[]
+  trailerYtId?: string
   releaseInfo?: string
   description?: string
   imdbRating?: string
+  year?: string | number
+  cast?: string[]
+  director?: string[]
+  videos?: Array<{
+    id: string
+    title?: string
+    name?: string
+    season?: number
+    episode?: number
+    number?: number
+    released?: string
+    overview?: string
+    thumbnail?: string
+  }>
   runtime?: string
 }
 
@@ -546,10 +651,20 @@ export interface StremioStreamItem {
   behaviorHints?: {
     bingeGroup?: string
     notWebReady?: boolean
+    proxyHeaders?: {
+      request?: Record<string, string>
+      response?: Record<string, string>
+    }
+    headers?: Record<string, string>
   }
   quality?: string
   details?: string
   addonName?: string
+  addonId?: string
+  magnetUrl?: string
+  ytId?: string
+  externalUrl?: string
+  description?: string
 }
 
 export interface CinemaLibraryState {

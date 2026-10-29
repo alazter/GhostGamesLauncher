@@ -3,6 +3,7 @@ import { PluginManager } from './pluginManager'
 import { sourceSettings, saveSourceSettings } from './sourceSettings'
 import { testSourceAddress } from './sourceAddressTest'
 import { sourceEnginesState, sourceEngineAction } from './sourceEngines'
+import { nuvioAddonState, nuvioAddonAction } from './nuvioAddonUpdate'
 import { ExternalGames } from './externalGames'
 import { AnkerAccount } from './ankerAccount'
 import { TorboxClient } from './torboxClient'
@@ -32,6 +33,21 @@ export function registerPluginsIPC(): void {
             ? error.message
             : 'Não foi possível atualizar o motor.',
         state: sourceEnginesState()
+      }
+    }
+  })
+  addHandler('pluginsNuvioAddonState', async () => nuvioAddonState())
+  addHandler('pluginsNuvioAddonAction', async (_event, action) => {
+    try {
+      return { success: true, state: await nuvioAddonAction(action as any) }
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível atualizar o Nuvio Addon.',
+        state: nuvioAddonState()
       }
     }
   })
@@ -307,11 +323,31 @@ export function registerPluginsIPC(): void {
     return await provider.removeFolder(folderPath)
   })
 
-  addHandler('cinemaScanFolders', async (_event, folders?: string[]) => {
+  addHandler('cinemaScanFolders', async (_event, folders?: string[], options?: { skipMetadata?: boolean; fullScan?: boolean }) => {
     const provider = manager.getMediaProvider()
     if (!provider)
       throw new Error('Plugin Ghost Cinema & Filmes não está ativo.')
-    return await provider.scanFolders(folders)
+    return await provider.scanFolders(folders, options)
+  })
+
+  addHandler('cinemaRevalidatePaths', async (_event, folders?: string[]) => {
+    const provider = manager.getMediaProvider()
+    if (!provider)
+      throw new Error('Plugin Ghost Cinema & Filmes não está ativo.')
+    if (typeof (provider as any).revalidatePaths === 'function') {
+      return await (provider as any).revalidatePaths(folders)
+    }
+    return await provider.scanFolders(folders, { skipMetadata: true })
+  })
+
+  addHandler('cinemaRevalidateWithStremio', async (_event, movieId?: string) => {
+    const provider = manager.getMediaProvider()
+    if (!provider)
+      throw new Error('Plugin Ghost Cinema & Filmes não está ativo.')
+    if (typeof (provider as any).revalidateWithStremio !== 'function') {
+      throw new Error('Atualize o plugin Alazterflix para revalidar com o Stremio.')
+    }
+    return await (provider as any).revalidateWithStremio(movieId)
   })
 
   addHandler(
@@ -496,6 +532,57 @@ export function registerPluginsIPC(): void {
     }
   )
 
+    addHandler('cinemaGetDownloadDirectories', async () => {
+    const { getCinemaDownloadDirectories } = await import('./cinemaDownloader')
+    return getCinemaDownloadDirectories()
+  })
+
+  addHandler('cinemaSetDownloadDirectories', async (_event, dirs) => {
+    const { setCinemaDownloadDirectories } = await import('./cinemaDownloader')
+    return setCinemaDownloadDirectories(dirs)
+  })
+
+  addHandler('cinemaGetActiveDownloads', async () => {
+    const { getActiveCinemaDownloads } = await import('./cinemaDownloader')
+    return getActiveCinemaDownloads()
+  })
+
+  addHandler('cinemaCancelDownload', async (_event, id: string) => {
+    const { cancelCinemaDownload } = await import('./cinemaDownloader')
+    return cancelCinemaDownload(id)
+  })
+
+  addHandler('cinemaFindLocalMedia', async (_event, payload) => {
+    const { findLocalMediaFile } = await import('./cinemaDownloader')
+    return findLocalMediaFile(payload)
+  })
+
+  addHandler('cinemaSaveStremioMedia', async (_event, payload) => {
+    const { saveStremioMediaToLibrary, getCinemaDownloadDirectories } = await import('./cinemaDownloader')
+    const res = await saveStremioMediaToLibrary(payload)
+    try {
+      const dirs = getCinemaDownloadDirectories()
+      const targetDir = payload.targetDir || (
+        payload.type === 'anime'
+          ? (dirs.animesDir || dirs.seriesDir || dirs.moviesDir)
+          : payload.type === 'series'
+            ? (dirs.seriesDir || dirs.moviesDir)
+            : dirs.moviesDir
+      )
+      const provider = manager.getMediaProvider()
+      if (provider && targetDir) {
+        await provider.addFolder(targetDir).catch(() => {})
+        provider.scanFolders([targetDir]).catch(() => {})
+      }
+    } catch {}
+    return res
+  })
+
+  addHandler('cinemaEnsureStremioServer', async () => {
+    const { ensureStremioServer } = await import('./stremioServerManager')
+    return await ensureStremioServer()
+  })
+
   addHandler('cinemaUpdateMovie', async (_event, movie, options) => {
     const provider = manager.getMediaProvider()
     if (!provider) throw new Error('Plugin Alazterflix não está ativo.')
@@ -538,6 +625,12 @@ export function registerPluginsIPC(): void {
   addHandler('cinemaAutoCatalog', async () => {
     const provider = manager.getMediaProvider()
     if (!provider) return []
+    if (typeof (provider as any).fullScan === 'function') {
+      return await (provider as any).fullScan()
+    }
+    if (typeof provider.scanFolders === 'function') {
+      return await provider.scanFolders(undefined, { fullScan: true })
+    }
     if (typeof provider.autoCatalog === 'function') {
       return await provider.autoCatalog()
     }
@@ -587,4 +680,94 @@ export function registerPluginsIPC(): void {
       throw new Error('Atualize o plugin para configurar as capas.')
     return provider.updateMetadataSettings(settings)
   })
+
+  // TV ao Vivo, Listas M3U & M3U8 (IPTV Seguro)
+  addHandler('cinemaTvPickM3uFile', async () => {
+    return await manager.cinemaPickM3uFile()
+  })
+
+  addHandler('cinemaTvReadM3uFile', async (_event, filePath: string) => {
+    return await manager.cinemaTvReadM3uFile(filePath)
+  })
+
+  addHandler('cinemaTvFetchM3u', async (_event, url: string) => {
+    return await manager.cinemaTvFetchM3u(url)
+  })
+
+  addHandler('cinemaTvGetPlaylists', async () => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvGetPlaylists !== 'function') return []
+    return await provider.tvGetPlaylists()
+  })
+
+  addHandler('cinemaTvSavePlaylists', async (_event, playlists) => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvSavePlaylists !== 'function') return false
+    return await provider.tvSavePlaylists(playlists)
+  })
+
+  addHandler('cinemaTvGetChannels', async () => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvGetChannels !== 'function') return []
+    return await provider.tvGetChannels()
+  })
+
+  addHandler('cinemaTvSaveChannels', async (_event, channels) => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvSaveChannels !== 'function') return false
+    return await provider.tvSaveChannels(channels)
+  })
+
+  // EPG (Guia de Programação XMLTV para IPTV)
+  addHandler('cinemaTvPickEpgFile', async () => {
+    return await manager.cinemaPickEpgFile()
+  })
+
+  addHandler('cinemaTvReadEpgFile', async (_event, filePath: string) => {
+    return await manager.cinemaTvReadEpgFile(filePath)
+  })
+
+  addHandler('cinemaTvFetchEpg', async (_event, url: string) => {
+    return await manager.cinemaTvFetchEpg(url)
+  })
+
+  addHandler('cinemaTvGetEpgSources', async () => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvGetEpgSources !== 'function') return []
+    return await provider.tvGetEpgSources()
+  })
+
+  addHandler('cinemaTvSaveEpgSources', async (_event, sources) => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvSaveEpgSources !== 'function') return false
+    return await provider.tvSaveEpgSources(sources)
+  })
+
+  addHandler('cinemaTvGetEpgData', async () => {
+    return await manager.cinemaTvGetEpgData()
+  })
+
+  addHandler('cinemaTvSaveEpgData', async (_event, data) => {
+    return await manager.cinemaTvSaveEpgData(data)
+  })
+
+  addHandler('cinemaTvGetEpgAssignments', async () => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvGetEpgAssignments !== 'function') return {}
+    return await provider.tvGetEpgAssignments()
+  })
+
+  addHandler('cinemaSetStreamHeaders', async (_event, url: string, headers: Record<string, string>) => {
+    if (!url || !headers) return false
+    const { StreamHeaderStore } = await import('../streamHeaders')
+    StreamHeaderStore.getInstance().setStreamHeaders(url, headers)
+    return true
+  })
+
+  addHandler('cinemaTvSaveEpgAssignments', async (_event, assignments) => {
+    const provider = manager.getMediaProvider()
+    if (!provider || typeof provider.tvSaveEpgAssignments !== 'function') return false
+    return await provider.tvSaveEpgAssignments(assignments)
+  })
+
 }

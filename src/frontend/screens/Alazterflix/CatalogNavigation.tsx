@@ -9,7 +9,9 @@ const categories: { id: CatalogCategory; label: string }[] = [
   { id: 'series', label: 'Séries' },
   { id: 'movie', label: 'Filmes' },
   { id: 'documentary', label: 'Documentários' },
-  { id: 'cartoon', label: 'Desenhos' }
+  { id: 'cartoon', label: 'Desenhos' },
+  { id: 'ova', label: 'OVAs' },
+  { id: 'tv', label: 'TV' }
 ]
 
 interface Props {

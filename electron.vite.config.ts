@@ -51,6 +51,21 @@ export default defineConfig(({ mode }) => ({
   },
   renderer: {
     root: '.',
+    server: {
+      watch: {
+        ignored: [
+          '**/dist/**',
+          '**/build/**',
+          '**/release/**',
+          '**/.git/**',
+          '**/flatpak-build/**',
+          '**/node_modules/**'
+        ]
+      }
+    },
+    optimizeDeps: {
+      entries: ['index.html']
+    },
     build: {
       rollupOptions: {
         input: path.resolve('index.html')

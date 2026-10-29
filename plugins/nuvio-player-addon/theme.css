@@ -1,0 +1,18 @@
+/* ==========================================================================
+   Nuvio Media Player & Addon - Standalone Plugin Theme (GhostShield Sandbox)
+   ========================================================================== */
+
+:root {
+  --nuvio-theme-accent: #f5c518;
+  --nuvio-theme-accent-strong: #ffd84d;
+  --nuvio-theme-on-accent: #141414;
+  --nuvio-theme-focus: rgba(245, 197, 24, 0.42);
+  --nuvio-theme-panel-bg: rgba(12, 14, 18, 0.94);
+  --nuvio-theme-panel-border: rgba(255, 255, 255, 0.12);
+}
+
+.stremio-addon-card[data-addon-id="com.nuvio.player.addon"],
+.stremio-addon-card.nuvio-addon-highlight {
+  border-color: rgba(245, 197, 24, 0.45) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 22px rgba(245, 197, 24, 0.14) !important;
+}

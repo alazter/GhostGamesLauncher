@@ -40,7 +40,7 @@ type PathSplit = [a: undefined, b: undefined, type: string]
 export default function SidebarLinks() {
   const { t } = useTranslation()
   const [currentDMElement, setCurrentDMElement] = useState<DMQueueElement>()
-  const [isCinemaActive, setIsCinemaActive] = useState<boolean>(false)
+  const [isCinemaActive, setIsCinemaActive] = useState<boolean>(true)
 
   useEffect(() => {
     let isMounted = true
@@ -134,6 +134,7 @@ export default function SidebarLinks() {
   } = useContext(ContextProvider)
 
   const getSidebarOrder = () => {
+    const isWin = platform === 'win32'
     const saved = localStorage.getItem('heroic_sidebar_order')
     const defaultOrder = [
       'library',
@@ -148,7 +149,7 @@ export default function SidebarLinks() {
       'settings',
       'console',
       'downloads',
-      'wine-manager',
+      ...(!isWin ? ['wine-manager'] : []),
       'accessibility',
       'divider-2',
       'wiki',
@@ -159,8 +160,10 @@ export default function SidebarLinks() {
         const parsed = JSON.parse(saved) as string[]
         const orderedList: string[] = []
         parsed.forEach(id => {
-          if (defaultOrder.includes(id)) {
-            orderedList.push(id)
+          const normId = id === 'cinema' ? 'alazterflix' : id
+          if (isWin && normId === 'wine-manager') return
+          if (defaultOrder.includes(normId) && !orderedList.includes(normId)) {
+            orderedList.push(normId)
           }
         })
         defaultOrder.forEach(id => {
@@ -184,7 +187,7 @@ export default function SidebarLinks() {
                 return
               }
             }
-            if (id === 'cinema') {
+            if (id === 'alazterflix' || id === 'cinema') {
               const egIdx = orderedList.indexOf('external-games')
               if (egIdx !== -1) {
                 orderedList.splice(egIdx + 1, 0, id)
@@ -199,7 +202,7 @@ export default function SidebarLinks() {
             orderedList.push(id)
           }
         })
-        if (orderedList.length !== parsed.length) {
+        if (orderedList.length !== parsed.length || !parsed.includes('alazterflix') || (isWin && parsed.includes('wine-manager'))) {
           localStorage.setItem('heroic_sidebar_order', JSON.stringify(orderedList))
         }
         return orderedList
@@ -392,6 +395,7 @@ export default function SidebarLinks() {
           <SidebarItem
             key="alazterflix"
             url="/alazterflix"
+            isActiveFallback={location.pathname.includes('alazterflix') || location.pathname.includes('cinema')}
             icon={faFilm}
             label="Alazterflix"
             dataTour="sidebar-alazterflix"

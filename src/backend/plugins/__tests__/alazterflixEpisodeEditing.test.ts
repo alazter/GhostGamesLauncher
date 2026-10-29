@@ -393,14 +393,18 @@ describe('Alazterflix Episode Editing and Drawer Sync', () => {
       'https://m.media-amazon.com/images/M/1917-poster._V1_.jpg',
       'poster',
       undefined,
-      false
+      false,
+      true,
+      undefined
     )
     expect(saveArtworkMock).toHaveBeenCalledWith(
       'D:/Media/Filmes/1917/1917.mkv',
       'https://example.com/vertical-portrait.jpg',
       'backdrop',
       undefined,
-      false
+      false,
+      true,
+      undefined
     )
 
     // The movie is saved with the new poster, without throwing!
@@ -482,7 +486,83 @@ describe('Alazterflix Episode Editing and Drawer Sync', () => {
       imdbUrl,
       'poster',
       undefined,
-      false
+      false,
+      true,
+      undefined
+    )
+  })
+  test('passes deleteOld=false to saveArtwork when deleteOldArtwork option is false', async () => {
+    const movie = item('D:/Media/Filmes/Matrix/Matrix.mkv', {
+      id: 'movie-matrix',
+      title: 'Matrix',
+      mediaCategory: 'movie',
+      isSeries: false,
+      localCoverPath: 'D:/Media/Filmes/Matrix/old_poster.jpg'
+    })
+
+    const saveArtworkMock = jest.fn(
+      async (_path: string, _source: string, type: string) => ({
+        localPath: `D:/Media/Filmes/Matrix/${type}.jpg`,
+        streamUrl: `imagecache://localhost/${type}.jpg`
+      })
+    )
+
+    const storageObj: Record<string, any> = {
+      movies: [clone(movie)],
+      metadata_settings: { autoFetch: false }
+    }
+    let prov: any
+    const ctx = vm.createContext({
+      Buffer,
+      URL,
+      URLSearchParams,
+      setTimeout,
+      clearTimeout,
+      Date,
+      ghost: {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        storage: {
+          get: async (key: string) => clone(storageObj[key]),
+          set: async (key: string, value: any) => {
+            storageObj[key] = clone(value)
+          }
+        },
+        http: { fetch: jest.fn() },
+        ui: { injectCSS: jest.fn() },
+        media: {
+          registerMediaProvider: (registered: any) => {
+            prov = registered
+          },
+          artworkExists: async () => true,
+          scanFolder: jest.fn(),
+          saveArtwork: saveArtworkMock
+        }
+      }
+    })
+    vm.runInContext(
+      readFileSync(resolve('plugins/alazterflix/index.js'), 'utf8'),
+      ctx
+    )
+
+    await prov.updateMovie(
+      {
+        id: 'movie-matrix',
+        title: 'Matrix',
+        coverUrl: 'https://example.com/new_poster.jpg'
+      },
+      { deleteOldArtwork: false }
+    )
+
+    expect(saveArtworkMock).toHaveBeenCalledWith(
+      'D:/Media/Filmes/Matrix/Matrix.mkv',
+      'https://example.com/new_poster.jpg',
+      'poster',
+      undefined,
+      false,
+      false,
+      'D:/Media/Filmes/Matrix/old_poster.jpg'
     )
   })
 })

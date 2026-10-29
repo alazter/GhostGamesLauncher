@@ -14,6 +14,9 @@ export default function MetadataSettings({ settings, onSaved }: Props) {
   const [titleSource, setTitleSource] = useState<
     CinemaMetadataSettings['titleSource']
   >(settings?.titleSource || 'file')
+  const [useStremioArtwork, setUseStremioArtwork] = useState(
+    settings?.useStremioArtwork ?? true
+  )
   const [token, setToken] = useState('')
   const [removeToken, setRemoveToken] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -22,7 +25,8 @@ export default function MetadataSettings({ settings, onSaved }: Props) {
     setAutoFetch(settings?.autoFetch ?? true)
     setLanguage(settings?.language || 'pt-BR')
     setTitleSource(settings?.titleSource || 'file')
-  }, [settings?.autoFetch, settings?.language, settings?.titleSource])
+    setUseStremioArtwork(settings?.useStremioArtwork ?? true)
+  }, [settings?.autoFetch, settings?.language, settings?.titleSource, settings?.useStremioArtwork])
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
     setBusy(true)
@@ -32,6 +36,7 @@ export default function MetadataSettings({ settings, onSaved }: Props) {
         autoFetch,
         language,
         titleSource,
+        useStremioArtwork,
         tmdbToken: removeToken ? '' : token.trim() || undefined
       })
       onSaved(updated)
@@ -287,6 +292,14 @@ export default function MetadataSettings({ settings, onSaved }: Props) {
           onChange={(event) => setAutoFetch(event.target.checked)}
         />{' '}
         Buscar capas e informações após escanear as pastas
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={useStremioArtwork}
+          onChange={(event) => setUseStremioArtwork(event.target.checked)}
+        />{' '}
+        Permitir capas e títulos oficiais do Stremio / Cinemeta (não requer token TMDB)
       </label>
       <label>
         Idioma das informações

@@ -30,6 +30,8 @@ describe('Alazterflix cover sizes by page', () => {
       movie: 3,
       documentary: 2,
       cartoon: 2,
+      ova: 2,
+      tv: 2,
       stremio: 2
     })
     expect(saved.documentary).toBe(-1)

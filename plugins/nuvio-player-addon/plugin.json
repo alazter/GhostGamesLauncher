@@ -1,0 +1,40 @@
+{
+  "id": "com.nuvio.player.addon",
+  "name": "Nuvio Media Player & Addon (Stremio + Alazterflix)",
+  "version": "0.1.33-alpha",
+  "description": "Plugin e Addon oficial Nuvio Desktop integrado ao Alazterflix e Stremio. Adiciona o reprodutor Nuvio Media Player completo (Pause Metadata Overlay, Opening Overlay, Trilho Triplo de Legendas com Auto-Sync, Velocidade 0.25x-2x + Hold 2x, Volume Boost 200%, Skip Intro/Recap/Outro, Gavetas de Fontes e Episódios, Modos de Proporção Fit/Zoom/Stretch/Fill e PiP Lock). Atrelado ao projeto oficial NuvioMedia/NuvioDesktop no GitHub.",
+  "author": "NuvioMedia & Ghost Labs",
+  "type": "media",
+  "entrypoint": "index.js",
+  "style": "theme.css",
+  "homepage": "https://github.com/NuvioMedia/NuvioDesktop",
+  "repository": "NuvioMedia/NuvioDesktop",
+  "permissions": [
+    "ui:inject-css",
+    "ui:widgets",
+    "network",
+    "storage",
+    "media"
+  ],
+  "allowedDomains": [
+    "*.strem.io",
+    "v3-cinemeta.strem.io",
+    "opensubtitles-v3.strem.io",
+    "*.strem.fun",
+    "*.elfhosted.com",
+    "*.baby-beamup.club",
+    "images.metahub.space",
+    "api.themoviedb.org",
+    "image.tmdb.org",
+    "*.imdb.com",
+    "*.media-amazon.com",
+    "api.github.com",
+    "github.com",
+    "raw.githubusercontent.com",
+    "objects.githubusercontent.com",
+    "127.0.0.1",
+    "localhost"
+  ],
+  "tier": 1,
+  "minGhostVersion": "0.1.0"
+}

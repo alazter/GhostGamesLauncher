@@ -26,14 +26,17 @@ import type {
   CinemaMetadataSettings,
   CinemaMetadataJob,
   CinemaUpdateOptions,
-  CinemaMediaPreferences
+  CinemaMediaPreferences,
+  GhostTvPlaylist,
+  GhostTvChannel,
+  GhostEpgSource
 } from 'common/types/plugins'
 import { NetworkGuard } from './networkGuard'
 import { websiteSource } from './websiteSource'
 import type { WebsiteSourceConfig } from 'common/types/plugins'
 import { logError, logInfo, logWarning, LogPrefix } from 'backend/logger'
 import { MediaStreamServer } from './mediaStreamServer'
-import { createArtworkFinder, saveMediaArtwork } from './mediaArtwork'
+import { createArtworkFinder, saveMediaArtwork, deleteMediaArtwork } from './mediaArtwork'
 
 export interface SourceProvider {
   id: string
@@ -62,7 +65,12 @@ export interface MediaProvider {
   name: string
   getState: () => Promise<CinemaLibraryState>
   getMovies: () => Promise<GhostMovie[]>
-  scanFolders: (folders?: string[]) => Promise<GhostMovie[]>
+  scanFolders: (folders?: string[], options?: { skipMetadata?: boolean; fullScan?: boolean }) => Promise<GhostMovie[]>
+  revalidatePaths?: (folders?: string[]) => Promise<GhostMovie[]>
+  fullScan?: (folders?: string[]) => Promise<GhostMovie[]>
+  revalidateWithStremio?: (
+    movieId?: string
+  ) => Promise<{ movies: GhostMovie[]; updatedCount: number }>
   addFolder: (path: string) => Promise<CinemaLibraryState>
   removeFolder: (path: string) => Promise<CinemaLibraryState>
   saveProgress: (
@@ -77,15 +85,21 @@ export interface MediaProvider {
     error?: string
   }>
   stremioRemoveAddon: (addonId: string) => Promise<{ success: boolean }>
+  stremioToggleAddon?: (
+    addonId: string,
+    enabled: boolean
+  ) => Promise<{ success: boolean; addons?: StremioAddonManifest[] }>
   stremioGetCatalog: (
     addonId: string,
     type: string,
     catalogId: string,
     skip?: number,
-    search?: string
+    search?: string,
+    extra?: Record<string, string>
   ) => Promise<{ metas: StremioMetaPreview[]; hasMore?: boolean }>
   stremioGetMeta: (addonId: string, type: string, id: string) => Promise<any>
   stremioGetStreams: (type: string, id: string) => Promise<StremioStreamItem[]>
+  stremioGetSubtitles?: (type: string, id: string) => Promise<any[]>
   updateMovie?: (
     movie: GhostMovie,
     options?: CinemaUpdateOptions
@@ -109,6 +123,14 @@ export interface MediaProvider {
       tmdbToken?: string
     }
   ) => Promise<CinemaMetadataSettings>
+  tvGetPlaylists?: () => Promise<GhostTvPlaylist[]>
+  tvSavePlaylists?: (playlists: GhostTvPlaylist[]) => Promise<boolean>
+  tvGetChannels?: () => Promise<GhostTvChannel[]>
+  tvSaveChannels?: (channels: GhostTvChannel[]) => Promise<boolean>
+  tvGetEpgSources?: () => Promise<GhostEpgSource[]>
+  tvSaveEpgSources?: (sources: GhostEpgSource[]) => Promise<boolean>
+  tvGetEpgAssignments?: () => Promise<Record<string, string>>
+  tvSaveEpgAssignments?: (assignments: Record<string, string>) => Promise<boolean>
 }
 
 export class PluginHost {
@@ -534,7 +556,9 @@ export class PluginHost {
           imageSource: string,
           type: 'poster' | 'backdrop',
           showDir?: string,
-          singleItem = false
+          singleItem = false,
+          deleteOld = true,
+          oldArtworkPath?: string
         ) => {
           if (!this.manifest.permissions.includes('media'))
             throw new Error('Permissão media necessária para salvar capas.')
@@ -544,8 +568,15 @@ export class PluginHost {
             imageSource,
             type,
             showDir,
-            singleItem
+            singleItem,
+            deleteOld,
+            oldArtworkPath
           )
+        },
+        deleteArtwork: async (artworkPath: string) => {
+          if (!this.manifest.permissions.includes('media'))
+            throw new Error('Permissão media necessária para excluir capas.')
+          return deleteMediaArtwork(artworkPath)
         },
         getStreamUrl: async (filePath: string): Promise<string> => {
           if (!this.manifest.permissions.includes('media')) {

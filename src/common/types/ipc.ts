@@ -94,7 +94,12 @@ import type {
   CinemaMetadataJob,
   CinemaUpdateOptions,
   CinemaMediaPreferences,
-  GhostHomeContent
+  GhostHomeContent,
+  GhostTvPlaylist,
+  GhostEpgSource,
+  GhostEpgChannel,
+  GhostEpgProgram,
+  GhostTvChannel
 } from './plugins'
 
 // ts-prune-ignore-next
@@ -631,6 +636,16 @@ interface AsyncIPCFunctions {
     error?: string
     state: import('./sourceEngines').SourceEnginesState
   }>
+  pluginsNuvioAddonState: () => Promise<
+    import('./nuvioUpdate').NuvioAddonUpdateState
+  >
+  pluginsNuvioAddonAction: (
+    action: import('./nuvioUpdate').NuvioAddonAction
+  ) => Promise<{
+    success: boolean
+    error?: string
+    state: import('./nuvioUpdate').NuvioAddonUpdateState
+  }>
   externalGamesState: () => Promise<ExternalGamesState>
   downloadIntegrationsState: () => Promise<DownloadIntegrationsState>
   downloadIntegrationsAction: (
@@ -736,7 +751,11 @@ interface AsyncIPCFunctions {
   cinemaPickFolder: () => Promise<string | null>
   cinemaAddFolder: (folderPath: string) => Promise<CinemaLibraryState>
   cinemaRemoveFolder: (folderPath: string) => Promise<CinemaLibraryState>
-  cinemaScanFolders: (folders?: string[]) => Promise<GhostMovie[]>
+  cinemaScanFolders: (folders?: string[], options?: { skipMetadata?: boolean; fullScan?: boolean }) => Promise<GhostMovie[]>
+  cinemaRevalidatePaths: (folders?: string[]) => Promise<GhostMovie[]>
+  cinemaRevalidateWithStremio: (
+    movieId?: string
+  ) => Promise<{ movies: GhostMovie[]; updatedCount: number }>
   cinemaSaveProgress: (
     movieId: string,
     progressSeconds: number,
@@ -801,13 +820,18 @@ interface AsyncIPCFunctions {
     error?: string
   }>
   cinemaStremioRemoveAddon: (addonId: string) => Promise<{ success: boolean }>
+  cinemaStremioToggleAddon: (
+    addonId: string,
+    enabled: boolean
+  ) => Promise<{ success: boolean; addons?: StremioAddonManifest[] }>
   cinemaStremioGetCatalog: (
     addonId: string,
     type: string,
     catalogId: string,
     skip?: number,
-    search?: string
-  ) => Promise<{ metas: StremioMetaPreview[]; hasMore?: boolean }>
+    search?: string,
+    extra?: Record<string, string>
+  ) => Promise<{ metas: StremioMetaPreview[]; hasMore?: boolean; addonId?: string; addonName?: string }>
   cinemaStremioGetMeta: (
     addonId: string,
     type: string,
@@ -817,6 +841,61 @@ interface AsyncIPCFunctions {
     type: string,
     id: string
   ) => Promise<StremioStreamItem[]>
+  cinemaEnsureStremioServer: () => Promise<{
+    online: boolean
+    url: string
+    message?: string
+  }>
+
+  cinemaGetDownloadDirectories: () => Promise<{
+    moviesDir?: string
+    seriesDir?: string
+    animesDir?: string
+    autoOrganize?: boolean
+  }>
+  cinemaSetDownloadDirectories: (dirs: {
+    moviesDir?: string
+    seriesDir?: string
+    animesDir?: string
+    autoOrganize?: boolean
+  }) => Promise<{
+    moviesDir?: string
+    seriesDir?: string
+    animesDir?: string
+    autoOrganize?: boolean
+  }>
+  cinemaGetActiveDownloads: () => Promise<any[]>
+  cinemaCancelDownload: (id: string) => Promise<boolean>
+  cinemaFindLocalMedia: (payload: {
+    title: string
+    season?: number
+    episode?: number
+    year?: string
+    type?: 'movie' | 'series' | 'anime'
+  }) => Promise<{
+    exists: boolean
+    filePath?: string
+    fileName?: string
+    fileSize?: string
+    fileSizeBytes?: number
+    resolution?: string
+  }>
+  cinemaSaveStremioMedia: (payload: {
+    streamUrl: string
+    magnetUrl?: string
+    type: 'movie' | 'series' | 'anime'
+    title: string
+    year?: string
+    season?: number
+    episode?: number
+    episodeTitle?: string
+    posterUrl?: string
+    backdropUrl?: string
+    overview?: string
+    rating?: number
+    genres?: string[]
+    targetDir?: string
+  }) => Promise<{ success: boolean; targetPath: string; message: string }>
   cinemaUpdateMovie: (
     movie: GhostMovie,
     options?: CinemaUpdateOptions
@@ -846,6 +925,31 @@ interface AsyncIPCFunctions {
       tmdbToken?: string
     }
   ) => Promise<CinemaMetadataSettings>
+  cinemaTvPickM3uFile: () => Promise<string | null>
+  cinemaTvReadM3uFile: (
+    filePath: string
+  ) => Promise<any>
+  cinemaTvFetchM3u: (
+    url: string
+  ) => Promise<any>
+  cinemaTvGetPlaylists: () => Promise<GhostTvPlaylist[]>
+  cinemaTvSavePlaylists: (playlists: GhostTvPlaylist[]) => Promise<boolean>
+  cinemaTvGetChannels: () => Promise<GhostTvChannel[]>
+  cinemaTvSaveChannels: (channels: GhostTvChannel[]) => Promise<boolean>
+  cinemaTvPickEpgFile: () => Promise<string | null>
+  cinemaTvReadEpgFile: (filePath: string) => Promise<any>
+  cinemaTvFetchEpg: (url: string) => Promise<any>
+  cinemaTvGetEpgSources: () => Promise<GhostEpgSource[]>
+  cinemaTvSaveEpgSources: (sources: GhostEpgSource[]) => Promise<boolean>
+  cinemaTvGetEpgData: () => Promise<{
+    channels: GhostEpgChannel[]
+    programs: GhostEpgProgram[]
+    updatedAt: string | null
+  }>
+  cinemaTvSaveEpgData: (data: any) => Promise<boolean>
+  cinemaTvGetEpgAssignments: () => Promise<Record<string, string>>
+  cinemaTvSaveEpgAssignments: (assignments: Record<string, string>) => Promise<boolean>
+  cinemaSetStreamHeaders: (url: string, headers: Record<string, string>) => Promise<boolean>
 }
 
 export interface DetectedVersionResult {

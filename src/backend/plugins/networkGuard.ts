@@ -241,17 +241,43 @@ export class NetworkGuard {
     const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 15000)
 
     try {
-      const response = await fetch(check.parsedUrl.toString(), {
-        dispatcher: secureDispatcher(),
-        redirect: 'error',
-        method: options.method || 'GET',
-        headers: {
-          'User-Agent': `GhostLauncher/${manifest.id}/${manifest.version}`,
-          ...options.headers
-        },
-        body: options.body,
-        signal: controller.signal
-      } as RequestInit)
+      let currentUrl = check.parsedUrl.toString()
+      let response: Response | null = null
+      const maxRedirects = 5
+
+      for (let hop = 0; hop <= maxRedirects; hop++) {
+        response = await fetch(currentUrl, {
+          dispatcher: secureDispatcher(),
+          redirect: 'manual',
+          method: hop === 0 ? options.method || 'GET' : 'GET',
+          headers: {
+            'User-Agent': `GhostLauncher/${manifest.id}/${manifest.version}`,
+            ...options.headers
+          },
+          body: hop === 0 ? options.body : undefined,
+          signal: controller.signal
+        } as RequestInit)
+
+        if ([301, 302, 303, 307, 308].includes(response.status)) {
+          const location = response.headers?.get?.('location')
+          if (!location) break
+          if (hop === maxRedirects) {
+            throw new Error('[GhostShield Network Violation]: Too many redirects')
+          }
+          const resolvedUrl = new URL(location, currentUrl).toString()
+          const redirectCheck = this.validateUrl(resolvedUrl, manifest)
+          if (!redirectCheck.allowed || !redirectCheck.parsedUrl) {
+            throw new Error(`[GhostShield Network Violation]: Redirect blocked (${redirectCheck.reason})`)
+          }
+          currentUrl = redirectCheck.parsedUrl.toString()
+          continue
+        }
+        break
+      }
+
+      if (!response) {
+        throw new Error('Failed to fetch response')
+      }
 
       const text = await response.text()
 

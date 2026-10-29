@@ -1,4 +1,4 @@
-import { memo, useEffect, useId, useRef, useState } from 'react'
+import { memo, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCheck,
@@ -9,7 +9,7 @@ import {
   faStar
 } from '@fortawesome/free-solid-svg-icons'
 import { mediaPoster } from 'common/mediaCatalog'
-import type { GhostMovie, GhostShow } from 'common/types/plugins'
+import type { GhostMovie, GhostShow, GhostMediaCategory } from 'common/types/plugins'
 import { getMediaImageUrl } from './imageUrl'
 import {
   CardPreferences,
@@ -20,12 +20,24 @@ import {
 
 import './cardStyles.scss'
 
-const categoryLabels = {
+const categoryLabels: Record<string, string> = {
   anime: 'Animes',
   series: 'Séries',
   movie: 'Filmes',
   documentary: 'Documentários',
-  cartoon: 'Desenhos'
+  cartoon: 'Desenhos',
+  ova: 'OVAs',
+  tv: 'TV ao Vivo'
+}
+
+const categoryBadgeLabels: Record<string, string> = {
+  anime: 'Anime',
+  series: 'Série',
+  movie: 'Filme',
+  documentary: 'Documentário',
+  cartoon: 'Desenho',
+  ova: 'OVA',
+  tv: 'TV ao Vivo'
 }
 
 type Props = {
@@ -36,6 +48,7 @@ type Props = {
   onToggleWatched?: () => Promise<void> | void
   onRate?: (rating: number | null) => Promise<void> | void
   onPlay?: (movie: GhostMovie) => void
+  onPlayShow?: (show: GhostShow) => void
 } & (
   | { show: GhostShow; onSelect: (show: GhostShow) => void }
   | { movie: GhostMovie; onSelect: (movie: GhostMovie) => void }
@@ -109,6 +122,19 @@ export default memo(function CatalogPoster(props: Props) {
       savingRating.current = false
     }
   }
+  const itemCategories: GhostMediaCategory[] =
+    ('show' in props
+      ? props.show.categories && props.show.categories.length > 0
+        ? props.show.categories
+        : props.show.mediaCategory
+        ? [props.show.mediaCategory]
+        : ['movie']
+      : props.movie.categories && props.movie.categories.length > 0
+      ? props.movie.categories
+      : props.movie.mediaCategory
+      ? [props.movie.mediaCategory]
+      : [props.movie.isSeries ? 'series' : 'movie']) as GhostMediaCategory[]
+
   const category =
     'show' in props ? props.show.mediaCategory : movie.mediaCategory || 'movie'
   const length =
@@ -135,6 +161,46 @@ export default memo(function CatalogPoster(props: Props) {
         <FontAwesomeIcon icon={faFilm} />
       </span>
     )
+
+  const primaryCategory = itemCategories[0] || 'movie'
+  const primaryCategoryLabel = useMemo(() => {
+    switch (primaryCategory) {
+      case 'anime':
+        return '⛩️ ANIMES'
+      case 'series':
+        return '📺 SÉRIES'
+      case 'cartoon':
+        return '🎨 DESENHOS'
+      case 'documentary':
+        return '🌍 DOCS'
+      case 'ova':
+        return '📀 OVAS'
+      case 'movie':
+      default:
+        return '🎬 FILMES'
+    }
+  }, [primaryCategory])
+
+  const tagline = useMemo(() => {
+    const rawTagline = movie.tagline || ('show' in props ? props.show.tagline : undefined)
+    if (rawTagline) {
+      const clean = rawTagline.replace(/^"+|"+$/g, '').trim()
+      return clean ? `"${clean}"` : ''
+    }
+    const syn = movie.synopsis || ('show' in props ? props.show.synopsis : '')
+    if (!syn) return ''
+    const match = syn.match(/^([^.!?]+[.!?])/)?.[1]
+    const extracted = match ? match.trim() : syn.slice(0, 48).trim() + '...'
+    return extracted ? `"${extracted.replace(/^"+|"+$/g, '')}"` : ''
+  }, [movie.tagline, movie.synopsis, props])
+
+  const resBadge = useMemo(() => {
+    const res =
+      movie.resolution ||
+      ('show' in props ? props.show.resolution : undefined) ||
+      '1080p'
+    return res.includes('4K') ? '4K HDR' : `${res} REMUX`
+  }, [movie.resolution, props])
 
   if (modern)
     return (
@@ -182,13 +248,32 @@ export default memo(function CatalogPoster(props: Props) {
               }}
             >
               {image}
+              {!clean && !open && (
+                <div className="catalog-cover-badges">
+                {itemCategories.map((c) => (
+                  <span
+                    key={c}
+                    className={`catalog-cover-badge catalog-cover-badge--${c}`}
+                  >
+                    {categoryBadgeLabels[c] || c}
+                  </span>
+                ))}
+              </div>
+              )}
             </button>
           </div>
           {!clean && (
             <div className="catalog-modern-caption" aria-hidden={open}>
-              <span className="catalog-modern-category">
-                {categoryLabels[category]}
-              </span>
+              <div className="catalog-category-badges">
+                {itemCategories.map((c) => (
+                  <span
+                    key={c}
+                    className={`catalog-modern-category catalog-category-badge--${c}`}
+                  >
+                    {categoryBadgeLabels[c] || c}
+                  </span>
+                ))}
+              </div>
               <h4>{title}</h4>
               <span className="catalog-modern-rating">
                 <FontAwesomeIcon icon={faStar} /> {tmdbRating ?? '—'}{' '}
@@ -197,147 +282,113 @@ export default memo(function CatalogPoster(props: Props) {
             </div>
           )}
           {open && (
-            <div className="catalog-hover-panel" id={panelId}>
-              <div className="catalog-overlay-top">
-                <span className="catalog-modern-category">
-                  {categoryLabels[category]}
+            <div className="catalog-hover-panel fade-cinematic-b" id={panelId}>
+              {/* Topo: Categoria + Ações */}
+              <div className="catalog-hover-top">
+                <span className="catalog-hover-category-tag">
+                  {primaryCategoryLabel}
                 </span>
-                <div className="catalog-media-actions">
+                <div className="catalog-hover-actions-top">
                   <button
                     type="button"
-                    className="catalog-icon-action"
-                    aria-label={`${props.isFavorite ? 'Remover' : 'Adicionar'} ${title} ${props.isFavorite ? 'dos favoritos' : 'aos favoritos'}`}
+                    className={`btn-circle-blur ${props.isFavorite ? 'active' : ''}`}
+                    aria-label={`${props.isFavorite ? 'Remover' : 'Adicionar'} ${title} dos favoritos`}
                     aria-pressed={props.isFavorite}
-                    onClick={() => props.onToggleFavorite(movie.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      props.onToggleFavorite(movie.id)
+                    }}
+                    title={props.isFavorite ? 'Remover dos Favoritos' : 'Favoritar'}
                   >
                     <FontAwesomeIcon icon={faStar} />
                   </button>
                   <button
                     type="button"
-                    className="catalog-icon-action catalog-watched-action"
+                    className={`btn-circle-blur ${props.isWatched ? 'active-check' : ''}`}
                     aria-label={`${props.isWatched ? 'Desmarcar' : 'Marcar'} ${title} como assistido`}
                     aria-pressed={props.isWatched === true}
                     disabled={pending}
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.stopPropagation()
                       setPending(true)
                       try {
                         await props.onToggleWatched?.()
-                        setFeedback(
-                          props.isWatched
-                            ? 'Desmarcado como assistido.'
-                            : 'Marcado como assistido.'
-                        )
-                      } catch (error) {
-                        setFeedback(
-                          error instanceof Error
-                            ? error.message
-                            : 'Não foi possível salvar o status assistido.'
-                        )
                       } finally {
                         setPending(false)
                       }
                     }}
+                    title={props.isWatched ? 'Desmarcar como Assistido' : 'Marcar como Assistido'}
                   >
                     <FontAwesomeIcon icon={faCheck} />
                   </button>
                 </div>
               </div>
-              {clean && !preferences.showTitle && <h4>{title}</h4>}
-              <div className="catalog-card-ratings">
-                <div>
-                  <span className="catalog-meta-label">Nota TMDB</span>
-                  <span className="catalog-modern-rating">
-                    <FontAwesomeIcon icon={faStar} /> {tmdbRating ?? '—'}{' '}
-                    <span>/10</span>
-                  </span>
-                </div>
-                <label htmlFor={ratingId}>
-                  <span className="catalog-meta-label">Sua nota</span>
-                  <span className="catalog-user-rating">
-                    <input
-                      id={ratingId}
-                      aria-label={`Sua nota de 0 a 10 para ${title}`}
-                      type="text"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      maxLength={12}
-                      placeholder="Sem nota"
-                      value={draftRating}
-                      disabled={pending}
-                      aria-invalid={invalidRating}
-                      aria-describedby={invalidRating ? errorId : undefined}
-                      onChange={(event) => setDraftRating(event.target.value)}
-                      onBlur={() => {
-                        void commitRating()
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault()
-                          void commitRating()
-                        }
-                      }}
-                    />
-                    <span>/10</span>
-                  </span>
-                </label>
-              </div>
-              {invalidRating && (
-                <span className="catalog-card-error" id={errorId} role="alert">
-                  Digite uma nota de 0 a 10.
-                </span>
-              )}
-              <dl className="catalog-card-facts">
-                <div>
-                  <dt>Lançamento</dt>
-                  <dd>{movie.year ?? 'Não informado'}</dd>
-                </div>
-                <div>
-                  <dt>
-                    {'show' in props && props.show.isSeries
-                      ? 'Duração / episódio'
-                      : 'Duração'}
-                  </dt>
-                  <dd>{duration}</dd>
-                </div>
-                {'show' in props && props.show.isSeries && (
-                  <div>
-                    <dt>Temporadas</dt>
-                    <dd>{length}</dd>
-                  </div>
+
+              {/* Centro Livre: Deixa a Arte 100% Visível e Nítida sem nada no meio */}
+              <div className="catalog-hover-spacer" />
+
+              {/* Rodapé: Título, Tagline, Linha de Metadados e Botões Play + Detalhes */}
+              <div className="catalog-hover-bottom">
+                <h4 className="catalog-hover-title" title={title}>
+                  {title}
+                </h4>
+
+                {tagline && (
+                  <p className="catalog-hover-tagline" title={tagline}>
+                    {tagline}
+                  </p>
                 )}
-                {!('show' in props) && movie.isSeries && (
-                  <div>
-                    <dt>Episódio</dt>
-                    <dd>
-                      {movie.season !== undefined ? `T${movie.season}` : ''}
-                      {movie.episode !== undefined
-                        ? ` · E${movie.episode}`
-                        : ''}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              <div className="catalog-card-actions">
-                <button
-                  type="button"
-                  className="catalog-card-play"
-                  onClick={() => props.onPlay?.(movie)}
-                >
-                  <FontAwesomeIcon icon={faPlay} /> Play
-                </button>
-                <button
-                  type="button"
-                  className="catalog-card-details"
-                  onClick={select}
-                >
-                  <FontAwesomeIcon icon={faInfoCircle} /> Detalhes
-                </button>
+
+                <div className="catalog-hover-metas-row">
+                  {tmdbRating !== undefined && (
+                    <span className="meta-star-rating">
+                      <FontAwesomeIcon icon={faStar} /> {tmdbRating}
+                    </span>
+                  )}
+                  {movie.year && (
+                    <>
+                      <span className="meta-dot">·</span>
+                      <span className="meta-year">{movie.year}</span>
+                    </>
+                  )}
+                  {('show' in props && props.show.isSeries ? length : duration) && (
+                    <>
+                      <span className="meta-dot">·</span>
+                      <span className="meta-duration">
+                        {'show' in props && props.show.isSeries ? length : duration}
+                      </span>
+                    </>
+                  )}
+                  <span className="meta-res-badge">{resBadge}</span>
+                </div>
+
+                <div className="catalog-hover-buttons-grid">
+                  <button
+                    type="button"
+                    className="catalog-card-play"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if ('show' in props && props.onPlayShow) {
+                        props.onPlayShow(props.show)
+                      } else {
+                        props.onPlay?.(movie)
+                      }
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faPlay} /> Play
+                  </button>
+                  <button
+                    type="button"
+                    className="catalog-card-details"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      select()
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faInfoCircle} /> Detalhes
+                  </button>
+                </div>
               </div>
-              {feedback && (
-                <span className="catalog-card-feedback" role="status">
-                  {feedback}
-                </span>
-              )}
             </div>
           )}
         </div>
@@ -367,9 +418,16 @@ export default memo(function CatalogPoster(props: Props) {
           {image}
           <span className="catalog-poster-art-title">{title}</span>
         </button>
-        <span className="catalog-poster-category">
-          {categoryLabels[category]}
-        </span>
+        <div className="catalog-cover-badges">
+          {itemCategories.map((c) => (
+            <span
+              key={c}
+              className={`catalog-cover-badge catalog-cover-badge--${c}`}
+            >
+              {categoryBadgeLabels[c] || c}
+            </span>
+          ))}
+        </div>
         <button
           type="button"
           className="catalog-poster-save"

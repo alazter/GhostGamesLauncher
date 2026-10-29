@@ -13,6 +13,8 @@ export const coverSizePages = [
   'movie',
   'documentary',
   'cartoon',
+  'ova',
+  'tv',
   'stremio'
 ] as const
 export type CoverSizePage = (typeof coverSizePages)[number]

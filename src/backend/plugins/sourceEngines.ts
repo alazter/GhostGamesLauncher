@@ -792,7 +792,7 @@ export async function initializeSourceEngines(
       }
     }
   const timer = setTimeout(
-    () => void checkSourceEngines().catch(() => undefined),
+    () => void checkSourceEngines(Boolean(state.automatic)).catch(() => undefined),
     30000
   )
   timer.unref()
@@ -808,6 +808,9 @@ export async function sourceEngineAction(action: SourceEngineAction) {
   if (action.type === 'automatic') {
     state.automatic = Boolean(action.enabled)
     await persist()
+    if (state.automatic) {
+      await checkSourceEngines(true)
+    }
   } else if (action.type === 'check') await checkSourceEngines(true)
   else {
     if (!ids.includes(action.id)) throw new Error('Motor desconhecido.')

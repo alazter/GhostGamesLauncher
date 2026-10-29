@@ -1,0 +1,658 @@
+/* =========================================================================
+   STREMIO FULLSCREEN DETAILS & PLAY EXPERIENCE (PARIDADE 1:1 COM O STREMIO)
+   ========================================================================= */
+
+.stremio-fullscreen-details-view {
+  position: fixed;
+  inset: 0;
+  z-index: 2150;
+  background: #04060a;
+  color: #eef1f6;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+
+  /* Camada de Fundo Imersiva com Gradientes Cruzados */
+  .stremio-details-bg-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+
+    .stremio-details-bg-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center top;
+      filter: brightness(0.68) saturate(1.15);
+      transform: scale(1.02);
+    }
+
+    .stremio-details-bg-gradient-h {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        90deg,
+        #04060a 0%,
+        rgba(4, 6, 10, 0.88) 42%,
+        rgba(4, 6, 10, 0.45) 75%,
+        rgba(4, 6, 10, 0.8) 100%
+      );
+    }
+
+    .stremio-details-bg-gradient-v {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        180deg,
+        rgba(4, 6, 10, 0.3) 0%,
+        rgba(4, 6, 10, 0.6) 65%,
+        #04060a 100%
+      );
+    }
+  }
+
+  /* Topbar Minimalista */
+  .stremio-details-topbar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    flex-shrink: 0;
+
+    .stremio-btn-back {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      transition: all 0.15s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.35);
+        transform: translateX(-2px);
+      }
+    }
+
+    .stremio-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .stremio-btn-top-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: #cbd5e1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        backdrop-filter: blur(8px);
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.18);
+          color: #ffffff;
+        }
+      }
+
+      .stremio-user-avatar-badge {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #fbbf24;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+    }
+  }
+
+  /* Grid Central de Conteúdo */
+  .stremio-details-body-grid {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1.15fr 490px;
+    gap: 48px;
+    padding: 0 44px 28px;
+    min-height: 0;
+    overflow: hidden;
+
+    /* Coluna Esquerda: Hero Editorial */
+    .stremio-details-hero-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding-bottom: 20px;
+      max-width: 720px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+      }
+
+      .stremio-hero-logo {
+        max-height: 120px;
+        max-width: 360px;
+        object-fit: contain;
+        margin-bottom: 22px;
+        filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.95));
+      }
+
+      .stremio-hero-title {
+        font-size: 40px;
+        font-weight: 900;
+        margin: 0 0 16px;
+        color: #ffffff;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.95);
+      }
+
+      .stremio-hero-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+
+        .meta-runtime {
+          font-size: 15px;
+          font-weight: 800;
+          color: #ffffff;
+        }
+
+        .meta-year {
+          font-size: 14px;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .meta-imdb-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+
+          .imdb-score {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+          }
+
+          .imdb-badge {
+            background: #f5c518;
+            color: #000000;
+            font-weight: 900;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            letter-spacing: -0.5px;
+          }
+        }
+      }
+
+      .stremio-details-section {
+        margin-bottom: 20px;
+
+        .section-heading-tag {
+          font-size: 11px;
+          font-weight: 800;
+          color: #94a3b8;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .pills-flow-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+      }
+
+      .stremio-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 14px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: #cbd5e1;
+        font-size: 12.5px;
+        font-weight: 600;
+        backdrop-filter: blur(8px);
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.28);
+          color: #ffffff;
+        }
+      }
+
+      .stremio-summary-body {
+        font-size: 13.5px;
+        line-height: 1.65;
+        color: #cbd5e1;
+        margin: 0;
+        max-width: 640px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      }
+
+      /* Barra de Ações */
+      .stremio-action-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 26px;
+        flex-wrap: wrap;
+
+        .btn-trailer-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 18px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          backdrop-filter: blur(8px);
+          transition: all 0.15s ease;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-1px);
+          }
+        }
+
+        .btn-action-circle {
+          width: 38px;
+          height: 38px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          color: #cbd5e1;
+          font-size: 13px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(8px);
+          transition: all 0.15s ease;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+          }
+
+          &.active {
+            color: #ff3d47;
+            border-color: rgba(255, 61, 71, 0.5);
+            background: rgba(255, 61, 71, 0.15);
+          }
+        }
+
+        /* Botão Primário Verde Neon Stremio */
+        .btn-local-play-glow {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 22px;
+          border-radius: 8px;
+          background: rgba(0, 229, 153, 0.08);
+          border: 1.5px solid #00e599;
+          color: #00e599;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+          box-shadow: 0 0 18px rgba(0, 229, 153, 0.22);
+          backdrop-filter: blur(8px);
+          transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+          &:hover {
+            background: #00e599;
+            color: #04060a;
+            box-shadow: 0 0 28px rgba(0, 229, 153, 0.6);
+            transform: translateY(-1px) scale(1.02);
+          }
+        }
+      }
+    }
+
+    /* Coluna Direita: Gaveta de Episódios Stremio */
+    .stremio-details-drawer-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+
+      .stremio-drawer-container {
+        background: #0b0f17;
+        border: 1px solid #1c2433;
+        border-radius: 18px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+        overflow: hidden;
+
+        /* Navegador de Temporadas */
+        .stremio-drawer-nav-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 14px;
+          flex-shrink: 0;
+
+          .stremio-nav-step-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+
+            &:hover:not(:disabled) {
+              color: #ffffff;
+              background: rgba(255, 255, 255, 0.08);
+            }
+
+            &:disabled {
+              opacity: 0.35;
+              cursor: not-allowed;
+            }
+          }
+
+          .stremio-season-dropdown-box {
+            position: relative;
+            flex: 1;
+            text-align: center;
+
+            .stremio-season-current-trigger {
+              background: rgba(255, 255, 255, 0.06);
+              border: 1px solid rgba(255, 255, 255, 0.16);
+              border-radius: 20px;
+              padding: 6px 18px;
+              color: #ffffff;
+              font-size: 13px;
+              font-weight: 700;
+              cursor: pointer;
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+              transition: all 0.15s ease;
+
+              &:hover {
+                background: rgba(255, 255, 255, 0.14);
+                border-color: rgba(255, 255, 255, 0.3);
+              }
+            }
+
+            .stremio-seasons-menu-popover {
+              position: absolute;
+              top: calc(100% + 8px);
+              left: 50%;
+              transform: translateX(-50%);
+              width: 220px;
+              max-height: 260px;
+              overflow-y: auto;
+              background: #0f172a;
+              border: 1px solid #334155;
+              border-radius: 12px;
+              box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95);
+              z-index: 100;
+              padding: 6px;
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+
+              .stremio-season-opt {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 12px;
+                border-radius: 8px;
+                background: transparent;
+                border: none;
+                color: #cbd5e1;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.15s ease;
+
+                &:hover {
+                  background: rgba(255, 255, 255, 0.1);
+                  color: #ffffff;
+                }
+
+                &.selected {
+                  background: rgba(0, 229, 153, 0.15);
+                  color: #00e599;
+                  font-weight: 800;
+                }
+
+                .count-tag {
+                  font-size: 11px;
+                  color: #64748b;
+                  font-weight: 700;
+                }
+              }
+            }
+          }
+        }
+
+        /* Busca de Vídeos / Episódios */
+        .stremio-videos-search-row {
+          position: relative;
+          margin-bottom: 14px;
+          flex-shrink: 0;
+
+          .stremio-search-input {
+            width: 100%;
+            background: #131b29;
+            border: 1px solid #243044;
+            border-radius: 8px;
+            padding: 8px 36px 8px 14px;
+            color: #ffffff;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.15s ease;
+
+            &:focus {
+              border-color: #00e599;
+              box-shadow: 0 0 12px rgba(0, 229, 153, 0.2);
+            }
+
+            &::placeholder {
+              color: #64748b;
+            }
+          }
+
+          .search-icon-inside {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 13px;
+            pointer-events: none;
+          }
+        }
+
+        /* Lista de Cards de Episódio com Scroll */
+        .stremio-episodes-cards-scroll {
+          flex: 1;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding-right: 4px;
+          scrollbar-width: thin;
+
+          &::-webkit-scrollbar {
+            width: 5px;
+          }
+          &::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 4px;
+          }
+
+          .stremio-ep-card-item {
+            display: flex;
+            gap: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.08);
+              border-color: rgba(0, 229, 153, 0.4);
+              transform: translateX(3px);
+            }
+
+            &.playing-highlight {
+              border-color: #00e599;
+              background: rgba(0, 229, 153, 0.08);
+              box-shadow: 0 0 16px rgba(0, 229, 153, 0.25);
+            }
+
+            .ep-thumb-aspect-box {
+              position: relative;
+              width: 136px;
+              aspect-ratio: 16 / 9;
+              border-radius: 6px;
+              overflow: hidden;
+              background: #1e293b;
+              flex-shrink: 0;
+
+              .ep-thumb-img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transition: transform 0.2s ease;
+              }
+
+              .ep-thumb-placeholder {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #64748b;
+                font-size: 20px;
+              }
+
+              /* Badge [💾 NO PC] Verde Neon Fiel ao Stremio */
+              .ep-pc-status-badge {
+                position: absolute;
+                bottom: 4px;
+                right: 4px;
+                background: rgba(4, 6, 10, 0.88);
+                border: 1px solid rgba(0, 229, 153, 0.65);
+                color: #00e599;
+                font-size: 9.5px;
+                font-weight: 800;
+                padding: 1.5px 6px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                backdrop-filter: blur(4px);
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+                letter-spacing: 0.02em;
+              }
+            }
+
+            .ep-info-side {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              gap: 6px;
+              overflow: hidden;
+
+              .ep-title-main {
+                font-size: 13px;
+                font-weight: 700;
+                color: #ffffff;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+
+              .ep-meta-sub {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                .ep-date-text {
+                  font-size: 11.5px;
+                  color: #94a3b8;
+                }
+
+                .ep-quick-edit-btn {
+                  background: transparent;
+                  border: none;
+                  color: #64748b;
+                  font-size: 12px;
+                  cursor: pointer;
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  transition: all 0.15s ease;
+
+                  &:hover {
+                    color: #00e599;
+                    background: rgba(0, 229, 153, 0.12);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -8,32 +8,62 @@ export const normalizeMediaTitle = (title: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
 
+const CATEGORY_ROOT_NAMES = new Set([
+  'filmes',
+  'movies',
+  'series',
+  'shows',
+  'anime',
+  'animes',
+  'desenhos',
+  'cartoons',
+  'documentarios',
+  'documentaries',
+  'ova',
+  'ovas'
+])
+
 export function mediaWorkKey(movie: GhostMovie): string {
-  if (!movie.isSeries || movie.mediaCategory === 'movie')
-    return `file:${movie.filePath}`
-  const parts = movie.filePath.replace(/\\/g, '/').split('/')
+  const normPath = (movie.filePath || '').replace(/\\/g, '/')
+  const parts = normPath.split('/')
   const root = parts.findIndex((part) =>
-    [
-      'series',
-      'shows',
-      'anime',
-      'animes',
-      'desenhos',
-      'cartoons',
-      'documentarios',
-      'documentaries'
-    ].includes(normalizeMediaTitle(part))
+    CATEGORY_ROOT_NAMES.has(normalizeMediaTitle(part))
   )
   const directory =
     movie.showDirectory ||
     (root !== -1 && root + 2 < parts.length
       ? parts.slice(0, root + 2).join('/')
       : '')
-  return [
-    movie.mediaCategory || 'series',
-    directory.replace(/\\/g, '/').toLowerCase(),
-    normalizeMediaTitle(movie.showTitle || movie.cleanTitle || movie.title)
-  ].join(':')
+
+  const dirParts = directory
+    ? directory.replace(/\\/g, '/').split('/').filter(Boolean)
+    : []
+  const folderName = dirParts.length > 0 ? dirParts[dirParts.length - 1] : ''
+  const isDedicatedFolder =
+    Boolean(folderName) &&
+    !CATEGORY_ROOT_NAMES.has(normalizeMediaTitle(folderName))
+
+  // Se o arquivo estiver dentro de pasta dedicada de obra (ex: Animes/Akira ou Filmes/Avatar (2009)):
+  // Todos os arquivos/qualidades dessa mesma pasta pertencem ao mesmo card de obra
+  if (isDedicatedFolder) {
+    const workTitle = movie.showTitle || folderName
+    return [
+      directory.replace(/\\/g, '/').toLowerCase(),
+      normalizeMediaTitle(workTitle)
+    ].join(':')
+  }
+
+  // Se for série ou episódico fora de pasta dedicada:
+  if (movie.isSeries) {
+    return [
+      movie.mediaCategory || 'series',
+      directory.replace(/\\/g, '/').toLowerCase(),
+      normalizeMediaTitle(movie.showTitle || movie.cleanTitle || movie.title)
+    ].join(':')
+  }
+
+  // Mídias soltas em raiz de categorias (ex: D:/Filmes/Filme1.mkv) sem pasta dedicada: cada arquivo é único
+  return `file:${movie.filePath}`
 }
 
 export function mediaPoster(movie: GhostMovie): string | undefined {
@@ -80,22 +110,46 @@ export function groupMoviesIntoShows(movies: GhostMovie[]): GhostShow[] {
       .sort(([a], [b]) => (a === b ? 0 : a === 0 ? 1 : b === 0 ? -1 : a - b))
       .map(([number, list]) => ({
         seasonNumber: number,
-        seasonLabel: number === 0 ? 'Especiais' : `Temporada ${number}`,
+        seasonLabel:
+          number === 0
+            ? 'Especiais'
+            : episodic
+              ? `Temporada ${number}`
+              : episodes.length > 1
+                ? 'Versões / Qualidades'
+                : `Temporada ${number}`,
         episodes: [...list].sort(
           (a, b) =>
             (a.episode ?? Infinity) - (b.episode ?? Infinity) ||
             a.fileName.localeCompare(b.fileName, 'pt-BR', { numeric: true })
         )
       }))
-    return {
-      id: episodic ? `show:${key}` : sample.id,
-      showTitle: episodic
+
+    const dirParts = (sample.showDirectory || '').replace(/\\/g, '/').split('/').filter(Boolean)
+    const folderName = dirParts.length > 0 ? dirParts[dirParts.length - 1] : ''
+    const isDedicatedFolder =
+      Boolean(folderName) &&
+      !CATEGORY_ROOT_NAMES.has(normalizeMediaTitle(folderName))
+
+    const computedTitle = episodic
+      ? sample.customShowTitle ||
+        sample.showTitle ||
+        sample.cleanTitle ||
+        sample.title
+      : episodes.length > 1
         ? sample.customShowTitle ||
           sample.showTitle ||
-          sample.cleanTitle ||
-          sample.title
-        : sample.customTitle || sample.title || sample.cleanTitle,
+          (isDedicatedFolder ? folderName : sample.customTitle || sample.cleanTitle || sample.title)
+        : sample.customTitle || sample.title || sample.cleanTitle
+
+    return {
+      id: episodic || episodes.length > 1 ? `show:${key}` : sample.id,
+      showTitle: computedTitle,
       mediaCategory: category,
+      categories:
+        sample.categories && sample.categories.length > 0
+          ? sample.categories
+          : [category],
       coverUrl: mediaPoster(sample),
       backdropUrl:
         sample.backdropUrl ||
@@ -107,9 +161,7 @@ export function groupMoviesIntoShows(movies: GhostMovie[]): GhostShow[] {
       year: sample.year,
       resolution: sample.resolution,
       isSeries: episodic,
-      seasonsCount: episodic
-        ? sorted.filter((s) => s.seasonNumber > 0).length
-        : 0,
+      seasonsCount: episodic ? sorted.filter((s) => s.seasonNumber > 0).length : 0,
       episodesCount: episodes.length,
       seasons: sorted,
       sampleMovie: sample

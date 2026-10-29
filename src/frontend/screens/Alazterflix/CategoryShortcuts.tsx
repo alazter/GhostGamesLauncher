@@ -3,6 +3,7 @@ import {
   faFilm,
   faGlobe,
   faPalette,
+  faTowerBroadcast,
   faTv,
   faWandMagicSparkles
 } from '@fortawesome/free-solid-svg-icons'
@@ -12,6 +13,7 @@ import seriesArtwork from 'frontend/assets/alazterflix/categories/series.jpg'
 import movieArtwork from 'frontend/assets/alazterflix/categories/filmes.jpg'
 import documentaryArtwork from 'frontend/assets/alazterflix/categories/documentarios.jpg'
 import cartoonArtwork from 'frontend/assets/alazterflix/categories/desenhos.jpg'
+import tvArtwork from 'frontend/assets/alazterflix/categories/tv.jpg'
 
 const categories = [
   {
@@ -28,7 +30,8 @@ const categories = [
     icon: faGlobe,
     artwork: documentaryArtwork
   },
-  { id: 'cartoon', label: 'Desenhos', icon: faPalette, artwork: cartoonArtwork }
+  { id: 'cartoon', label: 'Desenhos', icon: faPalette, artwork: cartoonArtwork },
+  { id: 'tv', label: 'TV', icon: faTowerBroadcast, artwork: tvArtwork }
 ] satisfies {
   id: GhostMediaCategory
   label: string

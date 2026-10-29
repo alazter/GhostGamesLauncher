@@ -10,7 +10,9 @@ import {
   faExclamationTriangle,
   faRotate,
   faRotateLeft,
-  faMicrochip
+  faMicrochip,
+  faFilm,
+  faExternalLinkAlt
 } from '@fortawesome/free-solid-svg-icons'
 import type { PluginInstallResult } from 'common/types/plugins'
 import type {
@@ -19,12 +21,15 @@ import type {
   SourceEngineAction,
   SourceEnginesState
 } from 'common/types/sourceEngines'
+import type {
+  NuvioAddonAction,
+  NuvioAddonUpdateState
+} from 'common/types/nuvioUpdate'
 
 function normalizeDisplayEngine(
   engine: EngineStatus,
   upgradedInSession: boolean
 ): EngineStatus {
-  // Handle pre-rebuild dev main process where semver.valid('0.5') returned null
   if (
     engine.id === 'scrapling' &&
     engine.installed === '0.4.15' &&
@@ -60,6 +65,7 @@ export default function SourceEnginesPanel({
   refreshKey?: number
 }) {
   const [state, setState] = useState<SourceEnginesState>()
+  const [nuvioState, setNuvioState] = useState<NuvioAddonUpdateState>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -67,7 +73,7 @@ export default function SourceEnginesPanel({
 
   useEffect(() => {
     let mounted = true
-    const refresh = () =>
+    const refresh = () => {
       void window.api
         .pluginsSourceEnginesState()
         .then((value) => {
@@ -76,6 +82,17 @@ export default function SourceEnginesPanel({
         .catch(() => {
           if (mounted) setError('Não foi possível consultar os motores.')
         })
+
+      if (window.api.pluginsNuvioAddonState) {
+        void window.api
+          .pluginsNuvioAddonState()
+          .then((val: NuvioAddonUpdateState) => {
+            if (mounted) setNuvioState(val)
+          })
+          .catch(() => {})
+      }
+    }
+
     refresh()
     const timer = setInterval(refresh, 5000)
     return () => {
@@ -125,8 +142,30 @@ export default function SourceEnginesPanel({
     }
   }
 
+  async function nuvioAction(val: NuvioAddonAction) {
+    if (!window.api.pluginsNuvioAddonAction) return
+    setBusy(true)
+    setError('')
+    try {
+      const result = await window.api.pluginsNuvioAddonAction(val)
+      if (result.state) setNuvioState(result.state)
+      if (result.success && result.state?.message) {
+        setFeedback(result.state.message)
+      } else if (!result.success && result.error) {
+        setError(result.error)
+      }
+    } catch {
+      setError('Não foi possível executar a ação no Nuvio Addon.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const displayEngines = (state?.engines || []).map((engine) =>
-    normalizeDisplayEngine(engine, Boolean(state?.automatic || upgradedScraplingSession))
+    normalizeDisplayEngine(
+      engine,
+      Boolean(state?.automatic || upgradedScraplingSession)
+    )
   )
 
   const hasUnresolvedCatalogGap = displayEngines.some(
@@ -145,21 +184,21 @@ export default function SourceEnginesPanel({
               icon={faMicrochip}
               className="ghost-plugins-main-icon"
             />
-            <h2>Motores de navegação e leitura</h2>
+            <h2>Motores e Addons Oficiais</h2>
             <span className="ghost-shield-pill">
               <FontAwesomeIcon icon={faShieldHalved} /> Processos Isolados
             </span>
           </div>
           <p className="ghost-plugins-subtitle">
-            O <b>Scrapling</b> auxilia a leitura adaptativa dos catálogos e
-            páginas de download das fontes. O <b>Obscura</b> é experimental para
-            páginas públicas. Login e downloads assistidos continuam no
-            navegador do Ghost.
+            O <b>Scrapling</b> auxilia a leitura adaptativa dos catálogos. O{' '}
+            <b>Obscura</b> é experimental para páginas públicas. O{' '}
+            <b>Nuvio Media Player</b> fornece o reprodutor oficial atrelado ao
+            GitHub <b>NuvioMedia/NuvioDesktop</b>.
           </p>
           <p className="ghost-plugins-subtitle">
-            Compartilhe um motor instalado em um arquivo <b>.ghost</b>. Quem
-            receber pode instalar aqui, sem extrair o arquivo. O Ghost testa a
-            instalação antes de ativar o motor.
+            Compartilhe um motor ou addon instalado em um arquivo <b>.ghost</b>.
+            Quem receber pode instalar aqui, sem extrair o arquivo. O Ghost
+            testa a integridade antes de ativar.
           </p>
         </div>
 
@@ -168,16 +207,53 @@ export default function SourceEnginesPanel({
             <label className="ghost-engine-auto-toggle">
               <input
                 type="checkbox"
-                checked={state.automatic}
+                checked={Boolean(state.automatic && (nuvioState?.automatic ?? true))}
                 disabled={busy}
-                onChange={(event) =>
-                  void action({
-                    type: 'automatic',
-                    enabled: event.target.checked
-                  })
-                }
+                onChange={async (event) => {
+                  const enabled = event.target.checked
+                  setBusy(true)
+                  setError('')
+                  setFeedback(
+                    enabled
+                      ? 'Atualização automática ativada. Verificando origens oficiais...'
+                      : 'Atualização automática desativada.'
+                  )
+                  try {
+                    const [engineRes, nuvioRes] = await Promise.allSettled([
+                      window.api.pluginsSourceEngineAction({
+                        type: 'automatic',
+                        enabled
+                      }),
+                      window.api.pluginsNuvioAddonAction?.({
+                        type: 'automatic',
+                        enabled
+                      })
+                    ])
+                    if (
+                      engineRes.status === 'fulfilled' &&
+                      engineRes.value?.state
+                    ) {
+                      setState(engineRes.value.state)
+                    }
+                    if (
+                      nuvioRes.status === 'fulfilled' &&
+                      nuvioRes.value?.state
+                    ) {
+                      setNuvioState(nuvioRes.value.state)
+                      if (nuvioRes.value.state.message) {
+                        setFeedback(nuvioRes.value.state.message)
+                      }
+                    }
+                  } catch {
+                    setError(
+                      'Não foi possível atualizar a preferência de atualização automática.'
+                    )
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
               />
-              <span>Atualizar automaticamente versões compatíveis</span>
+              <span>Atualizar automaticamente com origens oficiais</span>
             </label>
           )}
 
@@ -186,7 +262,36 @@ export default function SourceEnginesPanel({
               <button
                 className="ghost-btn-primary"
                 disabled={busy}
-                onClick={() => void action({ type: 'check' })}
+                onClick={async () => {
+                  setBusy(true)
+                  setError('')
+                  setFeedback('Verificando atualizações oficiais nos repositórios...')
+                  try {
+                    const [engineRes, nuvioRes] = await Promise.allSettled([
+                      window.api.pluginsSourceEngineAction({ type: 'check' }),
+                      window.api.pluginsNuvioAddonAction?.({ type: 'check' })
+                    ])
+                    if (
+                      engineRes.status === 'fulfilled' &&
+                      engineRes.value?.state
+                    ) {
+                      setState(engineRes.value.state)
+                    }
+                    if (
+                      nuvioRes.status === 'fulfilled' &&
+                      nuvioRes.value?.state
+                    ) {
+                      setNuvioState(nuvioRes.value.state)
+                      if (nuvioRes.value.state.message) {
+                        setFeedback(nuvioRes.value.state.message)
+                      }
+                    }
+                  } catch {
+                    setError('Não foi possível verificar atualizações.')
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
               >
                 <FontAwesomeIcon icon={faRotate} spin={busy} />
                 <span>{busy ? 'Aguarde…' : 'Verificar atualizações'}</span>
@@ -255,6 +360,177 @@ export default function SourceEnginesPanel({
 
       {state && (
         <div className="ghost-plugins-grid ghost-engines-grid">
+          {/* Card Oficial do Nuvio Media Player Addon atrelado ao GitHub NuvioMedia/NuvioDesktop */}
+          {nuvioState && (
+            <section
+              key="nuvio-desktop-addon"
+              className="ghost-plugin-card ghost-engine-card enabled"
+            >
+              <div className="ghost-plugin-card-header">
+                <div
+                  className="ghost-plugin-icon-box"
+                  style={{
+                    background: 'rgba(245, 197, 24, 0.16)',
+                    borderColor: 'rgba(245, 197, 24, 0.45)',
+                    color: '#f5c518'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faFilm} />
+                </div>
+
+                <div className="ghost-plugin-header-titles">
+                  <div className="ghost-plugin-title-row">
+                    <h3>Nuvio Media Player &amp; Addon</h3>
+                    <span className="ghost-plugin-version">
+                      v{nuvioState.installed}
+                    </span>
+                  </div>
+                  <span className="ghost-plugin-author">
+                    por NuvioMedia · GitHub Oficial NuvioDesktop
+                  </span>
+                </div>
+
+                <span
+                  className="ghost-badge-tier verified"
+                  style={{ marginLeft: 'auto' }}
+                  title="Oficialmente integrado ao Alazterflix & Stremio"
+                >
+                  Ativo
+                </span>
+              </div>
+
+              <div className="ghost-plugin-badges-row">
+                <span className="ghost-badge-type type-media">
+                  <FontAwesomeIcon icon={faFilm} />
+                  <span>Player &amp; Addon Stremio</span>
+                </span>
+
+                <span
+                  className="ghost-badge-tier verified"
+                  title="Atrelado ao repositório oficial https://github.com/NuvioMedia/NuvioDesktop"
+                >
+                  <FontAwesomeIcon icon={faShieldHalved} /> 🛡️ Oficial Nuvio
+                </span>
+
+                {nuvioState.updateAvailable && (
+                  <span
+                    className="ghost-badge-dev"
+                    style={{
+                      background: 'rgba(245, 197, 24, 0.22)',
+                      borderColor: '#f5c518',
+                      color: '#fde68a'
+                    }}
+                  >
+                    Atualização v{nuvioState.upstream} disponível
+                  </span>
+                )}
+              </div>
+
+              <p className="ghost-plugin-description">
+                Reprodutor de vídeo oficial do Nuvio Desktop integrado ao
+                Alazterflix e Stremio. Suporta Legendas 3-Rail com Auto-Sync,
+                Audio Boost 200%, Hold 2.0x, Skip Intro/Recap/Outro e
+                sincronização de versões com o GitHub oficial.
+              </p>
+
+              <div className="ghost-plugin-permissions">
+                <span className="perm-label">Versões e Repositório Oficial:</span>
+                <div className="perm-tags">
+                  <span className="perm-tag">
+                    📦 Instalada: <b>v{nuvioState.installed}</b>
+                  </span>
+                  {nuvioState.upstream && (
+                    <span className="perm-tag">
+                      🚀 Publicada no GitHub: <b>v{nuvioState.upstream}</b>
+                    </span>
+                  )}
+                  {nuvioState.previous && (
+                    <span className="perm-tag">
+                      ⏪ Anterior: <b>v{nuvioState.previous}</b>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="ghost-plugin-permissions">
+                <span className="perm-label">Capacidades Nuvio Integradas:</span>
+                <div className="perm-tags">
+                  <span className="perm-tag">🎬 Nuvio Player UI</span>
+                  <span className="perm-tag">⚡ Sessão Stremio</span>
+                  <span className="perm-tag">📜 Legendas 3-Rail</span>
+                  <span className="perm-tag">🔊 Audio Boost 200%</span>
+                  <span className="perm-tag">⏩ Hold-to-Speed 2.0x</span>
+                  <span className="perm-tag">⏭ Pular Abertura</span>
+                </div>
+              </div>
+
+              {(nuvioState.busy || nuvioState.message) && (
+                <p role="status" className="ghost-engine-status-pill">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>
+                    {nuvioState.busy
+                      ? 'Atualizando Nuvio Addon…'
+                      : nuvioState.message}
+                  </span>
+                </p>
+              )}
+
+              <div className="ghost-plugin-card-footer">
+                {nuvioState.updateAvailable && (
+                  <button
+                    className="ghost-btn-primary"
+                    disabled={busy || nuvioState.busy}
+                    onClick={() => void nuvioAction({ type: 'install' })}
+                    style={{
+                      background: '#f5c518',
+                      color: '#090b10',
+                      fontWeight: 800
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faDownload} />
+                    <span>Instalar atualização v{nuvioState.upstream}</span>
+                  </button>
+                )}
+
+                <button
+                  className="ghost-btn-secondary"
+                  disabled={busy || nuvioState.busy}
+                  onClick={() => void nuvioAction({ type: 'verify' })}
+                >
+                  <FontAwesomeIcon icon={faShieldHalved} />
+                  <span>Verificar integridade</span>
+                </button>
+
+                {nuvioState.previous && (
+                  <button
+                    className="ghost-btn-secondary"
+                    disabled={busy || nuvioState.busy}
+                    onClick={() => void nuvioAction({ type: 'restore' })}
+                  >
+                    <FontAwesomeIcon icon={faRotateLeft} />
+                    <span>Restaurar versão anterior (v{nuvioState.previous})</span>
+                  </button>
+                )}
+
+                <a
+                  href={
+                    nuvioState.upstreamUrl ||
+                    `${nuvioState.githubUrl}/releases`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ghost-btn-secondary"
+                  title="Abrir página de releases no GitHub oficial"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <FontAwesomeIcon icon={faExternalLinkAlt} />
+                  <span>GitHub Oficial</span>
+                </a>
+              </div>
+            </section>
+          )}
+
+          {/* Cards dos Motores Scrapling e Obscura */}
           {displayEngines.map((engine) => {
             const isScrapling = engine.id === 'scrapling'
             const toggleLabel = `Ativar ${
@@ -415,7 +691,9 @@ export default function SourceEnginesPanel({
                     }
                   />{' '}
                   Ativar{' '}
-                  {isScrapling ? 'leitura adaptativa' : 'navegação experimental'}
+                  {isScrapling
+                    ? 'leitura adaptativa'
+                    : 'navegação experimental'}
                 </label>
 
                 {engine.upstreamUpdateAvailable && !engine.updateAvailable && (

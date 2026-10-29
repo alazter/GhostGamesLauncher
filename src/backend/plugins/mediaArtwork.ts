@@ -126,17 +126,216 @@ export function createArtworkFinder() {
   }
 }
 
-function localImagePath(source: string): string | undefined {
-  if (source.startsWith('imagecache://localhost/'))
-    return decodeURIComponent(
-      source.slice('imagecache://localhost/'.length).split('?')[0]
+/**
+ * Decodifica buffers de imagem em formatos modernos (como WebP VP8 sem headers estendidos,
+ * AVIF ou SVG) usando o motor de renderização do Chromium quando o nativeImage do Electron
+ * não consegue processar os bytes diretamente.
+ */
+export async function decodeImageWithChromium(
+  buffer: Buffer
+): Promise<Buffer | null> {
+  let offscreenWindow: any = null
+  try {
+    const { getMainWindow } = await import('backend/main_window')
+    let win = getMainWindow ? getMainWindow() : null
+    if (
+      !win ||
+      win.isDestroyed?.() ||
+      !win.webContents ||
+      win.webContents.isDestroyed?.()
+    ) {
+      const { BrowserWindow } = await import('electron')
+      if (BrowserWindow && typeof BrowserWindow.getAllWindows === 'function') {
+        const windows = BrowserWindow.getAllWindows()
+        win = windows.find(
+          (w) =>
+            !w.isDestroyed?.() &&
+            w.webContents &&
+            !w.webContents.isDestroyed?.()
+        )
+      }
+    }
+    if (
+      !win ||
+      win.isDestroyed?.() ||
+      !win.webContents ||
+      win.webContents.isDestroyed?.()
+    ) {
+      const { BrowserWindow, app } = await import('electron')
+      if (
+        BrowserWindow &&
+        app &&
+        typeof app.isReady === 'function' &&
+        app.isReady()
+      ) {
+        offscreenWindow = new BrowserWindow({
+          show: false,
+          width: 200,
+          height: 200,
+          webPreferences: {
+            offscreen: true,
+            sandbox: false,
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        })
+        if (typeof offscreenWindow.loadURL === 'function') {
+          await offscreenWindow.loadURL('about:blank')
+          win = offscreenWindow
+        }
+      }
+    }
+
+    if (
+      !win ||
+      win.isDestroyed?.() ||
+      !win.webContents ||
+      win.webContents.isDestroyed?.() ||
+      typeof win.webContents.executeJavaScript !== 'function'
+    ) {
+      return null
+    }
+
+    const base64 = buffer.toString('base64')
+    const script = `
+      (async function() {
+        try {
+          let drawSource = null;
+          let width = 0;
+          let height = 0;
+          try {
+            const res = await fetch('data:application/octet-stream;base64,${base64}');
+            const blob = await res.blob();
+            const bmp = await createImageBitmap(blob);
+            width = bmp.width;
+            height = bmp.height;
+            drawSource = bmp;
+          } catch (_) {}
+
+          if (!drawSource) {
+            drawSource = await new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = () => resolve(null);
+              img.src = 'data:application/octet-stream;base64,${base64}';
+            });
+            if (drawSource) {
+              width = drawSource.naturalWidth || drawSource.width;
+              height = drawSource.naturalHeight || drawSource.height;
+            }
+          }
+
+          if (!drawSource || !width || !height) return null;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return null;
+          ctx.drawImage(drawSource, 0, 0);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+          return dataUrl.split(',')[1];
+        } catch (e) {
+          return null;
+        }
+      })()
+    `
+    const resultBase64 = await win.webContents.executeJavaScript(script, true)
+    if (resultBase64 && typeof resultBase64 === 'string') {
+      return Buffer.from(resultBase64, 'base64')
+    }
+  } catch (err) {
+    logWarning(
+      `[Alazterflix] Falha ao decodificar imagem via Chromium: ${String(err)}`,
+      LogPrefix.Backend
     )
+  } finally {
+    if (offscreenWindow && !offscreenWindow.isDestroyed?.()) {
+      try {
+        offscreenWindow.destroy()
+      } catch {}
+    }
+  }
+  return null
+}
+
+export const imageDecoder = {
+  decodeWithChromium: decodeImageWithChromium
+}
+
+function extractImageFromHtml(html: string, baseUrl: string): string | undefined {
+  const ogMatch =
+    html.match(/<meta[^>]+property=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::url)?["']/i) ||
+    html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i) ||
+    html.match(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i)
+  if (ogMatch && ogMatch[1]) {
+    try {
+      return new URL(ogMatch[1], baseUrl).href
+    } catch {}
+  }
+  return undefined
+}
+
+function localImagePath(source: string): string | undefined {
+  if (!source || typeof source !== 'string') return undefined
+  let cleaned = source.trim()
   if (
-    source.startsWith('http://127.0.0.1:') &&
-    new URL(source).pathname === '/stream'
-  )
-    return new URL(source).searchParams.get('file') || undefined
-  return existsSync(source) ? source : undefined
+    (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+    (cleaned.startsWith("'") && cleaned.endsWith("'"))
+  ) {
+    cleaned = cleaned.slice(1, -1).trim()
+  }
+  if (cleaned.startsWith('imagecache://localhost/')) {
+    const raw = cleaned.slice('imagecache://localhost/'.length).split('?')[0]
+    const decoded = decodeURIComponent(raw)
+    return existsSync(decoded) ? decoded : undefined
+  }
+  if (
+    cleaned.startsWith('http://127.0.0.1:') &&
+    cleaned.includes('/stream')
+  ) {
+    try {
+      const url = new URL(cleaned)
+      const fileParam = url.searchParams.get('file')
+      if (fileParam && existsSync(fileParam)) return fileParam
+    } catch {}
+  }
+  if (/^file:\/\//i.test(cleaned)) {
+    try {
+      const decoded = decodeURIComponent(
+        cleaned
+          .replace(/^file:\/\/\/?([a-zA-Z]:)/i, '$1')
+          .replace(/^file:\/\//i, '')
+      )
+      if (existsSync(decoded)) return decoded
+    } catch {}
+  }
+  return existsSync(cleaned) ? cleaned : undefined
+}
+
+/**
+ * Exclui de forma segura um arquivo de imagem de capa ou fundo antigo do disco.
+ * Garante que apenas extensões de imagem legítimas sejam apagadas e NUNCA arquivos de vídeo.
+ */
+export function deleteMediaArtwork(targetPath: string): boolean {
+  try {
+    if (!targetPath || !existsSync(targetPath)) return false
+    if (!statSync(targetPath).isFile()) return false
+    if (VIDEO.test(targetPath)) return false
+    const ext = extname(targetPath).toLowerCase()
+    if (!EXTENSIONS.includes(ext)) return false
+    unlinkSync(targetPath)
+    invalidateLocalImage(targetPath)
+    return true
+  } catch (err) {
+    logWarning(
+      `[Alazterflix] Falha ao excluir imagem antiga "${targetPath}": ${String(err)}`,
+      LogPrefix.Backend
+    )
+    return false
+  }
 }
 
 export async function saveMediaArtwork(
@@ -145,7 +344,9 @@ export async function saveMediaArtwork(
   source: string,
   type: 'poster' | 'backdrop',
   showDir?: string,
-  singleItem = false
+  singleItem = false,
+  deleteOld = true,
+  oldArtworkPath?: string
 ): Promise<{ localPath: string; streamUrl: string }> {
   if (!['poster', 'backdrop'].includes(type))
     throw new Error('Tipo de imagem inválido.')
@@ -164,6 +365,20 @@ export async function saveMediaArtwork(
       effectiveSource = normalizeImdbImageUrl(effectiveSource)
     }
   }
+
+  // Se for link de busca do Google Imagens (/imgres?imgurl=...), extrai a URL direta da imagem
+  try {
+    const parsed = new URL(effectiveSource)
+    if (
+      (parsed.hostname.includes('google.') || parsed.hostname === 'google.com') &&
+      parsed.pathname.includes('/imgres') &&
+      parsed.searchParams.has('imgurl')
+    ) {
+      const directImg = parsed.searchParams.get('imgurl')
+      if (directImg) effectiveSource = directImg
+    }
+  } catch {}
+
   if (
     !existsSync(filePath) ||
     !statSync(filePath).isFile() ||
@@ -184,17 +399,22 @@ export async function saveMediaArtwork(
   }
   let buffer: Buffer
   const local = localImagePath(effectiveSource)
+  const dataUriMatch = effectiveSource.match(
+    /^data:image\/([a-zA-Z0-9.+-]+)(?:;charset=[^;]+)?(?:;(base64))?,/i
+  )
   if (local) {
     if (statSync(local).size > MAX_IMAGE_BYTES)
       throw new Error('A imagem deve ter até 20 MB.')
     buffer = readFileSync(local)
-  } else if (/^data:image\/(?:jpeg|png|webp);base64,/i.test(effectiveSource)) {
+  } else if (dataUriMatch) {
     if (effectiveSource.length > MAX_IMAGE_BYTES * 1.4)
       throw new Error('A imagem deve ter até 20 MB.')
-    buffer = Buffer.from(
-      effectiveSource.slice(effectiveSource.indexOf(',') + 1),
-      'base64'
-    )
+    const commaIndex = effectiveSource.indexOf(',')
+    const isBase64 = dataUriMatch[2] === 'base64'
+    const rawData = effectiveSource.slice(commaIndex + 1)
+    buffer = isBase64
+      ? Buffer.from(rawData, 'base64')
+      : Buffer.from(decodeURIComponent(rawData), 'utf8')
   } else {
     const check = NetworkGuard.validateUrl(effectiveSource, manifest)
     if (!check.allowed) throw new Error(check.reason)
@@ -203,8 +423,13 @@ export async function saveMediaArtwork(
       effectiveSource,
       manifest,
       AbortSignal.timeout(15000),
-      {},
-      true
+      {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        Accept:
+          'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+      },
+      false
     )
     if (!response.ok)
       throw new Error(
@@ -213,6 +438,26 @@ export async function saveMediaArtwork(
     if (Number(response.headers.get('content-length')) > MAX_IMAGE_BYTES) {
       await response.body?.cancel()
       throw new Error('A imagem deve ter até 20 MB.')
+    }
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('text/html')) {
+      const htmlText = await response.text()
+      const extractedUrl = extractImageFromHtml(htmlText, effectiveSource)
+      if (extractedUrl) {
+        return saveMediaArtwork(
+          manifest,
+          filePath,
+          extractedUrl,
+          type,
+          showDir,
+          singleItem,
+          deleteOld,
+          oldArtworkPath
+        )
+      }
+      throw new Error(
+        'O link informado aponta para uma página web e não para um arquivo de imagem.'
+      )
     }
     const reader = response.body?.getReader()
     if (!reader) throw new Error('A resposta não contém uma imagem.')
@@ -234,9 +479,39 @@ export async function saveMediaArtwork(
   }
   if (buffer.length > MAX_IMAGE_BYTES)
     throw new Error('A imagem deve ter até 20 MB.')
-  const image = nativeImage.createFromBuffer(buffer)
+
+  // Se o buffer for HTML disfarçado (sem header content-type adequado), tenta extrair imagem de metadados
+  const headerCheck = buffer.subarray(0, 100).toString('utf8').trim().toLowerCase()
+  if (headerCheck.startsWith('<!doctype html') || headerCheck.startsWith('<html')) {
+    const htmlText = buffer.toString('utf8')
+    const extractedUrl = extractImageFromHtml(htmlText, effectiveSource)
+    if (extractedUrl) {
+      return saveMediaArtwork(
+        manifest,
+        filePath,
+        extractedUrl,
+        type,
+        showDir,
+        singleItem,
+        deleteOld,
+        oldArtworkPath
+      )
+    }
+    throw new Error(
+      'O link informado aponta para uma página web e não para um arquivo de imagem.'
+    )
+  }
+
+  let image = nativeImage.createFromBuffer(buffer)
+  if (image.isEmpty()) {
+    // Fallback poderoso: decodifica formatos avançados (WebP VP8, AVIF, SVG) via Chromium
+    const decoded = await imageDecoder.decodeWithChromium(buffer)
+    if (decoded && decoded.length > 0) {
+      image = nativeImage.createFromBuffer(decoded)
+    }
+  }
   if (image.isEmpty())
-    throw new Error('O arquivo escolhido não é uma imagem válida.')
+    throw new Error('O arquivo escolhido não é uma imagem válida ou compatível.')
   if (type === 'backdrop' && !local && /^https?:\/\//i.test(effectiveSource)) {
     const { width, height } = image.getSize()
     if (width <= height)
@@ -259,8 +534,9 @@ export async function saveMediaArtwork(
     if (existsSync(temporary)) unlinkSync(temporary)
   }
   invalidateLocalImage(path)
+  let mirror: string | undefined = undefined
   if (!specific) {
-    const mirror = join(
+    mirror = join(
       targetDirectory,
       type === 'poster' ? 'cover.jpg' : 'fanart.jpg'
     )
@@ -278,6 +554,78 @@ export async function saveMediaArtwork(
       if (existsSync(mirrorTemporary)) unlinkSync(mirrorTemporary)
     }
   }
+
+  // Se a opção de excluir a imagem antiga estiver ativa, deletar arquivos anteriores
+  if (deleteOld) {
+    const protectedPaths = new Set<string>()
+    protectedPaths.add(resolve(path).toLowerCase())
+    if (mirror) protectedPaths.add(resolve(mirror).toLowerCase())
+    protectedPaths.add(resolve(filePath).toLowerCase())
+
+    // 1. Excluir caminho explicitamente informado como artwork anterior
+    if (oldArtworkPath && existsSync(oldArtworkPath)) {
+      try {
+        const resolvedOld = resolve(oldArtworkPath).toLowerCase()
+        if (
+          !protectedPaths.has(resolvedOld) &&
+          statSync(oldArtworkPath).isFile() &&
+          !VIDEO.test(oldArtworkPath) &&
+          EXTENSIONS.includes(extname(oldArtworkPath).toLowerCase())
+        ) {
+          unlinkSync(oldArtworkPath)
+          invalidateLocalImage(oldArtworkPath)
+        }
+      } catch (err) {
+        logWarning(
+          `[Alazterflix] Falha ao excluir imagem antiga "${oldArtworkPath}": ${String(err)}`,
+          LogPrefix.Backend
+        )
+      }
+    }
+
+    // 2. Limpar arquivos de imagem legados do mesmo tipo na pasta (outras extensões como .png, .webp ou nomes legados)
+    try {
+      const candidateNames: string[] = []
+      if (type === 'poster') {
+        if (specific) {
+          candidateNames.push(`${stem}-poster`, stem)
+        } else {
+          candidateNames.push('poster', 'cover', 'folder')
+        }
+      } else if (type === 'backdrop') {
+        if (specific) {
+          candidateNames.push(`${stem}-backdrop`, `${stem}-fanart`)
+        } else {
+          candidateNames.push('backdrop', 'fanart', 'background')
+        }
+      }
+
+      for (const name of candidateNames) {
+        for (const ext of EXTENSIONS) {
+          const candidatePath = join(targetDirectory, `${name}${ext}`)
+          if (existsSync(candidatePath)) {
+            try {
+              const resolvedCand = resolve(candidatePath).toLowerCase()
+              if (
+                !protectedPaths.has(resolvedCand) &&
+                statSync(candidatePath).isFile() &&
+                !VIDEO.test(candidatePath)
+              ) {
+                unlinkSync(candidatePath)
+                invalidateLocalImage(candidatePath)
+              }
+            } catch (err) {
+              logWarning(
+                `[Alazterflix] Falha ao excluir arquivo de imagem legado "${candidatePath}": ${String(err)}`,
+                LogPrefix.Backend
+              )
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
   return {
     localPath: path,
     streamUrl: `imagecache://localhost/${encodeURIComponent(path)}?v=${Date.now()}`

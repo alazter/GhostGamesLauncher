@@ -1,0 +1,1551 @@
+.nuvio-player-root {
+  --nuvio-glass-bg: rgba(14, 16, 22, 0.78);
+  --nuvio-glass-bg-strong: rgba(10, 12, 18, 0.88);
+  --nuvio-glass-border: rgba(255, 255, 255, 0.14);
+  --nuvio-glass-highlight: rgba(255, 255, 255, 0.08);
+  --nuvio-glass-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  --nuvio-pill-radius: 999px;
+  --nuvio-card-radius: 22px;
+  --nuvio-panel-radius: 26px;
+  --nuvio-ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
+  --nuvio-accent: #f5c518;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  color: #fff;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  overflow: hidden;
+  user-select: none;
+
+  * {
+    box-sizing: border-box;
+  }
+
+  &.cursor-hidden {
+    cursor: none !important;
+  }
+
+  .nuvio-video-viewport {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    overflow: hidden;
+
+    video {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      outline: none;
+      transition: transform 220ms var(--nuvio-ease-out-quart);
+    }
+
+    &.resize-fit video {
+      object-fit: contain;
+    }
+
+    &.resize-zoom video {
+      object-fit: cover;
+    }
+
+    &.resize-stretch video {
+      object-fit: fill;
+    }
+
+    &.resize-fill video {
+      object-fit: cover;
+      transform: scale(1.06);
+    }
+  }
+
+  /* Custom Subtitle Renderer */
+  .nuvio-subtitle-layer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 42px;
+    z-index: 28;
+    max-width: 84vw;
+    text-align: center;
+    pointer-events: none;
+    transition: bottom 200ms var(--nuvio-ease-out-quart);
+
+    .nuvio-subtitle-cue {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 10px;
+      line-height: 1.38;
+      white-space: pre-line;
+      letter-spacing: 0.01em;
+
+      i, em {
+        font-style: italic;
+      }
+      b, strong {
+        font-weight: 800;
+      }
+      u {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  /* Main Scrim & Layout Grid */
+  .nuvio-controls-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 20px 28px 22px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.72) 0%,
+        rgba(0, 0, 0, 0.24) 22%,
+        rgba(0, 0, 0, 0) 44%
+      ),
+      linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.88) 0%,
+        rgba(0, 0, 0, 0.56) 28%,
+        rgba(0, 0, 0, 0) 56%
+      );
+    transition: opacity 220ms var(--nuvio-ease-out-quart);
+
+    &.controls-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  /* Top Right Controls */
+  .nuvio-top-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    transition:
+      opacity 220ms var(--nuvio-ease-out-quart),
+      transform 220ms var(--nuvio-ease-out-quart);
+  }
+
+  .nuvio-controls-scrim.controls-hidden .nuvio-top-controls {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .nuvio-top-left-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    border-radius: var(--nuvio-pill-radius);
+    background: var(--nuvio-glass-bg);
+    border: 1px solid var(--nuvio-glass-border);
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 var(--nuvio-glass-highlight);
+    backdrop-filter: blur(18px);
+
+    .nuvio-brand-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--nuvio-accent);
+      box-shadow: 0 0 10px rgba(245, 197, 24, 0.75);
+    }
+
+    .nuvio-brand-text {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .nuvio-brand-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.56);
+      padding-left: 8px;
+      border-left: 1px solid rgba(255, 255, 255, 0.14);
+    }
+  }
+
+  .nuvio-top-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+
+  /* Icon & Pill Buttons */
+  .nuvio-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: #fff;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border-radius: var(--nuvio-pill-radius);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+      transform 180ms var(--nuvio-ease-out-quart),
+      background-color 180ms var(--nuvio-ease-out-quart),
+      border-color 180ms var(--nuvio-ease-out-quart),
+      box-shadow 180ms var(--nuvio-ease-out-quart),
+      opacity 180ms var(--nuvio-ease-out-quart);
+
+    svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+      pointer-events: none;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px) scale(1.03);
+    }
+
+    &:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18);
+    }
+
+    &.active-pill {
+      background: rgba(245, 197, 24, 0.22);
+      border-color: rgba(245, 197, 24, 0.55);
+      color: #fde68a;
+    }
+  }
+
+  .nuvio-top-controls .nuvio-btn {
+    background: var(--nuvio-glass-bg);
+    border-color: var(--nuvio-glass-border);
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 var(--nuvio-glass-highlight);
+    backdrop-filter: blur(18px);
+  }
+
+  .nuvio-switch-engine-pill {
+    width: auto !important;
+    padding: 0 14px !important;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  .nuvio-save-stream-pill {
+    width: auto !important;
+    padding: 0 14px !important;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ghost-cinema-accent, #00e5ff) !important;
+    background: rgba(0, 229, 255, 0.14) !important;
+    border: 1px solid rgba(0, 229, 255, 0.42) !important;
+    box-shadow: 0 4px 14px rgba(0, 229, 255, 0.18);
+    transition: all 180ms ease;
+
+    svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+    }
+
+    &:hover {
+      background: rgba(0, 229, 255, 0.28) !important;
+      border-color: rgba(0, 229, 255, 0.75) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(0, 229, 255, 0.35);
+    }
+
+    &.saving {
+      opacity: 0.75;
+      cursor: wait;
+      animation: nuvio-pulse 1.4s infinite;
+    }
+  }
+
+  /* Center Playback Controls & Canvas Spinner */
+  .nuvio-center-controls {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    transition:
+      opacity 220ms var(--nuvio-ease-out-quart),
+      transform 220ms var(--nuvio-ease-out-quart);
+
+    .nuvio-center-btn {
+      width: 64px;
+      height: 64px;
+      background: rgba(14, 16, 22, 0.56);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(16px);
+
+      svg {
+        width: 32px;
+        height: 32px;
+      }
+
+      &.play-main {
+        width: 74px;
+        height: 74px;
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.28);
+
+        svg {
+          width: 36px;
+          height: 36px;
+        }
+      }
+    }
+  }
+
+  .nuvio-controls-scrim.controls-hidden .nuvio-center-controls {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  .nuvio-loading-indicator {
+    position: absolute;
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.36);
+    pointer-events: none;
+    z-index: 5;
+
+    canvas {
+      width: 84px;
+      height: 84px;
+      display: block;
+    }
+  }
+
+  /* Bottom Bar & Metadata */
+  .nuvio-bottom-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition:
+      opacity 220ms var(--nuvio-ease-out-quart),
+      transform 220ms var(--nuvio-ease-out-quart);
+  }
+
+  .nuvio-controls-scrim.controls-hidden .nuvio-bottom-bar {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  .nuvio-metadata-block {
+    max-width: min(760px, 72vw);
+
+    .nuvio-meta-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.55);
+      margin-bottom: 4px;
+    }
+
+    .nuvio-meta-episode,
+    .nuvio-meta-stream,
+    .nuvio-meta-provider {
+      font-size: 13px;
+      line-height: 1.35;
+      color: rgba(255, 255, 255, 0.78);
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+    }
+
+    .nuvio-meta-provider {
+      color: rgba(255, 255, 255, 0.58);
+    }
+
+    .nuvio-player-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+
+      .nuvio-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: var(--nuvio-pill-radius);
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        backdrop-filter: blur(12px);
+
+        &.badge-accent {
+          background: rgba(245, 197, 24, 0.18);
+          border-color: rgba(245, 197, 24, 0.42);
+          color: #fde68a;
+        }
+      }
+    }
+  }
+
+  /* Seek Bar Scrubber */
+  .nuvio-scrub-wrapper {
+    position: relative;
+    width: 100%;
+    padding: 4px 0;
+  }
+
+  .nuvio-scrub {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: var(--nuvio-pill-radius);
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.96) 0%,
+      rgba(255, 255, 255, 0.96) var(--progress, 0%),
+      rgba(255, 255, 255, 0.42) var(--progress, 0%),
+      rgba(255, 255, 255, 0.42) var(--bufferProgress, 0%),
+      rgba(255, 255, 255, 0.18) var(--bufferProgress, 0%),
+      rgba(255, 255, 255, 0.18) 100%
+    );
+    cursor: pointer;
+    transition:
+      height 160ms var(--nuvio-ease-out-quart),
+      box-shadow 160ms var(--nuvio-ease-out-quart);
+
+    &:hover {
+      height: 8px;
+      box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
+    }
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 3px 14px rgba(0, 0, 0, 0.45);
+      transition: transform 160ms var(--nuvio-ease-out-quart);
+    }
+
+    &:hover::-webkit-slider-thumb {
+      transform: scale(1.14);
+    }
+  }
+
+  /* Bottom Controls Row (Action Pill + Volume/Time Pill) */
+  .nuvio-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .nuvio-action-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    border-radius: var(--nuvio-pill-radius);
+    background: var(--nuvio-glass-bg);
+    border: 1px solid var(--nuvio-glass-border);
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 var(--nuvio-glass-highlight);
+    backdrop-filter: blur(20px);
+  }
+
+  .nuvio-playback-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px 6px 8px;
+    border-radius: var(--nuvio-pill-radius);
+    background: var(--nuvio-glass-bg);
+    border: 1px solid var(--nuvio-glass-border);
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 var(--nuvio-glass-highlight);
+    backdrop-filter: blur(20px);
+  }
+
+  .nuvio-volume-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .nuvio-volume-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 108px;
+      height: 5px;
+      border-radius: var(--nuvio-pill-radius);
+      background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.96) 0%,
+        rgba(255, 255, 255, 0.96) var(--volProgress, 50%),
+        rgba(255, 255, 255, 0.22) var(--volProgress, 50%),
+        rgba(255, 255, 255, 0.22) 100%
+      );
+      cursor: pointer;
+
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+      }
+    }
+
+    .nuvio-vol-boost-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: #94a3b8;
+      min-width: 38px;
+      transition: all 0.2s ease;
+
+      &.boosted {
+        color: #f59e0b;
+        text-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      }
+    }
+  }
+
+  .nuvio-time-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 8px;
+    transition: background-color 150ms ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Pause Metadata Overlay */
+  .nuvio-pause-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 18;
+    display: flex;
+    align-items: flex-end;
+    padding: 40px 36px 134px;
+    background:
+      radial-gradient(
+        circle at 18% 78%,
+        rgba(0, 0, 0, 0.72),
+        rgba(0, 0, 0, 0.26) 44%,
+        rgba(0, 0, 0, 0.08) 76%
+      ),
+      linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.84) 0%,
+        rgba(0, 0, 0, 0.56) 44%,
+        rgba(0, 0, 0, 0.12) 100%
+      );
+    pointer-events: none;
+    animation: nuvioFadeIn 260ms var(--nuvio-ease-out-quart);
+
+    .nuvio-pause-card {
+      max-width: min(640px, 68vw);
+      padding: 24px 26px;
+      border-radius: var(--nuvio-panel-radius);
+      background: rgba(10, 12, 18, 0.68);
+      border: 1px solid var(--nuvio-glass-border);
+      box-shadow: var(--nuvio-glass-shadow);
+      backdrop-filter: blur(22px);
+    }
+
+    .nuvio-pause-eyebrow {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.64);
+      margin-bottom: 10px;
+    }
+
+    .nuvio-pause-title {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1.04;
+      letter-spacing: -0.025em;
+      margin-bottom: 8px;
+    }
+
+    .nuvio-pause-episode {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+      margin-bottom: 8px;
+    }
+
+    .nuvio-pause-description {
+      font-size: 14px;
+      line-height: 1.48;
+      color: rgba(255, 255, 255, 0.76);
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
+  /* Opening Overlay */
+  .nuvio-opening-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 24;
+    overflow: hidden;
+    background: #05070b;
+    pointer-events: none;
+    animation: nuvioFadeIn 280ms var(--nuvio-ease-out-quart);
+
+    .nuvio-opening-backdrop {
+      position: absolute;
+      inset: -4%;
+      background-position: center;
+      background-size: cover;
+      filter: blur(8px) saturate(1.06);
+      transform: scale(1.05);
+      opacity: 0.45;
+    }
+
+    .nuvio-opening-scrim {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(
+          circle at 50% 42%,
+          rgba(0, 0, 0, 0.22) 0%,
+          rgba(0, 0, 0, 0.62) 58%,
+          rgba(0, 0, 0, 0.9) 100%
+        ),
+        linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.56) 0%,
+          rgba(0, 0, 0, 0.34) 38%,
+          rgba(0, 0, 0, 0.86) 100%
+        );
+    }
+
+    .nuvio-opening-center {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 40px 32px;
+      text-align: center;
+    }
+
+    .nuvio-opening-title {
+      max-width: min(760px, 78vw);
+      font-size: clamp(32px, 4.4vw, 54px);
+      font-weight: 800;
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+      text-shadow: 0 14px 36px rgba(0, 0, 0, 0.54);
+    }
+
+    .nuvio-opening-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      min-width: min(360px, 72vw);
+    }
+
+    .nuvio-opening-status {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.86);
+    }
+
+    .nuvio-opening-progress-bar {
+      width: min(280px, 64vw);
+      height: 6px;
+      border-radius: var(--nuvio-pill-radius);
+      background: rgba(255, 255, 255, 0.16);
+      overflow: hidden;
+
+      .nuvio-opening-progress-fill {
+        width: 45%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.68),
+          #ffffff
+        );
+        animation: nuvioIndeterminate 1.4s infinite ease-in-out;
+      }
+    }
+  }
+
+  /* Skip Intro / Recap / Outro Button */
+  .nuvio-skip-prompt {
+    position: absolute;
+    left: 28px;
+    bottom: 132px;
+    z-index: 25;
+    min-height: 46px;
+    padding: 0 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(15, 18, 25, 0.9);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(20px);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition:
+      transform 180ms var(--nuvio-ease-out-quart),
+      background-color 180ms var(--nuvio-ease-out-quart);
+
+    &:hover {
+      background: rgba(28, 32, 44, 0.96);
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Next Episode Floating Card */
+  .nuvio-next-ep-card {
+    position: absolute;
+    right: 28px;
+    bottom: 132px;
+    z-index: 25;
+    width: min(390px, calc(100vw - 56px));
+    padding: 14px;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(12, 15, 22, 0.9);
+    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.46);
+    backdrop-filter: blur(22px);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition:
+      transform 180ms var(--nuvio-ease-out-quart),
+      border-color 180ms var(--nuvio-ease-out-quart);
+
+    &:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.34);
+    }
+
+    .nuvio-next-ep-thumb {
+      width: 118px;
+      height: 68px;
+      border-radius: 14px;
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .nuvio-next-ep-body {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nuvio-next-ep-eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--nuvio-accent);
+    }
+
+    .nuvio-next-ep-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.24;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nuvio-next-ep-meta {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.68);
+    }
+  }
+
+  /* Unlocked / Locked Overlay */
+  .nuvio-lock-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 26;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding: 20px 28px;
+
+    .nuvio-unlock-btn {
+      width: auto;
+      min-width: 150px;
+      height: 46px;
+      padding: 0 18px;
+      gap: 10px;
+      background: var(--nuvio-glass-bg-strong);
+      border: 1px solid var(--nuvio-glass-border);
+      box-shadow: var(--nuvio-glass-shadow);
+      backdrop-filter: blur(20px);
+      font-size: 13px;
+      font-weight: 700;
+    }
+  }
+
+  /* Player Toast (including Hold 2x Speed Toast) */
+  .nuvio-player-toast {
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 38;
+    min-height: 40px;
+    padding: 0 18px;
+    border-radius: var(--nuvio-pill-radius);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(12, 15, 22, 0.9);
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(18px);
+    pointer-events: none;
+  }
+
+  /* Modals & Drawers */
+  .nuvio-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 32;
+    background: rgba(4, 6, 10, 0.56);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    animation: nuvioFadeIn 180ms var(--nuvio-ease-out-quart);
+
+    &.side-drawer-mode {
+      justify-content: flex-end;
+      padding: 22px;
+    }
+  }
+
+  /* Rail Dialogs (Subtitles 3-rail, Audio, Speed) */
+  .nuvio-rail-dialog {
+    width: min(1120px, calc(100vw - 56px));
+    height: min(650px, calc(100vh - 56px));
+    padding: 22px;
+    border-radius: 30px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.06),
+        rgba(255, 255, 255, 0.02)
+      ),
+      rgba(12, 15, 22, 0.94);
+    border: 1px solid var(--nuvio-glass-border);
+    box-shadow: var(--nuvio-glass-shadow);
+    backdrop-filter: blur(28px);
+    overflow: hidden;
+
+    &.nuvio-subtitles-dialog {
+      width: min(1340px, calc(100vw - 44px));
+      height: min(780px, calc(100vh - 44px));
+      padding: 24px;
+    }
+
+    &.single-rail-dialog {
+      width: min(440px, calc(100vw - 56px));
+      height: min(560px, calc(100vh - 56px));
+    }
+  }
+
+  .nuvio-rail-shell {
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(200px, 0.9fr) minmax(260px, 1.15fr) minmax(
+        310px,
+        1.25fr
+      );
+    gap: 16px;
+
+    &.nuvio-subtitles-shell {
+      grid-template-columns: minmax(220px, 0.85fr) minmax(440px, 1.7fr) minmax(
+          380px,
+          1.45fr
+        );
+      gap: 18px;
+    }
+
+    &.single-column {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .nuvio-rail-column {
+    min-width: 0;
+    min-height: 0;
+    padding: 18px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .nuvio-rail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+
+    .nuvio-rail-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .nuvio-rail-subtitle {
+      margin-top: 2px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.56);
+    }
+  }
+
+  .nuvio-rail-list {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+  }
+
+  .nuvio-rail-option {
+    width: 100%;
+    min-height: 54px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color 160ms var(--nuvio-ease-out-quart),
+      border-color 160ms var(--nuvio-ease-out-quart),
+      transform 160ms var(--nuvio-ease-out-quart);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
+    }
+
+    &.selected {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.36);
+    }
+
+    .nuvio-opt-copy {
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .nuvio-opt-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1.35;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .nuvio-opt-subtitle {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.58);
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    .nuvio-opt-badge {
+      padding: 4px 9px;
+      border-radius: var(--nuvio-pill-radius);
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.9);
+      flex-shrink: 0;
+    }
+  }
+
+  /* Style Rail Controls */
+  .nuvio-style-controls {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+  }
+
+  .nuvio-style-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 13px 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    &.nuvio-autosync-card {
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
+      border: 1px solid rgba(0, 229, 255, 0.22);
+      box-shadow: 0 4px 18px rgba(0, 229, 255, 0.05);
+
+      &:hover {
+        border-color: rgba(0, 229, 255, 0.38);
+      }
+    }
+
+    .nuvio-style-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .nuvio-style-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.56);
+    }
+
+    .nuvio-style-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+    }
+  }
+
+  .nuvio-mini-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nuvio-pill-btn {
+    min-height: 36px;
+    padding: 0 13px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 150ms ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    &.primary {
+      background: rgba(255, 255, 255, 0.92);
+      color: #090b10;
+      border-color: transparent;
+    }
+  }
+
+  .nuvio-swatch-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .nuvio-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transition: transform 140ms ease;
+
+      &.active {
+        transform: scale(1.16);
+        border-color: #fff;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22);
+      }
+    }
+  }
+
+  .nuvio-opacity-presets {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-top: 4px;
+
+    .nuvio-pill-btn {
+      font-size: 11px;
+      min-height: 32px;
+      padding: 0 8px;
+      text-align: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+  }
+
+  .nuvio-live-preview-box {
+    margin-top: 2px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nuvio-live-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .nuvio-live-preview-title {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .nuvio-live-preview-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ghost-cinema-accent, #00e5ff);
+  }
+
+  .nuvio-live-preview-stage {
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 14px;
+    background: radial-gradient(
+      circle at center,
+      rgba(30, 41, 59, 0.6) 0%,
+      rgba(10, 12, 18, 0.95) 100%
+    );
+    border-radius: 12px;
+    text-align: center;
+    overflow: hidden;
+
+    .nuvio-subtitle-cue {
+      display: inline-block;
+      max-width: 100%;
+      line-height: 1.35;
+      white-space: normal;
+    }
+  }
+
+  /* Side Panel (Sources & Episodes) */
+  .nuvio-side-panel {
+    width: min(760px, calc(100vw - 44px));
+    height: min(760px, calc(100vh - 44px));
+    padding: 24px;
+    border-radius: 28px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.06),
+        rgba(255, 255, 255, 0.02)
+      ),
+      rgba(12, 15, 22, 0.94);
+    border: 1px solid var(--nuvio-glass-border);
+    box-shadow: var(--nuvio-glass-shadow);
+    backdrop-filter: blur(28px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .nuvio-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    .nuvio-panel-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .nuvio-panel-subtitle {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.62);
+      margin-top: 2px;
+    }
+  }
+
+  .nuvio-chip-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+      height: 5px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+
+    .nuvio-chip {
+      min-height: 36px;
+      padding: 0 14px;
+      border-radius: var(--nuvio-pill-radius);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+
+      &.active {
+        background: rgba(255, 255, 255, 0.92);
+        color: #090b10;
+        border-color: transparent;
+      }
+    }
+  }
+
+  .nuvio-panel-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+  }
+
+  /* Episode Card */
+  .nuvio-episode-card {
+    display: grid;
+    grid-template-columns: 168px minmax(0, 1fr);
+    gap: 14px;
+    padding: 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(255, 255, 255, 0.04);
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: all 160ms var(--nuvio-ease-out-quart);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    &.selected {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.34);
+    }
+
+    .nuvio-ep-thumb-wrap {
+      position: relative;
+      width: 168px;
+      aspect-ratio: 16 / 9;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      &.blurred img {
+        filter: blur(14px) brightness(0.75);
+        transform: scale(1.08);
+      }
+
+      .nuvio-ep-badge {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(8, 10, 14, 0.82);
+        font-size: 11px;
+        font-weight: 800;
+      }
+    }
+
+    .nuvio-ep-body {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nuvio-ep-title {
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .nuvio-ep-desc {
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.68);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+
+  /* Stream Source Card */
+  .nuvio-source-card {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(255, 255, 255, 0.045);
+    color: #fff;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 160ms var(--nuvio-ease-out-quart);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.22);
+      transform: translateY(-1px);
+    }
+
+    &.selected {
+      background: rgba(245, 197, 24, 0.14);
+      border-color: rgba(245, 197, 24, 0.45);
+    }
+
+    .nuvio-source-main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nuvio-source-title {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .nuvio-source-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.65);
+    }
+  }
+
+  /* Submit Intro / Segment Modal */
+  .nuvio-submit-dialog {
+    width: min(560px, calc(100vw - 56px));
+    padding: 24px;
+    border-radius: 26px;
+    background: rgba(12, 15, 22, 0.95);
+    border: 1px solid var(--nuvio-glass-border);
+    box-shadow: var(--nuvio-glass-shadow);
+    backdrop-filter: blur(26px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .nuvio-time-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .nuvio-field-card {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      input {
+        width: 100%;
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+      }
+    }
+  }
+}
+
+@keyframes nuvioFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes nuvioIndeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(65%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}

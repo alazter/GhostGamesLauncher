@@ -19,7 +19,8 @@ import {
   faSearch,
   faArrowUp,
   faArrowDown,
-  faWineGlass
+  faWineGlass,
+  faFilm
 } from '@fortawesome/free-solid-svg-icons'
 import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import HeroicIcon from 'frontend/assets/heroic-icon.svg?react'
@@ -35,7 +36,7 @@ interface CustomStore {
 }
 
 export default function PersonalizationScreen() {
-  const { epic, gog, sideloadedLibrary, amazon, zoom, steam, zoomPercent, setZoomPercent } = useContext(ContextProvider)
+  const { epic, gog, sideloadedLibrary, amazon, zoom, steam, zoomPercent, setZoomPercent, platform } = useContext(ContextProvider)
 
   const [bgImage, setBgImage] = useState<string | null>(() => {
     return localStorage.getItem('heroic_custom_bg')
@@ -1933,6 +1934,7 @@ export default function PersonalizationScreen() {
   }
 
   const [sidebarItems, setSidebarItems] = useState<{ id: string; icon?: any; isDivider?: boolean; active?: boolean; title?: string }[]>(() => {
+    const isWin = platform === 'win32' || (typeof navigator !== 'undefined' && /win/i.test(navigator.userAgent || navigator.platform))
     const saved = localStorage.getItem('heroic_sidebar_order')
     const defaultOrder: { id: string; icon?: any; isDivider?: boolean; active?: boolean; title?: string }[] = [
       { id: 'library', icon: faGamepad, title: 'Biblioteca', active: false },
@@ -1940,12 +1942,14 @@ export default function PersonalizationScreen() {
       { id: 'personalization', icon: faPaintBrush, title: 'Personalização', active: true },
       { id: 'plugins', icon: faPuzzlePiece, title: 'Plugins', active: false },
       { id: 'external-games', icon: faSearch, title: 'Buscar jogos', active: false },
+      { id: 'alazterflix', icon: faFilm, title: 'Alazterflix', active: false },
       { id: 'login', icon: faUser, title: 'Gerenciar Contas', active: false },
       { id: 'stores', icon: faStore, title: 'Lojas', active: false },
       { id: 'divider-1', isDivider: true, title: 'Divisor' },
       { id: 'settings', icon: faSlidersH, title: 'Configurações', active: false },
       { id: 'console', icon: faTv, title: 'Modo TV', active: false },
       { id: 'downloads', icon: faBarsProgress, title: 'Downloads', active: false },
+      ...(!isWin ? [{ id: 'wine-manager', icon: faWineGlass, title: 'Wine Manager', active: false }] : []),
       { id: 'accessibility', icon: faUniversalAccess, title: 'Acessibilidade', active: false },
       { id: 'divider-2', isDivider: true, title: 'Divisor' },
       { id: 'wiki', icon: faGithub, title: 'Wiki / Ajuda', active: false },
@@ -1956,11 +1960,15 @@ export default function PersonalizationScreen() {
         const parsedIds = JSON.parse(saved) as string[]
         const orderedList: typeof defaultOrder = []
         parsedIds.forEach(id => {
-          const found = defaultOrder.find(item => item.id === id)
+          const normId = id === 'cinema' ? 'alazterflix' : id
+          if (isWin && normId === 'wine-manager') return
+          const found = defaultOrder.find(item => item.id === normId)
           if (found) {
             orderedList.push(found)
-          } else if (id === 'wine-manager') {
+          } else if (normId === 'wine-manager' && !isWin) {
             orderedList.push({ id: 'wine-manager', icon: faWineGlass, title: 'Wine Manager', active: false })
+          } else if (normId === 'alazterflix') {
+            orderedList.push({ id: 'alazterflix', icon: faFilm, title: 'Alazterflix', active: false })
           }
         })
         defaultOrder.forEach(item => {
@@ -1984,10 +1992,22 @@ export default function PersonalizationScreen() {
                 return
               }
             }
+            if (item.id === 'alazterflix') {
+              const egIdx = orderedList.findIndex(o => o.id === 'external-games')
+              if (egIdx !== -1) {
+                orderedList.splice(egIdx + 1, 0, item)
+                return
+              }
+              const plIdx = orderedList.findIndex(o => o.id === 'plugins')
+              if (plIdx !== -1) {
+                orderedList.splice(plIdx + 1, 0, item)
+                return
+              }
+            }
             orderedList.push(item)
           }
         })
-        if (orderedList.length !== parsedIds.length) {
+        if (orderedList.length !== parsedIds.length || !parsedIds.includes('alazterflix') || (isWin && parsedIds.includes('wine-manager'))) {
           localStorage.setItem('heroic_sidebar_order', JSON.stringify(orderedList.map(item => item.id)))
         }
         return orderedList
@@ -7147,8 +7167,8 @@ export default function PersonalizationScreen() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '6px 10px',
-                        background: item.id === 'external-games' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.04)',
-                        border: item.id === 'external-games' ? '1px solid rgba(0, 229, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
+                        background: item.id === 'external-games' ? 'rgba(0, 229, 255, 0.08)' : item.id === 'alazterflix' ? 'rgba(6, 182, 212, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+                        border: item.id === 'external-games' ? '1px solid rgba(0, 229, 255, 0.3)' : item.id === 'alazterflix' ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid rgba(255, 255, 255, 0.05)',
                         borderRadius: '6px',
                         fontSize: '12px',
                         color: '#fff'
@@ -7165,12 +7185,12 @@ export default function PersonalizationScreen() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: item.id === 'external-games' ? '#00e5ff' : '#8a9bb0'
+                                color: item.id === 'external-games' || item.id === 'alazterflix' ? '#00e5ff' : '#8a9bb0'
                               }}
                             >
                               <FontAwesomeIcon icon={item.icon!} />
                             </div>
-                            <span style={{ fontWeight: item.id === 'external-games' ? 'bold' : 'normal' }}>
+                            <span style={{ fontWeight: item.id === 'external-games' || item.id === 'alazterflix' ? 'bold' : 'normal' }}>
                               {item.title || item.id}
                             </span>
                             {item.id === 'external-games' && (
@@ -7186,6 +7206,21 @@ export default function PersonalizationScreen() {
                                 }}
                               >
                                 Buscar Jogos
+                              </span>
+                            )}
+                            {item.id === 'alazterflix' && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  background: 'rgba(6, 182, 212, 0.15)',
+                                  color: '#06b6d4',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontWeight: 'bold',
+                                  letterSpacing: '0.3px'
+                                }}
+                              >
+                                Alazterflix
                               </span>
                             )}
                           </>
