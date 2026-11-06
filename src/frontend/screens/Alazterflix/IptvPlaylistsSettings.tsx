@@ -14,7 +14,9 @@ import {
   faClock,
   faCalendarDays,
   faBolt,
-  faListCheck
+  faListCheck,
+  faDownload,
+  faCodeBranch
 } from '@fortawesome/free-solid-svg-icons'
 import type {
   GhostTvChannel,
@@ -23,8 +25,10 @@ import type {
   GhostEpgChannel,
   GhostEpgProgram
 } from 'common/types/plugins'
+import type { GhostIptvUpdateState } from 'common/types/ghostIptvUpdate'
 import { parseM3u } from 'common/m3uParser'
 import { parseXmltv } from 'common/epgParser'
+import { faGithub } from '@fortawesome/free-brands-svg-icons'
 
 const STORAGE_KEY_PLAYLISTS = 'ghost_alazterflix_tv_playlists'
 const STORAGE_KEY_CHANNELS = 'ghost_alazterflix_tv_channels'
@@ -48,6 +52,90 @@ export default function IptvPlaylistsSettings() {
   const [epgSourceName, setEpgSourceName] = useState('')
   const [syncingEpgId, setSyncingEpgId] = useState<string | null>(null)
   const [epgLoading, setEpgLoading] = useState(false)
+  const [ghostIptvUpdate, setGhostIptvUpdate] = useState<GhostIptvUpdateState | null>(null)
+  const [checkingGhostIptv, setCheckingGhostIptv] = useState(false)
+
+  useEffect(() => {
+    if (window.api?.pluginsGhostIptvState) {
+      window.api.pluginsGhostIptvState().then(setGhostIptvUpdate).catch(() => {})
+    }
+  }, [])
+
+  const handleCheckGhostIptv = async () => {
+    if (!window.api?.pluginsGhostIptvAction) return
+    setCheckingGhostIptv(true)
+    try {
+      const res = await window.api.pluginsGhostIptvAction({ type: 'check' })
+      if (res?.state) setGhostIptvUpdate(res.state)
+      setFeedback({
+        type: 'success',
+        message: res?.state?.upstreamUpdateAvailable
+          ? `Nova versão do Ghost IPTV encontrada no GitHub: v${res.state.upstream}!`
+          : `Ghost IPTV está atualizado na versão estável mais recente (v${res?.state?.installed || '2.4.6'}).`
+      })
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: `Erro ao verificar atualizações do GitHub: ${err?.message || err}` })
+    } finally {
+      setCheckingGhostIptv(false)
+    }
+  }
+
+  const handleInstallGhostIptv = async () => {
+    if (!window.api?.pluginsGhostIptvAction) return
+    setCheckingGhostIptv(true)
+    try {
+      const res = await window.api.pluginsGhostIptvAction({ type: 'update' })
+      if (res?.state) setGhostIptvUpdate(res.state)
+      setFeedback({ type: 'success', message: res?.state?.message || 'Ghost IPTV atualizado com sucesso do repositório oficial!' })
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: `Erro ao instalar atualização: ${err?.message || err}` })
+    } finally {
+      setCheckingGhostIptv(false)
+    }
+  }
+
+  const handleRestoreGhostIptv = async () => {
+    if (!window.api?.pluginsGhostIptvAction) return
+    setCheckingGhostIptv(true)
+    try {
+      const res = await window.api.pluginsGhostIptvAction({ type: 'rollback' })
+      if (res?.state) setGhostIptvUpdate(res.state)
+      setFeedback({ type: 'success', message: res?.state?.message || 'Versão anterior restaurada com sucesso.' })
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: `Erro ao restaurar versão anterior: ${err?.message || err}` })
+    } finally {
+      setCheckingGhostIptv(false)
+    }
+  }
+
+  const handleSyncLocalGhostIptv = async () => {
+    if (!window.api?.pluginsGhostIptvAction) return
+    setCheckingGhostIptv(true)
+    try {
+      const res = await window.api.pluginsGhostIptvAction({ type: 'sync-local' })
+      if (res?.state) setGhostIptvUpdate(res.state)
+      setFeedback({
+        type: 'success',
+        message: `✓ Sincronização concluída com sucesso a partir do projeto local PC (${res?.state?.localDevPath})!`
+      })
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: `Erro na sincronização local: ${err?.message || err}` })
+    } finally {
+      setCheckingGhostIptv(false)
+    }
+  }
+
+  const handleOpenGhostIptvFolder = () => {
+    window.api?.pluginsGhostIptvAction?.({ type: 'open-folder' })
+  }
+
+  const handleOpenGhostIptvGithub = () => {
+    window.api?.pluginsGhostIptvAction?.({ type: 'open-github' })
+  }
+
+  const handleOpenGhostIptvWindow = () => {
+    window.api?.pluginsGhostIptvAction?.({ type: 'open-window' })
+  }
 
 
   // Carrega listas do backend ou localStorage
@@ -666,6 +754,189 @@ export default function IptvPlaylistsSettings() {
           </button>
         </div>
       )}
+
+      {/* CARD DO PLUGIN GHOST IPTV & AUTO-UPDATE VIA GITHUB */}
+      <div className="iptv-ghost-addon-card settings-card" style={{
+        background: 'linear-gradient(135deg, rgba(8, 14, 24, 0.95), rgba(12, 22, 38, 0.98))',
+        border: '1px solid rgba(0, 229, 255, 0.35)',
+        borderRadius: 12,
+        padding: '18px 22px',
+        marginBottom: 20,
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(0, 150, 255, 0.1))',
+              border: '1px solid var(--alazter-cyan)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--alazter-cyan)',
+              fontSize: 22,
+              boxShadow: '0 0 16px rgba(0, 229, 255, 0.3)'
+            }}>
+              <FontAwesomeIcon icon={faTowerBroadcast} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#f3f4f6', letterSpacing: '0.3px' }}>
+                  Ghost IPTV &amp; Addon TV Oficial
+                </h3>
+                <span style={{
+                  fontSize: 11,
+                  background: 'rgba(0, 229, 255, 0.15)',
+                  border: '1px solid var(--alazter-cyan)',
+                  color: 'var(--alazter-cyan)',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontWeight: 700
+                }}>
+                  v{ghostIptvUpdate?.installed || '2.4.6'}
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  background: 'rgba(74, 222, 128, 0.15)',
+                  border: '1px solid #4ade80',
+                  color: '#4ade80',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontWeight: 600
+                }}>
+                  ● Ativo no PC &amp; Android TV
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: 12.5, color: 'var(--alazter-text-muted)' }}>
+                Port oficial do <strong>App Tv addon stremio e m3u</strong> para o Alazterflix com sincronização automática do GitHub oficial (<code>alazter/ghost-iptv</code>).
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-action primary"
+              onClick={handleOpenGhostIptvWindow}
+              title="Abrir a interface completa de TV Box em janela dedicada com controles de teclado e controle remoto"
+              style={{ background: 'linear-gradient(135deg, #00e5ff, #0099ff)', color: '#030812', fontWeight: 700 }}
+            >
+              <FontAwesomeIcon icon={faTv} />
+              <span>Abrir Janela TV Box (PC)</span>
+            </button>
+            <button
+              type="button"
+              className="btn-action"
+              onClick={handleOpenGhostIptvGithub}
+              title="Acessar o repositório oficial no GitHub"
+            >
+              <FontAwesomeIcon icon={faCodeBranch} />
+              <span>GitHub Oficial</span>
+            </button>
+            <button
+              type="button"
+              className="btn-action"
+              onClick={handleOpenGhostIptvFolder}
+              title="Abrir a pasta do projeto local no Windows Explorer"
+            >
+              <FontAwesomeIcon icon={faFolderOpen} />
+              <span>Abrir Pasta do Projeto</span>
+            </button>
+          </div>
+        </div>
+
+        {/* BARRA DE AÇÕES DE ATUALIZAÇÃO E SINCRONIZAÇÃO */}
+        <div style={{
+          marginTop: 14,
+          paddingTop: 12,
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 10
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-action"
+              onClick={handleCheckGhostIptv}
+              disabled={checkingGhostIptv}
+            >
+              <FontAwesomeIcon icon={faRotate} spin={checkingGhostIptv} />
+              <span>{checkingGhostIptv ? 'Checando GitHub...' : 'Checar Atualizações no GitHub'}</span>
+            </button>
+
+            {ghostIptvUpdate?.updateAvailable && (
+              <button
+                type="button"
+                className="btn-action primary"
+                onClick={handleInstallGhostIptv}
+                disabled={checkingGhostIptv}
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff' }}
+              >
+                <FontAwesomeIcon icon={faDownload} />
+                <span>Instalar Nova Versão (v{ghostIptvUpdate.upstream || ghostIptvUpdate.available})</span>
+              </button>
+            )}
+
+            {ghostIptvUpdate?.localDevAvailable && (
+              <button
+                type="button"
+                className="btn-action"
+                onClick={handleSyncLocalGhostIptv}
+                disabled={checkingGhostIptv}
+                title="Sincronizar código-fonte e assets diretamente do projeto local PC"
+                style={{ borderColor: 'rgba(0, 229, 255, 0.5)', color: 'var(--alazter-cyan)' }}
+              >
+                <FontAwesomeIcon icon={faRotate} />
+                <span>Sincronizar do Projeto Local PC</span>
+              </button>
+            )}
+
+            {Boolean(ghostIptvUpdate?.previous) && (
+              <button
+                type="button"
+                className="btn-action"
+                onClick={handleRestoreGhostIptv}
+                disabled={checkingGhostIptv}
+                style={{ color: '#fbbf24', borderColor: '#fbbf24' }}
+              >
+                <FontAwesomeIcon icon={faRotate} />
+                <span>Restaurar v{ghostIptvUpdate?.previous}</span>
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {ghostIptvUpdate?.apkUrl && (
+              <a
+                href={ghostIptvUpdate.apkUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-action"
+                style={{ textDecoration: 'none', color: '#a78bfa', borderColor: 'rgba(167, 139, 250, 0.4)' }}
+                title="Baixar a versão APK compilada para Android TV / TV Box"
+              >
+                <FontAwesomeIcon icon={faDownload} />
+                <span>Baixar APK (Android TV)</span>
+              </a>
+            )}
+            <button
+              type="button"
+              className="btn-action"
+              style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+              title="Abrir o repositório oficial do Ghost IPTV no GitHub pelo navegador"
+              onClick={() => window.api.openExternalUrl('https://github.com/alazter/ghost-iptv')}
+            >
+              <FontAwesomeIcon icon={faGithub} />
+              <span>GitHub Oficial</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* PAINEL DE INSERÇÃO DE NOVA LISTA */}
       <div className="iptv-insert-box">

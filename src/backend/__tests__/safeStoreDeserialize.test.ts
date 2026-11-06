@@ -54,4 +54,27 @@ describe('TypeCheckedStoreBackend & Safe Deserialization', () => {
       expect(store.get('anyKey' as any, 'fallback')).toBe('fallback')
     }).not.toThrow()
   })
+
+  test('strips UTF-8 BOM and parses valid JSON correctly without throwing Unexpected token error', () => {
+    const rawBom = '\uFEFF{"version":"v0","defaultSettings":{"autoUpdateGames":false}}'
+    const cleaned = rawBom.replace(/^\uFEFF/, '').trim()
+    expect(() => JSON.parse(cleaned)).not.toThrow()
+    const parsed = JSON.parse(cleaned)
+    expect(parsed.version).toBe('v0')
+    expect(parsed.defaultSettings.autoUpdateGames).toBe(false)
+  })
+
+  test('handles whitespace-only or corrupted state.json safely without crashing', () => {
+    const emptyContent = '    \r\n\t   '
+    const raw = emptyContent.replace(/^\uFEFF/, '').trim()
+    let state = { jobs: [], installations: [], backups: [] }
+    if (raw) {
+      try {
+        state = JSON.parse(raw)
+      } catch {
+        state = { jobs: [], installations: [], backups: [] }
+      }
+    }
+    expect(state).toEqual({ jobs: [], installations: [], backups: [] })
+  })
 })

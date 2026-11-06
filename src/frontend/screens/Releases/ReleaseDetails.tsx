@@ -17,7 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { ReleaseProduct, ReleaseRegion } from 'common/types/releases'
 import { RELEASE_CATEGORIES } from 'common/types/releases'
-import { releaseVideoEmbed, releaseVideoThumbnail } from 'common/releaseMedia'
+import { releaseImageUrl, releaseVideoEmbed, releaseVideoThumbnail } from 'common/releaseMedia'
 import type { TrackedRelease } from 'frontend/helpers/releaseTracking'
 import { localReleaseDay } from 'frontend/helpers/releaseTracking'
 import './details.css'
@@ -145,7 +145,7 @@ export default function ReleaseDetails(props: Props) {
             aria-label="Informações do lançamento"
           >
             <header className="nr-product-header">
-              {product.image && <img src={product.image} alt="" />}
+              {product.image && <img src={releaseImageUrl(product.image)} alt="" onError={(e) => { e.currentTarget.style.display = 'none' }} />}
               <div>
                 <h2 id="nr-detail-title">{product.title}</h2>
                 <div className="nr-product-meta">
@@ -243,7 +243,7 @@ export default function ReleaseDetails(props: Props) {
                       >
                         {thumbnail(active.url) && (
                           <img
-                            src={thumbnail(active.url)}
+                            src={releaseImageUrl(thumbnail(active.url))}
                             alt={`Trailer de ${product.title}`}
                           />
                         )}
@@ -253,7 +253,7 @@ export default function ReleaseDetails(props: Props) {
                       </button>
                     )
                   ) : (
-                    <img src={active.url} alt={`Imagem de ${product.title}`} />
+                    <img src={releaseImageUrl(active.url)} alt={`Imagem de ${product.title}`} onError={(e) => { e.currentTarget.style.display = 'none' }} />
                   )}
                 </div>
                 <div
@@ -283,13 +283,14 @@ export default function ReleaseDetails(props: Props) {
                       >
                         {(item.kind === 'image' || thumbnail(item.url)) && (
                           <img
-                            src={
+                            src={releaseImageUrl(
                               item.kind === 'image'
                                 ? item.url
                                 : thumbnail(item.url)
-                            }
+                            )}
                             alt=""
                             loading="lazy"
+                            onError={(e) => { e.currentTarget.style.display = 'none' }}
                           />
                         )}
                         {item.kind === 'video' && (

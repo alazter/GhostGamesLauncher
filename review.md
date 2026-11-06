@@ -1,4 +1,4 @@
-# Review das Alterações - 29/10/2026
+# Review das Alterações - 06/11/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -819,6 +819,18 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Hub de TV ao Vivo & EPG (`AlazterflixTvHub.tsx`, `m3uParser.ts`, `epgParser.ts`)**: Parser de listas M3U/M3U8 e guia eletrônico de programação (XMLTV/EPG) com mapeamento de canais, grade de programação e player HLS nativo.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), dezenas de suítes de testes unitários Jest aprovadas e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 55. Ghost IPTV Oficial, Auto-Update de Motores (Scrapling 0.5.1 / GitHub Releases), Desbloqueio Releases.com e Auto-Cura de JSON/BOM
+* **Problema:** O feed remoto de motores de scraping retornava HTTP 404 no GitHub por ausência das releases oficiais `engines-stable` e `engines-scrapling-0.5.1`; o upstream do Scrapling lançou a versão 0.5.1 em Python mas sem binário Windows homologado; o CI do GitHub Actions quebrava em testes de outros plugins com symlinks; o Ghost IPTV residia isolado na lista inferior de plugins sem verificação de atualizações oficiais; as imagens do Releases.com falhavam com `net::ERR_FAILED` pelo cabeçalho `Origin` proibido no Chromium em `net.fetch`; a tela de TV ao vivo continha uma topbar que esticava o player horizontalmente; e arquivos JSON corrompidos ou com UTF-8 BOM podiam travar o boot do Electron.
+* **Solução:**
+  - **Automação Contínua de Motores e Publicação Oficial no GitHub (`engines-stable`, `source-engines.yml`, Conquista 248)**: Publicadas as releases oficiais `engines-scrapling-0.5.1` e `engines-stable` no repositório `alazter/GhostGamesLauncher`, eliminando o erro HTTP 404; blindagem do GitHub Actions com PyInstaller `>=6.22.0` e escopo restrito aos motores para compilação, teste e publicação automática a cada nova tag do upstream; ativação do Scrapling 0.5.1 no perfil do launcher com self-test aprovado.
+  - **Scrapling 0.5.1 Homologado e Empacotado (`prepare_engines.py`, Conquista 247)**: Compilação do binário isolado `ghost-scrapling.exe` v0.5.1 com suporte a `--collect-all frostwork` (dependência do `w3lib 2.6`), empacotamento SHA-256 (`fa6f587b...`) no catálogo bundled e sincronização em `resources/engine-bundles`.
+  - **Ghost IPTV - Alazterflix Addon & Atualização Contínua via GitHub (`SourceEnginesPanel.tsx`, `ghostIptvUpdate.ts`, `ghostIptvServer.ts`, Conquista 245)**: Renomeação canônica para "Ghost IPTV - Alazterflix Addon"; migração do card para a seção de Motores e Addons Oficiais ao lado do Nuvio, Scrapling e Obscura; botão de procurar atualizações no GitHub oficial (`alazter/ghost-iptv`), botão primário de instalação atômica com auto-backup, badge de versão oficial em dia e desduplicação na lista inferior de plugins.
+  - **Botões Padronizados do GitHub Oficial com Abertura pelo Navegador (Conquista 246)**: Botões com ícone oficial `faGithub` nos 4 cards oficiais (Ghost IPTV, Scrapling, Obscura e Nuvio) abrindo diretamente no navegador padrão via `window.api.openExternalUrl`.
+  - **Blindagem e Resolução Definitiva de Imagens do Releases.com via ImageCache (`images_cache.ts`, `main.ts`, `catalog.ts`, `releaseMedia.ts`, Conquistas 235 e 236)**: Eliminação do cabeçalho proibido `Origin` em `net.fetch`, auto-recuperação (self-healing) de clearance Cloudflare Turnstile com sincronização de cookies entre sessões e proxy resiliente de imagens em cache local offline com retry suave.
+  - **Eliminação da Topbar da TV ao Vivo & Badge de Versão (`index.tsx`, `index.scss`, Conquista 243)**: Remoção da barra superior na tela de TV ao vivo liberando altura para proporção ideal do player de vídeo; migração dos modos de TV Box para as Configurações do Alazterflix; e badge `v2.4.6` inserida no header do Ghost IPTV.
+  - **Imunização Universal contra UTF-8 BOM e Auto-Recuperação de JSON (`config.ts`, `game_config.ts`, `externalGames.ts`, `pluginManager.ts`, `sourceSettings.ts`, `safeStoreDeserialize.test.ts`, Conquista 197 / 236)**: Sanitização compulsória de UTF-8 BOM (`﻿`) e blocos try/catch com restauração de valores padrão seguros em todas as rotinas de leitura de JSON no boot.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 45/45 testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -868,6 +880,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [docs/EXTERNAL_COVER_PRIORITY.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_COVER_PRIORITY.md)
 - [NEW] [docs/EXTERNAL_GAME_DETAILS_DESIGN.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_GAME_DETAILS_DESIGN.md)
 - [MODIFY] [scripts/patch_dev_exe.js](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/patch_dev_exe.js)
+- [NEW] [plugins/ghost-iptv/plugin.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/plugin.json)
 ### Backend & Core
 - [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
 - [NEW] [src/backend/__tests__/abortAllOperations.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/abortAllOperations.test.ts)
@@ -1022,6 +1035,11 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/backend/plugins/__tests__/alazterflixCoverSizes.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixCoverSizes.test.ts)
 - [MODIFY] [src/backend/plugins/networkGuard.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/networkGuard.ts)
 - [MODIFY] [src/backend/plugins/pluginHost.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/pluginHost.ts)
+- [NEW] [src/backend/__tests__/safeStoreDeserialize.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/safeStoreDeserialize.test.ts)
+- [NEW] [src/backend/plugins/ghostIptvServer.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ghostIptvServer.ts)
+- [NEW] [src/backend/plugins/ghostIptvUpdate.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ghostIptvUpdate.ts)
+- [NEW] [src/backend/plugins/sourceSettings.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceSettings.ts)
+- [MODIFY] [src/backend/images_cache.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/images_cache.ts)
 ### Common & Preload
 - [MODIFY] [src/common/types.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types.ts)
 - [MODIFY] [src/common/externalDownloadStatus.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/externalDownloadStatus.ts)
@@ -1046,6 +1064,8 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/common/types/nuvioUpdate.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/nuvioUpdate.ts)
 - [MODIFY] [src/common/mediaCatalog.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/mediaCatalog.ts)
 - [MODIFY] [src/common/subtitleEngine.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/subtitleEngine.ts)
+- [NEW] [src/common/types/ghostIptvUpdate.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/types/ghostIptvUpdate.ts)
+- [NEW] [src/common/releaseMedia.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/common/releaseMedia.ts)
 ### Frontend
 - [MODIFY] [src/frontend/App.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.tsx)
 - [MODIFY] [src/frontend/components/ChooseDownloadModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/ChooseDownloadModal/index.tsx)
@@ -1126,3 +1146,5 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/screens/Alazterflix/cardStyles.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/cardStyles.scss)
 - [MODIFY] [src/frontend/screens/Alazterflix/coverSizes.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/coverSizes.ts)
 - [MODIFY] [src/frontend/screens/Alazterflix/errors.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/errors.ts)
+- [MODIFY] [src/frontend/App.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.css)
+- [MODIFY] [src/frontend/screens/Releases/ReleaseDetails.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseDetails.tsx)

@@ -646,6 +646,16 @@ interface AsyncIPCFunctions {
     error?: string
     state: import('./nuvioUpdate').NuvioAddonUpdateState
   }>
+  pluginsGhostIptvState: () => Promise<
+    import('./ghostIptvUpdate').GhostIptvUpdateState
+  >
+  pluginsGhostIptvAction: (
+    action: import('./ghostIptvUpdate').GhostIptvAction
+  ) => Promise<{
+    success: boolean
+    error?: string
+    state: import('./ghostIptvUpdate').GhostIptvUpdateState
+  }>
   externalGamesState: () => Promise<ExternalGamesState>
   downloadIntegrationsState: () => Promise<DownloadIntegrationsState>
   downloadIntegrationsAction: (
@@ -820,6 +830,7 @@ interface AsyncIPCFunctions {
     error?: string
   }>
   cinemaStremioRemoveAddon: (addonId: string) => Promise<{ success: boolean }>
+  cinemaOpenAddonsFolder: () => Promise<{ success: boolean; path: string }>
   cinemaStremioToggleAddon: (
     addonId: string,
     enabled: boolean

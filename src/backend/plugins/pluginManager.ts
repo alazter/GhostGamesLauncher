@@ -6,6 +6,7 @@ import {
 import { initializeSourceEngines, importSourceEngine, exportSourceEngine, sourceEnginesState } from './sourceEngines'
 import { isSourceEnginePackage } from './sourceEnginePackage'
 import { initializeNuvioAddonUpdate } from './nuvioAddonUpdate'
+import { initializeGhostIptvUpdate } from './ghostIptvUpdate'
 import type { SourceEngineId } from 'common/types/sourceEngines'
 import { refreshExternalRelease } from './externalVersion'
 import { installedReleaseCandidate } from 'common/externalReleaseInfo'
@@ -972,6 +973,7 @@ export class PluginManager {
   public async init(): Promise<void> {
     initializeSourceSettings(userDataPath)
     initializeNuvioAddonUpdate(userDataPath)
+    initializeGhostIptvUpdate(userDataPath)
     try {
       await initializeSourceEngines(
         userDataPath,
@@ -1094,7 +1096,8 @@ export class PluginManager {
   private loadStates(): void {
     try {
       if (existsSync(this.stateFilePath)) {
-        this.pluginStates = JSON.parse(readFileSync(this.stateFilePath, 'utf8'))
+        const raw = readFileSync(this.stateFilePath, 'utf8').replace(/^\uFEFF/, '').trim()
+        this.pluginStates = raw ? JSON.parse(raw) : {}
       }
     } catch {
       this.pluginStates = {}

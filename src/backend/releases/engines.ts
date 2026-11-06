@@ -19,7 +19,10 @@ const manifest: PluginManifest = {
     'www.releases.com',
     'releases.com',
     'cdn.releases.com',
-    'ajax.aspnetcdn.com'
+    'ajax.aspnetcdn.com',
+    'challenges.cloudflare.com',
+    'cloudflare.com',
+    'static.cloudflareinsights.com'
   ]
 }
 
@@ -160,9 +163,7 @@ export async function parseResilient<T>(
   parse: (html: string) => T
 ): Promise<T> {
   if (
-    /Checking your browser|Just a moment|Verify you are human|cf-chl-widget/i.test(
-      html.slice(0, 12000)
-    )
+    /Checking your browser|Just a moment|Um momento|Verify you are human|Verifique se voc|cf-chl|challenges\.cloudflare\.com|challenge-platform/i.test(html.slice(0, 40000))
   )
     throw new Error(
       'A fonte exige verificação; os dados salvos foram preservados.'

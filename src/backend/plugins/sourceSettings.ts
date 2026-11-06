@@ -23,7 +23,16 @@ function state() {
   if (!settings) {
     if (!settingsRoot) return {}
     const file = join(settingsRoot, 'source-addresses.json')
-    settings = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {}
+    try {
+      if (existsSync(file)) {
+        const raw = readFileSync(file, 'utf8').replace(/^\uFEFF/, '').trim()
+        settings = raw ? JSON.parse(raw) : {}
+      } else {
+        settings = {}
+      }
+    } catch {
+      settings = {}
+    }
   }
   return settings!
 }

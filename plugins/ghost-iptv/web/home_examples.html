@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghost IPTV — Layout 1 (4 Acabamentos Broadcast Reais — Sem Cara de IA)</title>
+  <script src="assets/hls.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #09090b;
+      color: #f4f4f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* BARRA SELETORA DISCRETA DE ACABAMENTO (TOPO) */
+    .skin-switcher-bar {
+      height: 44px;
+      background: #060608;
+      border-bottom: 1px solid #1c1c22;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .skin-switcher-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #a1a1aa;
+      font-weight: 600;
+    }
+
+    .skin-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .skin-btn {
+      background: #121216;
+      border: 1px solid #23232b;
+      color: #a1a1aa;
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 100ms ease;
+    }
+
+    .skin-btn:hover {
+      background: #1a1a20;
+      color: #e4e4e7;
+    }
+
+    .skin-btn.active {
+      background: #f4f4f5;
+      color: #09090b;
+      border-color: #f4f4f5;
+      font-weight: 700;
+    }
+
+    .skin-key {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 10.5px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .skin-btn.active .skin-key {
+      background: rgba(0, 0, 0, 0.12);
+      color: #09090b;
+    }
+
+    .btn-open-main {
+      background: #18181f;
+      border: 1px solid #2e2e38;
+      color: #f4f4f5;
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .btn-open-main:hover {
+      background: #23232d;
+    }
+
+    /* =========================================================================
+       ESTRUTURA DO LAYOUT 1 (FLUSH BROADCAST STUDIO — ZERO ELEMENTOS DE IA)
+       ========================================================================= */
+    .broadcast-shell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: calc(100vh - 44px);
+      overflow: hidden;
+      background: var(--bg-main);
+      color: var(--txt-primary);
+    }
+
+    /* TEMA 1: CARBON BROADCAST (ESTILO YOUTUBE TV / TIVIMATE DARK) */
+    .broadcast-shell[data-skin="1"] {
+      --bg-main: #09090b;
+      --bg-header: #0c0c0f;
+      --bg-sidebar: #0e0e12;
+      --bg-list-hdr: linear-gradient(90deg, #2e1065 0%, #170d2b 100%);
+      --bg-row-hover: #141419;
+      --bg-row-active: #191922;
+      --bg-dock: #0c0c0f;
+      --bg-dock-now: #111116;
+      --border-hairline: #1e1e24;
+      --accent-bar: #7c3aed;
+      --accent-tab: #7c3aed;
+      --txt-primary: #f4f4f5;
+      --txt-secondary: #a1a1aa;
+      --txt-muted: #71717a;
+      --shell-pad: 0px;
+      --panel-radius: 0px;
+    }
+
+    /* TEMA 2: OBSIDIAN MONOCHROME (ESTILO APPLE TVOS / SONY BRAVIA CORE - 100% NEUTRO) */
+    .broadcast-shell[data-skin="2"] {
+      --bg-main: #000000;
+      --bg-header: #08080a;
+      --bg-sidebar: #0a0a0c;
+      --bg-list-hdr: #121215;
+      --bg-row-hover: #141417;
+      --bg-row-active: #1c1c21;
+      --bg-dock: #08080a;
+      --bg-dock-now: #101013;
+      --border-hairline: #1c1c20;
+      --accent-bar: #ffffff;
+      --accent-tab: #ffffff;
+      --txt-primary: #ffffff;
+      --txt-secondary: #a1a1aa;
+      --txt-muted: #6e6e77;
+      --shell-pad: 0px;
+      --panel-radius: 0px;
+    }
+
+    /* TEMA 3: GRAPHITE OPERATOR (ESTILO CLARO TV+ / DIRECTV GO / SKY) */
+    .broadcast-shell[data-skin="3"] {
+      --bg-main: #0e1014;
+      --bg-header: #12151b;
+      --bg-sidebar: #14171e;
+      --bg-list-hdr: #191d26;
+      --bg-row-hover: #1c202a;
+      --bg-row-active: #232834;
+      --bg-dock: #12151b;
+      --bg-dock-now: #171b23;
+      --border-hairline: #232832;
+      --accent-bar: #e11d48;
+      --accent-tab: #e11d48;
+      --txt-primary: #f1f5f9;
+      --txt-secondary: #94a3b8;
+      --txt-muted: #64748b;
+      --shell-pad: 0px;
+      --panel-radius: 0px;
+    }
+
+    /* TEMA 4: STUDIO MATTE DECK (PAINÉIS EMOLDURADOS DISCRETOS COM ACENTO VIOLETA SÓBRIO) */
+    .broadcast-shell[data-skin="4"] {
+      --bg-main: #070709;
+      --bg-header: #0d0d11;
+      --bg-sidebar: #101015;
+      --bg-list-hdr: linear-gradient(90deg, #3b0764 0%, #1e1b4b 100%);
+      --bg-row-hover: #17171f;
+      --bg-row-active: #1f1b2e;
+      --bg-dock: #101015;
+      --bg-dock-now: #161422;
+      --border-hairline: #22222c;
+      --accent-bar: #8b5cf6;
+      --accent-tab: #8b5cf6;
+      --txt-primary: #f4f4f5;
+      --txt-secondary: #a1a1aa;
+      --txt-muted: #71717a;
+      --shell-pad: 8px;
+      --panel-radius: 6px;
+    }
+
+    /* TOP HEADER */
+    .b-header {
+      height: 48px;
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .b-header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 100%;
+    }
+
+    .b-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .b-brand img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+    }
+
+    .b-brand-name {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      color: var(--txt-primary);
+    }
+
+    .b-cat-nav {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      gap: 4px;
+    }
+
+    .b-cat-tab {
+      height: 100%;
+      padding: 0 14px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--txt-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: color 100ms ease;
+    }
+
+    .b-cat-tab:hover {
+      color: var(--txt-secondary);
+    }
+
+    .b-cat-tab.active {
+      color: var(--txt-primary);
+      font-weight: 700;
+      border-bottom-color: var(--accent-tab);
+    }
+
+    .b-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .b-clock {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--txt-secondary);
+    }
+
+    /* CORPO PRINCIPAL */
+    .b-workspace {
+      flex: 1;
+      display: flex;
+      padding: var(--shell-pad);
+      gap: var(--shell-pad);
+      overflow: hidden;
+    }
+
+    /* COLUNA ESQUERDA */
+    .b-sidebar {
+      width: 390px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-hairline);
+      border-radius: var(--panel-radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .b-list-hdr {
+      background: var(--bg-list-hdr);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .b-list-hdr-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--txt-primary);
+    }
+
+    .b-list-hdr-count {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--txt-secondary);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 1px 7px;
+      border-radius: 3px;
+    }
+
+    .b-search-wrap {
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border-hairline);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .b-search-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--txt-primary);
+      font-size: 13px;
+    }
+
+    .b-search-input::placeholder {
+      color: var(--txt-muted);
+    }
+
+    .b-ch-scroll {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .b-ch-row {
+      height: 64px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-hairline);
+      cursor: pointer;
+      transition: background-color 80ms ease;
+    }
+
+    .b-ch-row:hover {
+      background: var(--bg-row-hover);
+    }
+
+    .b-ch-row.active {
+      background: var(--bg-row-active);
+      box-shadow: inset 3px 0 0 var(--accent-bar);
+    }
+
+    .b-ch-logo {
+      width: 78px;
+      height: 46px;
+      background: #060608;
+      border: 1px solid var(--border-hairline);
+      border-radius: 4px;
+      padding: 3px 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .b-ch-logo img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .b-ch-num {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--txt-muted);
+      width: 34px;
+    }
+
+    .b-ch-row.active .b-ch-num {
+      color: var(--txt-secondary);
+      font-weight: 700;
+    }
+
+    .b-ch-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--txt-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .b-ch-row.active .b-ch-name {
+      color: var(--txt-primary);
+      font-weight: 700;
+    }
+
+    /* PALCO DIREITO */
+    .b-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--shell-pad);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .b-video-viewport {
+      flex: 1;
+      background: #000;
+      border-radius: var(--panel-radius);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .b-video-viewport video {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      background: #000;
+    }
+
+    /* FAIXA DE TIMELINE 3 COLUNAS (AGORA / A SEGUIR / MAIS TARDE) */
+    .b-timeline-dock {
+      height: 102px;
+      background: var(--bg-dock);
+      border-top: 1px solid var(--border-hairline);
+      border-radius: var(--panel-radius);
+      display: grid;
+      grid-template-columns: 1.45fr 1fr 1fr;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .b-slot {
+      padding: 12px 18px;
+      border-right: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .b-slot:last-child {
+      border-right: none;
+    }
+
+    .b-slot.slot-now {
+      background: var(--bg-dock-now);
+    }
+
+    .b-slot-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+
+    .b-live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--txt-primary);
+    }
+
+    .b-live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #dc2626;
+    }
+
+    .b-slot-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--txt-muted);
+      text-transform: uppercase;
+    }
+
+    .b-slot-time {
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--txt-secondary);
+    }
+
+    .b-slot-title-now {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--txt-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .b-slot-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--txt-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .b-slot-desc {
+      font-size: 12px;
+      color: var(--txt-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .b-progress-track {
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .b-progress-fill {
+      height: 100%;
+      background: var(--accent-bar);
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #27272f; }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA SUPERIOR DE COMPARAÇÃO DE ACABAMENTOS SÓBRIOS PARA O LAYOUT 1 -->
+  <div class="skin-switcher-bar">
+    <div class="skin-switcher-left">
+      <span>Layout 1 (Broadcast Real — Sem Cara de IA):</span>
+    </div>
+
+    <div class="skin-tabs">
+      <button class="skin-btn active" id="skinBtn1" onclick="setSkin(1)">
+        <span class="skin-key">1</span>
+        <span>1A. Carbon Broadcast (Aplicado no App)</span>
+      </button>
+      <button class="skin-btn" id="skinBtn2" onclick="setSkin(2)">
+        <span class="skin-key">2</span>
+        <span>1B. Obsidian Monocromático (Apple TV)</span>
+      </button>
+      <button class="skin-btn" id="skinBtn3" onclick="setSkin(3)">
+        <span class="skin-key">3</span>
+        <span>1C. Graphite Operadora (Claro tv+ / DGO)</span>
+      </button>
+      <button class="skin-btn" id="skinBtn4" onclick="setSkin(4)">
+        <span class="skin-key">4</span>
+        <span>1D. Studio Matte Emoldurado</span>
+      </button>
+    </div>
+
+    <a href="/" class="btn-open-main">Ir para o App Principal ›</a>
+  </div>
+
+  <!-- SHELL DO LAYOUT 1 -->
+  <div class="broadcast-shell" id="broadcastShell" data-skin="1">
+    <header class="b-header">
+      <div class="b-header-left">
+        <div class="b-brand">
+          <img src="assets/ghost_iptv_logo.png" alt="Ghost IPTV">
+          <span class="b-brand-name">GHOST IPTV</span>
+        </div>
+        <nav class="b-cat-nav" id="catNavContainer"></nav>
+      </div>
+
+      <div class="b-header-right">
+        <span class="b-clock" id="liveClock">12:00</span>
+      </div>
+    </header>
+
+    <div class="b-workspace">
+      <aside class="b-sidebar">
+        <div class="b-list-hdr">
+          <span class="b-list-hdr-title" id="sidebarGroupTitle">Lista de Canais</span>
+          <span class="b-list-hdr-count" id="sidebarCount">68</span>
+        </div>
+        <div class="b-search-wrap">
+          <input type="text" class="b-search-input" placeholder="Pesquisar canal..." oninput="filterChannels(this.value)">
+        </div>
+        <div class="b-ch-scroll" id="chListContainer"></div>
+      </aside>
+
+      <section class="b-stage">
+        <div class="b-video-viewport">
+          <video id="previewVideo" autoplay playsinline muted></video>
+        </div>
+
+        <div class="b-timeline-dock">
+          <!-- COLUNA 1: AGORA -->
+          <div class="b-slot slot-now">
+            <div class="b-slot-top">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="b-live-indicator">
+                  <span class="b-live-dot" id="slotNowDot"></span>
+                  <span id="slotNowBadge">AO VIVO</span>
+                </span>
+                <span style="color:#3f3f46;">·</span>
+                <span id="slotNowCh" style="font-weight:700; color:var(--txt-secondary); text-transform:uppercase;">CANAL</span>
+                <span style="color:#3f3f46;">·</span>
+                <span class="b-slot-time" id="slotNowTime">--:-- – --:--</span>
+              </div>
+              <span id="slotNowLeft" style="color:var(--txt-muted); font-size:11px;"></span>
+            </div>
+
+            <div>
+              <div class="b-slot-title-now" id="slotNowTitle">Carregando...</div>
+              <div class="b-slot-desc" id="slotNowDesc"></div>
+            </div>
+
+            <div class="b-progress-track">
+              <div class="b-progress-fill" id="slotNowBar" style="width:50%;"></div>
+            </div>
+          </div>
+
+          <!-- COLUNA 2: A SEGUIR -->
+          <div class="b-slot">
+            <div class="b-slot-top">
+              <span class="b-slot-label">A SEGUIR</span>
+              <span class="b-slot-time" id="slotNextTime">--:--</span>
+            </div>
+            <div>
+              <div class="b-slot-title" id="slotNextTitle">--</div>
+              <div class="b-slot-desc" id="slotNextDesc"></div>
+            </div>
+            <div style="height:2px;"></div>
+          </div>
+
+          <!-- COLUNA 3: MAIS TARDE -->
+          <div class="b-slot">
+            <div class="b-slot-top">
+              <span class="b-slot-label">MAIS TARDE</span>
+              <span class="b-slot-time" id="slotLaterTime">--:--</span>
+            </div>
+            <div>
+              <div class="b-slot-title" id="slotLaterTitle">--</div>
+              <div class="b-slot-desc" id="slotLaterDesc"></div>
+            </div>
+            <div style="height:2px;"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    let allChannels = [];
+    let filtered = [];
+    let epgMap = {};
+    let activeIdx = 0;
+    let activeCat = 'ALL';
+    let searchQuery = '';
+    let hls = null;
+
+    const CATEGORIES = [
+      { id: 'ALL', name: 'Todos' },
+      { id: 'PREMIERE', name: 'Premiere' },
+      { id: 'SPORTV', name: 'SporTV' },
+      { id: 'ESPN', name: 'ESPN & Disney+' },
+      { id: 'STREAMING', name: 'Streaming' },
+      { id: 'OUTROS', name: 'Mais Canais' }
+    ];
+
+    function matchCat(ch, cat) {
+      if (cat === 'ALL') return true;
+      const n = (ch.name || '').toUpperCase();
+      if (cat === 'PREMIERE') return n.includes('PREMIERE');
+      if (cat === 'SPORTV') return n.includes('SPORTV') || n.includes('COMBATE') || n.includes('OFF');
+      if (cat === 'ESPN') return n.includes('ESPN') || n.includes('DISNEY');
+      if (cat === 'STREAMING') return n.includes('MAX') || n.includes('PARAMOUNT') || n.includes('PRIME') || n.includes('APPLE') || n.includes('CAZ') || n.includes('DAZN');
+      if (cat === 'OUTROS') return !n.includes('PREMIERE') && !n.includes('SPORTV') && !n.includes('COMBATE') && !n.includes('OFF') && !n.includes('ESPN') && !n.includes('DISNEY') && !n.includes('MAX') && !n.includes('PARAMOUNT') && !n.includes('PRIME') && !n.includes('APPLE') && !n.includes('CAZ') && !n.includes('DAZN');
+      return true;
+    }
+
+    function normKey(s) {
+      return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    }
+
+    function getEpg(name) {
+      const k = normKey(name);
+      return epgMap[k] || epgMap[name] || {
+        now: { title: name + ' Ao Vivo', desc: 'Transmissão em alta definição.', start: '12:00', end: '14:00', progress_percent: 50, time_left: '45 min restantes' },
+        next: { title: 'Programação a Seguir', desc: 'Cobertura esportiva.', start: '14:00', end: '16:00' },
+        timeline: []
+      };
+    }
+
+    function setSkin(n) {
+      document.getElementById('broadcastShell').setAttribute('data-skin', String(n));
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('skinBtn' + i).classList.toggle('active', i === n);
+      }
+    }
+
+    function selectCategory(catId) {
+      activeCat = catId;
+      renderCatTabs();
+      applyFilters();
+    }
+
+    function filterChannels(q) {
+      searchQuery = (q || '').toLowerCase().trim();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      filtered = allChannels.filter(ch => {
+        const okCat = matchCat(ch, activeCat);
+        const okTxt = !searchQuery || (ch.name || '').toLowerCase().includes(searchQuery);
+        return okCat && okTxt;
+      });
+      document.getElementById('sidebarCount').innerText = filtered.length;
+      activeIdx = 0;
+      renderChannels();
+      if (filtered.length > 0) selectChannel(0);
+    }
+
+    function renderCatTabs() {
+      const nav = document.getElementById('catNavContainer');
+      nav.innerHTML = CATEGORIES.map(c =>
+        `<button class="b-cat-tab ${c.id === activeCat ? 'active' : ''}" onclick="selectCategory('${c.id}')">${c.name}</button>`
+      ).join('');
+    }
+
+    function renderChannels() {
+      const box = document.getElementById('chListContainer');
+      box.innerHTML = filtered.map((ch, idx) => {
+        const num = String(idx + 1).padStart(3, '0');
+        const logo = (ch.visual_meta && ch.visual_meta.original_logo) || ch.logo || 'assets/ghost_iptv_logo.png';
+        return `
+          <div class="b-ch-row ${idx === activeIdx ? 'active' : ''}" onclick="selectChannel(${idx})">
+            <div class="b-ch-logo"><img src="${logo}" alt="${ch.name}" onerror="this.src='assets/ghost_iptv_logo.png'"></div>
+            <span class="b-ch-num">${num}</span>
+            <span class="b-ch-name">${ch.name}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectChannel(idx) {
+      if (idx < 0 || idx >= filtered.length) return;
+      activeIdx = idx;
+      renderChannels();
+      const ch = filtered[idx];
+      const e = getEpg(ch.name);
+      const now = e.now || {};
+      const next = e.next || {};
+      const tl = e.timeline || [];
+      const later = tl[2] || tl[1] || next;
+
+      const isVt = (now.title || '').toUpperCase().startsWith('VT');
+      document.getElementById('slotNowBadge').innerText = isVt ? 'VT' : 'AO VIVO';
+      document.getElementById('slotNowDot').style.background = isVt ? '#d97706' : '#dc2626';
+      document.getElementById('slotNowCh').innerText = ch.name;
+      document.getElementById('slotNowTime').innerText = `${now.start || '12:00'} – ${now.end || '14:00'}`;
+      document.getElementById('slotNowLeft').innerText = now.time_left || '';
+      document.getElementById('slotNowTitle').innerText = now.title || ch.name;
+      document.getElementById('slotNowDesc').innerText = now.desc || '';
+      document.getElementById('slotNowBar').style.width = `${now.progress_percent || 50}%`;
+
+      document.getElementById('slotNextTime').innerText = `${next.start || '14:00'} – ${next.end || '16:00'}`;
+      document.getElementById('slotNextTitle').innerText = next.title || 'Programação a Seguir';
+      document.getElementById('slotNextDesc').innerText = next.desc || '';
+
+      document.getElementById('slotLaterTime').innerText = `${later.start || '16:00'} – ${later.end || '18:00'}`;
+      document.getElementById('slotLaterTitle').innerText = later.title || 'Sequência da Programação';
+      document.getElementById('slotLaterDesc').innerText = later.desc || '';
+
+      playStream(ch);
+    }
+
+    function playStream(ch) {
+      const video = document.getElementById('previewVideo');
+      if (!ch || !ch.stream_url) return;
+      const url = '/live?url=' + encodeURIComponent(ch.stream_url);
+      if (hls) { hls.destroy(); hls = null; }
+      if (window.Hls && Hls.isSupported()) {
+        hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+      } else {
+        video.src = url;
+        video.play().catch(() => {});
+      }
+    }
+
+    function updateClock() {
+      const d = new Date();
+      document.getElementById('liveClock').innerText = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    window.addEventListener('keydown', e => {
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+      if (['1','2','3','4'].includes(e.key)) setSkin(parseInt(e.key, 10));
+      else if (e.key === 'ArrowDown') { selectChannel(Math.min(filtered.length - 1, activeIdx + 1)); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { selectChannel(Math.max(0, activeIdx - 1)); e.preventDefault(); }
+    });
+
+    async function init() {
+      renderCatTabs();
+      const [chRes, epgRes] = await Promise.all([
+        fetch('/api/channels').then(r => r.json()),
+        fetch('/api/epg').then(r => r.json())
+      ]);
+      allChannels = Array.isArray(chRes) ? chRes : [];
+      const fullEpg = (epgRes && epgRes.full_epg) ? epgRes.full_epg : {};
+      for (const k of Object.keys(fullEpg)) {
+        epgMap[normKey(k)] = fullEpg[k];
+        epgMap[k] = fullEpg[k];
+      }
+      applyFilters();
+    }
+    init();
+  </script>
+</body>
+</html>

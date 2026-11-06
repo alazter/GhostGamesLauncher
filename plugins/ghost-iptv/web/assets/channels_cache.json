@@ -1,0 +1,1382 @@
+[
+  {
+    "id": "meufutebol:appletv01",
+    "raw_id": "meufutebol:appletv01",
+    "name": "APPLE TV+ 1",
+    "logo": "/assets/logos/appletv1.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/appletv01/index.m3u8",
+    "stream_title": "🔴 APPLETV01 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": "",
+    "visual_meta": {
+      "sub_number": "1",
+      "original_logo": "/assets/logos/appletv1.png"
+    }
+  },
+  {
+    "id": "meufutebol:appletv02",
+    "raw_id": "meufutebol:appletv02",
+    "name": "APPLE TV+ 2",
+    "logo": "/assets/logos/appletv1.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/appletv02/index.m3u8",
+    "stream_title": "🔴 APPLETV02 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": "",
+    "visual_meta": {
+      "sub_number": "2",
+      "original_logo": "/assets/logos/appletv1.png"
+    }
+  },
+  {
+    "id": "meufutebol:appletv03",
+    "raw_id": "meufutebol:appletv03",
+    "name": "APPLE TV+ 3",
+    "logo": "/assets/logos/appletv1.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/appletv03/index.m3u8",
+    "stream_title": "🔴 APPLETV03 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": "",
+    "visual_meta": {
+      "sub_number": "3",
+      "original_logo": "/assets/logos/appletv1.png"
+    }
+  },
+  {
+    "id": "meufutebol:appletv04",
+    "raw_id": "meufutebol:appletv04",
+    "name": "APPLE TV+ 4",
+    "logo": "/assets/logos/appletv1.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/appletv04/index.m3u8",
+    "stream_title": "🔴 APPLETV04 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": "",
+    "visual_meta": {
+      "sub_number": "4",
+      "original_logo": "/assets/logos/appletv1.png"
+    }
+  },
+  {
+    "id": "meufutebol:appletv05",
+    "raw_id": "meufutebol:appletv05",
+    "name": "APPLE TV+ 5",
+    "logo": "/assets/logos/appletv1.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/appletv05/index.m3u8",
+    "stream_title": "🔴 APPLETV05 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": "",
+    "visual_meta": {
+      "sub_number": "5",
+      "original_logo": "/assets/logos/appletv1.png"
+    }
+  },
+  {
+    "id": "meufutebol:appletv06",
+    "raw_id": "meufutebol:appletv06",
+    "name": "APPLE TV+ 6",
+    "logo": "https://embedcanaisdetv.com/images/appletv1.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/appletv06/index.m3u8",
+    "stream_title": "🔴 APPLETV06 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:bandsports",
+    "raw_id": "meufutebol:bandsports",
+    "name": "BAND SPORTS",
+    "logo": "https://embedcanaisdetv.com/images/bandsports.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/bandsports/index.m3u8",
+    "stream_title": "🔴 BANDSPORTS - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:canaloff",
+    "raw_id": "meufutebol:canaloff",
+    "name": "CANAL OFF",
+    "logo": "https://embedcanaisdetv.com/images/canaloff.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/canaloff/index.m3u8",
+    "stream_title": "🔴 CANALOFF - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:cazetv",
+    "raw_id": "meufutebol:cazetv",
+    "name": "CAZÉ TV",
+    "logo": "https://embedcanaisdetv.com/images/cazetv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/cazetv/index.m3u8",
+    "stream_title": "🔴 CAZETV - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:cazetv2",
+    "raw_id": "meufutebol:cazetv2",
+    "name": "CAZÉ TV 2",
+    "logo": "https://embedcanaisdetv.com/images/cazetv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/cazetv2/index.m3u8",
+    "stream_title": "🔴 CAZETV2 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:cazetv3",
+    "raw_id": "meufutebol:cazetv3",
+    "name": "CAZÉ TV 3",
+    "logo": "https://embedcanaisdetv.com/images/cazetv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/cazetv3/index.m3u8",
+    "stream_title": "🔴 CAZETV3 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:cazetv4",
+    "raw_id": "meufutebol:cazetv4",
+    "name": "CAZÉ TV 4",
+    "logo": "https://embedcanaisdetv.com/images/cazetv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/cazetv4/index.m3u8",
+    "stream_title": "🔴 CAZETV4 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:cazetv5",
+    "raw_id": "meufutebol:cazetv5",
+    "name": "CAZÉ TV 5",
+    "logo": "https://embedcanaisdetv.com/images/cazetv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/cazetv5/index.m3u8",
+    "stream_title": "🔴 CAZETV5 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:cazetv6",
+    "raw_id": "meufutebol:cazetv6",
+    "name": "CAZÉ TV 6",
+    "logo": "https://embedcanaisdetv.com/images/cazetv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/cazetv6/index.m3u8",
+    "stream_title": "🔴 CAZETV6 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:combate",
+    "raw_id": "meufutebol:combate",
+    "name": "COMBATE",
+    "logo": "https://embedcanaisdetv.com/images/combate.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/combate/index.m3u8",
+    "stream_title": "🔴 COMBATE - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:dazn",
+    "raw_id": "meufutebol:dazn",
+    "name": "DAZN",
+    "logo": "https://embedcanaisdetv.com/images/dazn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/dazn/index.m3u8",
+    "stream_title": "🔴 DAZN - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus",
+    "raw_id": "meufutebol:disneyplus",
+    "name": "DISNEY+",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus02",
+    "raw_id": "meufutebol:disneyplus02",
+    "name": "DISNEY+ 2",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus02/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS02 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus03",
+    "raw_id": "meufutebol:disneyplus03",
+    "name": "DISNEY+ 3",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus03/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS03 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus04",
+    "raw_id": "meufutebol:disneyplus04",
+    "name": "DISNEY+ 4",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus04/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS04 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus05",
+    "raw_id": "meufutebol:disneyplus05",
+    "name": "DISNEY+ 5",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus05/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS05 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus06",
+    "raw_id": "meufutebol:disneyplus06",
+    "name": "DISNEY+ 6",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus06/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS06 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus07",
+    "raw_id": "meufutebol:disneyplus07",
+    "name": "DISNEY+ 7",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus07/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS07 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus08",
+    "raw_id": "meufutebol:disneyplus08",
+    "name": "DISNEY+ 8",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus08/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS08 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:disneyplus09",
+    "raw_id": "meufutebol:disneyplus09",
+    "name": "DISNEY+ 9",
+    "logo": "https://embedcanaisdetv.com/images/disneyplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/disneyplus09/index.m3u8",
+    "stream_title": "🔴 DISNEYPLUS09 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:espn",
+    "raw_id": "meufutebol:espn",
+    "name": "ESPN",
+    "logo": "https://embedcanaisdetv.com/images/espn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/espn/index.m3u8",
+    "stream_title": "🔴 ESPN - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:espn2",
+    "raw_id": "meufutebol:espn2",
+    "name": "ESPN 2",
+    "logo": "https://embedcanaisdetv.com/images/espn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/espn2/index.m3u8",
+    "stream_title": "🔴 ESPN2 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:espn3",
+    "raw_id": "meufutebol:espn3",
+    "name": "ESPN 3",
+    "logo": "https://embedcanaisdetv.com/images/espn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/espn3/index.m3u8",
+    "stream_title": "🔴 ESPN3 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:espn4",
+    "raw_id": "meufutebol:espn4",
+    "name": "ESPN 4",
+    "logo": "https://embedcanaisdetv.com/images/espn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/espn4/index.m3u8",
+    "stream_title": "🔴 ESPN4 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:espn5",
+    "raw_id": "meufutebol:espn5",
+    "name": "ESPN 5",
+    "logo": "https://embedcanaisdetv.com/images/espn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/espn5/index.m3u8",
+    "stream_title": "🔴 ESPN5 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:espn6",
+    "raw_id": "meufutebol:espn6",
+    "name": "ESPN 6",
+    "logo": "https://embedcanaisdetv.com/images/espn.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/espn6/index.m3u8",
+    "stream_title": "🔴 ESPN6 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:getv",
+    "raw_id": "meufutebol:getv",
+    "name": "GE TV",
+    "logo": "https://embedcanaisdetv.com/images/getv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/getv/index.m3u8",
+    "stream_title": "🔴 GETV - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:max",
+    "raw_id": "meufutebol:max",
+    "name": "MAX",
+    "logo": "https://embedcanaisdetv.com/images/max.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/max/index.m3u8",
+    "stream_title": "🔴 MAX - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:max02",
+    "raw_id": "meufutebol:max02",
+    "name": "MAX 2",
+    "logo": "https://embedcanaisdetv.com/images/max.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/max02/index.m3u8",
+    "stream_title": "🔴 MAX02 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:max03",
+    "raw_id": "meufutebol:max03",
+    "name": "MAX 3",
+    "logo": "https://embedcanaisdetv.com/images/max.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/max03/index.m3u8",
+    "stream_title": "🔴 MAX03 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:max04",
+    "raw_id": "meufutebol:max04",
+    "name": "MAX 4",
+    "logo": "https://embedcanaisdetv.com/images/max.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/max04/index.m3u8",
+    "stream_title": "🔴 MAX04 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:max05",
+    "raw_id": "meufutebol:max05",
+    "name": "MAX 5",
+    "logo": "https://embedcanaisdetv.com/images/max.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/max05/index.m3u8",
+    "stream_title": "🔴 MAX05 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:max06",
+    "raw_id": "meufutebol:max06",
+    "name": "MAX 6",
+    "logo": "https://embedcanaisdetv.com/images/max.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/max06/index.m3u8",
+    "stream_title": "🔴 MAX06 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:nsports",
+    "raw_id": "meufutebol:nsports",
+    "name": "N SPORTS",
+    "logo": "https://embedcanaisdetv.com/images/nsports.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/nsports/index.m3u8",
+    "stream_title": "🔴 NSPORTS - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:nossofutebol",
+    "raw_id": "meufutebol:nossofutebol",
+    "name": "NOSSO FUTEBOL",
+    "logo": "https://embedcanaisdetv.com/images/nossofutebol.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/nossofutebol/index.m3u8",
+    "stream_title": "🔴 NOSSOFUTEBOL - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus",
+    "raw_id": "meufutebol:paramountplus",
+    "name": "PARAMOUNT+",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus02",
+    "raw_id": "meufutebol:paramountplus02",
+    "name": "PARAMOUNT+ 2",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus02/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS02 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus03",
+    "raw_id": "meufutebol:paramountplus03",
+    "name": "PARAMOUNT+ 3",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus03/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS03 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus04",
+    "raw_id": "meufutebol:paramountplus04",
+    "name": "PARAMOUNT+ 4",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus04/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS04 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus05",
+    "raw_id": "meufutebol:paramountplus05",
+    "name": "PARAMOUNT+ 5",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus05/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS05 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus06",
+    "raw_id": "meufutebol:paramountplus06",
+    "name": "PARAMOUNT+ 6",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus06/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS06 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:paramountplus07",
+    "raw_id": "meufutebol:paramountplus07",
+    "name": "PARAMOUNT+ 7",
+    "logo": "https://embedcanaisdetv.com/images/paramountplus.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/paramountplus07/index.m3u8",
+    "stream_title": "🔴 PARAMOUNTPLUS07 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere2",
+    "raw_id": "meufutebol:premiere2",
+    "name": "PREMIERE 2",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere2/index.m3u8",
+    "stream_title": "🔴 PREMIERE2 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere3",
+    "raw_id": "meufutebol:premiere3",
+    "name": "PREMIERE 3",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere3/index.m3u8",
+    "stream_title": "🔴 PREMIERE3 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere4",
+    "raw_id": "meufutebol:premiere4",
+    "name": "PREMIERE 4",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere4/index.m3u8",
+    "stream_title": "🔴 PREMIERE4 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere5",
+    "raw_id": "meufutebol:premiere5",
+    "name": "PREMIERE 5",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere5/index.m3u8",
+    "stream_title": "🔴 PREMIERE5 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere6",
+    "raw_id": "meufutebol:premiere6",
+    "name": "PREMIERE 6",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere6/index.m3u8",
+    "stream_title": "🔴 PREMIERE6 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere7",
+    "raw_id": "meufutebol:premiere7",
+    "name": "PREMIERE 7",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere7/index.m3u8",
+    "stream_title": "🔴 PREMIERE7 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiere8",
+    "raw_id": "meufutebol:premiere8",
+    "name": "PREMIERE 8",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiere8/index.m3u8",
+    "stream_title": "🔴 PREMIERE8 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:premiereclubes",
+    "raw_id": "meufutebol:premiereclubes",
+    "name": "PREMIERE CLUBES",
+    "logo": "https://embedcanaisdetv.com/images/premiere.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/premiereclubes/index.m3u8",
+    "stream_title": "🔴 PREMIERECLUBES - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:amazonprimevideo",
+    "raw_id": "meufutebol:amazonprimevideo",
+    "name": "PRIME VIDEO",
+    "logo": "https://embedcanaisdetv.com/images/amazonprimevideo.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/amazonprimevideo/index.m3u8",
+    "stream_title": "🔴 AMAZONPRIMEVIDEO - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:amazonprimevideo02",
+    "raw_id": "meufutebol:amazonprimevideo02",
+    "name": "PRIME VIDEO 2",
+    "logo": "https://embedcanaisdetv.com/images/amazonprimevideo.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/amazonprimevideo02/index.m3u8",
+    "stream_title": "🔴 AMAZONPRIMEVIDEO02 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:amazonprimevideo03",
+    "raw_id": "meufutebol:amazonprimevideo03",
+    "name": "PRIME VIDEO 3",
+    "logo": "https://embedcanaisdetv.com/images/amazonprimevideo.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/amazonprimevideo03/index.m3u8",
+    "stream_title": "🔴 AMAZONPRIMEVIDEO03 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:amazonprimevideo04",
+    "raw_id": "meufutebol:amazonprimevideo04",
+    "name": "PRIME VIDEO 4",
+    "logo": "https://embedcanaisdetv.com/images/amazonprimevideo.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/amazonprimevideo04/index.m3u8",
+    "stream_title": "🔴 AMAZONPRIMEVIDEO04 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:amazonprimevideo05",
+    "raw_id": "meufutebol:amazonprimevideo05",
+    "name": "PRIME VIDEO 5",
+    "logo": "https://embedcanaisdetv.com/images/amazonprimevideo.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/amazonprimevideo05/index.m3u8",
+    "stream_title": "🔴 AMAZONPRIMEVIDEO05 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:sportv",
+    "raw_id": "meufutebol:sportv",
+    "name": "SPORTV",
+    "logo": "https://embedcanaisdetv.com/images/sportv.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/sportv/index.m3u8",
+    "stream_title": "🔴 SPORTV - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:sportv2",
+    "raw_id": "meufutebol:sportv2",
+    "name": "SPORTV 2",
+    "logo": "https://embedcanaisdetv.com/images/sportv2.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/sportv2/index.m3u8",
+    "stream_title": "🔴 SPORTV2 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:sportv3",
+    "raw_id": "meufutebol:sportv3",
+    "name": "SPORTV 3",
+    "logo": "https://embedcanaisdetv.com/images/sportv3.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/sportv3/index.m3u8",
+    "stream_title": "🔴 SPORTV3 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:sportynet",
+    "raw_id": "meufutebol:sportynet",
+    "name": "SPORTYNET",
+    "logo": "https://vipcanais.net/images/sportynet.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/sportynet/index.m3u8",
+    "stream_title": "🔴 SPORTYNET - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:sportynet2",
+    "raw_id": "meufutebol:sportynet2",
+    "name": "SPORTYNET 2",
+    "logo": "https://vipcanais.net/images/sportynet.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/sportynet2/index.m3u8",
+    "stream_title": "🔴 SPORTYNET2 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:sportynet3",
+    "raw_id": "meufutebol:sportynet3",
+    "name": "SPORTYNET 3",
+    "logo": "https://vipcanais.net/images/sportynet.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/sportynet3/index.m3u8",
+    "stream_title": "🔴 SPORTYNET3 - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:tnt",
+    "raw_id": "meufutebol:tnt",
+    "name": "TNT",
+    "logo": "https://embedcanaisdetv.com/images/tnt.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/tnt/index.m3u8",
+    "stream_title": "🔴 TNT - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  },
+  {
+    "id": "meufutebol:xsports",
+    "raw_id": "meufutebol:xsports",
+    "name": "XSPORTS",
+    "logo": "https://embedcanaisdetv.com/images/xsports.png",
+    "group": "Esportes Ao Vivo",
+    "addon_name": "Meu Futebol",
+    "addon_id": "org.meufutebol",
+    "stream_url": "https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/xsports/index.m3u8",
+    "stream_title": "🔴 XSPORTS - AO VIVO",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+      "Referer": "https://2910.playerembcanais.com",
+      "Origin": "https://2910.playerembcanais.com"
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0",
+    "referer": "https://2910.playerembcanais.com",
+    "origin": "https://2910.playerembcanais.com",
+    "cookie": ""
+  }
+]

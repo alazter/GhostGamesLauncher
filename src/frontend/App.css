@@ -59,6 +59,11 @@ body {
   }
 }
 
+.App:has(.alazterflixScreen--tv-active) .content,
+.App .content:has(.alazterflixScreen--tv-active) {
+  overflow-y: hidden !important;
+}
+
 .App .controller {
   grid-area: controller;
   position: sticky;

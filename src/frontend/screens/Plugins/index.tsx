@@ -262,6 +262,7 @@ export default function PluginsScreen() {
   }
 
   const filteredPlugins = plugins.filter((p) => {
+    if (p.id === 'com.ghost.iptv' || p.id === 'com.nuvio.player.addon') return false
     const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -391,7 +392,7 @@ export default function PluginsScreen() {
           onClick={() => setActiveTab('installed')}
         >
           <FontAwesomeIcon icon={faPuzzlePiece} />
-          <span>Plugins Instalados ({plugins.length})</span>
+          <span>Plugins Instalados ({plugins.filter((p) => p.id !== 'com.ghost.iptv' && p.id !== 'com.nuvio.player.addon').length})</span>
         </button>
 
         <button

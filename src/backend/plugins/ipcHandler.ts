@@ -1,9 +1,13 @@
+import { app, shell } from 'electron'
+import { join } from 'path'
+import { existsSync, mkdirSync } from 'fs'
 import { addHandler } from 'backend/ipc'
 import { PluginManager } from './pluginManager'
 import { sourceSettings, saveSourceSettings } from './sourceSettings'
 import { testSourceAddress } from './sourceAddressTest'
 import { sourceEnginesState, sourceEngineAction } from './sourceEngines'
 import { nuvioAddonState, nuvioAddonAction } from './nuvioAddonUpdate'
+import { ghostIptvState, ghostIptvAction } from './ghostIptvUpdate'
 import { ExternalGames } from './externalGames'
 import { AnkerAccount } from './ankerAccount'
 import { TorboxClient } from './torboxClient'
@@ -48,6 +52,21 @@ export function registerPluginsIPC(): void {
             ? error.message
             : 'Não foi possível atualizar o Nuvio Addon.',
         state: nuvioAddonState()
+      }
+    }
+  })
+  addHandler('pluginsGhostIptvState', async () => ghostIptvState())
+  addHandler('pluginsGhostIptvAction', async (_event, action) => {
+    try {
+      return { success: true, state: await ghostIptvAction(action as any) }
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível atualizar o Ghost IPTV.',
+        state: ghostIptvState()
       }
     }
   })
@@ -490,6 +509,15 @@ export function registerPluginsIPC(): void {
     if (!provider)
       throw new Error('Plugin Ghost Cinema & Filmes não está ativo.')
     return await provider.stremioRemoveAddon(addonId)
+  })
+
+  addHandler('cinemaOpenAddonsFolder', async () => {
+    const dir = join(app.getPath('userData'), 'plugins', 'com.ghost.alazterflix', 'addons')
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
+    }
+    await shell.openPath(dir)
+    return { success: true, path: dir }
   })
 
   addHandler(

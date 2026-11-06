@@ -12,8 +12,10 @@ import {
   faRotateLeft,
   faMicrochip,
   faFilm,
-  faExternalLinkAlt
+  faExternalLinkAlt,
+  faTv
 } from '@fortawesome/free-solid-svg-icons'
+import { faGithub } from '@fortawesome/free-brands-svg-icons'
 import type { PluginInstallResult } from 'common/types/plugins'
 import type {
   EngineStatus,
@@ -25,6 +27,10 @@ import type {
   NuvioAddonAction,
   NuvioAddonUpdateState
 } from 'common/types/nuvioUpdate'
+import type {
+  GhostIptvAction,
+  GhostIptvUpdateState
+} from 'common/types/ghostIptvUpdate'
 
 function normalizeDisplayEngine(
   engine: EngineStatus,
@@ -66,6 +72,7 @@ export default function SourceEnginesPanel({
 }) {
   const [state, setState] = useState<SourceEnginesState>()
   const [nuvioState, setNuvioState] = useState<NuvioAddonUpdateState>()
+  const [ghostIptvState, setGhostIptvState] = useState<GhostIptvUpdateState>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -88,6 +95,15 @@ export default function SourceEnginesPanel({
           .pluginsNuvioAddonState()
           .then((val: NuvioAddonUpdateState) => {
             if (mounted) setNuvioState(val)
+          })
+          .catch(() => {})
+      }
+
+      if (window.api.pluginsGhostIptvState) {
+        void window.api
+          .pluginsGhostIptvState()
+          .then((val: GhostIptvUpdateState) => {
+            if (mounted) setGhostIptvState(val)
           })
           .catch(() => {})
       }
@@ -137,6 +153,25 @@ export default function SourceEnginesPanel({
         setError(result.error || 'Não foi possível concluir a operação.')
     } catch {
       setError('Não foi possível concluir a operação.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function iptvAction(val: GhostIptvAction) {
+    if (!window.api.pluginsGhostIptvAction) return
+    setBusy(true)
+    setError('')
+    try {
+      const result = await window.api.pluginsGhostIptvAction(val)
+      if (result.state) setGhostIptvState(result.state)
+      if (result.success && result.state?.message) {
+        setFeedback(result.state.message)
+      } else if (!result.success && result.error) {
+        setError(result.error)
+      }
+    } catch {
+      setError('Não foi possível executar a ação no Ghost IPTV.')
     } finally {
       setBusy(false)
     }
@@ -193,7 +228,7 @@ export default function SourceEnginesPanel({
             O <b>Scrapling</b> auxilia a leitura adaptativa dos catálogos. O{' '}
             <b>Obscura</b> é experimental para páginas públicas. O{' '}
             <b>Nuvio Media Player</b> fornece o reprodutor oficial atrelado ao
-            GitHub <b>NuvioMedia/NuvioDesktop</b>.
+            GitHub <b>NuvioMedia/NuvioDesktop</b>. O <b>Ghost IPTV</b> fornece a TV ao vivo e streaming integrado ao Alazterflix atrelado ao GitHub <b>alazter/ghost-iptv</b>.
           </p>
           <p className="ghost-plugins-subtitle">
             Compartilhe um motor ou addon instalado em um arquivo <b>.ghost</b>.
@@ -207,7 +242,7 @@ export default function SourceEnginesPanel({
             <label className="ghost-engine-auto-toggle">
               <input
                 type="checkbox"
-                checked={Boolean(state.automatic && (nuvioState?.automatic ?? true))}
+                checked={Boolean(state.automatic && (nuvioState?.automatic ?? true) && (ghostIptvState?.automatic ?? true))}
                 disabled={busy}
                 onChange={async (event) => {
                   const enabled = event.target.checked
@@ -219,7 +254,7 @@ export default function SourceEnginesPanel({
                       : 'Atualização automática desativada.'
                   )
                   try {
-                    const [engineRes, nuvioRes] = await Promise.allSettled([
+                    const [engineRes, nuvioRes, iptvRes] = await Promise.allSettled([
                       window.api.pluginsSourceEngineAction({
                         type: 'automatic',
                         enabled
@@ -227,6 +262,10 @@ export default function SourceEnginesPanel({
                       window.api.pluginsNuvioAddonAction?.({
                         type: 'automatic',
                         enabled
+                      }),
+                      window.api.pluginsGhostIptvAction?.({
+                        type: 'set-automatic',
+                        automatic: enabled
                       })
                     ])
                     if (
@@ -242,6 +281,24 @@ export default function SourceEnginesPanel({
                       setNuvioState(nuvioRes.value.state)
                       if (nuvioRes.value.state.message) {
                         setFeedback(nuvioRes.value.state.message)
+                      }
+                    }
+                    if (
+                      iptvRes.status === 'fulfilled' &&
+                      iptvRes.value?.state
+                    ) {
+                      setGhostIptvState(iptvRes.value.state)
+                      if (iptvRes.value.state.message) {
+                        setFeedback(iptvRes.value.state.message)
+                      }
+                    }
+                    if (
+                      iptvRes.status === 'fulfilled' &&
+                      iptvRes.value?.state
+                    ) {
+                      setGhostIptvState(iptvRes.value.state)
+                      if (iptvRes.value.state.message) {
+                        setFeedback(iptvRes.value.state.message)
                       }
                     }
                   } catch {
@@ -267,9 +324,10 @@ export default function SourceEnginesPanel({
                   setError('')
                   setFeedback('Verificando atualizações oficiais nos repositórios...')
                   try {
-                    const [engineRes, nuvioRes] = await Promise.allSettled([
+                    const [engineRes, nuvioRes, iptvRes] = await Promise.allSettled([
                       window.api.pluginsSourceEngineAction({ type: 'check' }),
-                      window.api.pluginsNuvioAddonAction?.({ type: 'check' })
+                      window.api.pluginsNuvioAddonAction?.({ type: 'check' }),
+                      window.api.pluginsGhostIptvAction?.({ type: 'check' })
                     ])
                     if (
                       engineRes.status === 'fulfilled' &&
@@ -337,7 +395,7 @@ export default function SourceEnginesPanel({
         </div>
       </div>
 
-      {state?.catalogError && hasUnresolvedCatalogGap && (
+      {state?.catalogError && displayEngines.every((e) => !e.installed) && (
         <div className="ghost-plugins-feedback error" role="status">
           <FontAwesomeIcon icon={faExclamationTriangle} />
           <span>{state.catalogError}</span>
@@ -512,20 +570,227 @@ export default function SourceEnginesPanel({
                   </button>
                 )}
 
-                <a
-                  href={
-                    nuvioState.upstreamUrl ||
-                    `${nuvioState.githubUrl}/releases`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
                   className="ghost-btn-secondary"
-                  title="Abrir página de releases no GitHub oficial"
-                  style={{ textDecoration: 'none' }}
+                  onClick={() =>
+                    window.api.openExternalUrl('https://github.com/NuvioMedia/NuvioDesktop')
+                  }
+                  title="Abrir projeto oficial NuvioDesktop no GitHub pelo navegador"
                 >
-                  <FontAwesomeIcon icon={faExternalLinkAlt} />
+                  <FontAwesomeIcon icon={faGithub} />
                   <span>GitHub Oficial</span>
-                </a>
+                </button>
+              </div>
+            </section>
+          )}
+
+          {/* Card Oficial do Ghost IPTV - Alazterflix Addon atrelado ao GitHub alazter/ghost-iptv */}
+          {ghostIptvState && (
+            <section
+              key="ghost-iptv-addon"
+              className="ghost-plugin-card ghost-engine-card enabled"
+            >
+              <div className="ghost-plugin-card-header">
+                <div
+                  className="ghost-plugin-icon-box"
+                  style={{
+                    background: 'rgba(6, 182, 212, 0.16)',
+                    borderColor: 'rgba(6, 182, 212, 0.45)',
+                    color: '#06b6d4'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faTv} />
+                </div>
+
+                <div className="ghost-plugin-header-titles">
+                  <div className="ghost-plugin-title-row">
+                    <h3>Ghost IPTV - Alazterflix Addon</h3>
+                    <span className="ghost-plugin-version">
+                      v{ghostIptvState.installed}
+                    </span>
+                  </div>
+                  <span className="ghost-plugin-author">
+                    por Alazter &amp; Ghost Labs · GitHub Oficial alazter/ghost-iptv
+                  </span>
+                </div>
+
+                <span
+                  className="ghost-badge-tier verified"
+                  style={{ marginLeft: 'auto' }}
+                  title="Oficialmente integrado ao Alazterflix TV e Stremio"
+                >
+                  Ativo
+                </span>
+              </div>
+
+              <div className="ghost-plugin-badges-row">
+                <span className="ghost-badge-type type-media">
+                  <FontAwesomeIcon icon={faTv} />
+                  <span>TV ao Vivo &amp; IPTV (Alazterflix)</span>
+                </span>
+
+                <span
+                  className="ghost-badge-tier verified"
+                  title="Atrelado ao repositório oficial https://github.com/alazter/ghost-iptv"
+                >
+                  <FontAwesomeIcon icon={faShieldHalved} /> 🛡️ Oficial Ghost Labs
+                </span>
+
+                {ghostIptvState.updateAvailable && (
+                  <span
+                    className="ghost-badge-dev"
+                    style={{
+                      background: 'rgba(6, 182, 212, 0.22)',
+                      borderColor: '#06b6d4',
+                      color: '#a5f3fc'
+                    }}
+                  >
+                    Atualização v{ghostIptvState.upstream} disponível
+                  </span>
+                )}
+              </div>
+
+              <p className="ghost-plugin-description">
+                Plugin e Addon oficial Ghost IPTV integrado ao Alazterflix e Stremio. Traz a experiência completa de TV ao Vivo para PC com conversor de Addons Stremio, 68 canais online, EPG perpétuo autônomo, InfoBar e atualização contínua direto do GitHub oficial.
+              </p>
+
+              <div className="ghost-plugin-permissions">
+                <span className="perm-label">Versões e Repositório Oficial:</span>
+                <div className="perm-tags">
+                  <span className="perm-tag">
+                    📦 Instalada: <b>v{ghostIptvState.installed}</b>
+                  </span>
+                  {ghostIptvState.upstream && (
+                    <span className="perm-tag">
+                      🚀 Publicada no GitHub: <b>v{ghostIptvState.upstream}</b>
+                    </span>
+                  )}
+                  {ghostIptvState.previous && (
+                    <span className="perm-tag">
+                      ⏪ Anterior: <b>v{ghostIptvState.previous}</b>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="ghost-plugin-permissions">
+                <span className="perm-label">Capacidades Integradas:</span>
+                <div className="perm-tags">
+                  <span className="perm-tag">📺 68 Canais HLS</span>
+                  <span className="perm-tag">⚡ InfoBar &amp; EPG Perpétuo</span>
+                  <span className="perm-tag">🔄 Conversor M3U / XMLTV</span>
+                  <span className="perm-tag">🌐 Proxy 127.0.0.1:8888</span>
+                  <span className="perm-tag">📱 APK Android TV</span>
+                  <span className="perm-tag">🎞️ Addon Stremio</span>
+                </div>
+              </div>
+
+              {(ghostIptvState.busy || ghostIptvState.message) && (
+                <p role="status" className="ghost-engine-status-pill">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  <span>
+                    {ghostIptvState.busy
+                      ? 'Consultando GitHub oficial…'
+                      : ghostIptvState.message}
+                  </span>
+                </p>
+              )}
+
+              <div className="ghost-plugin-card-footer">
+                {ghostIptvState.updateAvailable && (
+                  <button
+                    className="ghost-btn-primary"
+                    disabled={busy || ghostIptvState.busy}
+                    onClick={() => void iptvAction({ type: 'update' })}
+                    style={{
+                      background: '#06b6d4',
+                      color: '#090b10',
+                      fontWeight: 800
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faDownload} />
+                    <span>Instalar atualização v{ghostIptvState.upstream}</span>
+                  </button>
+                )}
+
+                {!ghostIptvState.updateAvailable && (
+                  <div
+                    className="ghost-engine-up-to-date-badge"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(34, 197, 94, 0.12)',
+                      border: '1px solid rgba(34, 197, 94, 0.3)',
+                      color: '#4ade80',
+                      fontSize: '13px',
+                      fontWeight: 600
+                    }}
+                    title="A versão instalada é a mais recente disponível no GitHub oficial"
+                  >
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                    <span>Versão oficial em dia</span>
+                  </div>
+                )}
+
+                <button
+                  className="ghost-btn-secondary"
+                  disabled={busy || ghostIptvState.busy}
+                  onClick={() => void iptvAction({ type: 'check' })}
+                  title="Consultar novas versões no GitHub oficial (alazter/ghost-iptv)"
+                >
+                  <FontAwesomeIcon icon={faRotate} spin={ghostIptvState.busy} />
+                  <span>Procurar atualizações</span>
+                </button>
+
+                {ghostIptvState.localDevAvailable && (
+                  <button
+                    className="ghost-btn-secondary"
+                    disabled={busy || ghostIptvState.busy}
+                    onClick={() => void iptvAction({ type: 'sync-local' })}
+                    title="Sincronizar arquivos diretamente da pasta de desenvolvimento local"
+                  >
+                    <FontAwesomeIcon icon={faBolt} />
+                    <span>Sincronizar local</span>
+                  </button>
+                )}
+
+                {ghostIptvState.previous && (
+                  <button
+                    className="ghost-btn-secondary"
+                    disabled={busy || ghostIptvState.busy}
+                    onClick={() => void iptvAction({ type: 'rollback' })}
+                  >
+                    <FontAwesomeIcon icon={faRotateLeft} />
+                    <span>Restaurar versão anterior (v{ghostIptvState.previous})</span>
+                  </button>
+                )}
+
+                <button
+                  className="ghost-btn-secondary"
+                  onClick={() =>
+                    window.api.openExternalUrl('https://github.com/alazter/ghost-iptv')
+                  }
+                  title="Abrir projeto oficial Ghost IPTV no GitHub pelo navegador"
+                >
+                  <FontAwesomeIcon icon={faGithub} />
+                  <span>GitHub Oficial</span>
+                </button>
+
+                {ghostIptvState.apkUrl && (
+                  <button
+                    className="ghost-btn-secondary"
+                    onClick={() =>
+                      window.api.openExternalUrl(ghostIptvState.apkUrl!)
+                    }
+                    title="Baixar pacote APK compilado para Android TV / TV Box pelo navegador"
+                  >
+                    <FontAwesomeIcon icon={faDownload} />
+                    <span>Baixar APK (TV)</span>
+                  </button>
+                )}
               </div>
             </section>
           )}
@@ -698,10 +963,7 @@ export default function SourceEnginesPanel({
 
                 {engine.upstreamUpdateAvailable && !engine.updateAvailable && (
                   <p role="status" className="ghost-engine-notice">
-                    A versão {engine.upstream} foi publicada, mas seu pacote
-                    compatível com o Ghost ainda não está disponível. Use
-                    Verificar atualizações para consultar novamente.
-                  </p>
+                    A versão {engine.upstream} foi publicada pelo autor ({isScrapling ? 'D4Vinci/Scrapling' : 'h4ckf0r0day/obscura'}), mas o pacote executável isolado compatível com o Ghost ainda não foi homologado. Sua versão instalada ({engine.installed}) é a oficial mais recente homologada e está 100% ativa.                  </p>
                 )}
 
                 {(engine.busy || engine.message) && (
@@ -714,28 +976,56 @@ export default function SourceEnginesPanel({
                 )}
 
                 <div className="ghost-plugin-card-footer">
-                  {(!engine.installed ||
-                    engine.updateAvailable ||
-                    engine.upstreamUpdateAvailable) && (
+                  {engine.updateAvailable && (
                     <button
                       className="ghost-btn-primary"
-                      disabled={
-                        busy ||
-                        engine.busy ||
-                        !engine.available ||
-                        Boolean(engine.installed && !engine.updateAvailable)
+                      disabled={busy || engine.busy || !engine.available}
+                      onClick={() =>
+                        void action({ type: 'install', id: engine.id })
                       }
+                    >
+                      <FontAwesomeIcon icon={faDownload} />
+                      <span>Instalar atualização v{engine.available}</span>
+                    </button>
+                  )}
+
+                  {!engine.installed && (
+                    <button
+                      className="ghost-btn-primary"
+                      disabled={busy || engine.busy || !engine.available}
                       onClick={() =>
                         void action({ type: 'install', id: engine.id })
                       }
                     >
                       <FontAwesomeIcon icon={faDownload} />
                       <span>
-                        {engine.installed
-                          ? `Instalar atualização ${engine.updateAvailable ? engine.available : engine.upstream}`
-                          : `Instalar${engine.available ? ` ${engine.available}` : ''}`}
+                        {engine.available
+                          ? `Instalar v${engine.available}`
+                          : 'Aguardando pacote compatível'}
                       </span>
                     </button>
+                  )}
+
+                  {engine.installed && !engine.updateAvailable && (
+                    <div
+                      className="ghost-engine-up-to-date-badge"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        background: 'rgba(34, 197, 94, 0.12)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        color: '#4ade80',
+                        fontSize: '13px',
+                        fontWeight: 600
+                      }}
+                      title="A versão instalada é a mais recente homologada e aprovada pelo Ghost"
+                    >
+                      <FontAwesomeIcon icon={faCheckCircle} />
+                      <span>Versão homologada em dia</span>
+                    </div>
                   )}
 
                   {engine.installed && (
@@ -771,6 +1061,20 @@ export default function SourceEnginesPanel({
                   >
                     <FontAwesomeIcon icon={faRotateLeft} />
                     <span>Restaurar versão anterior</span>
+                  </button>
+                  <button
+                    className="ghost-btn-secondary"
+                    onClick={() =>
+                      window.api.openExternalUrl(
+                        isScrapling
+                          ? 'https://github.com/D4Vinci/Scrapling'
+                          : 'https://github.com/h4ckf0r0day/obscura'
+                      )
+                    }
+                    title={`Abrir projeto oficial ${isScrapling ? 'Scrapling' : 'Obscura'} no GitHub pelo navegador`}
+                  >
+                    <FontAwesomeIcon icon={faGithub} />
+                    <span>GitHub Oficial</span>
                   </button>
                 </div>
               </section>

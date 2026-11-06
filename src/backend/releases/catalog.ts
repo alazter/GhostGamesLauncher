@@ -56,24 +56,109 @@ function getSourceSession(region: ReleaseRegion = 'us') {
     )
     result.webRequest.onBeforeRequest((details, callback) => {
       const url = new URL(details.url)
-      const source = [
-        'www.releases.com',
-        'releases.com',
-        'cdn.releases.com'
-      ].includes(url.hostname)
+      const isCloudflare = [
+        'challenges.cloudflare.com',
+        'cloudflare.com',
+        'static.cloudflareinsights.com'
+      ].some(
+        (domain) =>
+          url.hostname === domain || url.hostname.endsWith('.' + domain)
+      )
+      const source =
+        [
+          'www.releases.com',
+          'releases.com',
+          'cdn.releases.com'
+        ].includes(url.hostname) || isCloudflare
       const jquery =
         url.origin === 'https://ajax.aspnetcdn.com' &&
         url.pathname === '/ajax/jQuery/jquery-3.7.1.min.js' &&
         details.resourceType === 'script'
+      const isMediaOrFont = ['media', 'font'].includes(details.resourceType)
+      const isBlockedImage =
+        !isCloudflare &&
+        details.resourceType === 'image' &&
+        !url.hostname.includes('cdn.releases.com') &&
+        !url.pathname.includes('/challenge-platform/')
       callback({
-        cancel:
-          (!source && !jquery) ||
-          ['image', 'media', 'font'].includes(details.resourceType)
+        cancel: (!source && !jquery) || isMediaOrFont || isBlockedImage
       })
     })
     sourceSessionsReady.add(region)
   }
   return result
+}
+
+export async function syncReleaseCookiesToDefaultSession(
+  region: ReleaseRegion = 'us'
+): Promise<void> {
+  try {
+    const sourceSes = getSourceSession(region)
+    if (!sourceSes?.cookies?.get || !session?.defaultSession?.cookies?.set) return
+    const cookies = await sourceSes.cookies.get({ domain: 'releases.com' })
+    if (!cookies.length) return
+    for (const c of cookies) {
+      const domain = c.domain || 'releases.com'
+      const cookieUrl = `https://${domain.startsWith('.') ? domain.slice(1) : domain}${c.path || '/'}`
+      await session.defaultSession.cookies
+        .set({
+          url: cookieUrl,
+          name: c.name,
+          value: c.value,
+          domain: c.domain,
+          path: c.path,
+          secure: c.secure,
+          httpOnly: c.httpOnly,
+          sameSite: c.sameSite
+        })
+        .catch(() => {})
+    }
+    await session.defaultSession.cookies.flushStore().catch(() => {})
+  } catch (err) {
+    console.warn('[Releases] Failed to sync session cookies:', err)
+  }
+}
+
+let clearanceInFlight: Promise<void> | null = null
+let lastForcedClearanceAt = 0
+
+export async function ensureReleaseClearance(
+  region: ReleaseRegion = 'us',
+  force = false
+): Promise<void> {
+  if (clearanceInFlight) return clearanceInFlight
+  clearanceInFlight = (async () => {
+    try {
+      if (force) {
+        if (Date.now() - lastForcedClearanceAt < 60_000) return
+        lastForcedClearanceAt = Date.now()
+        await readSource(ORIGIN + '/calendar', { category: 'all', region })
+        await syncReleaseCookiesToDefaultSession(region)
+        return
+      }
+      if (!session?.defaultSession?.cookies?.get) return
+      const cookies = await session.defaultSession.cookies.get({
+        domain: 'releases.com',
+        name: 'cf_clearance'
+      })
+      if (!cookies.length) {
+        await syncReleaseCookiesToDefaultSession(region)
+        const afterSync = await session.defaultSession.cookies.get({
+          domain: 'releases.com',
+          name: 'cf_clearance'
+        })
+        if (!afterSync.length) {
+          await readSource(ORIGIN + '/calendar', { category: 'all', region })
+          await syncReleaseCookiesToDefaultSession(region)
+        }
+      }
+    } catch (err) {
+      console.warn('[Releases] Error ensuring release clearance:', err)
+    } finally {
+      clearanceInFlight = null
+    }
+  })()
+  return clearanceInFlight
 }
 
 export function catalogUrl(query: ReleaseQuery): string {
@@ -162,7 +247,16 @@ async function readSource(url: string, query?: ReleaseQuery): Promise<string> {
     sourceWindow.webContents.setAudioMuted(true)
     sourceWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     const guard = (event: Electron.Event, target: string) => {
-      if (new URL(target).origin !== ORIGIN) event.preventDefault()
+      try {
+        const targetUrl = new URL(target)
+        const isAllowedOrigin =
+          targetUrl.origin === ORIGIN ||
+          targetUrl.hostname === 'challenges.cloudflare.com' ||
+          targetUrl.hostname.endsWith('.cloudflare.com')
+        if (!isAllowedOrigin) event.preventDefault()
+      } catch {
+        event.preventDefault()
+      }
     }
     sourceWindow.webContents.on('will-navigate', guard)
     sourceWindow.webContents.on('will-redirect', guard)
@@ -171,6 +265,22 @@ async function readSource(url: string, query?: ReleaseQuery): Promise<string> {
     }, 30000)
     try {
       await sourceWindow.loadURL(url)
+      for (let attempt = 0; attempt < 24; attempt++) {
+        try {
+          const title = (await sourceWindow.webContents.executeJavaScript(
+            'document.title'
+          )) as string
+          const isChallenge =
+            /Just a moment|Um momento|Verify you are human|Verifique se voc|Checking your browser|Cloudflare/i.test(
+              title
+            )
+          if (!isChallenge) break
+        } catch {
+          if (sourceWindow.isDestroyed()) break
+        }
+        await new Promise((resolve) => setTimeout(resolve, 350))
+      }
+      await syncReleaseCookiesToDefaultSession(query?.region || 'us').catch(() => {})
       if (query?.region && !query.cursor) {
         const changed = await sourceWindow.webContents
           .executeJavaScript(`(() => {
@@ -222,13 +332,14 @@ async function readSource(url: string, query?: ReleaseQuery): Promise<string> {
       if (html.length > 8 * 1024 * 1024)
         throw new Error('A resposta da fonte excedeu o tamanho permitido.')
       if (
-        /Checking your browser|Just a moment|Verify you are human|cf-chl-widget/i.test(
-          html.slice(0, 12000)
+        /Checking your browser|Just a moment|Um momento|Verify you are human|Verifique se voc|cf-chl|challenges\.cloudflare\.com|challenge-platform/i.test(
+          html.slice(0, 40000)
         )
       )
         throw new Error(
           'O Releases.com está exigindo verificação no site. Seus monitorados continuam disponíveis.'
         )
+      await syncReleaseCookiesToDefaultSession(query?.region || 'us').catch(() => {})
       return html
     } finally {
       clearTimeout(deadline)
@@ -256,9 +367,8 @@ async function sourceOrAlternative(
   try {
     return await readSource(url, query)
   } catch (error) {
-    // An alternative engine is for transport compatibility, never challenge solving.
-    if (query?.search || sourceAccessBlocked(error)) throw error
-    const alternative = await obscuraReleasePage(url)
+    if (query?.search) throw error
+    const alternative = await obscuraReleasePage(url).catch(() => undefined)
     if (alternative) return alternative
     throw error
   }
@@ -267,6 +377,7 @@ async function sourceOrAlternative(
 export async function getReleaseCatalog(
   query: ReleaseQuery
 ): Promise<ReleaseCatalog> {
+  syncReleaseCookiesToDefaultSession(query.region || 'us').catch(() => {})
   const sourceUrl = catalogUrl(query)
   const key = JSON.stringify([
     sourceUrl,
@@ -283,6 +394,7 @@ export async function getReleaseCatalog(
   const saved = annual || (await archive.get<ReleaseCatalog>('catalog', key))
   if (year !== undefined && saved && frozenCalendarPage(saved, query, today)) {
     if (!annual) await archive.calendar.save(year, key, query, saved)
+    ensureReleaseClearance(query.region || 'us').catch(() => {})
     return saved.value
   }
   const finalCheck =
@@ -294,8 +406,10 @@ export async function getReleaseCatalog(
     !finalCheck &&
     saved &&
     Date.now() - saved.at < 5 * 60 * 1000
-  )
+  ) {
+    ensureReleaseClearance(query.region || 'us').catch(() => {})
     return saved.value
+  }
   try {
     const { value: result, warning: collectionWarning } =
       await collectReleasePage(
@@ -367,6 +481,7 @@ export async function getReleaseDetails(
   collector?: ReleaseCollector
 ): Promise<ReleaseProduct> {
   validateReleaseCollector(collector)
+  syncReleaseCookiesToDefaultSession(region).catch(() => {})
   if (
     typeof id !== 'string' ||
     !/^[a-z0-9][a-z0-9._~-]{0,200}$/i.test(id) ||
@@ -396,10 +511,13 @@ export async function getReleaseDetails(
           )
         return await response.text()
       } catch (error) {
-        if (/403|429|captcha|ERR_BLOCKED/i.test(String(error))) throw error
-        const alternative = await obscuraReleasePage(url)
-        if (!alternative) throw error
-        return alternative
+        try {
+          const domHtml = await readSource(url)
+          if (domHtml) return domHtml
+        } catch {}
+        const alternative = await obscuraReleasePage(url).catch(() => undefined)
+        if (alternative) return alternative
+        throw error
       }
     }
     const { value: product } = await collectReleasePage(

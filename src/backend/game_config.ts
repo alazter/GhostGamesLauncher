@@ -54,7 +54,8 @@ abstract class GameConfig {
     else {
       // Check version field in the config.
       try {
-        version = JSON.parse(readFileSync(path, 'utf-8'))['version']
+        const raw = readFileSync(path, 'utf-8').replace(/^\uFEFF/, '').trim()
+        version = raw ? JSON.parse(raw)['version'] : 'v0'
       } catch (error) {
         logError(
           [`Config file is corrupted, please check ${path}:`, error],
@@ -190,9 +191,15 @@ class GameConfigV0 extends GameConfig {
     // Not necessary as this version's config structure is identical.
 
     // TODO(adityaruplaha): Continue treating legacy configs as fully explicit?
-    const settings = existsSync(this.path)
-      ? JSON.parse(readFileSync(this.path, 'utf-8'))
-      : {}
+    let settings = {}
+    if (existsSync(this.path)) {
+      try {
+        const raw = readFileSync(this.path, 'utf-8').replace(/^\uFEFF/, '').trim()
+        settings = raw ? JSON.parse(raw) : {}
+      } catch {
+        settings = {}
+      }
+    }
     // settings['explicit'] = true    // Continue treating as explicit.
     // settings['explicit'] = false   // No, convert to ovverides.
     this.writeToFile(settings)
@@ -293,8 +300,17 @@ class GameConfigV0 extends GameConfig {
 
     if (existsSync(this.path)) {
       // read game's settings
-      const settings = JSON.parse(readFileSync(this.path, 'utf-8'))
-      gameSettings = settings[this.appName] || ({} as GameSettings)
+      try {
+        const raw = readFileSync(this.path, 'utf-8').replace(/^\uFEFF/, '').trim()
+        const settings = raw ? (JSON.parse(raw) as Record<string, GameSettings>) : {}
+        gameSettings = settings[this.appName] || ({} as GameSettings)
+      } catch (error) {
+        logError(
+          ['Game config file is corrupted in ' + this.path + ':', error],
+          LogPrefix.Backend
+        )
+        gameSettings = {} as GameSettings
+      }
     } else {
       // only set the `disableUMU` default value when getting settings for a new game
       // we want it to be `undefined` for games that were installed already

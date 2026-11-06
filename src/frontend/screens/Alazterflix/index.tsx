@@ -49,6 +49,7 @@ import {
   faBarsStaggered,
   faArrowsLeftRight,
   faGear,
+  faTowerBroadcast,
   faArrowRight,
   faArrowLeft,
   faEye,
@@ -71,6 +72,19 @@ import './catalog.scss'
 import './stremioPlay.scss'
 import { groupMoviesIntoShows, mediaPoster } from 'common/mediaCatalog'
 import MetadataSettings from './MetadataSettings'
+import IptvPlaylistsSettings from './IptvPlaylistsSettings'
+import AlazterflixTvHub from './AlazterflixTvHub'
+import type { GhostIptvUpdateState } from 'common/types/ghostIptvUpdate'
+import { RECOMMENDED_STREMIO_ADDONS } from 'common/stremioAddonUtils'
+import type { NuvioAddonUpdateState } from 'common/types/nuvioUpdate'
+import {
+  AlazterflixVideoPlayerId,
+  getPreferredVideoPlayer,
+  loadNuvioPlayerPreferences,
+  NuvioPlayerPreferences,
+  saveNuvioPlayerPreferences,
+  setPreferredVideoPlayer
+} from './nuvioPlayerConfig'
 import SubtitleStyleSettings from './SubtitleStyleSettings'
 import CategoryShortcuts from './CategoryShortcuts'
 import CatalogNavigation, { CatalogCategory } from './CatalogNavigation'
@@ -1980,8 +1994,12 @@ export default function AlazterflixScreen() {
   const [showAllContinue, setShowAllContinue] = useState(false)
   const [clearingContinue, setClearingContinue] = useState(false)
   const [activeTab, setActiveTab] = useState<
-    'local' | 'stremio' | 'addons' | 'settings'
+    'local' | 'tv' | 'stremio' | 'addons' | 'settings'
   >('local')
+  const [ghostIptvState, setGhostIptvState] = useState<GhostIptvUpdateState>()
+  const [tvViewMode, setTvViewMode] = useState<'app' | 'hub'>(() => {
+    return (localStorage.getItem('alazterflix_tv_mode') as 'app' | 'hub') || 'app'
+  })
   const [state, setState] = useState<CinemaLibraryState>({
     isPluginActive: false,
     folders: [],
@@ -2011,6 +2029,36 @@ export default function AlazterflixScreen() {
     | 'portugueseArtwork'
   >('all')
   const [viewMode, setViewMode] = useState<'shows' | 'allFiles'>('shows')
+  const [settingsSubTab, setSettingsSubTab] = useState<'catalog' | 'tv' | 'stremio'>('catalog')
+  const [preferredPlayer, setPreferredPlayerState] =
+    useState<AlazterflixVideoPlayerId>(() => getPreferredVideoPlayer())
+  const [stremioPlayer, setStremioPlayer] = useState<'nuvio' | 'external' | 'internal'>(() => {
+    return (localStorage.getItem('ghost_stremio_preferred_player') as any) || 'nuvio'
+  })
+  const [nuvioPrefs, setNuvioPrefs] = useState<NuvioPlayerPreferences>(() =>
+    loadNuvioPlayerPreferences()
+  )
+  const [nuvioUpdate, setNuvioUpdate] = useState<NuvioAddonUpdateState>()
+  const [checkingNuvio, setCheckingNuvio] = useState(false)
+  const [downloadDirs, setDownloadDirs] = useState<{
+    moviesDir?: string
+    seriesDir?: string
+    animesDir?: string
+  }>({})
+  const [isFullScanning, setIsFullScanning] = useState(false)
+  const [isStremioRevalidating, setIsStremioRevalidating] = useState(false)
+
+  useEffect(() => {
+    if (window.api?.pluginsNuvioAddonState) {
+      window.api.pluginsNuvioAddonState().then(setNuvioUpdate).catch(() => {})
+    }
+    if (window.api?.pluginsGhostIptvState) {
+      window.api.pluginsGhostIptvState().then(setGhostIptvState).catch(() => {})
+    }
+    if (window.api?.cinemaGetDownloadDirectories) {
+      window.api.cinemaGetDownloadDirectories().then(setDownloadDirs).catch(() => {})
+    }
+  }, [])
 
   // Debounce da pesquisa por 150ms para eliminar qualquer travamento ao digitar
   useEffect(() => {
@@ -2019,6 +2067,23 @@ export default function AlazterflixScreen() {
     }, 150)
     return () => clearTimeout(handler)
   }, [searchInput])
+
+  // Trava scroll na página na aba TV ao Vivo (somente o conteúdo interno rola)
+  useEffect(() => {
+    const contentEl = document.querySelector('.App .content') as HTMLElement | null
+    if (!contentEl) return
+
+    if (activeTab === 'tv') {
+      contentEl.scrollTop = 0
+      contentEl.style.overflowY = 'hidden'
+    } else {
+      contentEl.style.overflowY = ''
+    }
+
+    return () => {
+      contentEl.style.overflowY = ''
+    }
+  }, [activeTab])
 
   // Selected Show for Jellyfin series/anime view modal
   const [selectedShow, setSelectedShow] = useState<GhostShow | null>(null)
@@ -2438,6 +2503,170 @@ export default function AlazterflixScreen() {
   }, [])
 
   // Local Folder Handlers
+  const handleSelectVideoPlayer = (player: AlazterflixVideoPlayerId) => {
+    setPreferredPlayerState(player)
+    setPreferredVideoPlayer(player)
+    setNuvioPrefs(loadNuvioPlayerPreferences())
+    setCatalogFeedback(
+      player === 'nuvio'
+        ? '✓ Player do catálogo alterado para: Nuvio Media Player (GPU + 4K Remux)!'
+        : '✓ Player do catálogo alterado para: Alazterflix Cyber Player!'
+    )
+  }
+
+  const handleSelectStremioPlayer = (player: 'nuvio' | 'external' | 'internal') => {
+    setStremioPlayer(player)
+    localStorage.setItem('ghost_stremio_preferred_player', player)
+    setCatalogFeedback(
+      player === 'nuvio'
+        ? '✓ Player do Stremio alterado para: Nuvio Media Player (GPU + Streams)!'
+        : player === 'external'
+          ? '✓ Player do Stremio alterado para: Player Externo (VLC / MPV)!'
+          : '✓ Player do Stremio alterado para: Alazterflix Cyber Player!'
+    )
+  }
+
+  const handleOpenAddonsFolder = async () => {
+    try {
+      if (window.api?.cinemaOpenAddonsFolder) {
+        const res = await window.api.cinemaOpenAddonsFolder()
+        setCatalogFeedback(`✓ Pasta de Addons aberta no Windows Explorer: ${res?.path || ''}`)
+      } else {
+        setCatalogFeedback('✓ Abrindo pasta de addons no Windows Explorer...')
+      }
+    } catch (err) {
+      setCatalogFeedback(`Erro ao abrir pasta de addons: ${describeMediaError(err)}`)
+    }
+  }
+
+  const handleShareAddons = () => {
+    try {
+      const enabledAddons = state.addons.filter((a) => a.isEnabled !== false)
+      const urls = enabledAddons.map((a) => (a as any).transportUrl || (a as any).manifestUrl || a.id).filter(Boolean)
+      const textToCopy = urls.length > 0
+        ? `👻 Ghost / Alazterflix - Stremio Addons:\n${urls.join('\n')}`
+        : 'Nenhum addon customizado ativo para compartilhar.'
+      navigator.clipboard.writeText(textToCopy)
+      setCatalogFeedback(`✓ Links de ${urls.length} addon(s) copiados para a área de transferência!`)
+    } catch {
+      setCatalogFeedback('Não foi possível copiar os links para a área de transferência.')
+    }
+  }
+
+  const handlePickDownloadDir = async (type: 'movies' | 'series' | 'animes') => {
+    if (!window.api?.cinemaPickFolder) return
+    try {
+      const picked = await window.api.cinemaPickFolder()
+      if (picked) {
+        const patch = { [type === 'movies' ? 'moviesDir' : type === 'series' ? 'seriesDir' : 'animesDir']: picked }
+        const updated = await window.api.cinemaSetDownloadDirectories(patch)
+        setDownloadDirs(updated)
+        if (window.api?.cinemaAddFolder) {
+          const newState = await window.api.cinemaAddFolder(picked)
+          setState(newState)
+        }
+        setCatalogFeedback(`✓ Pasta de ${type} salva e adicionada à biblioteca monitorada!`)
+      }
+    } catch {
+      setCatalogFeedback('Erro ao selecionar pasta no HD.')
+    }
+  }
+
+  const handleCheckNuvioUpdates = async () => {
+    if (!window.api?.pluginsNuvioAddonAction) return
+    setCheckingNuvio(true)
+    try {
+      const res = await window.api.pluginsNuvioAddonAction({ type: 'check' })
+      if (res.state) setNuvioUpdate(res.state)
+      setCatalogFeedback(res.state?.message || '✓ Consulta ao GitHub oficial concluída.')
+    } catch {
+      setCatalogFeedback('Erro ao consultar atualizações no GitHub oficial.')
+    } finally {
+      setCheckingNuvio(false)
+    }
+  }
+
+  const handleInstallNuvioUpdate = async () => {
+    if (!window.api?.pluginsNuvioAddonAction) return
+    setCheckingNuvio(true)
+    try {
+      const res = await window.api.pluginsNuvioAddonAction({ type: 'install' })
+      if (res.state) setNuvioUpdate(res.state)
+      setCatalogFeedback(res.state?.message || '✓ Nuvio Addon atualizado com sucesso!')
+    } catch {
+      setCatalogFeedback('Erro ao instalar atualização do Nuvio Addon.')
+    } finally {
+      setCheckingNuvio(false)
+    }
+  }
+
+  const handleRestoreNuvioUpdate = async () => {
+    if (!window.api?.pluginsNuvioAddonAction) return
+    setCheckingNuvio(true)
+    try {
+      const res = await window.api.pluginsNuvioAddonAction({ type: 'restore' })
+      if (res.state) setNuvioUpdate(res.state)
+      setCatalogFeedback(res.state?.message || '✓ Versão anterior restaurada com sucesso!')
+    } catch {
+      setCatalogFeedback('Erro ao restaurar versão anterior.')
+    } finally {
+      setCheckingNuvio(false)
+    }
+  }
+
+  const handleFullScan = async () => {
+    try {
+      setIsFullScanning(true)
+      setCatalogFeedback('Iniciando Scan Completo: revalidando pastas e buscando capas...')
+      const movies = await window.api.cinemaAutoCatalog()
+      setState((prev) => ({ ...prev, movies }))
+      setCatalogFeedback(
+        `✓ Scan Completo concluído com sucesso: ${movies.length} item(ns) sincronizados e capas verificadas!`
+      )
+    } catch (err) {
+      setCatalogFeedback(`Erro no Scan Completo: ${describeMediaError(err)}`)
+    } finally {
+      setIsFullScanning(false)
+    }
+  }
+
+  const handleRevalidateWithStremio = async () => {
+    try {
+      setIsStremioRevalidating(true)
+      setCatalogFeedback('Iniciando revalidação Stremio: buscando títulos oficiais e capas via Cinemeta...')
+      const res = await window.api.cinemaRevalidateWithStremio()
+      if (res && Array.isArray(res.movies)) {
+        setState((prev) => ({ ...prev, movies: res.movies }))
+        setCatalogFeedback(
+          `✓ Revalidação Stremio concluída com sucesso: ${res.updatedCount} obra(s) atualizada(s)!`
+        )
+      } else {
+        setCatalogFeedback('✓ Revalidação Stremio concluída!')
+      }
+    } catch (err) {
+      setCatalogFeedback(`Erro ao revalidar com Stremio: ${describeMediaError(err)}`)
+    } finally {
+      setIsStremioRevalidating(false)
+    }
+  }
+
+  const handleToggleAddon = async (addonId: string, currentEnabled: boolean) => {
+    try {
+      if (window.api?.cinemaStremioToggleAddon) {
+        await window.api.cinemaStremioToggleAddon(addonId, !currentEnabled)
+      }
+      setState((prev) => ({
+        ...prev,
+        addons: prev.addons.map((a) =>
+          a.id === addonId ? { ...a, isEnabled: !currentEnabled } : a
+        )
+      }))
+      setCatalogFeedback(`✓ Addon ${!currentEnabled ? 'ativado' : 'desativado'} com sucesso!`)
+    } catch (err) {
+      setCatalogFeedback(`Erro ao alterar status do addon: ${describeMediaError(err)}`)
+    }
+  }
+
   const handleAddFolder = async () => {
     try {
       const selectedPath = await window.api.cinemaPickFolder()
@@ -4396,7 +4625,10 @@ export default function AlazterflixScreen() {
   }
 
   return (
-    <div id="alazterflix-page" className="alazterflixScreen">
+    <div
+      id="alazterflix-page"
+      className={`alazterflixScreen ${activeTab === 'tv' ? 'alazterflixScreen--tv-active' : ''}`}
+    >
       {/* =========================================================================
          TOP HEADER COM IDENTIDADE VISUAL DO MOCKUP
          ========================================================================= */}
@@ -4416,7 +4648,9 @@ export default function AlazterflixScreen() {
               />
             </button>
           </h1>
-          <p className="header-slogan">Seu cinema. Seu ritmo. Seu universo.</p>
+          {activeTab !== 'tv' && (
+            <p className="header-slogan">Seu cinema. Seu ritmo. Seu universo.</p>
+          )}
         </div>
   
         {activeTab === 'local' && (
@@ -4442,15 +4676,60 @@ export default function AlazterflixScreen() {
         )}
   
         <div className="header-right-actions">
-          <button
-            type="button"
-            className={`btn-action header-settings-button ${activeTab === 'settings' ? 'active' : ''}`}
-            aria-current={activeTab === 'settings' ? 'page' : undefined}
-            onClick={() => setActiveTab('settings')}
-          >
-            <FontAwesomeIcon icon={faGear} />
-            <span>Configurações</span>
-          </button>
+          {activeTab === 'settings' ? (
+            <button
+              type="button"
+              className="btn-action header-settings-button active"
+              onClick={() => setActiveTab('local')}
+              title="Voltar ao Catálogo"
+            >
+              <FontAwesomeIcon icon={faFilm} />
+              <span>Voltar ao Catálogo</span>
+            </button>
+          ) : (
+            <>
+              <nav className="header-nav-tabs" aria-label="Biblioteca e serviços">
+                {activeTab !== 'local' && (
+                  <button
+                    type="button"
+                    className="tab-btn"
+                    onClick={() => setActiveTab('local')}
+                    title="Retornar ao catálogo local de filmes e séries"
+                  >
+                    <FontAwesomeIcon icon={faFilm} />
+                    <span>Catálogo Local</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`tab-btn ${activeTab === 'tv' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('tv')}
+                  title="Abrir TV ao Vivo & IPTV (Canais, EPG e App TV Box)"
+                >
+                  <FontAwesomeIcon icon={faTowerBroadcast} />
+                  <span>TV ao Vivo</span>
+                </button>
+                <button
+                  type="button"
+                  className={`tab-btn ${activeTab === 'stremio' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('stremio')}
+                >
+                  <FontAwesomeIcon icon={faTv} />
+                  <span>Stremio &amp; Catálogo</span>
+                </button>
+              </nav>
+
+              <button
+                type="button"
+                className="btn-action header-settings-button"
+                onClick={() => setActiveTab('settings')}
+                title="Abrir Configurações do Alazterflix"
+              >
+                <FontAwesomeIcon icon={faGear} />
+                <span>Configurações</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
   
@@ -4997,626 +5276,794 @@ export default function AlazterflixScreen() {
       )}
   
       {/* =========================================================================
-                 TAB 3: ADDONS STREMIO
+                 TAB TV: TV AO VIVO & IPTV (GHOST IPTV APP)
                  ========================================================================= */}
-      {activeTab === 'addons' && (
-        <section className="view-container">
-          <div className="section-header">
-            <h3 className="section-title">
-              <FontAwesomeIcon icon={faPuzzlePiece} />
-              <span>Addons Stremio Instalados ({state.addons.length})</span>
-            </h3>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input
-                type="text"
-                placeholder="URL do Manifesto Stremio..."
-                value={newAddonUrl}
-                onChange={(e) => setNewAddonUrl(e.target.value)}
+      {activeTab === 'tv' && (
+        <section className="alazterflix-tv-section">
+          {/* CONTEÚDO DA TV (100% VISÍVEL EDGE-TO-EDGE, SEM TOPBAR REDUNDANTE) */}
+          {tvViewMode === 'app' ? (
+            <div className="alazterflix-tv-player-wrap">
+              <iframe
+                title="Ghost IPTV TV Box Player"
+                src={ghostIptvState?.webUrl || ''}
                 style={{
-                  background: 'rgba(0,0,0,0.4)',
-                  border: '1px solid var(--alazter-border-subtle)',
-                  padding: '6px 12px',
-                  borderRadius: 6,
-                  color: '#fff',
-                  fontSize: 13,
-                  width: 280
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block'
+                }}
+                allow="autoplay; fullscreen"
+              />
+            </div>
+          ) : (
+            <div className="alazterflix-tv-hub-wrap">
+              <AlazterflixTvHub
+                stremioAddons={state.addons}
+                onPlayChannel={(channel) => {
+                  setPlayerMovie({
+                    title: channel.name,
+                    streamUrl: channel.url,
+                    movieId: channel.id,
+                    coverUrl: channel.logo,
+                    backdropUrl: channel.logo,
+                    showTitle: channel.group || 'TV ao Vivo',
+                    mediaCategory: 'series'
+                  })
+                }}
+                onOpenSettings={() => {
+                  setActiveTab('settings')
+                  setSettingsSubTab('tv')
                 }}
               />
-              <button
-                className="btn-action primary"
-                onClick={() => handleInstallAddon()}
-              >
-                <FontAwesomeIcon icon={faPlus} />
-                <span>Instalar Addon</span>
-              </button>
             </div>
-          </div>
-  
-          <div className="settings-grid">
-            {state.addons.map((addon) => (
-              <div key={addon.id} className="settings-card">
-                <h3>
-                  <FontAwesomeIcon icon={faFilm} />
-                  <span>{addon.name}</span>
-                </h3>
-                <p>
-                  {addon.description || 'Addon oficial do protocolo Stremio v3.'}
-                </p>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <span
-                    style={{
-                      background: 'rgba(0, 255, 255, 0.15)',
-                      border: '1px solid var(--alazter-cyan)',
-                      color: 'var(--alazter-cyan)',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: 4
-                    }}
-                  >
-                    {addon.isEnabled ? 'ATIVO' : 'DESATIVADO'}
-                  </span>
-                  {addon.id !== 'org.stremio.cinemeta' && (
-                    <button
-                      className="btn-action"
-                      style={{
-                        color: '#ef4444',
-                        borderColor: 'rgba(239,68,68,0.4)'
-                      }}
-                      onClick={() => handleRemoveAddon(addon.id)}
-                    >
-                      <FontAwesomeIcon icon={faTrashAlt} />
-                      <span>Remover</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
         </section>
       )}
-  
+
       {/* =========================================================================
-                 TAB 4: CONFIGURAÇÕES
+                 CONFIGURAÇÕES DO ALAZTERFLIX EM 3 GRANDES ABAS
                  ========================================================================= */}
       {activeTab === 'settings' && (
         <section className="view-container settings-view">
-          <button
-            type="button"
-            className="catalog-back-button"
-            onClick={() => setActiveTab('local')}
-          >
-            <FontAwesomeIcon icon={faArrowLeft} />
-            Voltar ao catálogo
-          </button>
-          <div className="section-header">
-            <h3 className="section-title">
-              <FontAwesomeIcon icon={faSlidersH} />
-              <span>Configurações do Alazterflix</span>
-            </h3>
-          </div>
-  
-          <div className="header-library-toolbar">
-            {/* HEADER TABS */}
-            <nav className="header-nav-tabs" aria-label="Biblioteca e serviços">
+          <div className="settings-header-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
               <button
                 type="button"
-                className="tab-btn"
+                className="catalog-back-button"
                 onClick={() => setActiveTab('local')}
+                style={{ marginBottom: 8 }}
               >
-                <FontAwesomeIcon icon={faFolderOpen} />
-                <span>Meus Filmes ({state.movies.length})</span>
+                <FontAwesomeIcon icon={faArrowLeft} />
+                <span>Voltar ao catálogo</span>
               </button>
-              <button
-                type="button"
-                className="tab-btn"
-                onClick={() => setActiveTab('stremio')}
-              >
-                <FontAwesomeIcon icon={faTv} />
-                <span>Stremio &amp; Catálogo</span>
-              </button>
-              <button
-                type="button"
-                className="tab-btn"
-                onClick={() => setActiveTab('addons')}
-              >
-                <FontAwesomeIcon icon={faPuzzlePiece} />
-                <span>Addons</span>
-              </button>
-            </nav>
-  
-            <div className="header-library-actions header-right-actions">
-              <button
-                className="btn-action"
-                onClick={handleAutoCatalogAll}
-                disabled={isCataloging}
-                title="Auto-catalogar temporadas e episódios em toda a biblioteca"
-              >
-                <FontAwesomeIcon icon={faTags} />
-                <span>{isCataloging ? 'Catalogando...' : 'Auto-Catalogar'}</span>
-              </button>
-              <button
-                className="btn-action"
-                onClick={handleRescan}
-                title="Re-escanear pastas locais"
-              >
-                <FontAwesomeIcon icon={faRotate} />
-                <span>Re-escanear</span>
-              </button>
-              <button
-                className="btn-action primary"
-                onClick={handleAddFolder}
-                title="Adicionar pasta de filmes"
-              >
-                <FontAwesomeIcon icon={faFolderPlus} />
-                <span>Adicionar Pasta</span>
-              </button>
+              <div className="section-header" style={{ margin: 0 }}>
+                <h3 className="section-title">
+                  <FontAwesomeIcon icon={faSlidersH} />
+                  <span>Configurações do Alazterflix</span>
+                  <span style={{ fontSize: 11, background: 'rgba(0, 229, 255, 0.15)', border: '1px solid var(--alazter-cyan)', color: 'var(--alazter-cyan)', padding: '2px 8px', borderRadius: 4, fontWeight: 700, marginLeft: 8 }}>
+                    CYBER-NEON 3.0
+                  </span>
+                </h3>
+              </div>
             </div>
           </div>
-  
-          {/* BANNER TOAST DE FEEDBACK DE CATALOGAÇÃO */}
-          {state.isPluginActive && state.movies.length > 0 && (
-            <div className="alazter-artwork-library">
-              <div className="artwork-library-summary">
-                <strong>
-                  <FontAwesomeIcon icon={faImage} /> Capas em português do Brasil
-                </strong>
-                <span>
-                  {allShows.length} obras · {state.movies.length} vídeos
-                </span>
-                <button
-                  type="button"
-                  className={
-                    selectedQualityFilter === 'missingArtwork' ? 'active' : ''
-                  }
-                  onClick={() => {
-                    setSelectedQualityFilter(
-                      selectedQualityFilter === 'missingArtwork'
-                        ? 'all'
-                        : 'missingArtwork'
-                    )
-                    setSelectedCategory('all')
-                    setSearchInput('')
-                    setActiveTab('local')
-                  }}
-                >
-                  Sem capa (
-                  {
-                    allShows.filter(
-                      (show) => !show.coverUrl || show.sampleMovie.artworkMissing
-                    ).length
-                  }
-                  )
-                </button>
-                <button
-                  type="button"
-                  className={
-                    selectedQualityFilter === 'unidentified' ? 'active' : ''
-                  }
-                  onClick={() => {
-                    setSelectedQualityFilter(
-                      selectedQualityFilter === 'unidentified'
-                        ? 'all'
-                        : 'unidentified'
-                    )
-                    setSelectedCategory('all')
-                    setSearchInput('')
-                    setActiveTab('local')
-                  }}
-                >
-                  Revisar identificação (
-                  {
-                    allShows.filter((show) =>
-                      ['needs-identification', 'error'].includes(
-                        show.sampleMovie.metadataStatus || ''
-                      )
-                    ).length
-                  }
-                  )
-                </button>
-                <button
-                  type="button"
-                  className={
-                    selectedQualityFilter === 'portugueseArtwork' ? 'active' : ''
-                  }
-                  onClick={() => {
-                    setSelectedQualityFilter(
-                      selectedQualityFilter === 'portugueseArtwork'
-                        ? 'all'
-                        : 'portugueseArtwork'
-                    )
-                    setSelectedCategory('all')
-                    setSearchInput('')
-                    setActiveTab('local')
-                  }}
-                >
-                  Capa em português pendente (
-                  {
-                    allShows.filter((show) =>
-                      needsPortuguesePoster(show.sampleMovie)
-                    ).length
-                  }
-                  )
-                </button>
-              </div>
-              <div className="artwork-library-actions">
-                <button
-                  type="button"
-                  onClick={() => handleRefreshMetadata('portuguese')}
-                  disabled={state.metadataJob?.running}
-                >
-                  Buscar capas em português
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRefreshMetadata('missing')}
-                  disabled={state.metadataJob?.running}
-                >
-                  Completar capas ausentes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRefreshMetadata('all')}
-                  disabled={state.metadataJob?.running}
-                >
-                  Atualizar informações
-                </button>
-              </div>
-              {state.metadataJob && state.metadataJob.total > 0 && (
-                <div className="artwork-job" role="status" aria-live="polite">
-                  <span>
-                    {state.metadataJob.running
-                      ? 'Atualizando: ' +
-                        (state.metadataJob.currentTitle || 'preparando…')
-                      : 'Atualização encerrada'}{' '}
-                    · {state.metadataJob.completed}/{state.metadataJob.total}{' '}
-                    obras
+
+          {/* BARRA DE ABAS ESTILO NAVEGADOR (BROWSER TABS) */}
+          <div className="browser-tabs-container">
+            <div className="browser-tabs-strip" role="tablist" aria-label="Abas de Configurações">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={settingsSubTab === 'catalog'}
+                className={`browser-tab ${settingsSubTab === 'catalog' ? 'active' : ''}`}
+                onClick={() => setSettingsSubTab('catalog')}
+              >
+                <FontAwesomeIcon icon={faFolder} className="tab-icon" />
+                <span className="tab-title">Catálogo Local</span>
+                <span className="tab-badge">{state.folders.length} pastas</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={settingsSubTab === 'tv'}
+                className={`browser-tab ${settingsSubTab === 'tv' ? 'active' : ''}`}
+                onClick={() => setSettingsSubTab('tv')}
+              >
+                <FontAwesomeIcon icon={faTowerBroadcast} className="tab-icon" />
+                <span className="tab-title">TV ao Vivo &amp; IPTV</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={settingsSubTab === 'stremio'}
+                className={`browser-tab ${settingsSubTab === 'stremio' ? 'active' : ''}`}
+                onClick={() => setSettingsSubTab('stremio')}
+              >
+                <FontAwesomeIcon icon={faPuzzlePiece} className="tab-icon" />
+                <span className="tab-title">Stremio &amp; Addons</span>
+                <span className="tab-badge">{state.addons.length} addons</span>
+              </button>
+            </div>
+
+            <div className="browser-tabs-content" role="tabpanel">
+
+          {/* =========================================================================
+             ABA 1: CATÁLOGO LOCAL
+             ========================================================================= */}
+          {settingsSubTab === 'catalog' && (
+            <div className="settings-grid">
+              {/* SELETOR DE PLAYER PARA AS MÍDIAS DO CATÁLOGO */}
+              <div className="settings-card" style={{ gridColumn: '1 / -1', borderColor: 'rgba(0, 229, 255, 0.3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>
+                    <FontAwesomeIcon icon={faCirclePlay} />
+                    <span>Player de Vídeo para as Mídias do Catálogo</span>
+                  </h3>
+                  <span style={{ fontSize: 11, background: 'rgba(0, 229, 255, 0.2)', border: '1px solid var(--alazter-cyan)', color: 'var(--alazter-cyan)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                    {preferredPlayer === 'nuvio' ? 'Nuvio Media Player Ativo' : 'Alazterflix Cyber Player Ativo'}
                   </span>
-                  <progress
-                    value={state.metadataJob.completed}
-                    max={state.metadataJob.total}
-                    aria-label="Progresso da atualização de capas"
-                  />
-                  <small>
-                    {state.metadataJob.matched} identificadas ·{' '}
-                    {state.metadataJob.unidentified} para escolher ·{' '}
-                    {state.metadataJob.failed} falhas
-                  </small>
-                  {state.metadataJob.lastError && (
-                    <small>{state.metadataJob.lastError}</small>
-                  )}
-                  {state.metadataJob.running && (
-                    <button type="button" onClick={handleCancelMetadata}>
-                      Interromper
-                    </button>
+                </div>
+                <p>
+                  Defina o reprodutor padrão para filmes, animes e séries locais da sua biblioteca:
+                </p>
+                <div className="player-selector-grid">
+                  <div
+                    className={`player-option ${preferredPlayer === 'nuvio' ? 'active' : ''}`}
+                    onClick={() => handleSelectVideoPlayer('nuvio')}
+                  >
+                    <div className="player-option-top">
+                      <span className="player-name">Nuvio Media Player (Recomendado)</span>
+                      <span className="player-badge nuvio">GPU + 4K REMUX</span>
+                    </div>
+                    <p className="player-desc">
+                      Aceleração de hardware GPU nativa, Web Audio API, buffer dinâmico de 128MB e remuxing FFmpeg em tempo real.
+                    </p>
+                  </div>
+
+                  <div
+                    className={`player-option ${preferredPlayer === 'alazterflix' ? 'active' : ''}`}
+                    onClick={() => handleSelectVideoPlayer('alazterflix')}
+                  >
+                    <div className="player-option-top">
+                      <span className="player-name">Alazterflix Cyber Player</span>
+                      <span className="player-badge neon">Interno</span>
+                    </div>
+                    <p className="player-desc">
+                      Player clássico com controles minimalistas, overlay neon translúcido e atalhos customizados.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* PASTAS LOCAIS DE FILMES & SCAN */}
+              <div className="settings-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>
+                    <FontAwesomeIcon icon={faFolder} />
+                    <span>Pastas Locais de Filmes &amp; Séries ({state.folders.length})</span>
+                  </h3>
+                  <button className="btn-action primary" onClick={handleAddFolder} style={{ fontSize: 11, padding: '4px 10px' }}>
+                    <FontAwesomeIcon icon={faFolderPlus} />
+                    <span>Adicionar Pasta</span>
+                  </button>
+                </div>
+                <p>
+                  Pastas monitoradas onde o Alazterflix procura arquivos de vídeo (.mkv, .mp4, etc.):
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {state.folders.map((folder) => (
+                    <div key={folder} className="folder-item">
+                      <span className="folder-path" title={folder}>
+                        {folder}
+                      </span>
+                      <button
+                        className="btn-icon-danger"
+                        onClick={() => handleRemoveFolder(folder)}
+                        title="Remover pasta"
+                      >
+                        <FontAwesomeIcon icon={faTrashAlt} />
+                      </button>
+                    </div>
+                  ))}
+                  {state.folders.length === 0 && (
+                    <div style={{ color: 'var(--alazter-text-muted)', fontSize: 12, padding: '8px 0' }}>
+                      Nenhuma pasta local cadastrada. Clique em "Adicionar Pasta" acima para monitorar seus arquivos.
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-  
-          {/* FILTROS, CATEGORIAS E BUSCA */}
-          <div className="filter-bar">
-            <h4 className="filter-heading">Exibição do catálogo</h4>
-            <CatalogCardSettings movie={state.movies.find((movie) => mediaPoster(movie)) || state.movies[0]} />
-            <CatalogCoverSize size={coverSize} onChange={changeCoverSize} />
-            <div className="filter-top-row">
-              {/* ALTERNADOR DE MODO: OBRAS (JELLYFIN) VS EPISÓDIOS AVULSOS */}
-              <div className="view-mode-toggle">
-                <button
-                  type="button"
-                  className={`view-mode-btn ${viewMode === 'shows' ? 'active' : ''}`}
-                  onClick={() => setViewMode('shows')}
-                  title="Agrupamento inteligente Jellyfin (1 card por anime/série/filme)"
-                >
-                  <FontAwesomeIcon icon={faLayerGroup} />
-                  <span>Obras Agrupadas ({allShows.length})</span>
-                </button>
-                <button
-                  type="button"
-                  className={`view-mode-btn ${viewMode === 'allFiles' ? 'active' : ''}`}
-                  onClick={() => setViewMode('allFiles')}
-                  title="Exibir todos os arquivos de vídeo"
-                >
-                  <FontAwesomeIcon icon={faFilm} />
-                  <span>Todos os Episódios ({state.movies.length})</span>
-                </button>
-              </div>
-            </div>
-  
-            {/* SUB-FILTROS DE QUALIDADE E STATUS */}
-            <div className="sub-filters-row">
-              <span className="sub-filters-label">Qualidade &amp; Status:</span>
-              <button
-                type="button"
-                className={`chip-btn ${selectedQualityFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setSelectedQualityFilter('all')}
-              >
-                Qualquer
-              </button>
-              <button
-                type="button"
-                className={`chip-btn ${selectedQualityFilter === '4k' ? 'active' : ''}`}
-                onClick={() => setSelectedQualityFilter('4k')}
-              >
-                4K UHD ({count4k})
-              </button>
-              <button
-                type="button"
-                className={`chip-btn ${selectedQualityFilter === '1080p' ? 'active' : ''}`}
-                onClick={() => setSelectedQualityFilter('1080p')}
-              >
-                1080p ({count1080p})
-              </button>
-              <button
-                type="button"
-                className={`chip-btn ${selectedQualityFilter === 'unwatched' ? 'active' : ''}`}
-                onClick={() => setSelectedQualityFilter('unwatched')}
-              >
-                Não Assistidos ({countUnwatched})
-              </button>
-              <button
-                type="button"
-                className={`chip-btn ${selectedQualityFilter === 'watched' ? 'active' : ''}`}
-                onClick={() => setSelectedQualityFilter('watched')}
-              >
-                Assistidos ({countWatched})
-              </button>
-            </div>
-          </div>
-  
-          <div className="settings-grid">
-            <MetadataSettings
-              settings={state.metadataSettings}
-              onSaved={(metadataSettings) =>
-                setState((previous) => ({ ...previous, metadataSettings }))
-              }
-            />
-            <SubtitleStyleSettings />
-            {/* Pastas de Filmes */}
-            <div className="settings-card">
-              <h3>
-                <FontAwesomeIcon icon={faFolder} />
-                <span>Pastas Locais de Filmes</span>
-              </h3>
-              <p>
-                Pastas monitoradas onde o Alazterflix procura arquivos de vídeo
-                (.mkv, .mp4, etc.).
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {state.folders.map((folder) => (
-                  <div key={folder} className="folder-item">
-                    <span className="folder-path" title={folder}>
-                      {folder}
-                    </span>
-                    <button
-                      className="btn-icon-danger"
-                      onClick={() => handleRemoveFolder(folder)}
-                      title="Remover pasta"
-                    >
-                      <FontAwesomeIcon icon={faTrashAlt} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button className="btn-action primary" onClick={handleAddFolder}>
-                <FontAwesomeIcon icon={faPlus} />
-                <span>Adicionar Nova Pasta</span>
-              </button>
-            </div>
-  
-            {/* Reprodutor & Hardware */}
-            <div className="settings-card">
-              <h3>
-                <FontAwesomeIcon icon={faMicrochip} />
-                <span>Reprodução &amp; Hardware</span>
-              </h3>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  fontSize: 13
-                }}
-              >
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>Aceleração de Hardware GPU (NVDEC / VAAPI)</span>
-                  <input type="checkbox" defaultChecked />
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>Salvar Progresso de Vídeo Automaticamente</span>
-                  <input type="checkbox" defaultChecked />
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>Buscar Legendas em Português Automaticamente</span>
-                  <input type="checkbox" defaultChecked />
-                </label>
-  
-                {/* Layout de Temporadas no Player */}
-                <div
-                  className="settings-season-layout-group"
-                  style={{
-                    marginTop: 10,
-                    paddingTop: 14,
-                    borderTop: '1px solid rgba(255,255,255,0.08)'
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: '#fff',
-                      marginBottom: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8
-                    }}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                  <button className="btn-action" onClick={handleRescan} title="Revalidar caminhos locais no HD">
+                    <FontAwesomeIcon icon={faRotate} />
+                    <span>Re-escanear</span>
+                  </button>
+                  <button className="btn-action primary" onClick={handleFullScan} disabled={isFullScanning} title="Scan Completo com busca de capas">
+                    <FontAwesomeIcon icon={faLayerGroup} spin={isFullScanning} />
+                    <span>{isFullScanning ? 'Escaneando...' : 'Scan Completo & Capas'}</span>
+                  </button>
+                  <button
+                    className="btn-action"
+                    onClick={handleRevalidateWithStremio}
+                    disabled={isStremioRevalidating}
+                    style={{ background: 'rgba(168, 85, 247, 0.15)', borderColor: '#a855f7', color: '#d8b4fe' }}
+                    title="Revalidar títulos e capas com Stremio / Cinemeta"
                   >
-                    <FontAwesomeIcon
-                      icon={faListUl}
-                      style={{ color: 'var(--alazter-cyan)' }}
-                    />
-                    <span>Layout das Temporadas na Gaveta do Player</span>
+                    <FontAwesomeIcon icon={faWandMagicSparkles} spin={isStremioRevalidating} />
+                    <span>Revalidar Stremio</span>
+                  </button>
+                </div>
+
+                {/* PASTAS DE DOWNLOAD DEDICADAS */}
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
+                  <div style={{ fontWeight: 700, color: '#fff' }}>Diretórios de Download Automático:</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--alazter-text-muted)' }}>Filmes: {downloadDirs.moviesDir || 'Padrão do Sistema'}</span>
+                    <button className="btn-action" style={{ fontSize: 11, padding: '2px 8px' }} onClick={() => handlePickDownloadDir('movies')}>Alterar</button>
                   </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: '#94a3b8',
-                      marginBottom: 10
-                    }}
-                  >
-                    Escolha o estilo de exibição dos botões de temporada na gaveta
-                    lateral de episódios:
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--alazter-text-muted)' }}>Séries: {downloadDirs.seriesDir || 'Padrão do Sistema'}</span>
+                    <button className="btn-action" style={{ fontSize: 11, padding: '2px 8px' }} onClick={() => handlePickDownloadDir('series')}>Alterar</button>
                   </div>
-                  <div className="season-layout-options-grid">
-                    <div
-                      className={`season-layout-option-card ${
-                        seasonDrawerLayout === 'stepper' ? 'active' : ''
-                      }`}
-                      onClick={() => handleUpdateSeasonDrawerLayout('stepper')}
-                    >
-                      <div
-                        className="layout-card-badge"
-                        style={{
-                          background: 'rgba(0, 229, 255, 0.25)',
-                          borderColor: '#00e5ff',
-                          color: '#00e5ff'
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--alazter-text-muted)' }}>Animes: {downloadDirs.animesDir || 'Padrão do Sistema'}</span>
+                    <button className="btn-action" style={{ fontSize: 11, padding: '2px 8px' }} onClick={() => handlePickDownloadDir('animes')}>Alterar</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONFIGURAÇÕES DE CAPAS E ESTILO DO CARD */}
+              <div className="settings-card">
+                <h3>
+                  <FontAwesomeIcon icon={faImage} />
+                  <span>Configurações de Capas &amp; Estilo do Catálogo</span>
+                </h3>
+                <p>Personalize o visual e a densidade das capas no catálogo de filmes:</p>
+                <CatalogCardSettings movie={state.movies.find((movie) => mediaPoster(movie)) || state.movies[0]} />
+                <CatalogCoverSize size={coverSize} onChange={changeCoverSize} />
+
+                {/* BANNER TOAST DE FEEDBACK DE CATALOGAÇÃO E POSTERS PT-BR */}
+                {state.isPluginActive && state.movies.length > 0 && (
+                  <div className="alazter-artwork-library" style={{ marginTop: 8 }}>
+                    <div className="artwork-library-summary">
+                      <strong>
+                        <FontAwesomeIcon icon={faImage} /> Capas em português do Brasil
+                      </strong>
+                      <span>
+                        {allShows.length} obras · {state.movies.length} vídeos
+                      </span>
+                      <button
+                        type="button"
+                        className={selectedQualityFilter === 'missingArtwork' ? 'active' : ''}
+                        onClick={() => {
+                          setSelectedQualityFilter(selectedQualityFilter === 'missingArtwork' ? 'all' : 'missingArtwork')
+                          setSelectedCategory('all')
+                          setSearchInput('')
+                          setActiveTab('local')
                         }}
                       >
-                        Padrão
-                      </div>
-                      <div className="layout-card-title">
-                        <FontAwesomeIcon icon={faArrowsLeftRight} />
-                        <span>Stepper (&lt; 3ª TEMPORADA &gt;)</span>
-                      </div>
-                      <div className="layout-card-desc">
-                        Navegação linear por setas (&lt; e &gt;) com temporada no
-                        centro. O botão apaga e fica não-clicável no início ou
-                        fim.
-                      </div>
+                        Sem capa ({allShows.filter((s) => !s.coverUrl || s.sampleMovie.artworkMissing).length})
+                      </button>
+                      <button
+                        type="button"
+                        className={selectedQualityFilter === 'unidentified' ? 'active' : ''}
+                        onClick={() => {
+                          setSelectedQualityFilter(selectedQualityFilter === 'unidentified' ? 'all' : 'unidentified')
+                          setSelectedCategory('all')
+                          setSearchInput('')
+                          setActiveTab('local')
+                        }}
+                      >
+                        Revisar ({allShows.filter((s) => ['needs-identification', 'error'].includes(s.sampleMovie.metadataStatus || '')).length})
+                      </button>
                     </div>
-  
-                    <div
-                      className={`season-layout-option-card ${
-                        seasonDrawerLayout === 'dropdown' ? 'active' : ''
-                      }`}
-                      onClick={() => handleUpdateSeasonDrawerLayout('dropdown')}
-                    >
-                      <div className="layout-card-title">
-                        <FontAwesomeIcon icon={faLayerGroup} />
-                        <span>Dropdown Stremio</span>
-                      </div>
-                      <div className="layout-card-desc">
-                        Menu suspenso elegante no topo (Apple TV style). Ocupa
-                        mínimo espaço e desafoga a lista de episódios.
-                      </div>
+                    <div className="artwork-library-actions" style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button type="button" className="btn-action" onClick={() => handleRefreshMetadata('portuguese')} disabled={state.metadataJob?.running}>
+                        Buscar capas em português
+                      </button>
+                      <button type="button" className="btn-action" onClick={() => handleRefreshMetadata('missing')} disabled={state.metadataJob?.running}>
+                        Completar ausentes
+                      </button>
                     </div>
-  
-                    <div
-                      className={`season-layout-option-card ${
-                        seasonDrawerLayout === 'pills' ? 'active' : ''
-                      }`}
-                      onClick={() => handleUpdateSeasonDrawerLayout('pills')}
-                    >
-                      <div className="layout-card-title">
-                        <FontAwesomeIcon icon={faTags} />
-                        <span>Pílulas Netflix</span>
-                      </div>
-                      <div className="layout-card-desc">
-                        Chips horizontais flexíveis lado a lado. Salto direto para
-                        qualquer temporada em 1 clique.
-                      </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ESTILO DE LEGENDAS */}
+              <SubtitleStyleSettings />
+
+              {/* REPRODUÇÃO & HARDWARE */}
+              <div className="settings-card">
+                <h3>
+                  <FontAwesomeIcon icon={faMicrochip} />
+                  <span>Reprodução &amp; Hardware</span>
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Aceleração de Hardware GPU (NVDEC / VAAPI)</span>
+                    <input type="checkbox" defaultChecked />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Salvar Progresso de Vídeo Automaticamente</span>
+                    <input type="checkbox" defaultChecked />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>Buscar Legendas em Português Automaticamente</span>
+                    <input type="checkbox" defaultChecked />
+                  </label>
+
+                  {/* Layout de Temporadas no Player */}
+                  <div className="settings-season-layout-group" style={{ marginTop: 10, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontWeight: 700, color: '#fff', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <FontAwesomeIcon icon={faListUl} style={{ color: 'var(--alazter-cyan)' }} />
+                      <span>Layout das Temporadas na Gaveta do Player</span>
                     </div>
-  
-                    <div
-                      className={`season-layout-option-card ${
-                        seasonDrawerLayout === 'accordion' ? 'active' : ''
-                      }`}
-                      onClick={() => handleUpdateSeasonDrawerLayout('accordion')}
-                    >
-                      <div className="layout-card-title">
-                        <FontAwesomeIcon icon={faBarsStaggered} />
-                        <span>Sanfona Jellyfin</span>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+                      Escolha o estilo de exibição dos botões de temporada na gaveta lateral:
+                    </div>
+                    <div className="season-layout-options-grid">
+                      <div
+                        className={`season-layout-option-card ${seasonDrawerLayout === 'stepper' ? 'active' : ''}`}
+                        onClick={() => handleUpdateSeasonDrawerLayout('stepper')}
+                      >
+                        <div className="layout-card-badge" style={{ background: 'rgba(0, 229, 255, 0.25)', borderColor: '#00e5ff', color: '#00e5ff' }}>
+                          Padrão
+                        </div>
+                        <div className="layout-card-title">
+                          <FontAwesomeIcon icon={faArrowsLeftRight} />
+                          <span>Stepper (&lt; 3ª TEMPORADA &gt;)</span>
+                        </div>
+                        <div className="layout-card-desc">
+                          Navegação linear por setas (&lt; e &gt;) com temporada no centro.
+                        </div>
                       </div>
-                      <div className="layout-card-desc">
-                        Seções colapsáveis na própria lista de episódios. Ideal
-                        para visualização contínua de episódios.
+
+                      <div
+                        className={`season-layout-option-card ${seasonDrawerLayout === 'dropdown' ? 'active' : ''}`}
+                        onClick={() => handleUpdateSeasonDrawerLayout('dropdown')}
+                      >
+                        <div className="layout-card-title">
+                          <FontAwesomeIcon icon={faLayerGroup} />
+                          <span>Dropdown Stremio</span>
+                        </div>
+                        <div className="layout-card-desc">
+                          Menu suspenso elegante no topo (Apple TV style).
+                        </div>
+                      </div>
+
+                      <div
+                        className={`season-layout-option-card ${seasonDrawerLayout === 'pills' ? 'active' : ''}`}
+                        onClick={() => handleUpdateSeasonDrawerLayout('pills')}
+                      >
+                        <div className="layout-card-title">
+                          <FontAwesomeIcon icon={faTags} />
+                          <span>Pílulas Netflix</span>
+                        </div>
+                        <div className="layout-card-desc">
+                          Chips horizontais flexíveis lado a lado.
+                        </div>
+                      </div>
+
+                      <div
+                        className={`season-layout-option-card ${seasonDrawerLayout === 'accordion' ? 'active' : ''}`}
+                        onClick={() => handleUpdateSeasonDrawerLayout('accordion')}
+                      >
+                        <div className="layout-card-title">
+                          <FontAwesomeIcon icon={faBarsStaggered} />
+                          <span>Sanfona Jellyfin</span>
+                        </div>
+                        <div className="layout-card-desc">
+                          Seções colapsáveis na própria lista de episódios.
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-  
-            {/* Sandbox GhostShield */}
-            <div className="settings-card">
-              <h3>
-                <FontAwesomeIcon icon={faShieldHalved} />
-                <span>Sandbox GhostShield</span>
-              </h3>
-              <p>
-                Status de segurança do plugin isolado. O código de mídia roda 100%
-                dentro da sandbox.
-              </p>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  fontSize: 12
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>ID do Plugin:</span>
-                  <code style={{ color: 'var(--alazter-cyan)' }}>
-                    com.ghost.alazterflix
-                  </code>
+
+              {/* CONFIGURAÇÕES DO TMDB */}
+              <MetadataSettings
+                settings={state.metadataSettings}
+                onSaved={(metadataSettings) =>
+                  setState((previous) => ({ ...previous, metadataSettings }))
+                }
+              />
+
+              {/* ESTILO DO CATÁLOGO E FILTROS PADRÃO */}
+              <div className="settings-card">
+                <h3>
+                  <FontAwesomeIcon icon={faLayerGroup} />
+                  <span>Modo de Exibição &amp; Filtros do Catálogo</span>
+                </h3>
+                <p>Selecione a visualização principal e os filtros de qualidade do catálogo:</p>
+                <div className="view-mode-toggle" style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button
+                    type="button"
+                    className={`view-mode-btn ${viewMode === 'shows' ? 'active' : ''}`}
+                    onClick={() => setViewMode('shows')}
+                    title="Agrupamento inteligente Jellyfin (1 card por anime/série/filme)"
+                  >
+                    <FontAwesomeIcon icon={faLayerGroup} />
+                    <span>Obras Agrupadas ({allShows.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`view-mode-btn ${viewMode === 'allFiles' ? 'active' : ''}`}
+                    onClick={() => setViewMode('allFiles')}
+                    title="Exibir todos os arquivos de vídeo"
+                  >
+                    <FontAwesomeIcon icon={faFilm} />
+                    <span>Todos os Episódios ({state.movies.length})</span>
+                  </button>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Servidor de Streaming HTTP 206:</span>
-                  <span style={{ color: '#4ade80' }}>Ativo (Range Seek)</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Nível de Auditoria:</span>
-                  <span style={{ color: '#4ade80' }}>🛡️ Tier 1 Verificado</span>
+                <div className="sub-filters-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                  <span className="sub-filters-label">Qualidade:</span>
+                  <button type="button" className={`chip-btn ${selectedQualityFilter === 'all' ? 'active' : ''}`} onClick={() => setSelectedQualityFilter('all')}>Qualquer</button>
+                  <button type="button" className={`chip-btn ${selectedQualityFilter === '4k' ? 'active' : ''}`} onClick={() => setSelectedQualityFilter('4k')}>4K UHD ({count4k})</button>
+                  <button type="button" className={`chip-btn ${selectedQualityFilter === '1080p' ? 'active' : ''}`} onClick={() => setSelectedQualityFilter('1080p')}>1080p ({count1080p})</button>
+                  <button type="button" className={`chip-btn ${selectedQualityFilter === 'unwatched' ? 'active' : ''}`} onClick={() => setSelectedQualityFilter('unwatched')}>Não Assistidos ({countUnwatched})</button>
+                  <button type="button" className={`chip-btn ${selectedQualityFilter === 'watched' ? 'active' : ''}`} onClick={() => setSelectedQualityFilter('watched')}>Assistidos ({countWatched})</button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+             ABA 2: TV AO VIVO & IPTV
+             ========================================================================= */}
+          {settingsSubTab === 'tv' && (
+            <div className="settings-tv-view" style={{ animation: 'fadeIn 0.25s ease', display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* SELETOR DE MODO DE VISUALIZAÇÃO DA TV AO VIVO (MOVIDO DA TELA PRINCIPAL) */}
+              <div className="settings-card" style={{ borderColor: 'rgba(0, 229, 255, 0.3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: 'rgba(0, 229, 255, 0.15)',
+                      border: '1px solid var(--alazter-cyan)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--alazter-cyan)',
+                      fontSize: 16
+                    }}>
+                      <FontAwesomeIcon icon={faTowerBroadcast} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: 16, color: '#ffffff' }}>Modo de Visualização da TV ao Vivo</h3>
+                      <p style={{ margin: 0, fontSize: 12.5, color: 'var(--alazter-text-muted)' }}>Escolha a interface padrão para a reprodução de canais e transmissões ao vivo</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 11, background: 'rgba(0, 229, 255, 0.15)', border: '1px solid var(--alazter-cyan)', color: 'var(--alazter-cyan)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                    Ghost IPTV v{ghostIptvState?.installed || '2.4.6'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTvViewMode('app')
+                      localStorage.setItem('alazterflix_tv_mode', 'app')
+                    }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      padding: '14px 18px',
+                      borderRadius: 12,
+                      background: tvViewMode === 'app' ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                      border: `1.5px solid ${tvViewMode === 'app' ? 'var(--alazter-cyan)' : 'rgba(255, 255, 255, 0.1)'}`,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease',
+                      boxShadow: tvViewMode === 'app' ? '0 0 16px rgba(0, 229, 255, 0.2)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <FontAwesomeIcon icon={faTv} style={{ color: tvViewMode === 'app' ? 'var(--alazter-cyan)' : '#94a3b8', fontSize: 16 }} />
+                        <strong style={{ color: tvViewMode === 'app' ? '#ffffff' : '#cbd5e1', fontSize: 14 }}>App TV Box Completo (PC)</strong>
+                      </div>
+                      {tvViewMode === 'app' && (
+                        <span style={{ fontSize: 10, background: 'var(--alazter-cyan)', color: '#030812', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>ATIVO</span>
+                      )}
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--alazter-text-muted)', lineHeight: 1.4 }}>
+                      Player HLS ultra-rápido com InfoBar translúcido, EPG perpétuo e 68 canais em tela ampla e proporção quadrada otimizada.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTvViewMode('hub')
+                      localStorage.setItem('alazterflix_tv_mode', 'hub')
+                    }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                      padding: '14px 18px',
+                      borderRadius: 12,
+                      background: tvViewMode === 'hub' ? 'rgba(0, 229, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                      border: `1.5px solid ${tvViewMode === 'hub' ? 'var(--alazter-cyan)' : 'rgba(255, 255, 255, 0.1)'}`,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s ease',
+                      boxShadow: tvViewMode === 'hub' ? '0 0 16px rgba(0, 229, 255, 0.2)' : 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <FontAwesomeIcon icon={faBarsStaggered} style={{ color: tvViewMode === 'hub' ? 'var(--alazter-cyan)' : '#94a3b8', fontSize: 16 }} />
+                        <strong style={{ color: tvViewMode === 'hub' ? '#ffffff' : '#cbd5e1', fontSize: 14 }}>Grade &amp; Listas Nativas</strong>
+                      </div>
+                      {tvViewMode === 'hub' && (
+                        <span style={{ fontSize: 10, background: 'var(--alazter-cyan)', color: '#030812', fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>ATIVO</span>
+                      )}
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12, color: 'var(--alazter-text-muted)', lineHeight: 1.4 }}>
+                      Grade de canais clássica do Ghost com categorias, favoritos e integração nativa com o player do launcher.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* LISTAS M3U, EPG E CONFIGURAÇÕES DE IPTV */}
+              <IptvPlaylistsSettings />
+            </div>
+          )}
+
+          {/* =========================================================================
+             ABA 3: STREMIO & ADDONS
+             ========================================================================= */}
+          {settingsSubTab === 'stremio' && (
+            <div className="settings-grid" style={{ animation: 'fadeIn 0.25s ease' }}>
+              {/* SELETOR DE PLAYER PARA MÍDIAS DO STREMIO */}
+              <div className="settings-card" style={{ gridColumn: '1 / -1', borderColor: 'rgba(0, 229, 255, 0.3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>
+                    <FontAwesomeIcon icon={faPlay} />
+                    <span>Player de Vídeo para as Mídias do Stremio</span>
+                  </h3>
+                  <span style={{ fontSize: 11, background: 'rgba(0, 229, 255, 0.2)', border: '1px solid var(--alazter-cyan)', color: 'var(--alazter-cyan)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                    {stremioPlayer === 'nuvio' ? 'Nuvio Media Player' : stremioPlayer === 'external' ? 'Player Externo' : 'Cyber Player'}
+                  </span>
+                </div>
+                <p>
+                  Escolha qual reprodutor executará os torrents, links HTTP e transmissões online dos Addons do Stremio:
+                </p>
+                <div className="player-selector-grid">
+                  <div
+                    className={`player-option ${stremioPlayer === 'nuvio' ? 'active' : ''}`}
+                    onClick={() => handleSelectStremioPlayer('nuvio')}
+                  >
+                    <div className="player-option-top">
+                      <span className="player-name">Nuvio Media Player (Recomendado)</span>
+                      <span className="player-badge nuvio">GPU + TORRENTIO</span>
+                    </div>
+                    <p className="player-desc">
+                      Aceleração por GPU, buffer ultra-rápido, legendas integradas via IA e compatibilidade total com HLS e MP4.
+                    </p>
+                  </div>
+
+                  <div
+                    className={`player-option ${stremioPlayer === 'external' ? 'active' : ''}`}
+                    onClick={() => handleSelectStremioPlayer('external')}
+                  >
+                    <div className="player-option-top">
+                      <span className="player-name">Player Externo (VLC / MPV)</span>
+                      <span className="player-badge external">Desktop</span>
+                    </div>
+                    <p className="player-desc">
+                      Transfere a reprodução diretamente para o aplicativo VLC ou MPV instalado no seu Windows.
+                    </p>
+                  </div>
+
+                  <div
+                    className={`player-option ${stremioPlayer === 'internal' ? 'active' : ''}`}
+                    onClick={() => handleSelectStremioPlayer('internal')}
+                  >
+                    <div className="player-option-top">
+                      <span className="player-name">Alazterflix Cyber Player</span>
+                      <span className="player-badge neon">Interno</span>
+                    </div>
+                    <p className="player-desc">
+                      Reprodutor minimalista embutido dentro da janela do launcher.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* INSTALAR ADDON VIA URL & BOTÕES SHARE E PASTA LOCAL */}
+              <div className="settings-card" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <h3>
+                    <FontAwesomeIcon icon={faPuzzlePiece} />
+                    <span>Carregar Addon através de URL ou Compartilhar</span>
+                  </h3>
+                  <div className="settings-action-bar">
+                    <button className="btn-action" onClick={handleShareAddons} title="Compartilhar lista de links dos addons">
+                      <FontAwesomeIcon icon={faShareNodes} />
+                      <span>Share / Compartilhar Addons</span>
+                    </button>
+                    <button className="btn-action primary" onClick={handleOpenAddonsFolder} title="Abrir pasta de addons no Windows Explorer para acessar e modificar">
+                      <FontAwesomeIcon icon={faFolderOpen} />
+                      <span>Local da Pasta de Addons</span>
+                    </button>
+                  </div>
+                </div>
+                <p>
+                  Cole a URL do manifesto de qualquer addon do protocolo Stremio v3 (ex: https://torrentio.strem.fun/manifest.json):
+                </p>
+                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                  <input
+                    type="text"
+                    placeholder="Cole aqui a URL do manifesto Stremio..."
+                    value={newAddonUrl}
+                    onChange={(e) => setNewAddonUrl(e.target.value)}
+                    style={{
+                      background: 'rgba(0,0,0,0.5)',
+                      border: '1px solid var(--alazter-border-subtle)',
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      color: '#fff',
+                      fontSize: 13,
+                      flex: 1
+                    }}
+                  />
+                  <button className="btn-action primary" onClick={() => handleInstallAddon()}>
+                    <FontAwesomeIcon icon={faPlus} />
+                    <span>Instalar Addon</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* ADDONS INSTALADOS */}
+              <div className="settings-card" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>
+                    <FontAwesomeIcon icon={faPuzzlePiece} />
+                    <span>Addons Stremio Instalados ({state.addons.length})</span>
+                  </h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+                  {state.addons.map((addon) => (
+                    <div key={addon.id} className="folder-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10, padding: 14 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ color: '#fff', fontSize: 14 }}>{addon.name}</strong>
+                        <button
+                          type="button"
+                          className="btn-action"
+                          style={{
+                            fontSize: 10,
+                            padding: '2px 8px',
+                            background: addon.isEnabled !== false ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            borderColor: addon.isEnabled !== false ? '#4ade80' : '#ef4444',
+                            color: addon.isEnabled !== false ? '#4ade80' : '#ef4444'
+                          }}
+                          onClick={() => handleToggleAddon(addon.id, addon.isEnabled !== false)}
+                        >
+                          {addon.isEnabled !== false ? 'ATIVO' : 'DESATIVADO'}
+                        </button>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 12, color: 'var(--alazter-text-muted)', lineHeight: 1.4 }}>
+                        {addon.description || 'Addon oficial do ecossistema Stremio v3.'}
+                      </p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span style={{ fontSize: 11, color: 'var(--alazter-text-muted)' }}>
+                          ID: <code>{addon.id}</code>
+                        </span>
+                        {addon.id !== 'org.stremio.cinemeta' && (
+                          <button
+                            className="btn-action"
+                            style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.4)', fontSize: 11, padding: '3px 8px' }}
+                            onClick={() => handleRemoveAddon(addon.id)}
+                            title="Remover addon"
+                          >
+                            <FontAwesomeIcon icon={faTrashAlt} />
+                            <span>Remover</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {state.addons.length === 0 && (
+                    <div style={{ color: 'var(--alazter-text-muted)', fontSize: 13, padding: 12 }}>
+                      Nenhum addon instalado no momento. Instale via URL ou escolha na vitrine abaixo.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* VITRINE DE ADDONS RECOMENDADOS */}
+              <div className="settings-card" style={{ gridColumn: '1 / -1' }}>
+                <h3>
+                  <FontAwesomeIcon icon={faStar} style={{ color: '#fbbf24' }} />
+                  <span>Addons Recomendados da Comunidade Stremio</span>
+                </h3>
+                <p>Instale com 1 clique os melhores complementos para animes, filmes, legendas em PT-BR e scrapers:</p>
+                <div className="recommended-addons-grid">
+                  {RECOMMENDED_STREMIO_ADDONS.map((rec) => {
+                    const isInstalled = state.addons.some((a) => a.id === rec.id)
+                    return (
+                      <div key={rec.id} className="recommended-addon-card">
+                        <div className="addon-header-row">
+                          <strong>{rec.name}</strong>
+                          <span className="badge">{rec.category || 'Mídia'}</span>
+                        </div>
+                        <p>{rec.description}</p>
+                        <button
+                          className="btn-action primary"
+                          style={{ marginTop: 'auto', fontSize: 11.5, padding: '5px 10px', width: '100%', justifyContent: 'center' }}
+                          disabled={isInstalled}
+                          onClick={() => handleInstallAddon(rec.manifestUrl)}
+                        >
+                          <FontAwesomeIcon icon={isInstalled ? faCheck : faPlus} />
+                          <span>{isInstalled ? 'Já Instalado' : 'Instalar no Ghost'}</span>
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ATUALIZAÇÕES DO NUVIO ADDON & SANDBOX GHOSTSHIELD */}
+              <div className="settings-card" style={{ gridColumn: '1 / -1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>
+                    <FontAwesomeIcon icon={faShieldHalved} />
+                    <span>Sandbox GhostShield &amp; Atualizações do Nuvio Addon</span>
+                  </h3>
+                  <span style={{ fontSize: 11, color: '#4ade80', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid #4ade80', padding: '2px 8px', borderRadius: 4 }}>
+                    🛡️ Sandbox Tier 1 Ativa
+                  </span>
+                </div>
+                <p>
+                  Status de segurança do ambiente isolado e verificação de atualizações oficiais no GitHub:
+                </p>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+                  <button className="btn-action" onClick={handleCheckNuvioUpdates} disabled={checkingNuvio}>
+                    <FontAwesomeIcon icon={faRotate} spin={checkingNuvio} />
+                    <span>{checkingNuvio ? 'Verificando GitHub...' : 'Checar Atualizações no GitHub'}</span>
+                  </button>
+                  {nuvioUpdate?.updateAvailable && (
+                    <button className="btn-action primary" onClick={handleInstallNuvioUpdate} disabled={checkingNuvio}>
+                      <FontAwesomeIcon icon={faDownload} />
+                      <span>Instalar Nova Versão</span>
+                    </button>
+                  )}
+                  {Boolean(nuvioUpdate?.previous) && (
+                    <button className="btn-action" onClick={handleRestoreNuvioUpdate} disabled={checkingNuvio} style={{ color: '#fbbf24', borderColor: '#fbbf24' }}>
+                      <FontAwesomeIcon icon={faRotate} />
+                      <span>Restaurar Versão Anterior</span>
+                    </button>
+                  )}
+                  <span style={{ fontSize: 12, color: 'var(--alazter-text-muted)' }}>
+                    Versão atual: {nuvioUpdate?.installed || 'v1.0.0 (Estável)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
             </div>
           </div>
         </section>
       )}
-  
-      <footer className="catalog-footer">
-        <span className="footer-wordmark">
-          Alazter<span>flix</span>
-        </span>
-        <span className="footer-slogan">
-          Seu cinema. Seu ritmo. Seu universo.
-        </span>
-      </footer>
+
+      {activeTab !== 'tv' && (
+        <footer className="catalog-footer">
+          <span className="footer-wordmark">
+            Alazter<span>flix</span>
+          </span>
+          <span className="footer-slogan">
+            Seu cinema. Seu ritmo. Seu universo.
+          </span>
+        </footer>
+      )}
 
       {/* =========================================================================
          MODAL DE DETALHES DA OBRA/SÉRIE/ANIME (JELLYFIN STYLE COMPLETO)

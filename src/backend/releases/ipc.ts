@@ -2,10 +2,12 @@ import { Notification } from 'electron'
 import { addHandler, sendFrontendMessage } from 'backend/ipc'
 import { getMainWindow } from 'backend/main_window'
 import { ensurePermanentAppIcon } from 'backend/constants/paths'
-import { getReleaseCatalog, getReleaseDetails } from './catalog'
+import { getReleaseCatalog, getReleaseDetails, syncReleaseCookiesToDefaultSession } from './catalog'
 import { getReleaseDrm, setReleaseDrmManual, openReleaseDrmSource } from './drm'
 
 export function registerReleasesIPC() {
+  syncReleaseCookiesToDefaultSession('us').catch(() => {})
+  syncReleaseCookiesToDefaultSession('uk').catch(() => {})
   addHandler('releasesCatalog', (_event, query) => getReleaseCatalog(query))
   addHandler('releasesDrm', (_event, query) => getReleaseDrm(query))
   addHandler('releasesDrmOpenSource', (_event, query) =>

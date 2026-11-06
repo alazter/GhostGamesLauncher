@@ -160,6 +160,7 @@ async function boundedDownload(url: string, limit: number, timeout = 30000) {
       ![
         'github.com',
         'api.github.com',
+        'raw.githubusercontent.com',
         'release-assets.githubusercontent.com',
         'objects.githubusercontent.com'
       ].includes(parsed.hostname)
@@ -560,7 +561,7 @@ export async function checkSourceEngines(force = false) {
   if (
     !root ||
     checking ||
-    (!force && Date.now() - (state.checkedAt || 0) < 86400000)
+    (!force && !catalogError && Date.now() - (state.checkedAt || 0) < 3600000)
   )
     return
   checking = true

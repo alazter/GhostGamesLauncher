@@ -107,23 +107,27 @@ const getForwardHeaders = (request: Request): Record<string, string> => {
   if (typeof request.headers.forEach === 'function') {
     request.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase()
-      if (lowerKey !== 'host' && lowerKey !== 'origin') {
-        headers[key] = value
+      if (
+        !['host', 'origin', 'referer', 'user-agent', 'content-length'].includes(
+          lowerKey
+        )
+      ) {
+        headers[lowerKey] = value
       }
     })
   } else if (request.headers) {
     for (const key of Object.keys(request.headers)) {
       const lowerKey = key.toLowerCase()
-      if (lowerKey !== 'host' && lowerKey !== 'origin') {
-        headers[key] = (request.headers as any)[key]
+      if (
+        !['host', 'origin', 'referer', 'user-agent', 'content-length'].includes(
+          lowerKey
+        )
+      ) {
+        headers[lowerKey] = (request.headers as any)[key]
       }
     }
   }
 
-  if (!headers['user-agent'] && !headers['User-Agent']) {
-    headers['User-Agent'] =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-  }
   return headers
 }
 
@@ -138,7 +142,7 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
   const revision = cleanUrl.match(/\?v=(\d+)$/)?.[1]
   const rawUrl = decodeURIComponent(cleanUrl.replace(/\?v=\d+$/, ''))
   // Strip any ?reconnect=N or &reconnect=N query params added by the reconnect engine
-  const realUrl = rawUrl.replace(/[?&]reconnect=\d+/, '').replace(/\?$/, '')
+  const realUrl = rawUrl.replace(/[?&](?:reconnect|retry)=\d+/, '').replace(/\?$/, '')
   const memoryKey = revision ? `${realUrl}?v=${revision}` : realUrl
 
   // 1. Instant negative cache check (0ms for known 404s)
@@ -243,14 +247,36 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
 
-    const response = await net
+    const forwardHeaders = getForwardHeaders(request)
+    const isReleases =
+      realUrl.includes('releases.com') || realUrl.includes('cdn.releases.com')
+    if (isReleases) {
+      forwardHeaders['referer'] = 'https://www.releases.com/'
+      forwardHeaders['sec-ch-ua-platform'] = '"Windows"'
+    }
+
+    let response = await net
       .fetch(realUrl, {
-        headers: getForwardHeaders(request),
+        headers: forwardHeaders,
         method: request.method,
-        referrer: request.referrer,
         signal: controller.signal
       })
       .finally(() => clearTimeout(timeout))
+
+    if (!response.ok && response.status === 403 && isReleases) {
+      try {
+        const { ensureReleaseClearance } = await import(
+          './releases/catalog'
+        )
+        await ensureReleaseClearance('us', true)
+        forwardHeaders['referer'] = 'https://www.releases.com/'
+        forwardHeaders['sec-ch-ua-platform'] = '"Windows"'
+        response = await net.fetch(realUrl, {
+          headers: forwardHeaders,
+          method: request.method
+        })
+      } catch {}
+    }
 
     if (response.ok) {
       const arrayBuf = await response.arrayBuffer()
@@ -276,7 +302,7 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     }
 
     // Only cache genuine 404 so subsequent requests respond in 0ms!
-    if (response.status === 404) {
+    if (response.status === 404 && !isReleases) {
       failedUrls.add(realUrl)
     }
     return new Response('Not found', {

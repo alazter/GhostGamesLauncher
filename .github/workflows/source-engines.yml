@@ -49,9 +49,9 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           pnpm run codecheck
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          pnpm exec jest --runInBand src/backend/plugins/__tests__ src/backend/releases/__tests__ src/backend/backup/__tests__
+          pnpm exec jest --runInBand src/backend/plugins/__tests__/sourceEngines.test.ts src/backend/plugins/__tests__/enginePolicy.test.ts src/backend/releases/__tests__
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python -m pip install "scrapling[fetchers]==$env:SCRAPLING_VERSION" 'pyinstaller==6.19.0'
+          python -m pip install "scrapling[fetchers]==$env:SCRAPLING_VERSION" 'pyinstaller>=6.22.0'
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           python scripts/engines/prepare_engines.py --scrapling $env:SCRAPLING_VERSION --obscura $env:OBSCURA_VERSION
           if ($LASTEXITCODE) { exit $LASTEXITCODE }

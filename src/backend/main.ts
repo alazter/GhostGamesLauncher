@@ -546,6 +546,27 @@ if (!gotTheLock) {
                 requestHeaders[key] = val.trim()
               }
             }
+          } else if (
+            details.url.includes('cdn.releases.com') ||
+            details.url.includes('releases.com')
+          ) {
+            delete requestHeaders['Origin']
+            delete requestHeaders['origin']
+            delete requestHeaders['referer']
+            delete requestHeaders['Referer']
+            requestHeaders['Referer'] = 'https://www.releases.com/'
+            requestHeaders['sec-ch-ua-platform'] = '"Windows"'
+            // NUNCA trocar o User-Agent aqui: o cf_clearance do Cloudflare fica
+            // atrelado ao UA usado pelo coletor (UA padrão do Electron).
+          } else if (
+            details.url.includes('cdn10embed.xyz') ||
+            details.url.includes('playerembcanais.com') ||
+            details.url.includes('meufutebol.oneplayhd.com')
+          ) {
+            requestHeaders['Referer'] = 'https://2910.playerembcanais.com'
+            requestHeaders['Origin'] = 'https://2910.playerembcanais.com'
+            requestHeaders['User-Agent'] =
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0'
           } else {
             const isMediaStream =
               details.url.includes('.m3u8') ||

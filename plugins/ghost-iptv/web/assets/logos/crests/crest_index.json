@@ -1,0 +1,1942 @@
+{
+  "palestino": {
+    "name": "Palestino",
+    "crest": "/assets/logos/crests/palestino.png",
+    "abbr": "PAL"
+  },
+  "athletico pr": {
+    "name": "Athletico-PR",
+    "crest": "/assets/logos/crests/athletico_pr.png",
+    "abbr": "ATH"
+  },
+  "athletico paranaense": {
+    "name": "Athletico-PR",
+    "crest": "/assets/logos/crests/athletico_pr.png",
+    "abbr": "ATH"
+  },
+  "atletico-pr": {
+    "name": "Athletico-PR",
+    "crest": "/assets/logos/crests/athletico_pr.png",
+    "abbr": "ATH"
+  },
+  "athletico-pr": {
+    "name": "Athletico-PR",
+    "crest": "/assets/logos/crests/athletico_pr.png",
+    "abbr": "ATH"
+  },
+  "athletico": {
+    "name": "Athletico-PR",
+    "crest": "/assets/logos/crests/athletico_pr.png",
+    "abbr": "ATH"
+  },
+  "furacao": {
+    "name": "Athletico-PR",
+    "crest": "/assets/logos/crests/athletico_pr.png",
+    "abbr": "ATH"
+  },
+  "timao": {
+    "name": "Corinthians",
+    "crest": "/assets/logos/crests/corinthians.png",
+    "abbr": "COR"
+  },
+  "scc": {
+    "name": "Corinthians",
+    "crest": "/assets/logos/crests/corinthians.png",
+    "abbr": "COR"
+  },
+  "corinthians": {
+    "name": "Corinthians",
+    "crest": "/assets/logos/crests/corinthians.png",
+    "abbr": "COR"
+  },
+  "catolica": {
+    "name": "Universidad Católica",
+    "crest": "/assets/logos/crests/u_catolica.png",
+    "abbr": "UNI"
+  },
+  "universidad catolica": {
+    "name": "Universidad Católica",
+    "crest": "/assets/logos/crests/u_catolica.png",
+    "abbr": "UNI"
+  },
+  "la u": {
+    "name": "Universidad de Chile",
+    "crest": "/assets/logos/crests/la_u.png",
+    "abbr": "UDC"
+  },
+  "universidad de chile": {
+    "name": "Universidad de Chile",
+    "crest": "/assets/logos/crests/la_u.png",
+    "abbr": "UDC"
+  },
+  "colo-colo": {
+    "name": "Colo-Colo",
+    "crest": "/assets/logos/crests/colo_colo.png",
+    "abbr": "COL"
+  },
+  "colo colo": {
+    "name": "Colo-Colo",
+    "crest": "/assets/logos/crests/colo_colo.png",
+    "abbr": "COL"
+  },
+  "guarani par": {
+    "name": "Guaraní-PAR",
+    "crest": "/assets/logos/crests/guarani_par.png",
+    "abbr": "GUA"
+  },
+  "guarani-par": {
+    "name": "Guaraní-PAR",
+    "crest": "/assets/logos/crests/guarani_par.png",
+    "abbr": "GUA"
+  },
+  "club guarani": {
+    "name": "Guaraní-PAR",
+    "crest": "/assets/logos/crests/guarani_par.png",
+    "abbr": "GUA"
+  },
+  "libertad": {
+    "name": "Libertad",
+    "crest": "/assets/logos/crests/libertad.png",
+    "abbr": "LIB"
+  },
+  "club libertad": {
+    "name": "Libertad",
+    "crest": "/assets/logos/crests/libertad.png",
+    "abbr": "LIB"
+  },
+  "cerro": {
+    "name": "Cerro Porteño",
+    "crest": "/assets/logos/crests/cerro_porteno.png",
+    "abbr": "CER"
+  },
+  "cerro porteno": {
+    "name": "Cerro Porteño",
+    "crest": "/assets/logos/crests/cerro_porteno.png",
+    "abbr": "CER"
+  },
+  "club olimpia": {
+    "name": "Olímpia",
+    "crest": "/assets/logos/crests/olimpia.png",
+    "abbr": "OLM"
+  },
+  "olimpia-par": {
+    "name": "Olímpia",
+    "crest": "/assets/logos/crests/olimpia.png",
+    "abbr": "OLM"
+  },
+  "olimpia": {
+    "name": "Olímpia",
+    "crest": "/assets/logos/crests/olimpia.png",
+    "abbr": "OLM"
+  },
+  "godoy cruz": {
+    "name": "Godoy Cruz",
+    "crest": "/assets/logos/crests/godoy_cruz.png",
+    "abbr": "GOD"
+  },
+  "belgrano": {
+    "name": "Belgrano",
+    "crest": "/assets/logos/crests/belgrano.png",
+    "abbr": "BEL"
+  },
+  "bragantino": {
+    "name": "Red Bull Bragantino",
+    "crest": "/assets/logos/crests/bragantino.png",
+    "abbr": "RBB"
+  },
+  "rb bragantino": {
+    "name": "Red Bull Bragantino",
+    "crest": "/assets/logos/crests/bragantino.png",
+    "abbr": "RBB"
+  },
+  "red bull bragantino": {
+    "name": "Red Bull Bragantino",
+    "crest": "/assets/logos/crests/bragantino.png",
+    "abbr": "RBB"
+  },
+  "banfield": {
+    "name": "Banfield",
+    "crest": "/assets/logos/crests/banfield.png",
+    "abbr": "BAN"
+  },
+  "huracan": {
+    "name": "Huracán",
+    "crest": "/assets/logos/crests/huracan.png",
+    "abbr": "HUR"
+  },
+  "ca huracan": {
+    "name": "Huracán",
+    "crest": "/assets/logos/crests/huracan.png",
+    "abbr": "HUR"
+  },
+  "argentinos juniors": {
+    "name": "Argentinos Juniors",
+    "crest": "/assets/logos/crests/argentinos_juniors.png",
+    "abbr": "ARG"
+  },
+  "newell's old boys": {
+    "name": "Newell's Old Boys",
+    "crest": "/assets/logos/crests/newells.png",
+    "abbr": "NOB"
+  },
+  "newell s old boys": {
+    "name": "Newell's Old Boys",
+    "crest": "/assets/logos/crests/newells.png",
+    "abbr": "NOB"
+  },
+  "newells": {
+    "name": "Newell's Old Boys",
+    "crest": "/assets/logos/crests/newells.png",
+    "abbr": "NOB"
+  },
+  "newells old boys": {
+    "name": "Newell's Old Boys",
+    "crest": "/assets/logos/crests/newells.png",
+    "abbr": "NOB"
+  },
+  "palmeiras": {
+    "name": "Palmeiras",
+    "crest": "/assets/logos/crests/palmeiras.png",
+    "abbr": "PAL"
+  },
+  "sep": {
+    "name": "Palmeiras",
+    "crest": "/assets/logos/crests/palmeiras.png",
+    "abbr": "PAL"
+  },
+  "rosario central": {
+    "name": "Rosario Central",
+    "crest": "/assets/logos/crests/rosario_central.png",
+    "abbr": "ROS"
+  },
+  "sfc": {
+    "name": "Santos",
+    "crest": "/assets/logos/crests/santos.png",
+    "abbr": "SAN"
+  },
+  "santos": {
+    "name": "Santos",
+    "crest": "/assets/logos/crests/santos.png",
+    "abbr": "SAN"
+  },
+  "peixe": {
+    "name": "Santos",
+    "crest": "/assets/logos/crests/santos.png",
+    "abbr": "SAN"
+  },
+  "talleres": {
+    "name": "Talleres",
+    "crest": "/assets/logos/crests/talleres.png",
+    "abbr": "TAL"
+  },
+  "talleres de cordoba": {
+    "name": "Talleres",
+    "crest": "/assets/logos/crests/talleres.png",
+    "abbr": "TAL"
+  },
+  "defensa y justicia": {
+    "name": "Defensa y Justicia",
+    "crest": "/assets/logos/crests/defensa_y_justicia.png",
+    "abbr": "DYJ"
+  },
+  "defensa": {
+    "name": "Defensa y Justicia",
+    "crest": "/assets/logos/crests/defensa_y_justicia.png",
+    "abbr": "DYJ"
+  },
+  "velez": {
+    "name": "Vélez Sarsfield",
+    "crest": "/assets/logos/crests/velez.png",
+    "abbr": "VLE"
+  },
+  "velez sarsfield": {
+    "name": "Vélez Sarsfield",
+    "crest": "/assets/logos/crests/velez.png",
+    "abbr": "VLE"
+  },
+  "estudiantes de la plata": {
+    "name": "Estudiantes",
+    "crest": "/assets/logos/crests/estudiantes.png",
+    "abbr": "EST"
+  },
+  "estudiantes": {
+    "name": "Estudiantes",
+    "crest": "/assets/logos/crests/estudiantes.png",
+    "abbr": "EST"
+  },
+  "crvg": {
+    "name": "Vasco da Gama",
+    "crest": "/assets/logos/crests/vasco.png",
+    "abbr": "VDG"
+  },
+  "vasco": {
+    "name": "Vasco da Gama",
+    "crest": "/assets/logos/crests/vasco.png",
+    "abbr": "VDG"
+  },
+  "vasco da gama": {
+    "name": "Vasco da Gama",
+    "crest": "/assets/logos/crests/vasco.png",
+    "abbr": "VDG"
+  },
+  "san lorenzo": {
+    "name": "San Lorenzo",
+    "crest": "/assets/logos/crests/san_lorenzo.png",
+    "abbr": "SAN"
+  },
+  "ca independiente": {
+    "name": "Independiente",
+    "crest": "/assets/logos/crests/independiente.png",
+    "abbr": "IND"
+  },
+  "independiente": {
+    "name": "Independiente",
+    "crest": "/assets/logos/crests/independiente.png",
+    "abbr": "IND"
+  },
+  "lanus": {
+    "name": "Lanús",
+    "crest": "/assets/logos/crests/lanus.png",
+    "abbr": "LAN"
+  },
+  "ca lanus": {
+    "name": "Lanús",
+    "crest": "/assets/logos/crests/lanus.png",
+    "abbr": "LAN"
+  },
+  "racing club": {
+    "name": "Racing Club",
+    "crest": "/assets/logos/crests/racing.png",
+    "abbr": "RAC"
+  },
+  "racing": {
+    "name": "Racing Club",
+    "crest": "/assets/logos/crests/racing.png",
+    "abbr": "RAC"
+  },
+  "club nacional": {
+    "name": "Nacional",
+    "crest": "/assets/logos/crests/nacional_uru.png",
+    "abbr": "NAC"
+  },
+  "nacional uruguai": {
+    "name": "Nacional",
+    "crest": "/assets/logos/crests/nacional_uru.png",
+    "abbr": "NAC"
+  },
+  "nacional": {
+    "name": "Nacional",
+    "crest": "/assets/logos/crests/nacional_uru.png",
+    "abbr": "NAC"
+  },
+  "nacional-uru": {
+    "name": "Nacional",
+    "crest": "/assets/logos/crests/nacional_uru.png",
+    "abbr": "NAC"
+  },
+  "penarol": {
+    "name": "Peñarol",
+    "crest": "/assets/logos/crests/penarol.png",
+    "abbr": "PEA"
+  },
+  "ca penarol": {
+    "name": "Peñarol",
+    "crest": "/assets/logos/crests/penarol.png",
+    "abbr": "PEA"
+  },
+  "cec": {
+    "name": "Cruzeiro",
+    "crest": "/assets/logos/crests/cruzeiro.png",
+    "abbr": "CRU"
+  },
+  "raposa": {
+    "name": "Cruzeiro",
+    "crest": "/assets/logos/crests/cruzeiro.png",
+    "abbr": "CRU"
+  },
+  "cruzeiro": {
+    "name": "Cruzeiro",
+    "crest": "/assets/logos/crests/cruzeiro.png",
+    "abbr": "CRU"
+  },
+  "cabj": {
+    "name": "Boca Juniors",
+    "crest": "/assets/logos/crests/boca_juniors.png",
+    "abbr": "BOC"
+  },
+  "boca juniors": {
+    "name": "Boca Juniors",
+    "crest": "/assets/logos/crests/boca_juniors.png",
+    "abbr": "BOC"
+  },
+  "boca": {
+    "name": "Boca Juniors",
+    "crest": "/assets/logos/crests/boca_juniors.png",
+    "abbr": "BOC"
+  },
+  "ec juventude": {
+    "name": "Juventude",
+    "crest": "/assets/logos/crests/juventude.png",
+    "abbr": "JUV"
+  },
+  "juventude": {
+    "name": "Juventude",
+    "crest": "/assets/logos/crests/juventude.png",
+    "abbr": "JUV"
+  },
+  "river plate": {
+    "name": "River Plate",
+    "crest": "/assets/logos/crests/river_plate.png",
+    "abbr": "RIV"
+  },
+  "river": {
+    "name": "River Plate",
+    "crest": "/assets/logos/crests/river_plate.png",
+    "abbr": "RIV"
+  },
+  "ca river plate": {
+    "name": "River Plate",
+    "crest": "/assets/logos/crests/river_plate.png",
+    "abbr": "RIV"
+  },
+  "lusa": {
+    "name": "Portuguesa",
+    "crest": "/assets/logos/crests/portuguesa.png",
+    "abbr": "POR"
+  },
+  "portuguesa": {
+    "name": "Portuguesa",
+    "crest": "/assets/logos/crests/portuguesa.png",
+    "abbr": "POR"
+  },
+  "botafogo-pb": {
+    "name": "Botafogo-PB",
+    "crest": "/assets/logos/crests/botafogo_pb.png",
+    "abbr": "BOT"
+  },
+  "botafogo pb": {
+    "name": "Botafogo-PB",
+    "crest": "/assets/logos/crests/botafogo_pb.png",
+    "abbr": "BOT"
+  },
+  "sport recife": {
+    "name": "Sport",
+    "crest": "/assets/logos/crests/sport.png",
+    "abbr": "SPO"
+  },
+  "sport club do recife": {
+    "name": "Sport",
+    "crest": "/assets/logos/crests/sport.png",
+    "abbr": "SPO"
+  },
+  "sport": {
+    "name": "Sport",
+    "crest": "/assets/logos/crests/sport.png",
+    "abbr": "SPO"
+  },
+  "flamengo": {
+    "name": "Flamengo",
+    "crest": "/assets/logos/crests/flamengo.png",
+    "abbr": "FLA"
+  },
+  "crf": {
+    "name": "Flamengo",
+    "crest": "/assets/logos/crests/flamengo.png",
+    "abbr": "FLA"
+  },
+  "mengao": {
+    "name": "Flamengo",
+    "crest": "/assets/logos/crests/flamengo.png",
+    "abbr": "FLA"
+  },
+  "confianca": {
+    "name": "Confiança",
+    "crest": "/assets/logos/crests/confianca.png",
+    "abbr": "CON"
+  },
+  "ad confianca": {
+    "name": "Confiança",
+    "crest": "/assets/logos/crests/confianca.png",
+    "abbr": "CON"
+  },
+  "tombense": {
+    "name": "Tombense",
+    "crest": "/assets/logos/crests/tombense.png",
+    "abbr": "TOM"
+  },
+  "ypiranga-rs": {
+    "name": "Ypiranga",
+    "crest": "/assets/logos/crests/ypiranga.png",
+    "abbr": "YPI"
+  },
+  "ypiranga": {
+    "name": "Ypiranga",
+    "crest": "/assets/logos/crests/ypiranga.png",
+    "abbr": "YPI"
+  },
+  "ser caxias": {
+    "name": "Caxias",
+    "crest": "/assets/logos/crests/caxias.png",
+    "abbr": "CAX"
+  },
+  "caxias": {
+    "name": "Caxias",
+    "crest": "/assets/logos/crests/caxias.png",
+    "abbr": "CAX"
+  },
+  "botafogo": {
+    "name": "Botafogo",
+    "crest": "/assets/logos/crests/botafogo.png",
+    "abbr": "BOT"
+  },
+  "bfr": {
+    "name": "Botafogo",
+    "crest": "/assets/logos/crests/botafogo.png",
+    "abbr": "BOT"
+  },
+  "fogao": {
+    "name": "Botafogo",
+    "crest": "/assets/logos/crests/botafogo.png",
+    "abbr": "BOT"
+  },
+  "ferroviaria": {
+    "name": "Ferroviária",
+    "crest": "/assets/logos/crests/ferroviaria.png",
+    "abbr": "FER"
+  },
+  "sao bernardo fc": {
+    "name": "São Bernardo FC",
+    "crest": "/assets/logos/crests/sao_bernardo.png",
+    "abbr": "SBF"
+  },
+  "sao bernardo": {
+    "name": "São Bernardo FC",
+    "crest": "/assets/logos/crests/sao_bernardo.png",
+    "abbr": "SBF"
+  },
+  "volta redonda": {
+    "name": "Volta Redonda",
+    "crest": "/assets/logos/crests/volta_redonda.png",
+    "abbr": "VOL"
+  },
+  "athletic": {
+    "name": "Athletic Club",
+    "crest": "/assets/logos/crests/athletic_club.png",
+    "abbr": "ATH"
+  },
+  "athletic-mg": {
+    "name": "Athletic Club",
+    "crest": "/assets/logos/crests/athletic_club.png",
+    "abbr": "ATH"
+  },
+  "athletic club": {
+    "name": "Athletic Club",
+    "crest": "/assets/logos/crests/athletic_club.png",
+    "abbr": "ATH"
+  },
+  "gremio": {
+    "name": "Grêmio",
+    "crest": "/assets/logos/crests/gremio.png",
+    "abbr": "GRM"
+  },
+  "gremio fbpa": {
+    "name": "Grêmio",
+    "crest": "/assets/logos/crests/gremio.png",
+    "abbr": "GRM"
+  },
+  "flu": {
+    "name": "Fluminense",
+    "crest": "/assets/logos/crests/fluminense.png",
+    "abbr": "FLU"
+  },
+  "fluminense": {
+    "name": "Fluminense",
+    "crest": "/assets/logos/crests/fluminense.png",
+    "abbr": "FLU"
+  },
+  "ffc": {
+    "name": "Fluminense",
+    "crest": "/assets/logos/crests/fluminense.png",
+    "abbr": "FLU"
+  },
+  "sampaio correa": {
+    "name": "Sampaio Corrêa",
+    "crest": "/assets/logos/crests/sampaio_correa.png",
+    "abbr": "SAM"
+  },
+  "cuiaba": {
+    "name": "Cuiabá",
+    "crest": "/assets/logos/crests/cuiaba.png",
+    "abbr": "CUI"
+  },
+  "cuiaba ec": {
+    "name": "Cuiabá",
+    "crest": "/assets/logos/crests/cuiaba.png",
+    "abbr": "CUI"
+  },
+  "america rn": {
+    "name": "América-RN",
+    "crest": "/assets/logos/crests/america_rn.png",
+    "abbr": "AMR"
+  },
+  "america-rn": {
+    "name": "América-RN",
+    "crest": "/assets/logos/crests/america_rn.png",
+    "abbr": "AMR"
+  },
+  "america de natal": {
+    "name": "América-RN",
+    "crest": "/assets/logos/crests/america_rn.png",
+    "abbr": "AMR"
+  },
+  "ceara sc": {
+    "name": "Ceará",
+    "crest": "/assets/logos/crests/ceara.png",
+    "abbr": "CEA"
+  },
+  "ceara": {
+    "name": "Ceará",
+    "crest": "/assets/logos/crests/ceara.png",
+    "abbr": "CEA"
+  },
+  "vozao": {
+    "name": "Ceará",
+    "crest": "/assets/logos/crests/ceara.png",
+    "abbr": "CEA"
+  },
+  "abc-rn": {
+    "name": "ABC",
+    "crest": "/assets/logos/crests/abc.png",
+    "abbr": "ABC"
+  },
+  "abc fc": {
+    "name": "ABC",
+    "crest": "/assets/logos/crests/abc.png",
+    "abbr": "ABC"
+  },
+  "abc": {
+    "name": "ABC",
+    "crest": "/assets/logos/crests/abc.png",
+    "abbr": "ABC"
+  },
+  "londrina": {
+    "name": "Londrina",
+    "crest": "/assets/logos/crests/londrina.png",
+    "abbr": "LON"
+  },
+  "londrina ec": {
+    "name": "Londrina",
+    "crest": "/assets/logos/crests/londrina.png",
+    "abbr": "LON"
+  },
+  "fortaleza ec": {
+    "name": "Fortaleza",
+    "crest": "/assets/logos/crests/fortaleza.png",
+    "abbr": "FOR"
+  },
+  "leao do pici": {
+    "name": "Fortaleza",
+    "crest": "/assets/logos/crests/fortaleza.png",
+    "abbr": "FOR"
+  },
+  "fortaleza": {
+    "name": "Fortaleza",
+    "crest": "/assets/logos/crests/fortaleza.png",
+    "abbr": "FOR"
+  },
+  "figueirense": {
+    "name": "Figueirense",
+    "crest": "/assets/logos/crests/figueirense.png",
+    "abbr": "FIG"
+  },
+  "santa cruz": {
+    "name": "Santa Cruz",
+    "crest": "/assets/logos/crests/santa_cruz.png",
+    "abbr": "SAN"
+  },
+  "clube nautico capibaribe": {
+    "name": "Náutico",
+    "crest": "/assets/logos/crests/nautico.png",
+    "abbr": "NUT"
+  },
+  "nautico": {
+    "name": "Náutico",
+    "crest": "/assets/logos/crests/nautico.png",
+    "abbr": "NUT"
+  },
+  "botafogo de ribeirao preto": {
+    "name": "Botafogo-SP",
+    "crest": "/assets/logos/crests/botafogo_sp.png",
+    "abbr": "BOT"
+  },
+  "botafogo-sp": {
+    "name": "Botafogo-SP",
+    "crest": "/assets/logos/crests/botafogo_sp.png",
+    "abbr": "BOT"
+  },
+  "botafogo sp": {
+    "name": "Botafogo-SP",
+    "crest": "/assets/logos/crests/botafogo_sp.png",
+    "abbr": "BOT"
+  },
+  "colorado": {
+    "name": "Internacional",
+    "crest": "/assets/logos/crests/internacional.png",
+    "abbr": "INT"
+  },
+  "inter": {
+    "name": "Internacional",
+    "crest": "/assets/logos/crests/internacional.png",
+    "abbr": "INT"
+  },
+  "inter-rs": {
+    "name": "Internacional",
+    "crest": "/assets/logos/crests/internacional.png",
+    "abbr": "INT"
+  },
+  "internacional": {
+    "name": "Internacional",
+    "crest": "/assets/logos/crests/internacional.png",
+    "abbr": "INT"
+  },
+  "ituano": {
+    "name": "Ituano",
+    "crest": "/assets/logos/crests/ituano.png",
+    "abbr": "ITU"
+  },
+  "ituano fc": {
+    "name": "Ituano",
+    "crest": "/assets/logos/crests/ituano.png",
+    "abbr": "ITU"
+  },
+  "brusque fc": {
+    "name": "Brusque",
+    "crest": "/assets/logos/crests/brusque.png",
+    "abbr": "BRU"
+  },
+  "brusque": {
+    "name": "Brusque",
+    "crest": "/assets/logos/crests/brusque.png",
+    "abbr": "BRU"
+  },
+  "amazonas fc": {
+    "name": "Amazonas",
+    "crest": "/assets/logos/crests/amazonas.png",
+    "abbr": "AMA"
+  },
+  "amazonas": {
+    "name": "Amazonas",
+    "crest": "/assets/logos/crests/amazonas.png",
+    "abbr": "AMA"
+  },
+  "paysandu": {
+    "name": "Paysandu",
+    "crest": "/assets/logos/crests/paysandu.png",
+    "abbr": "PAY"
+  },
+  "papao": {
+    "name": "Paysandu",
+    "crest": "/assets/logos/crests/paysandu.png",
+    "abbr": "PAY"
+  },
+  "criciuma": {
+    "name": "Criciúma",
+    "crest": "/assets/logos/crests/criciuma.png",
+    "abbr": "CRI"
+  },
+  "tigre": {
+    "name": "Criciúma",
+    "crest": "/assets/logos/crests/criciuma.png",
+    "abbr": "CRI"
+  },
+  "avai fc": {
+    "name": "Avaí",
+    "crest": "/assets/logos/crests/avai.png",
+    "abbr": "AVA"
+  },
+  "avai": {
+    "name": "Avaí",
+    "crest": "/assets/logos/crests/avai.png",
+    "abbr": "AVA"
+  },
+  "remo": {
+    "name": "Remo",
+    "crest": "/assets/logos/crests/remo.png",
+    "abbr": "REM"
+  },
+  "clube do remo": {
+    "name": "Remo",
+    "crest": "/assets/logos/crests/remo.png",
+    "abbr": "REM"
+  },
+  "guarani": {
+    "name": "Guarani",
+    "crest": "/assets/logos/crests/guarani.png",
+    "abbr": "GUA"
+  },
+  "bugre": {
+    "name": "Guarani",
+    "crest": "/assets/logos/crests/guarani.png",
+    "abbr": "GUA"
+  },
+  "ponte preta": {
+    "name": "Ponte Preta",
+    "crest": "/assets/logos/crests/ponte_preta.png",
+    "abbr": "PON"
+  },
+  "macaca": {
+    "name": "Ponte Preta",
+    "crest": "/assets/logos/crests/ponte_preta.png",
+    "abbr": "PON"
+  },
+  "atletico mg": {
+    "name": "Atlético-MG",
+    "crest": "/assets/logos/crests/atletico_mg.png",
+    "abbr": "ATL"
+  },
+  "cam": {
+    "name": "Atlético-MG",
+    "crest": "/assets/logos/crests/atletico_mg.png",
+    "abbr": "ATL"
+  },
+  "atletico-mg": {
+    "name": "Atlético-MG",
+    "crest": "/assets/logos/crests/atletico_mg.png",
+    "abbr": "ATL"
+  },
+  "atletico mineiro": {
+    "name": "Atlético-MG",
+    "crest": "/assets/logos/crests/atletico_mg.png",
+    "abbr": "ATL"
+  },
+  "galo": {
+    "name": "Atlético-MG",
+    "crest": "/assets/logos/crests/atletico_mg.png",
+    "abbr": "ATL"
+  },
+  "operario-pr": {
+    "name": "Operário-PR",
+    "crest": "/assets/logos/crests/operario_pr.png",
+    "abbr": "OPE"
+  },
+  "operario ferroviario": {
+    "name": "Operário-PR",
+    "crest": "/assets/logos/crests/operario_pr.png",
+    "abbr": "OPE"
+  },
+  "operario": {
+    "name": "Operário-PR",
+    "crest": "/assets/logos/crests/operario_pr.png",
+    "abbr": "OPE"
+  },
+  "operario pr": {
+    "name": "Operário-PR",
+    "crest": "/assets/logos/crests/operario_pr.png",
+    "abbr": "OPE"
+  },
+  "mirassol": {
+    "name": "Mirassol",
+    "crest": "/assets/logos/crests/mirassol.png",
+    "abbr": "MIR"
+  },
+  "mirassol fc": {
+    "name": "Mirassol",
+    "crest": "/assets/logos/crests/mirassol.png",
+    "abbr": "MIR"
+  },
+  "gremio novorizontino": {
+    "name": "Novorizontino",
+    "crest": "/assets/logos/crests/novorizontino.png",
+    "abbr": "NOV"
+  },
+  "novorizontino": {
+    "name": "Novorizontino",
+    "crest": "/assets/logos/crests/novorizontino.png",
+    "abbr": "NOV"
+  },
+  "atletico junior": {
+    "name": "Junior Barranquilla",
+    "crest": "/assets/logos/crests/junior_barranquilla.png",
+    "abbr": "JUN"
+  },
+  "junior barranquilla": {
+    "name": "Junior Barranquilla",
+    "crest": "/assets/logos/crests/junior_barranquilla.png",
+    "abbr": "JUN"
+  },
+  "junior": {
+    "name": "Junior Barranquilla",
+    "crest": "/assets/logos/crests/junior_barranquilla.png",
+    "abbr": "JUN"
+  },
+  "chapecoense": {
+    "name": "Chapecoense",
+    "crest": "/assets/logos/crests/chapecoense.png",
+    "abbr": "CHA"
+  },
+  "chape": {
+    "name": "Chapecoense",
+    "crest": "/assets/logos/crests/chapecoense.png",
+    "abbr": "CHA"
+  },
+  "america mg": {
+    "name": "América-MG",
+    "crest": "/assets/logos/crests/america_mg.png",
+    "abbr": "AMR"
+  },
+  "america-mg": {
+    "name": "América-MG",
+    "crest": "/assets/logos/crests/america_mg.png",
+    "abbr": "AMR"
+  },
+  "america mineiro": {
+    "name": "América-MG",
+    "crest": "/assets/logos/crests/america_mg.png",
+    "abbr": "AMR"
+  },
+  "coelho": {
+    "name": "América-MG",
+    "crest": "/assets/logos/crests/america_mg.png",
+    "abbr": "AMR"
+  },
+  "atletico go": {
+    "name": "Atlético-GO",
+    "crest": "/assets/logos/crests/atletico_go.png",
+    "abbr": "ATL"
+  },
+  "atletico goianiense": {
+    "name": "Atlético-GO",
+    "crest": "/assets/logos/crests/atletico_go.png",
+    "abbr": "ATL"
+  },
+  "atletico-go": {
+    "name": "Atlético-GO",
+    "crest": "/assets/logos/crests/atletico_go.png",
+    "abbr": "ATL"
+  },
+  "dragao": {
+    "name": "Atlético-GO",
+    "crest": "/assets/logos/crests/atletico_go.png",
+    "abbr": "ATL"
+  },
+  "spfc": {
+    "name": "São Paulo",
+    "crest": "/assets/logos/crests/sao_paulo.png",
+    "abbr": "SOP"
+  },
+  "tricolor paulista": {
+    "name": "São Paulo",
+    "crest": "/assets/logos/crests/sao_paulo.png",
+    "abbr": "SOP"
+  },
+  "sao paulo": {
+    "name": "São Paulo",
+    "crest": "/assets/logos/crests/sao_paulo.png",
+    "abbr": "SOP"
+  },
+  "vila nova-go": {
+    "name": "Vila Nova",
+    "crest": "/assets/logos/crests/vila_nova.png",
+    "abbr": "VIL"
+  },
+  "vila nova": {
+    "name": "Vila Nova",
+    "crest": "/assets/logos/crests/vila_nova.png",
+    "abbr": "VIL"
+  },
+  "vitoria": {
+    "name": "Vitória",
+    "crest": "/assets/logos/crests/vitoria.png",
+    "abbr": "VIT"
+  },
+  "vitoria-ba": {
+    "name": "Vitória",
+    "crest": "/assets/logos/crests/vitoria.png",
+    "abbr": "VIT"
+  },
+  "ec vitoria": {
+    "name": "Vitória",
+    "crest": "/assets/logos/crests/vitoria.png",
+    "abbr": "VIT"
+  },
+  "goias": {
+    "name": "Goiás",
+    "crest": "/assets/logos/crests/goias.png",
+    "abbr": "GOI"
+  },
+  "goias ec": {
+    "name": "Goiás",
+    "crest": "/assets/logos/crests/goias.png",
+    "abbr": "GOI"
+  },
+  "barcelona-equ": {
+    "name": "Barcelona SC",
+    "crest": "/assets/logos/crests/barcelona_sc.png",
+    "abbr": "BAR"
+  },
+  "barcelona sc": {
+    "name": "Barcelona SC",
+    "crest": "/assets/logos/crests/barcelona_sc.png",
+    "abbr": "BAR"
+  },
+  "barcelona de guayaquil": {
+    "name": "Barcelona SC",
+    "crest": "/assets/logos/crests/barcelona_sc.png",
+    "abbr": "BAR"
+  },
+  "independiente del valle": {
+    "name": "Independiente del Valle",
+    "crest": "/assets/logos/crests/del_valle.png",
+    "abbr": "IDV"
+  },
+  "del valle": {
+    "name": "Independiente del Valle",
+    "crest": "/assets/logos/crests/del_valle.png",
+    "abbr": "IDV"
+  },
+  "idv": {
+    "name": "Independiente del Valle",
+    "crest": "/assets/logos/crests/del_valle.png",
+    "abbr": "IDV"
+  },
+  "crb": {
+    "name": "CRB",
+    "crest": "/assets/logos/crests/crb.png",
+    "abbr": "CRB"
+  },
+  "clube de regatas brasil": {
+    "name": "CRB",
+    "crest": "/assets/logos/crests/crb.png",
+    "abbr": "CRB"
+  },
+  "ldu": {
+    "name": "LDU Quito",
+    "crest": "/assets/logos/crests/ldu.png",
+    "abbr": "LDU"
+  },
+  "liga de quito": {
+    "name": "LDU Quito",
+    "crest": "/assets/logos/crests/ldu.png",
+    "abbr": "LDU"
+  },
+  "ldu quito": {
+    "name": "LDU Quito",
+    "crest": "/assets/logos/crests/ldu.png",
+    "abbr": "LDU"
+  },
+  "csa": {
+    "name": "CSA",
+    "crest": "/assets/logos/crests/csa.png",
+    "abbr": "CSA"
+  },
+  "centro sportivo alagoano": {
+    "name": "CSA",
+    "crest": "/assets/logos/crests/csa.png",
+    "abbr": "CSA"
+  },
+  "huachipato": {
+    "name": "Huachipato",
+    "crest": "/assets/logos/crests/huachipato.png",
+    "abbr": "HUA"
+  },
+  "ec bahia": {
+    "name": "Bahia",
+    "crest": "/assets/logos/crests/bahia.png",
+    "abbr": "BAH"
+  },
+  "bahia": {
+    "name": "Bahia",
+    "crest": "/assets/logos/crests/bahia.png",
+    "abbr": "BAH"
+  },
+  "coxa": {
+    "name": "Coritiba",
+    "crest": "/assets/logos/crests/coritiba.png",
+    "abbr": "COR"
+  },
+  "coritiba fc": {
+    "name": "Coritiba",
+    "crest": "/assets/logos/crests/coritiba.png",
+    "abbr": "COR"
+  },
+  "coritiba": {
+    "name": "Coritiba",
+    "crest": "/assets/logos/crests/coritiba.png",
+    "abbr": "COR"
+  },
+  "the strongest": {
+    "name": "The Strongest",
+    "crest": "/assets/logos/crests/the_strongest.png",
+    "abbr": "THE"
+  },
+  "strongest": {
+    "name": "The Strongest",
+    "crest": "/assets/logos/crests/the_strongest.png",
+    "abbr": "THE"
+  },
+  "millonarios": {
+    "name": "Millonarios",
+    "crest": "/assets/logos/crests/millonarios.png",
+    "abbr": "MIL"
+  },
+  "millonarios fc": {
+    "name": "Millonarios",
+    "crest": "/assets/logos/crests/millonarios.png",
+    "abbr": "MIL"
+  },
+  "once caldas": {
+    "name": "Once Caldas",
+    "crest": "/assets/logos/crests/once_caldas.png",
+    "abbr": "ONC"
+  },
+  "defensor": {
+    "name": "Defensor Sporting",
+    "crest": "/assets/logos/crests/defensor.png",
+    "abbr": "DEF"
+  },
+  "defensor sporting": {
+    "name": "Defensor Sporting",
+    "crest": "/assets/logos/crests/defensor.png",
+    "abbr": "DEF"
+  },
+  "universitario-per": {
+    "name": "Universitario",
+    "crest": "/assets/logos/crests/universitario.png",
+    "abbr": "UNI"
+  },
+  "universitario": {
+    "name": "Universitario",
+    "crest": "/assets/logos/crests/universitario.png",
+    "abbr": "UNI"
+  },
+  "america de cali": {
+    "name": "América de Cali",
+    "crest": "/assets/logos/crests/america_cali.png",
+    "abbr": "ADC"
+  },
+  "santa fe": {
+    "name": "Santa Fe",
+    "crest": "/assets/logos/crests/santa_fe.png",
+    "abbr": "SAN"
+  },
+  "independiente santa fe": {
+    "name": "Santa Fe",
+    "crest": "/assets/logos/crests/santa_fe.png",
+    "abbr": "SAN"
+  },
+  "caracas": {
+    "name": "Caracas",
+    "crest": "/assets/logos/crests/caracas.png",
+    "abbr": "CAR"
+  },
+  "caracas fc": {
+    "name": "Caracas",
+    "crest": "/assets/logos/crests/caracas.png",
+    "abbr": "CAR"
+  },
+  "fc barcelona": {
+    "name": "Barcelona",
+    "crest": "/assets/logos/crests/barcelona.png",
+    "abbr": "BAR"
+  },
+  "barcelona": {
+    "name": "Barcelona",
+    "crest": "/assets/logos/crests/barcelona.png",
+    "abbr": "BAR"
+  },
+  "barca": {
+    "name": "Barcelona",
+    "crest": "/assets/logos/crests/barcelona.png",
+    "abbr": "BAR"
+  },
+  "arsenal fc": {
+    "name": "Arsenal",
+    "crest": "/assets/logos/crests/arsenal.png",
+    "abbr": "ARS"
+  },
+  "arsenal": {
+    "name": "Arsenal",
+    "crest": "/assets/logos/crests/arsenal.png",
+    "abbr": "ARS"
+  },
+  "real madrid": {
+    "name": "Real Madrid",
+    "crest": "/assets/logos/crests/real_madrid.png",
+    "abbr": "REA"
+  },
+  "bolivar": {
+    "name": "Bolívar",
+    "crest": "/assets/logos/crests/bolivar.png",
+    "abbr": "BOL"
+  },
+  "club bolivar": {
+    "name": "Bolívar",
+    "crest": "/assets/logos/crests/bolivar.png",
+    "abbr": "BOL"
+  },
+  "man city": {
+    "name": "Manchester City",
+    "crest": "/assets/logos/crests/mancity.png",
+    "abbr": "MAN"
+  },
+  "manchester city": {
+    "name": "Manchester City",
+    "crest": "/assets/logos/crests/mancity.png",
+    "abbr": "MAN"
+  },
+  "liverpool fc": {
+    "name": "Liverpool",
+    "crest": "/assets/logos/crests/liverpool.png",
+    "abbr": "LIV"
+  },
+  "liverpool": {
+    "name": "Liverpool",
+    "crest": "/assets/logos/crests/liverpool.png",
+    "abbr": "LIV"
+  },
+  "deportivo cali": {
+    "name": "Deportivo Cali",
+    "crest": "/assets/logos/crests/deportivo_cali.png",
+    "abbr": "DEP"
+  },
+  "fbc melgar": {
+    "name": "Melgar",
+    "crest": "/assets/logos/crests/melgar.png",
+    "abbr": "MEL"
+  },
+  "melgar": {
+    "name": "Melgar",
+    "crest": "/assets/logos/crests/melgar.png",
+    "abbr": "MEL"
+  },
+  "wilstermann": {
+    "name": "Jorge Wilstermann",
+    "crest": "/assets/logos/crests/wilstermann.png",
+    "abbr": "JOR"
+  },
+  "jorge wilstermann": {
+    "name": "Jorge Wilstermann",
+    "crest": "/assets/logos/crests/wilstermann.png",
+    "abbr": "JOR"
+  },
+  "sporting cristal": {
+    "name": "Sporting Cristal",
+    "crest": "/assets/logos/crests/sporting_cristal.png",
+    "abbr": "SPO"
+  },
+  "deportivo tachira": {
+    "name": "Deportivo Táchira",
+    "crest": "/assets/logos/crests/tachira.png",
+    "abbr": "DEP"
+  },
+  "tachira": {
+    "name": "Deportivo Táchira",
+    "crest": "/assets/logos/crests/tachira.png",
+    "abbr": "DEP"
+  },
+  "always ready": {
+    "name": "Always Ready",
+    "crest": "/assets/logos/crests/always_ready.png",
+    "abbr": "ALW"
+  },
+  "southampton": {
+    "name": "Southampton",
+    "crest": "/assets/logos/crests/southampton.png",
+    "abbr": "SOU"
+  },
+  "nacional medellin": {
+    "name": "Atlético Nacional",
+    "crest": "/assets/logos/crests/atletico_nacional.png",
+    "abbr": "ATL"
+  },
+  "atletico nacional": {
+    "name": "Atlético Nacional",
+    "crest": "/assets/logos/crests/atletico_nacional.png",
+    "abbr": "ATL"
+  },
+  "bayern": {
+    "name": "Bayern de Munique",
+    "crest": "/assets/logos/crests/bayern.png",
+    "abbr": "BDM"
+  },
+  "bayern de munique": {
+    "name": "Bayern de Munique",
+    "crest": "/assets/logos/crests/bayern.png",
+    "abbr": "BDM"
+  },
+  "bayern munich": {
+    "name": "Bayern de Munique",
+    "crest": "/assets/logos/crests/bayern.png",
+    "abbr": "BDM"
+  },
+  "newcastle united": {
+    "name": "Newcastle",
+    "crest": "/assets/logos/crests/newcastle.png",
+    "abbr": "NEW"
+  },
+  "newcastle": {
+    "name": "Newcastle",
+    "crest": "/assets/logos/crests/newcastle.png",
+    "abbr": "NEW"
+  },
+  "tottenham hotspur": {
+    "name": "Tottenham Hotspur",
+    "crest": "/assets/logos/crests/tottenham.png",
+    "abbr": "TOT"
+  },
+  "spurs": {
+    "name": "Tottenham Hotspur",
+    "crest": "/assets/logos/crests/tottenham.png",
+    "abbr": "TOT"
+  },
+  "tottenham": {
+    "name": "Tottenham Hotspur",
+    "crest": "/assets/logos/crests/tottenham.png",
+    "abbr": "TOT"
+  },
+  "independiente medellin": {
+    "name": "Independiente Medellín",
+    "crest": "/assets/logos/crests/medellin.png",
+    "abbr": "IND"
+  },
+  "dim": {
+    "name": "Independiente Medellín",
+    "crest": "/assets/logos/crests/medellin.png",
+    "abbr": "IND"
+  },
+  "man utd": {
+    "name": "Manchester United",
+    "crest": "/assets/logos/crests/man_united.png",
+    "abbr": "MAN"
+  },
+  "manchester united": {
+    "name": "Manchester United",
+    "crest": "/assets/logos/crests/man_united.png",
+    "abbr": "MAN"
+  },
+  "man united": {
+    "name": "Manchester United",
+    "crest": "/assets/logos/crests/man_united.png",
+    "abbr": "MAN"
+  },
+  "cs emelec": {
+    "name": "Emelec",
+    "crest": "/assets/logos/crests/emelec.png",
+    "abbr": "EME"
+  },
+  "emelec": {
+    "name": "Emelec",
+    "crest": "/assets/logos/crests/emelec.png",
+    "abbr": "EME"
+  },
+  "milan": {
+    "name": "Milan",
+    "crest": "/assets/logos/crests/milan.png",
+    "abbr": "MIL"
+  },
+  "ac milan": {
+    "name": "Milan",
+    "crest": "/assets/logos/crests/milan.png",
+    "abbr": "MIL"
+  },
+  "danubio": {
+    "name": "Danubio",
+    "crest": "/assets/logos/crests/danubio.png",
+    "abbr": "DAN"
+  },
+  "west brom": {
+    "name": "West Bromwich",
+    "crest": "/assets/logos/crests/west_bromwich.png",
+    "abbr": "WES"
+  },
+  "west bromwich": {
+    "name": "West Bromwich",
+    "crest": "/assets/logos/crests/west_bromwich.png",
+    "abbr": "WES"
+  },
+  "leverkusen": {
+    "name": "Bayer Leverkusen",
+    "crest": "/assets/logos/crests/leverkusen.png",
+    "abbr": "BAY"
+  },
+  "bayer leverkusen": {
+    "name": "Bayer Leverkusen",
+    "crest": "/assets/logos/crests/leverkusen.png",
+    "abbr": "BAY"
+  },
+  "atletico de madrid": {
+    "name": "Atlético de Madrid",
+    "crest": "/assets/logos/crests/atletico_madrid.png",
+    "abbr": "ADM"
+  },
+  "atletico madrid": {
+    "name": "Atlético de Madrid",
+    "crest": "/assets/logos/crests/atletico_madrid.png",
+    "abbr": "ADM"
+  },
+  "everton fc": {
+    "name": "Everton",
+    "crest": "/assets/logos/crests/everton.png",
+    "abbr": "EVE"
+  },
+  "everton": {
+    "name": "Everton",
+    "crest": "/assets/logos/crests/everton.png",
+    "abbr": "EVE"
+  },
+  "napoli": {
+    "name": "Napoli",
+    "crest": "/assets/logos/crests/napoli.png",
+    "abbr": "NAP"
+  },
+  "ssc napoli": {
+    "name": "Napoli",
+    "crest": "/assets/logos/crests/napoli.png",
+    "abbr": "NAP"
+  },
+  "chelsea": {
+    "name": "Chelsea",
+    "crest": "/assets/logos/crests/chelsea.png",
+    "abbr": "CHE"
+  },
+  "chelsea fc": {
+    "name": "Chelsea",
+    "crest": "/assets/logos/crests/chelsea.png",
+    "abbr": "CHE"
+  },
+  "dortmund": {
+    "name": "Borussia Dortmund",
+    "crest": "/assets/logos/crests/dortmund.png",
+    "abbr": "BOR"
+  },
+  "bvb": {
+    "name": "Borussia Dortmund",
+    "crest": "/assets/logos/crests/dortmund.png",
+    "abbr": "BOR"
+  },
+  "borussia dortmund": {
+    "name": "Borussia Dortmund",
+    "crest": "/assets/logos/crests/dortmund.png",
+    "abbr": "BOR"
+  },
+  "juventus": {
+    "name": "Juventus",
+    "crest": "/assets/logos/crests/juventus.png",
+    "abbr": "JUV"
+  },
+  "juve": {
+    "name": "Juventus",
+    "crest": "/assets/logos/crests/juventus.png",
+    "abbr": "JUV"
+  },
+  "estoril": {
+    "name": "Estoril",
+    "crest": "/assets/logos/crests/estoril.png",
+    "abbr": "EST"
+  },
+  "estoril praia": {
+    "name": "Estoril",
+    "crest": "/assets/logos/crests/estoril.png",
+    "abbr": "EST"
+  },
+  "gaziantep": {
+    "name": "Gaziantep",
+    "crest": "/assets/logos/crests/gaziantep.png",
+    "abbr": "GAZ"
+  },
+  "paris saint-germain": {
+    "name": "Paris Saint-Germain",
+    "crest": "/assets/logos/crests/psg.png",
+    "abbr": "PAR"
+  },
+  "psg": {
+    "name": "Paris Saint-Germain",
+    "crest": "/assets/logos/crests/psg.png",
+    "abbr": "PAR"
+  },
+  "paris saint germain": {
+    "name": "Paris Saint-Germain",
+    "crest": "/assets/logos/crests/psg.png",
+    "abbr": "PAR"
+  },
+  "paris sg": {
+    "name": "Paris Saint-Germain",
+    "crest": "/assets/logos/crests/psg.png",
+    "abbr": "PAR"
+  },
+  "parma calcio": {
+    "name": "Parma",
+    "crest": "/assets/logos/crests/parma.png",
+    "abbr": "PAR"
+  },
+  "parma": {
+    "name": "Parma",
+    "crest": "/assets/logos/crests/parma.png",
+    "abbr": "PAR"
+  },
+  "cienciano": {
+    "name": "Cienciano",
+    "crest": "/assets/logos/crests/cienciano.png",
+    "abbr": "CIE"
+  },
+  "atalanta": {
+    "name": "Atalanta",
+    "crest": "/assets/logos/crests/atalanta.png",
+    "abbr": "ATA"
+  },
+  "marseille": {
+    "name": "Olympique de Marseille",
+    "crest": "/assets/logos/crests/marseille.png",
+    "abbr": "ODM"
+  },
+  "olympique de marseille": {
+    "name": "Olympique de Marseille",
+    "crest": "/assets/logos/crests/marseille.png",
+    "abbr": "ODM"
+  },
+  "om": {
+    "name": "Olympique de Marseille",
+    "crest": "/assets/logos/crests/marseille.png",
+    "abbr": "ODM"
+  },
+  "porto": {
+    "name": "Porto",
+    "crest": "/assets/logos/crests/porto.png",
+    "abbr": "POR"
+  },
+  "fc porto": {
+    "name": "Porto",
+    "crest": "/assets/logos/crests/porto.png",
+    "abbr": "POR"
+  },
+  "seattle sounders": {
+    "name": "Seattle Sounders",
+    "crest": "/assets/logos/crests/seattle_sounders.png",
+    "abbr": "SEA"
+  },
+  "inter de milao": {
+    "name": "Inter de Milão",
+    "crest": "/assets/logos/crests/inter_milao.png",
+    "abbr": "IDM"
+  },
+  "inter milan": {
+    "name": "Inter de Milão",
+    "crest": "/assets/logos/crests/inter_milao.png",
+    "abbr": "IDM"
+  },
+  "internazionale": {
+    "name": "Inter de Milão",
+    "crest": "/assets/logos/crests/inter_milao.png",
+    "abbr": "IDM"
+  },
+  "philadelphia union": {
+    "name": "Philadelphia Union",
+    "crest": "/assets/logos/crests/philadelphia_union.png",
+    "abbr": "PHI"
+  },
+  "casa pia": {
+    "name": "Casa Pia",
+    "crest": "/assets/logos/crests/casa_pia.png",
+    "abbr": "CAS"
+  },
+  "trabzonspor": {
+    "name": "Trabzonspor",
+    "crest": "/assets/logos/crests/trabzonspor.png",
+    "abbr": "TRA"
+  },
+  "ny red bulls": {
+    "name": "New York Red Bulls",
+    "crest": "/assets/logos/crests/ny_red_bulls.png",
+    "abbr": "NYR"
+  },
+  "new york red bulls": {
+    "name": "New York Red Bulls",
+    "crest": "/assets/logos/crests/ny_red_bulls.png",
+    "abbr": "NYR"
+  },
+  "orlando city sc": {
+    "name": "Orlando City SC",
+    "crest": "/assets/logos/crests/orlando_city.png",
+    "abbr": "OCS"
+  },
+  "orlando city": {
+    "name": "Orlando City SC",
+    "crest": "/assets/logos/crests/orlando_city.png",
+    "abbr": "OCS"
+  },
+  "al nassr": {
+    "name": "Al-Nassr",
+    "crest": "/assets/logos/crests/al_nassr.png",
+    "abbr": "ALN"
+  },
+  "al-nassr": {
+    "name": "Al-Nassr",
+    "crest": "/assets/logos/crests/al_nassr.png",
+    "abbr": "ALN"
+  },
+  "al-hilal": {
+    "name": "Al-Hilal",
+    "crest": "/assets/logos/crests/al_hilal.png",
+    "abbr": "ALH"
+  },
+  "al hilal": {
+    "name": "Al-Hilal",
+    "crest": "/assets/logos/crests/al_hilal.png",
+    "abbr": "ALH"
+  },
+  "columbus crew": {
+    "name": "Columbus Crew",
+    "crest": "/assets/logos/crests/columbus_crew.png",
+    "abbr": "COL"
+  },
+  "shakhtar donetsk": {
+    "name": "Shakhtar Donetsk",
+    "crest": "/assets/logos/crests/shakhtar.png",
+    "abbr": "SHA"
+  },
+  "shakhtar": {
+    "name": "Shakhtar Donetsk",
+    "crest": "/assets/logos/crests/shakhtar.png",
+    "abbr": "SHA"
+  },
+  "los angeles fc": {
+    "name": "Los Angeles FC",
+    "crest": "/assets/logos/crests/lafc.png",
+    "abbr": "LAF"
+  },
+  "lafc": {
+    "name": "Los Angeles FC",
+    "crest": "/assets/logos/crests/lafc.png",
+    "abbr": "LAF"
+  },
+  "crystal palace": {
+    "name": "Crystal Palace",
+    "crest": "/assets/logos/crests/crystal_palace.png",
+    "abbr": "CRY"
+  },
+  "venezuela": {
+    "name": "Venezuela",
+    "crest": "/assets/logos/crests/venezuela.png",
+    "abbr": "VEN"
+  },
+  "portland timbers": {
+    "name": "Portland Timbers",
+    "crest": "/assets/logos/crests/portland_timbers.png",
+    "abbr": "POR"
+  },
+  "sl benfica": {
+    "name": "Benfica",
+    "crest": "/assets/logos/crests/benfica.png",
+    "abbr": "BEN"
+  },
+  "benfica": {
+    "name": "Benfica",
+    "crest": "/assets/logos/crests/benfica.png",
+    "abbr": "BEN"
+  },
+  "milwaukee bucks": {
+    "name": "Milwaukee Bucks",
+    "crest": "/assets/logos/crests/bucks.png",
+    "abbr": "MIL"
+  },
+  "bucks": {
+    "name": "Milwaukee Bucks",
+    "crest": "/assets/logos/crests/bucks.png",
+    "abbr": "MIL"
+  },
+  "inter miami cf": {
+    "name": "Inter Miami CF",
+    "crest": "/assets/logos/crests/inter_miami.png",
+    "abbr": "IMC"
+  },
+  "inter miami": {
+    "name": "Inter Miami CF",
+    "crest": "/assets/logos/crests/inter_miami.png",
+    "abbr": "IMC"
+  },
+  "heat": {
+    "name": "Miami Heat",
+    "crest": "/assets/logos/crests/miami_heat.png",
+    "abbr": "MIA"
+  },
+  "miami heat": {
+    "name": "Miami Heat",
+    "crest": "/assets/logos/crests/miami_heat.png",
+    "abbr": "MIA"
+  },
+  "atlanta united": {
+    "name": "Atlanta United",
+    "crest": "/assets/logos/crests/atlanta_united.png",
+    "abbr": "ATL"
+  },
+  "la galaxy": {
+    "name": "LA Galaxy",
+    "crest": "/assets/logos/crests/la_galaxy.png",
+    "abbr": "LAG"
+  },
+  "los angeles galaxy": {
+    "name": "LA Galaxy",
+    "crest": "/assets/logos/crests/la_galaxy.png",
+    "abbr": "LAG"
+  },
+  "mavericks": {
+    "name": "Dallas Mavericks",
+    "crest": "/assets/logos/crests/dallas_mavericks.png",
+    "abbr": "DAL"
+  },
+  "dallas mavericks": {
+    "name": "Dallas Mavericks",
+    "crest": "/assets/logos/crests/dallas_mavericks.png",
+    "abbr": "DAL"
+  },
+  "aston villa": {
+    "name": "Aston Villa",
+    "crest": "/assets/logos/crests/aston_villa.png",
+    "abbr": "AST"
+  },
+  "los angeles lakers": {
+    "name": "Los Angeles Lakers",
+    "crest": "/assets/logos/crests/lakers.png",
+    "abbr": "LAL"
+  },
+  "lakers": {
+    "name": "Los Angeles Lakers",
+    "crest": "/assets/logos/crests/lakers.png",
+    "abbr": "LAL"
+  },
+  "la lakers": {
+    "name": "Los Angeles Lakers",
+    "crest": "/assets/logos/crests/lakers.png",
+    "abbr": "LAL"
+  },
+  "shabab al-ahli dubai": {
+    "name": "Shabab Al-Ahli Dubai",
+    "crest": "/assets/logos/crests/shabab_al_ahli.png",
+    "abbr": "SAD"
+  },
+  "shabab al ahli dubai": {
+    "name": "Shabab Al-Ahli Dubai",
+    "crest": "/assets/logos/crests/shabab_al_ahli.png",
+    "abbr": "SAD"
+  },
+  "shabab al-ahli": {
+    "name": "Shabab Al-Ahli Dubai",
+    "crest": "/assets/logos/crests/shabab_al_ahli.png",
+    "abbr": "SAD"
+  },
+  "alianza lima": {
+    "name": "Alianza Lima",
+    "crest": "/assets/logos/crests/alianza_lima.png",
+    "abbr": "ALI"
+  },
+  "cincinnati": {
+    "name": "FC Cincinnati",
+    "crest": "/assets/logos/crests/fc_cincinnati.png",
+    "abbr": "FCC"
+  },
+  "fc cincinnati": {
+    "name": "FC Cincinnati",
+    "crest": "/assets/logos/crests/fc_cincinnati.png",
+    "abbr": "FCC"
+  },
+  "selecao argentina": {
+    "name": "Argentina",
+    "crest": "/assets/logos/crests/argentina.png",
+    "abbr": "ARG"
+  },
+  "argentina": {
+    "name": "Argentina",
+    "crest": "/assets/logos/crests/argentina.png",
+    "abbr": "ARG"
+  },
+  "bills": {
+    "name": "Buffalo Bills",
+    "crest": "/assets/logos/crests/buffalo_bills.png",
+    "abbr": "BUF"
+  },
+  "buffalo bills": {
+    "name": "Buffalo Bills",
+    "crest": "/assets/logos/crests/buffalo_bills.png",
+    "abbr": "BUF"
+  },
+  "nycfc": {
+    "name": "New York City FC",
+    "crest": "/assets/logos/crests/nycfc.png",
+    "abbr": "NYC"
+  },
+  "new york city fc": {
+    "name": "New York City FC",
+    "crest": "/assets/logos/crests/nycfc.png",
+    "abbr": "NYC"
+  },
+  "eagles": {
+    "name": "Philadelphia Eagles",
+    "crest": "/assets/logos/crests/philadelphia_eagles.png",
+    "abbr": "PHI"
+  },
+  "philadelphia eagles": {
+    "name": "Philadelphia Eagles",
+    "crest": "/assets/logos/crests/philadelphia_eagles.png",
+    "abbr": "PHI"
+  },
+  "sporting lisboa": {
+    "name": "Sporting CP",
+    "crest": "/assets/logos/crests/sporting_cp.png",
+    "abbr": "SPO"
+  },
+  "sporting": {
+    "name": "Sporting CP",
+    "crest": "/assets/logos/crests/sporting_cp.png",
+    "abbr": "SPO"
+  },
+  "sporting cp": {
+    "name": "Sporting CP",
+    "crest": "/assets/logos/crests/sporting_cp.png",
+    "abbr": "SPO"
+  },
+  "pakhtakor": {
+    "name": "Pakhtakor",
+    "crest": "/assets/logos/crests/pakhtakor.png",
+    "abbr": "PAK"
+  },
+  "chicago bears": {
+    "name": "Chicago Bears",
+    "crest": "/assets/logos/crests/chicago_bears.png",
+    "abbr": "CHI"
+  },
+  "bears": {
+    "name": "Chicago Bears",
+    "crest": "/assets/logos/crests/chicago_bears.png",
+    "abbr": "CHI"
+  },
+  "selecao brasileira": {
+    "name": "Brasil",
+    "crest": "/assets/logos/crests/brasil.png",
+    "abbr": "BRA"
+  },
+  "brasil": {
+    "name": "Brasil",
+    "crest": "/assets/logos/crests/brasil.png",
+    "abbr": "BRA"
+  },
+  "thunder": {
+    "name": "Oklahoma City Thunder",
+    "crest": "/assets/logos/crests/okc_thunder.png",
+    "abbr": "OCT"
+  },
+  "oklahoma city thunder": {
+    "name": "Oklahoma City Thunder",
+    "crest": "/assets/logos/crests/okc_thunder.png",
+    "abbr": "OCT"
+  },
+  "kansas city chiefs": {
+    "name": "Kansas City Chiefs",
+    "crest": "/assets/logos/crests/kc_chiefs.png",
+    "abbr": "KCC"
+  },
+  "chiefs": {
+    "name": "Kansas City Chiefs",
+    "crest": "/assets/logos/crests/kc_chiefs.png",
+    "abbr": "KCC"
+  },
+  "boston celtics": {
+    "name": "Boston Celtics",
+    "crest": "/assets/logos/crests/celtics.png",
+    "abbr": "BOS"
+  },
+  "celtics": {
+    "name": "Boston Celtics",
+    "crest": "/assets/logos/crests/celtics.png",
+    "abbr": "BOS"
+  },
+  "ravens": {
+    "name": "Baltimore Ravens",
+    "crest": "/assets/logos/crests/baltimore_ravens.png",
+    "abbr": "BAL"
+  },
+  "baltimore ravens": {
+    "name": "Baltimore Ravens",
+    "crest": "/assets/logos/crests/baltimore_ravens.png",
+    "abbr": "BAL"
+  },
+  "denver broncos": {
+    "name": "Denver Broncos",
+    "crest": "/assets/logos/crests/denver_broncos.png",
+    "abbr": "DEN"
+  },
+  "broncos": {
+    "name": "Denver Broncos",
+    "crest": "/assets/logos/crests/denver_broncos.png",
+    "abbr": "DEN"
+  },
+  "suns": {
+    "name": "Phoenix Suns",
+    "crest": "/assets/logos/crests/phoenix_suns.png",
+    "abbr": "PHO"
+  },
+  "phoenix suns": {
+    "name": "Phoenix Suns",
+    "crest": "/assets/logos/crests/phoenix_suns.png",
+    "abbr": "PHO"
+  },
+  "vikings": {
+    "name": "Minnesota Vikings",
+    "crest": "/assets/logos/crests/minnesota_vikings.png",
+    "abbr": "MIN"
+  },
+  "minnesota vikings": {
+    "name": "Minnesota Vikings",
+    "crest": "/assets/logos/crests/minnesota_vikings.png",
+    "abbr": "MIN"
+  },
+  "seahawks": {
+    "name": "Seattle Seahawks",
+    "crest": "/assets/logos/crests/seattle_seahawks.png",
+    "abbr": "SEA"
+  },
+  "seattle seahawks": {
+    "name": "Seattle Seahawks",
+    "crest": "/assets/logos/crests/seattle_seahawks.png",
+    "abbr": "SEA"
+  },
+  "warriors": {
+    "name": "Golden State Warriors",
+    "crest": "/assets/logos/crests/warriors.png",
+    "abbr": "GSW"
+  },
+  "golden state warriors": {
+    "name": "Golden State Warriors",
+    "crest": "/assets/logos/crests/warriors.png",
+    "abbr": "GSW"
+  },
+  "cavaliers": {
+    "name": "Cleveland Cavaliers",
+    "crest": "/assets/logos/crests/cavaliers.png",
+    "abbr": "CLE"
+  },
+  "cleveland cavaliers": {
+    "name": "Cleveland Cavaliers",
+    "crest": "/assets/logos/crests/cavaliers.png",
+    "abbr": "CLE"
+  },
+  "detroit lions": {
+    "name": "Detroit Lions",
+    "crest": "/assets/logos/crests/detroit_lions.png",
+    "abbr": "DET"
+  },
+  "lions": {
+    "name": "Detroit Lions",
+    "crest": "/assets/logos/crests/detroit_lions.png",
+    "abbr": "DET"
+  },
+  "commanders": {
+    "name": "Washington Commanders",
+    "crest": "/assets/logos/crests/washington_commanders.png",
+    "abbr": "WAS"
+  },
+  "washington commanders": {
+    "name": "Washington Commanders",
+    "crest": "/assets/logos/crests/washington_commanders.png",
+    "abbr": "WAS"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "app_name": "Ghost IPTV",
+  "version": "2.4.6",
+  "build_number": 246,
+  "release_date": "2026-11-04",
+  "channel": "stable",
+  "repository": "alazter/ghost-iptv",
+  "private_repo": true,
+  "apk_url": "/ghost-iptv.apk",
+  "changelog": [
+    "InfoBar com fundo translúcido suave e elegante (gradiente com blur e transparência, eliminando o fundo 100% preto)",
+    "Correção definitiva do Pause & Timeshift: a transmissão nunca despausa automaticamente após 3 segundos, ficando pausada até novo clique no OK",
+    "Pressionamento de 3s no botão OK para voltar ao Ao Vivo funcionando perfeitamente em transmissões ao vivo e pausadas",
+    "Botões da barra inferior redimensionados e alinhados em uma única linha horizontal sem quebra nem sobreposição",
+    "Indicador 'AO VIVO' configurado em linha única contínua (sem quebra de linha)",
+    "Efeito Marquee (scrolling text) da esquerda para a direita no sentido de leitura ocidental para títulos longos no InfoBar e EPG",
+    "Largura dinâmica inteligente da lista de canais calculada pelo maior nome, eliminando espaços vazios e ampliando o player e a grade"
+  ]
+}

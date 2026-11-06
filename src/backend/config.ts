@@ -116,7 +116,8 @@ abstract class GlobalConfig {
     else {
       // Check version field in the config.
       try {
-        version = JSON.parse(readFileSync(configPath, 'utf-8'))['version']
+        const raw = readFileSync(configPath, 'utf-8').replace(/^\uFEFF/, '').trim()
+        version = raw ? JSON.parse(raw)['version'] : 'v0'
       } catch (error) {
         logError(
           [`Config file is corrupted, please check ${configPath}:`, error],
@@ -314,8 +315,18 @@ class GlobalConfigV0 extends GlobalConfig {
       return this.getFactoryDefaults()
     }
 
-    let settings = JSON.parse(readFileSync(configPath, 'utf-8'))
-    const defaultSettings = settings.defaultSettings as AppSettings
+    let rawSettings: Record<string, unknown> = {}
+    try {
+      const raw = readFileSync(configPath, 'utf-8').replace(/^\uFEFF/, '').trim()
+      rawSettings = raw ? (JSON.parse(raw) as Record<string, unknown>) : {}
+    } catch (error) {
+      logError(
+        [`Config file is corrupted or invalid in ${configPath}, falling back to defaults:`, error],
+        LogPrefix.Backend
+      )
+      rawSettings = {}
+    }
+    const defaultSettings = (rawSettings.defaultSettings || {}) as AppSettings
 
     // keep old setting value for backwards compatibility, always use defaultWinePrefixDir in new code
     if (!defaultSettings.defaultWinePrefixDir)
@@ -326,7 +337,7 @@ class GlobalConfigV0 extends GlobalConfig {
       ? defaultSettings?.winePrefix?.replace('~', userHome)
       : ''
 
-    settings = {
+    const settings = {
       ...this.getFactoryDefaults(),
       ...defaultSettings,
       winePrefix

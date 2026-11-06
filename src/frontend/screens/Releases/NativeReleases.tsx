@@ -73,7 +73,7 @@ import {
   releaseCalendarSections,
   closestReleaseDate
 } from 'common/releaseCatalog'
-import { releaseVideoEmbed } from 'common/releaseMedia'
+import { releaseImageUrl, releaseVideoEmbed } from 'common/releaseMedia'
 
 type View = ReleaseView
 interface Preferences {
@@ -1347,7 +1347,7 @@ export default function NativeReleases() {
                                 style={
                                   product.heroImage && prefs.layout === 'cards'
                                     ? {
-                                        backgroundImage: `linear-gradient(0deg,rgba(123,97,255,.18),rgba(123,97,255,.18)),linear-gradient(90deg,rgba(13,11,34,.78) 10%,rgba(13,11,34,.12) 100%),url("${product.heroImage}")`
+                                        backgroundImage: `linear-gradient(0deg,rgba(123,97,255,.18),rgba(123,97,255,.18)),linear-gradient(90deg,rgba(13,11,34,.78) 10%,rgba(13,11,34,.12) 100%),url("${releaseImageUrl(product.heroImage)}")`
                                       }
                                     : undefined
                                 }
@@ -1365,12 +1365,36 @@ export default function NativeReleases() {
                                     )}
                                     {product.image ? (
                                       <img
-                                        src={product.image}
+                                        src={releaseImageUrl(product.image)}
                                         alt=""
                                         loading="lazy"
+                                        style={{
+                                          transition: 'opacity 0.2s ease-in-out'
+                                        }}
+                                        onLoad={(event) => {
+                                          event.currentTarget.style.opacity = '1'
+                                          event.currentTarget.style.display = 'block'
+                                        }}
                                         onError={(event) => {
-                                          event.currentTarget.style.visibility =
-                                            'hidden'
+                                          const img = event.currentTarget
+                                          img.style.opacity = '0'
+                                          img.style.display = 'none'
+                                          const retries = Number(
+                                            img.dataset.retryCount || '0'
+                                          )
+                                          if (retries < 3) {
+                                            img.dataset.retryCount = String(
+                                              retries + 1
+                                            )
+                                            setTimeout(() => {
+                                              const originalSrc =
+                                                releaseImageUrl(product.image)
+                                              if (originalSrc) {
+                                                img.style.display = 'block'
+                                                img.src = `${originalSrc}${originalSrc.includes('?') ? '&' : '?'}retry=${Date.now()}`
+                                              }
+                                            }, 1500 * (retries + 1))
+                                          }
                                         }}
                                       />
                                     ) : (

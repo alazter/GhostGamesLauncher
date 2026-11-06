@@ -262,6 +262,25 @@
   container: alazterflix-page / inline-size;
   min-height: 100%;
   color: var(--alazter-text-main);
+
+  &.alazterflixScreen--tv-active {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+
+    .top-header {
+      padding: 8px 20px;
+      flex-shrink: 0;
+
+      .header-slogan {
+        display: none !important;
+      }
+    }
+
+    .catalog-footer {
+      display: none !important;
+    }
+  }
   background:
     radial-gradient(
       circle at top right,
@@ -606,6 +625,50 @@
     display: flex;
     flex-direction: column;
     gap: 32px;
+  }
+
+  /* =========================================================================
+     TV AO VIVO & IPTV SECTION (NO PAGE SCROLL - CONTENT ONLY)
+     ========================================================================= */
+  .alazterflix-tv-section {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 2px 20px 10px 20px;
+    overflow: hidden;
+    box-sizing: border-box;
+
+    .alazterflix-tv-player-wrap {
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #06080d;
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      display: flex;
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+        flex: 1;
+      }
+    }
+
+    .alazterflix-tv-hub-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      border-radius: 12px;
+      padding-right: 4px;
+    }
   }
 
   /* =========================================================================
@@ -4436,5 +4499,247 @@
       }
     }
   }
+
+  /* =========================================================================
+     BARRA DE ABAS ESTILO NAVEGADOR (BROWSER TABS) - CYBER-NEON
+     ========================================================================= */
+  .browser-tabs-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  .browser-tabs-strip {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    border-bottom: 2px solid rgba(0, 229, 255, 0.4);
+    background: rgba(10, 15, 26, 0.7);
+    padding: 6px 14px 0 14px;
+    border-radius: 12px 12px 0 0;
+    user-select: none;
+    overflow-x: auto;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .browser-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 42px;
+      padding: 0 22px;
+      font-size: 13.5px;
+      font-weight: 600;
+      font-family: inherit;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      outline: none;
+      flex-shrink: 0;
+
+      &:hover {
+        background: rgba(30, 41, 59, 0.8);
+        color: #ffffff;
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      &.active {
+        background: #080c16;
+        color: #00e5ff;
+        font-weight: 700;
+        border-color: rgba(0, 229, 255, 0.45);
+        margin-bottom: -2px;
+        height: 44px;
+        z-index: 2;
+        box-shadow: 0 -4px 18px rgba(0, 229, 255, 0.15);
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #00e5ff, #38bdf8);
+          border-radius: 10px 10px 0 0;
+          box-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+        }
+
+        .tab-icon {
+          color: #00e5ff;
+          transform: scale(1.1);
+        }
+
+        .tab-badge {
+          background: rgba(0, 229, 255, 0.2);
+          color: #00e5ff;
+          border-color: rgba(0, 229, 255, 0.4);
+        }
+      }
+
+      .tab-icon {
+        font-size: 15px;
+        color: #64748b;
+        transition: all 0.18s ease;
+      }
+
+      .tab-title {
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+      }
+
+      .tab-badge {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #94a3b8;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-weight: 700;
+      }
+    }
+  }
+
+  .browser-tabs-content {
+    background: #080c16;
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    padding: 24px 28px 40px 28px;
+    position: relative;
+    z-index: 1;
+    min-height: 500px;
+  }
+
+  .player-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+
+    .player-option {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--alazter-border-subtle);
+      border-radius: 10px;
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      &.active {
+        border-color: var(--alazter-cyan);
+        background: rgba(0, 229, 255, 0.08);
+        box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+      }
+
+      .player-option-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .player-name {
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .player-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+
+        &.nuvio {
+          background: rgba(0, 229, 255, 0.2);
+          color: var(--alazter-cyan);
+          border: 1px solid var(--alazter-cyan);
+        }
+
+        &.neon {
+          background: rgba(229, 9, 20, 0.2);
+          color: #f87171;
+          border: 1px solid #ef4444;
+        }
+
+        &.external {
+          background: rgba(168, 85, 247, 0.2);
+          color: #c084fc;
+          border: 1px solid #a855f7;
+        }
+      }
+
+      .player-desc {
+        font-size: 11px;
+        color: var(--alazter-text-muted);
+        line-height: 1.35;
+        margin: 0;
+      }
+    }
+  }
+
+  .settings-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .recommended-addons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+
+    .recommended-addon-card {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--alazter-border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .addon-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        strong {
+          font-size: 13.5px;
+          color: #ffffff;
+        }
+
+        span.badge {
+          font-size: 10px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: rgba(0, 229, 255, 0.15);
+          color: var(--alazter-cyan);
+        }
+      }
+
+      p {
+        font-size: 11.5px;
+        color: var(--alazter-text-muted);
+        line-height: 1.35;
+        margin: 0;
+      }
+    }
+  }
+
 }
 

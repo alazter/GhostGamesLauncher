@@ -1,3 +1,21 @@
+export function releaseImageUrl(
+  value: string | undefined
+): string | undefined {
+  if (!value) return undefined
+  let clean = value
+  if (clean.startsWith('imagecache://localhost/')) {
+    clean = decodeURIComponent(clean.replace('imagecache://localhost/', ''))
+  } else if (clean.startsWith('imagecache://')) {
+    clean = decodeURIComponent(clean.replace('imagecache://', ''))
+  }
+  try {
+    const url = new URL(clean, 'https://www.releases.com')
+    return url.href
+  } catch {
+    return clean
+  }
+}
+
 export function safeReleaseMedia(
   value: string | undefined
 ): string | undefined {

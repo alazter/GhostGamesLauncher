@@ -21,7 +21,7 @@ def get(url):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scrapling', default='0.5')
+    parser.add_argument('--scrapling', default='0.5.1')
     parser.add_argument('--obscura', default='0.2.5')
     parser.add_argument('--out', default='public/engine-bundles')
     args = parser.parse_args()
@@ -45,6 +45,8 @@ def main():
                         '--collect-all', 'scrapling', '--collect-all', 'patchright',
                         '--collect-all', 'playwright', '--collect-all', 'browserforge',
                         '--collect-all', 'apify_fingerprint_datapoints',
+                        # w3lib >= 2.6 (Scrapling 0.5.1) depends on the native frostwork extension.
+                        '--collect-all', 'frostwork',
                         '--collect-all', 'curl_cffi', '--distpath', str(temporary / 'dist'),
                         '--workpath', str(temporary / 'work'), '--specpath', str(temporary), str(worker)], check=True)
         binary_root = temporary / 'dist' / 'ghost-scrapling'

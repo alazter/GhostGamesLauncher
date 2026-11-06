@@ -321,10 +321,23 @@ export class ExternalGames {
 
   private constructor() {
     mkdirSync(this.root, { recursive: true })
-    if (existsSync(this.statePath))
-      this.state = JSON.parse(
-        readFileSync(this.statePath, 'utf8')
-      ) as StoredState
+    if (existsSync(this.statePath)) {
+      try {
+        const raw = readFileSync(this.statePath, 'utf8').replace(/^\uFEFF/, '').trim()
+        if (raw) {
+          this.state = JSON.parse(raw) as StoredState
+        }
+      } catch (err) {
+        logGhost(`[ExternalGames] Arquivo state.json corrompido ou vazio em ${this.statePath}, restaurando padrão: ${err}`)
+        this.state = { jobs: [], installations: [], backups: [] }
+      }
+    }
+    if (!this.state || typeof this.state !== 'object') {
+      this.state = { jobs: [], installations: [], backups: [] }
+    }
+    this.state.jobs = Array.isArray(this.state.jobs) ? this.state.jobs : []
+    this.state.installations = Array.isArray(this.state.installations) ? this.state.installations : []
+    this.state.backups = Array.isArray(this.state.backups) ? this.state.backups : []
     for (const job of this.state.jobs) {
       job.directWait = undefined
       if (job.removalStarted) {
