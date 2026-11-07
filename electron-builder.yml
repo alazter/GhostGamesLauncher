@@ -43,6 +43,10 @@ win:
       to: engine-bundles
       filter:
         - '**/*'
+    - from: plugins
+      to: plugins
+      filter:
+        - '**/*'
   artifactName: ${productName}-${version}-Portable-${arch}.${ext}
   icon: build/win_icon.ico
   target:
