@@ -2060,6 +2060,12 @@ export default function AlazterflixScreen() {
     }
   }, [])
 
+  useEffect(() => {
+    if ((activeTab === 'tv' || activeTab === 'settings') && window.api?.pluginsGhostIptvState) {
+      window.api.pluginsGhostIptvState().then(setGhostIptvState).catch(() => {})
+    }
+  }, [activeTab])
+
   // Debounce da pesquisa por 150ms para eliminar qualquer travamento ao digitar
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -5284,8 +5290,9 @@ export default function AlazterflixScreen() {
           {tvViewMode === 'app' ? (
             <div className="alazterflix-tv-player-wrap">
               <iframe
+                key={ghostIptvState?.webUrl || 'ghost-iptv-iframe'}
                 title="Ghost IPTV TV Box Player"
-                src={ghostIptvState?.webUrl || ''}
+                src={ghostIptvState?.webUrl || 'http://127.0.0.1:8888/alazterflix_tv.html?v=2.4.8'}
                 style={{
                   width: '100%',
                   height: '100%',

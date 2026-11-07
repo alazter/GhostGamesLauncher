@@ -1,4 +1,4 @@
-# Review das Alterações - 06/11/2026
+# Review das Alterações - 07/11/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -831,6 +831,16 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Imunização Universal contra UTF-8 BOM e Auto-Recuperação de JSON (`config.ts`, `game_config.ts`, `externalGames.ts`, `pluginManager.ts`, `sourceSettings.ts`, `safeStoreDeserialize.test.ts`, Conquista 197 / 236)**: Sanitização compulsória de UTF-8 BOM (`﻿`) e blocos try/catch com restauração de valores padrão seguros em todas as rotinas de leitura de JSON no boot.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 45/45 testes unitários Jest aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 56. Sincronização Real e Integridade do Ghost IPTV v2.4.8, Repositório Privado GitHub e Auditoria de Auto-Update com Verificação Manual no ChangelogModal
+* **Problema:** O launcher não sincronizava de fato o conteúdo da nova versão do Ghost IPTV v2.4.8 (o instalador anterior atualizava apenas o `plugin.json` sem baixar o HTML nem os caches de canais e EPG); o repositório `alazter/ghost-iptv` é privado e exigia token de autenticação GitHub para requisições raw; o servidor HTTP local (`127.0.0.1:8888`) servia o primeiro diretório encontrado com cache HTTP agressivo de 1 hora, entregando a versão legada v2.4.6; e na janela de Notas de Lançamento (`ChangelogModal`), não havia um botão manual para forçar a verificação de novas versões do próprio Ghost Games Launcher quando o usuário desativou a checagem automática no boot.
+* **Solução:**
+  - **Sincronização e Instalação Real de Conteúdo do Ghost IPTV v2.4.8 (`ghostIptvUpdate.ts`, Conquista 250)**: Implementado `performGhostIptvInstall` robusto que baixa e sincroniza todos os arquivos essenciais (`web/alazterflix_tv.html`, `web/version.json`, `version.json`, `assets/channels_cache.json`, `epg_cache.json`, logos e crests esportivos) em todos os diretórios ativos (`plugins/ghost-iptv`, `dist/win-unpacked/resources/app/plugins/ghost-iptv` e `%APPDATA%/ghost/plugins/com.ghost.iptv`).
+  - **Autenticação Automática em Repositório Privado GitHub (`ghostIptvUpdate.ts`, Conquista 250)**: Sistema de detecção e injeção transparente de token de autenticação GitHub (`GITHUB_TOKEN`, `.env`, `ghost_iptv_github_token.txt` ou `gh auth token` do CLI) consultando a API oficial de contents (`Accept: application/vnd.github.v3.raw`) com fallback para o pacote bundled local em caso de ausência de rede.
+  - **Verificação de Integridade de HTML e Versionamento Ativo (`ghostIptvUpdate.ts`, Conquista 250)**: Checagem dupla da versão real instalada através de `web/version.json` e do elemento `<span id="headerVersionBadge">` no HTML (`isInstalledWebOutOfSync`), impedindo falsos positivos de "versão em dia" quando o HTML ainda é de versões anteriores.
+  - **Servidor HTTP Local `127.0.0.1:8888` Sem Cache Stale e Resolução Dinâmica (`ghostIptvServer.ts`, Conquista 250)**: Headers obrigatórios `Cache-Control: no-cache, no-store, must-revalidate` em respostas HTML/JSON; seleção automática do diretório de web assets com a versão SemVer mais recente e `mtimeMs` mais novo; suporte completo às rotas `/api/channels`, `/api/epg`, `/api/crest`, `/api/update/check` e `/api/update/apply`.
+  - **Auditoria do Sistema de Auto-Update e Botão Manual no Cabeçalho do ChangelogModal (`ChangelogModal/index.tsx`, `ChangelogModal/index.scss`, `HeroicVersion/index.tsx`, `main.ts`, `ipc.ts`, Conquista 249)**: Auditoria comprovou que o auto-update do Ghost está 100% íntegro (ocorrência isolada no amigo por flag `checkForUpdatesOnStartup: false` no `config.json` local dele); introduzido canal IPC `getLatestReleases(force?: boolean)` ignorando a flag de desativação na chamada manual; criado botão interativo `[🔄 Verificar Atualização]` no cabeçalho do `ChangelogModal` ao lado de `👻 Ghost v0.4.0-beta`, acionando a busca de releases no GitHub e transicionando fluidamente para o `UpdatePopupModal` ou confirmando `✓ Versão Atualizada`.
+  - **Qualidade, Testes e Estabilidade**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 6/6 novos testes unitários Jest aprovados em `ghostIptvUpdate.test.ts`, compilação `electron-vite build` sincronizada e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -881,6 +891,10 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [docs/EXTERNAL_GAME_DETAILS_DESIGN.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/EXTERNAL_GAME_DETAILS_DESIGN.md)
 - [MODIFY] [scripts/patch_dev_exe.js](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/patch_dev_exe.js)
 - [NEW] [plugins/ghost-iptv/plugin.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/plugin.json)
+- [MODIFY] [plugins/ghost-iptv/version.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/version.json)
+- [MODIFY] [plugins/ghost-iptv/web/alazterflix_tv.html](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/alazterflix_tv.html)
+- [MODIFY] [plugins/ghost-iptv/web/version.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/version.json)
+- [MODIFY] [plugins/nuvio-player-addon/plugin.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/nuvio-player-addon/plugin.json)
 ### Backend & Core
 - [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
 - [NEW] [src/backend/__tests__/abortAllOperations.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/abortAllOperations.test.ts)
@@ -1038,6 +1052,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/__tests__/safeStoreDeserialize.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/safeStoreDeserialize.test.ts)
 - [NEW] [src/backend/plugins/ghostIptvServer.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ghostIptvServer.ts)
 - [NEW] [src/backend/plugins/ghostIptvUpdate.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/ghostIptvUpdate.ts)
+- [NEW] [src/backend/plugins/__tests__/ghostIptvUpdate.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/ghostIptvUpdate.test.ts)
 - [NEW] [src/backend/plugins/sourceSettings.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceSettings.ts)
 - [MODIFY] [src/backend/images_cache.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/images_cache.ts)
 ### Common & Preload
@@ -1148,3 +1163,6 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/screens/Alazterflix/errors.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/errors.ts)
 - [MODIFY] [src/frontend/App.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/App.css)
 - [MODIFY] [src/frontend/screens/Releases/ReleaseDetails.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Releases/ReleaseDetails.tsx)
+- [MODIFY] [src/frontend/components/UI/ChangelogModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ChangelogModal/index.tsx)
+- [MODIFY] [src/frontend/components/UI/ChangelogModal/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ChangelogModal/index.scss)
+- [MODIFY] [src/frontend/components/UI/Sidebar/components/HeroicVersion/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/HeroicVersion/index.tsx)

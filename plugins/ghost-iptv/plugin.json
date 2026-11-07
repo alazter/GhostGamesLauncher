@@ -1,8 +1,8 @@
 {
   "id": "com.ghost.iptv",
   "name": "Ghost IPTV - Alazterflix Addon",
-  "version": "2.4.6",
-  "description": "Plugin e Addon oficial Ghost IPTV integrado ao Alazterflix e Stremio. Traz a experiência completa de TV ao Vivo para PC com conversor universal de Addons Stremio para M3U, EPG perpétuo autônomo, InfoBar translúcido, grade de canais, mini-guia e atualização contínua direto do GitHub oficial (alazter/ghost-iptv).",
+  "version": "2.4.8",
+  "description": "Plugin e Addon oficial Ghost IPTV integrado ao Alazterflix e Stremio. Traz a experiência completa de TV ao Vivo para PC com conversor de Addons Stremio, EPG perpétuo e atualização automática via GitHub oficial (alazter/ghost-iptv).",
   "author": "Alazter & Ghost Labs",
   "type": "media",
   "entrypoint": "index.js",

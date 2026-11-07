@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ghost IPTV — Layout 1 (4 Acabamentos Broadcast Reais — Sem Cara de IA)</title>
-  <script src="assets/hls.min.js"></script>
+  <script src="/assets/hls.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -596,7 +596,7 @@
     <header class="b-header">
       <div class="b-header-left">
         <div class="b-brand">
-          <img src="assets/ghost_iptv_logo.png" alt="Ghost IPTV">
+          <img src="/assets/ghost_iptv_logo.png" alt="Ghost IPTV">
           <span class="b-brand-name">GHOST IPTV</span>
         </div>
         <nav class="b-cat-nav" id="catNavContainer"></nav>
@@ -764,10 +764,10 @@
       const box = document.getElementById('chListContainer');
       box.innerHTML = filtered.map((ch, idx) => {
         const num = String(idx + 1).padStart(3, '0');
-        const logo = (ch.visual_meta && ch.visual_meta.original_logo) || ch.logo || 'assets/ghost_iptv_logo.png';
+        const logo = (ch.visual_meta && ch.visual_meta.original_logo) || ch.logo || '/assets/ghost_iptv_logo.png';
         return `
           <div class="b-ch-row ${idx === activeIdx ? 'active' : ''}" onclick="selectChannel(${idx})">
-            <div class="b-ch-logo"><img src="${logo}" alt="${ch.name}" onerror="this.src='assets/ghost_iptv_logo.png'"></div>
+            <div class="b-ch-logo"><img src="${logo}" alt="${ch.name}" onerror="this.src='/assets/ghost_iptv_logo.png'"></div>
             <span class="b-ch-num">${num}</span>
             <span class="b-ch-name">${ch.name}</span>
           </div>

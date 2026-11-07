@@ -344,6 +344,15 @@ export default function SourceEnginesPanel({
                         setFeedback(nuvioRes.value.state.message)
                       }
                     }
+                    if (
+                      iptvRes.status === 'fulfilled' &&
+                      iptvRes.value?.state
+                    ) {
+                      setGhostIptvState(iptvRes.value.state)
+                      if (iptvRes.value.state.message) {
+                        setFeedback(iptvRes.value.state.message)
+                      }
+                    }
                   } catch {
                     setError('Não foi possível verificar atualizações.')
                   } finally {

@@ -1147,9 +1147,9 @@ addHandler('getGameSdl', async (event, appName) =>
 
 addHandler('showUpdateSetting', () => !isFlatpak)
 
-addHandler('getLatestReleases', async () => {
+addHandler('getLatestReleases', async (_event, force?: boolean) => {
   const { checkForUpdatesOnStartup } = GlobalConfig.get().getSettings()
-  if (checkForUpdatesOnStartup) {
+  if (checkForUpdatesOnStartup || force) {
     return getLatestReleases()
   } else {
     return []

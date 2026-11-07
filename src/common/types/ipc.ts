@@ -269,7 +269,7 @@ interface AsyncIPCFunctions {
   isMaximized: () => boolean
   isMinimized: () => boolean
   showUpdateSetting: () => boolean
-  getLatestReleases: () => Promise<Release[]>
+  getLatestReleases: (force?: boolean) => Promise<Release[]>
   getCurrentChangelog: () => Promise<Release | null>
   downloadLauncherUpdate: (
     assets: any[]

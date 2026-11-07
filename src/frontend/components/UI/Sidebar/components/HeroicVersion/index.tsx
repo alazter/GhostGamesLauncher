@@ -13,10 +13,6 @@ import flagsB64 from 'frontend/assets/flags_b64.json'
 const storage = window.localStorage
 const lastVersion = storage.getItem('last_version')?.replaceAll('"', '')
 
-
-
-
-
 export default React.memo(function HeroicVersion() {
   const { t } = useTranslation()
   const [heroicVersion, setHeroicVersion] = useState('')
@@ -73,7 +69,9 @@ export default React.memo(function HeroicVersion() {
   const shouldShowUpdates = newBeta || newStable
   const latestRelease = newStable || newBeta
 
-  const version = heroicVersion.replace('-beta', ' Beta').replace('-alpha', ' Alpha')
+  const version = heroicVersion
+    .replace('-beta', ' Beta')
+    .replace('-alpha', ' Alpha')
 
   return (
     <div className="heroicVersionContainer" data-tour="sidebar-version">
@@ -83,6 +81,10 @@ export default React.memo(function HeroicVersion() {
         showChangelogModalOnClick) && (
         <ChangelogModal
           dimissVersionCheck
+          onUpdateFound={(release) => {
+            setNewReleases([release])
+            setUpdateToPrompt(release)
+          }}
           onClose={() => {
             setShowChangelogModal(false)
             setShowChangelogModalOnClick(false)
@@ -106,20 +108,14 @@ export default React.memo(function HeroicVersion() {
               : t('info.heroic.click-to-see-changelog', 'Click to see changelog')
           }
           onClick={() => {
-            if (shouldShowUpdates && latestRelease) {
-              setUpdateToPrompt(latestRelease)
-            } else {
-              setShowChangelogModalOnClick((current) => !current)
-            }
+            setShowChangelogModalOnClick((current) => !current)
           }}
         >
           <span className="heroicVersion__title">
             <span>{t('info.heroic.version', 'Heroic Version')}: </span>
           </span>
           <strong>{version}</strong>
-          {shouldShowUpdates && (
-            <span className="update-badge-dot" />
-          )}
+          {shouldShowUpdates && <span className="update-badge-dot" />}
         </span>
         <TourButton tourId={SIDEBAR_TOUR_ID} className="sidebar-tour-button" />
       </div>
@@ -129,7 +125,7 @@ export default React.memo(function HeroicVersion() {
           {newStable && (
             <a
               title={newStable.tag_name}
-              onClick={() => window.api.openExternalUrl(newStable.html_url)}
+              onClick={() => setUpdateToPrompt(newStable)}
             >
               {t('info.heroic.stable', 'Stable')} ({newStable.tag_name})
             </a>
@@ -137,7 +133,7 @@ export default React.memo(function HeroicVersion() {
           {newBeta && (
             <a
               title={newBeta.tag_name}
-              onClick={() => window.api.openExternalUrl(newBeta.html_url)}
+              onClick={() => setUpdateToPrompt(newBeta)}
             >
               {t('info.heroic.beta', 'Beta')} ({newBeta.tag_name})
             </a>
