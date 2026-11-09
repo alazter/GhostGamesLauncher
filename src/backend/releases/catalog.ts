@@ -20,7 +20,7 @@ import {
   catalogUpdateProblem,
   releaseUpdateProblem
 } from 'common/releaseValidation'
-import { parseResilient, obscuraReleasePage } from './engines'
+import { parseResilient, obscuraReleasePage, scraplingReleasePage, isChallengeHtml } from './engines'
 import {
   collectReleasePage,
   sourceAccessBlocked,
@@ -28,6 +28,43 @@ import {
 } from './collector'
 
 const ORIGIN = 'https://www.releases.com'
+const ALLOWED_HOSTS = [
+  'www.releases.com',
+  'releases.com',
+  'cdn.releases.com',
+  'challenges.cloudflare.com',
+  'cloudflare.com',
+  'static.cloudflareinsights.com'
+]
+
+function checkChallengeHtml(html: unknown): boolean {
+  if (typeof isChallengeHtml === 'function' && isChallengeHtml !== (checkChallengeHtml as unknown)) {
+    try {
+      return isChallengeHtml(html)
+    } catch {}
+  }
+  if (typeof html !== 'string' || !html) return false
+  const head = html.slice(0, 40000)
+  const isChallenged =
+    /Checking your browser|Just a moment|Um momento|Verify you are human|Verifique se voc|cf-chl|challenges\.cloudflare\.com|challenge-platform/i.test(
+      head
+    )
+  if (!isChallenged) return false
+  const hasRealContent =
+    html.includes('RWPC-CalendarItems') ||
+    html.includes('RWP-Calendar-Group') ||
+    html.includes('RWPC-Nav-MainMenuView') ||
+    html.includes('RWP-Search-SearchResultView') ||
+    html.includes('RWP-Product-MainInfoView') ||
+    html.includes('RWP-Hot-Group')
+  return !hasRealContent
+}
+
+function isAllowedHost(hostname: string): boolean {
+  return ALLOWED_HOSTS.some(
+    (domain) => hostname === domain || hostname.endsWith('.' + domain)
+  )
+}
 const months = [
   'jan',
   'feb',
@@ -44,7 +81,7 @@ const months = [
 ]
 let queue: Promise<unknown> = Promise.resolve()
 const sourceSessionsReady = new Set<ReleaseRegion>()
-function getSourceSession(region: ReleaseRegion = 'us') {
+export function getSourceSession(region: ReleaseRegion = 'us') {
   const result = session.fromPartition(
     `persist:ghost-release-catalog-${region}`
   )
@@ -55,35 +92,63 @@ function getSourceSession(region: ReleaseRegion = 'us') {
       callback(false)
     )
     result.webRequest.onBeforeRequest((details, callback) => {
-      const url = new URL(details.url)
-      const isCloudflare = [
-        'challenges.cloudflare.com',
-        'cloudflare.com',
-        'static.cloudflareinsights.com'
-      ].some(
-        (domain) =>
-          url.hostname === domain || url.hostname.endsWith('.' + domain)
-      )
-      const source =
-        [
-          'www.releases.com',
-          'releases.com',
-          'cdn.releases.com'
-        ].includes(url.hostname) || isCloudflare
-      const jquery =
-        url.origin === 'https://ajax.aspnetcdn.com' &&
-        url.pathname === '/ajax/jQuery/jquery-3.7.1.min.js' &&
-        details.resourceType === 'script'
-      const isMediaOrFont = ['media', 'font'].includes(details.resourceType)
-      const isBlockedImage =
-        !isCloudflare &&
-        details.resourceType === 'image' &&
-        !url.hostname.includes('cdn.releases.com') &&
-        !url.pathname.includes('/challenge-platform/')
-      callback({
-        cancel: (!source && !jquery) || isMediaOrFont || isBlockedImage
-      })
+      try {
+        const url = new URL(details.url)
+        const isCloudflare = [
+          'challenges.cloudflare.com',
+          'cloudflare.com',
+          'static.cloudflareinsights.com'
+        ].some(
+          (domain) =>
+            url.hostname === domain || url.hostname.endsWith('.' + domain)
+        )
+        const source = isAllowedHost(url.hostname)
+        const jquery =
+          url.origin === 'https://ajax.aspnetcdn.com' &&
+          url.pathname === '/ajax/jQuery/jquery-3.7.1.min.js' &&
+          details.resourceType === 'script'
+        const isMediaOrFont = ['media', 'font'].includes(details.resourceType)
+        const isBlockedImage =
+          !isCloudflare &&
+          details.resourceType === 'image' &&
+          !url.hostname.includes('cdn.releases.com') &&
+          !url.pathname.includes('/challenge-platform/')
+        callback({
+          cancel: (!source && !jquery) || isMediaOrFont || isBlockedImage
+        })
+      } catch {
+        callback({ cancel: false })
+      }
     })
+
+    result.webRequest?.onBeforeSendHeaders?.((details, callback) => {
+      try {
+        const requestHeaders = { ...details.requestHeaders }
+        const url = new URL(details.url)
+        if (
+          url.hostname === 'releases.com' ||
+          url.hostname.endsWith('.releases.com')
+        ) {
+          if (
+            details.method !== 'POST' &&
+            !url.pathname.includes('/challenge-platform/')
+          ) {
+            delete requestHeaders['Origin']
+            delete requestHeaders['origin']
+          } else if (!requestHeaders['Origin'] && !requestHeaders['origin']) {
+            requestHeaders['Origin'] = 'https://www.releases.com'
+          }
+          delete requestHeaders['referer']
+          delete requestHeaders['Referer']
+          requestHeaders['Referer'] = 'https://www.releases.com/'
+          requestHeaders['sec-ch-ua-platform'] = '"Windows"'
+        }
+        callback({ requestHeaders })
+      } catch {
+        callback({ requestHeaders: details.requestHeaders })
+      }
+    })
+
     sourceSessionsReady.add(region)
   }
   return result
@@ -230,6 +295,7 @@ export function catalogUrl(query: ReleaseQuery): string {
  * The source may refuse access; challenges are reported, never solved here.
  */
 async function readSource(url: string, query?: ReleaseQuery): Promise<string> {
+  const normalizedUrl = url === ORIGIN ? `${ORIGIN}/` : url
   const run = async () => {
     const sourceWindow = new BrowserWindow({
       show: false,
@@ -246,39 +312,73 @@ async function readSource(url: string, query?: ReleaseQuery): Promise<string> {
     })
     sourceWindow.webContents.setAudioMuted(true)
     sourceWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    const guard = (event: Electron.Event, target: string) => {
+    const guard = (
+      event: Electron.Event,
+      target: string,
+      isMainFrame = true
+    ) => {
+      // Subframes, ad partners or telemetry redirects must never cancel the main navigation
+      if (!isMainFrame) return
       try {
         const targetUrl = new URL(target)
-        const isAllowedOrigin =
-          targetUrl.origin === ORIGIN ||
-          targetUrl.hostname === 'challenges.cloudflare.com' ||
-          targetUrl.hostname.endsWith('.cloudflare.com')
-        if (!isAllowedOrigin) event.preventDefault()
+        if (!isAllowedHost(targetUrl.hostname)) {
+          event.preventDefault()
+        }
       } catch {
         event.preventDefault()
       }
     }
-    sourceWindow.webContents.on('will-navigate', guard)
-    sourceWindow.webContents.on('will-redirect', guard)
+    sourceWindow.webContents.on('will-navigate', (event, target) => {
+      guard(event, target, true)
+    })
+    sourceWindow.webContents.on(
+      'will-redirect',
+      (event, target, _isInPlace, isMainFrame) => {
+        guard(event, target, isMainFrame)
+      }
+    )
     const deadline = setTimeout(() => {
       if (!sourceWindow.isDestroyed()) sourceWindow.destroy()
     }, 30000)
     try {
-      await sourceWindow.loadURL(url)
-      for (let attempt = 0; attempt < 24; attempt++) {
+      let loaded = false
+      let lastLoadError: unknown = null
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const title = (await sourceWindow.webContents.executeJavaScript(
-            'document.title'
-          )) as string
-          const isChallenge =
-            /Just a moment|Um momento|Verify you are human|Verifique se voc|Checking your browser|Cloudflare/i.test(
-              title
-            )
-          if (!isChallenge) break
+          if (attempt > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+          }
+          if (sourceWindow.isDestroyed()) break
+          await sourceWindow.loadURL(normalizedUrl)
+          loaded = true
+          break
+        } catch (loadErr) {
+          lastLoadError = loadErr
+          if (sourceWindow.isDestroyed()) break
+        }
+      }
+      if (!loaded && lastLoadError) {
+        throw lastLoadError
+      }
+      for (let attempt = 0; attempt < 36; attempt++) {
+        try {
+          const status = (await sourceWindow.webContents.executeJavaScript(
+            '(() => {' +
+              'const title = document.title || "";' +
+              'const html = document.documentElement?.outerHTML?.slice(0, 40000) || "";' +
+              'const hasRealContent = Boolean(document.querySelector(".RWP-Calendar-Group, .RWPC-CalendarItems-CardControl, .RWPC-Nav-MainMenuView, .RWP-Search-SearchResultView, .RWP-Hot-Group, .RWPC-ProductDetail-Header"));' +
+              'const isChallenge = /Just a moment|Um momento|Verify you are human|Verifique se voc|Checking your browser|Cloudflare|cf-chl|challenges\\.cloudflare\\.com|challenge-platform/i.test(title + " " + html);' +
+              'return { hasRealContent, isChallenge };' +
+            '})()'
+          )) as { hasRealContent?: boolean; isChallenge?: boolean }
+          if (!status || typeof status !== "object") break
+          const s = status as { hasRealContent?: boolean; isChallenge?: boolean }
+          if (s.hasRealContent) break
+          if (!s.isChallenge && attempt >= 3) break
         } catch {
           if (sourceWindow.isDestroyed()) break
         }
-        await new Promise((resolve) => setTimeout(resolve, 350))
+        await new Promise((resolve) => setTimeout(resolve, 400))
       }
       await syncReleaseCookiesToDefaultSession(query?.region || 'us').catch(() => {})
       if (query?.region && !query.cursor) {
@@ -331,11 +431,7 @@ async function readSource(url: string, query?: ReleaseQuery): Promise<string> {
       )) as string
       if (html.length > 8 * 1024 * 1024)
         throw new Error('A resposta da fonte excedeu o tamanho permitido.')
-      if (
-        /Checking your browser|Just a moment|Um momento|Verify you are human|Verifique se voc|cf-chl|challenges\.cloudflare\.com|challenge-platform/i.test(
-          html.slice(0, 40000)
-        )
-      )
+      if (checkChallengeHtml(html))
         throw new Error(
           'O Releases.com está exigindo verificação no site. Seus monitorados continuam disponíveis.'
         )
@@ -368,8 +464,10 @@ async function sourceOrAlternative(
     return await readSource(url, query)
   } catch (error) {
     if (query?.search) throw error
-    const alternative = await obscuraReleasePage(url).catch(() => undefined)
-    if (alternative) return alternative
+    const alternative =
+      (await obscuraReleasePage(url).catch(() => undefined)) ||
+      (await Promise.resolve(scraplingReleasePage?.(url)).catch(() => undefined))
+    if (alternative && !checkChallengeHtml(alternative)) return alternative
     throw error
   }
 }
@@ -465,13 +563,71 @@ export async function getReleaseCatalog(
       })
     return collectionWarning ? { ...result, collectionWarning } : result
   } catch (error) {
+    if (query.collector && query.collector !== 'electron') {
+      try {
+        const fallbackCatalog = await getReleaseCatalog({
+          ...query,
+          collector: 'electron'
+        })
+        return {
+          ...fallbackCatalog,
+          warning:
+            (query.collector === 'scrapling' ? 'Scrapling' : 'Obscura') +
+            ' encontrou verificação da fonte. Lançamentos carregados via navegador integrado.'
+        }
+      } catch {}
+    }
     if (saved)
       return {
         ...saved.value,
         stale: true,
         warning: savedWarning(saved.at, error)
       }
-    throw error
+    const fallbackSaved =
+      (await archive.get<ReleaseCatalog>(
+        'catalog',
+        JSON.stringify([ORIGIN + '/calendar', '', query.region || 'us'])
+      )) ||
+      (await archive.get<ReleaseCatalog>(
+        'catalog',
+        JSON.stringify([
+          catalogUrl({ ...query, search: undefined }),
+          '',
+          query.region || 'us'
+        ])
+      ))
+    if (fallbackSaved) {
+      return {
+        ...fallbackSaved.value,
+        stale: true,
+        warning:
+          'Não foi possível atualizar a fonte em tempo real. Exibindo lançamentos salvos anteriormente.'
+      }
+    }
+    try {
+      const anyCatalog = (await archive.export()).records
+        .filter((r) => r.kind === 'catalog' && r.revisions?.length)
+        .sort((a, b) => b.revisions[0].at - a.revisions[0].at)[0]
+      if (anyCatalog) {
+        const fallback = anyCatalog.revisions[0]
+        return {
+          ...(fallback.value as ReleaseCatalog),
+          stale: true,
+          warning:
+            'A fonte exige verificação de acesso. Exibindo lançamentos salvos anteriormente.'
+        }
+      }
+    } catch {}
+    const cleanError =
+      error instanceof Error
+        ? error.message
+            .replace(
+              /ERR_FAILED \(-2\) loading .*/,
+              'Falha de conexão com a fonte (ERR_FAILED). Tente novamente.'
+            )
+            .replace(/^Error:\s*/, '')
+        : 'A fonte não respondeu.'
+    throw new Error(cleanError)
   }
 }
 
@@ -515,8 +671,10 @@ export async function getReleaseDetails(
           const domHtml = await readSource(url)
           if (domHtml) return domHtml
         } catch {}
-        const alternative = await obscuraReleasePage(url).catch(() => undefined)
-        if (alternative) return alternative
+        const alternative =
+          (await obscuraReleasePage(url).catch(() => undefined)) ||
+          (await Promise.resolve(scraplingReleasePage?.(url)).catch(() => undefined))
+        if (alternative && !checkChallengeHtml(alternative)) return alternative
         throw error
       }
     }

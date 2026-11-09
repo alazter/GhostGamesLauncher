@@ -51,7 +51,8 @@ jest.mock('../engines', () => ({
     parse: (html: string) => unknown
   ) => parse(html),
   obscuraReleasePage: async () => undefined,
-  scraplingReleasePage: (url: string) => mockScraplingPage(url)
+  scraplingReleasePage: (url: string) => mockScraplingPage(url),
+  isChallengeHtml: jest.fn(() => false)
 }))
 
 const root = resolve('build/release-source-tests')

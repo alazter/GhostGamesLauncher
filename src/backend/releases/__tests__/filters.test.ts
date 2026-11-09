@@ -3,7 +3,8 @@ import { catalogUrl } from '../catalog'
 jest.mock('electron', () => ({ BrowserWindow: jest.fn(), session: {} }))
 jest.mock('../engines', () => ({
   parseResilient: jest.fn(),
-  obscuraReleasePage: jest.fn()
+  obscuraReleasePage: jest.fn(),
+  isChallengeHtml: jest.fn(() => false)
 }))
 
 it('combines several source version filters, a genre and the selected date', () => {

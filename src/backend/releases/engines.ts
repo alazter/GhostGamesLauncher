@@ -1,3 +1,21 @@
+export function isChallengeHtml(html: unknown): boolean {
+  if (typeof html !== 'string' || !html) return false
+  const head = html.slice(0, 40000)
+  const isChallenged =
+    /Checking your browser|Just a moment|Um momento|Verify you are human|Verifique se voc|cf-chl|challenges\.cloudflare\.com|challenge-platform/i.test(
+      head
+    )
+  if (!isChallenged) return false
+  const hasRealContent =
+    html.includes('RWPC-CalendarItems') ||
+    html.includes('RWP-Calendar-Group') ||
+    html.includes('RWPC-Nav-MainMenuView') ||
+    html.includes('RWP-Search-SearchResultView') ||
+    html.includes('RWP-Product-MainInfoView') ||
+    html.includes('RWP-Hot-Group')
+  return !hasRealContent
+}
+
 import { createHash } from 'crypto'
 import { withSourceEngine } from '../plugins/sourceEngines'
 import { engineProcess } from '../plugins/engineProcess'
@@ -80,17 +98,26 @@ export async function obscuraReleasePage(
 ): Promise<string | undefined> {
   const target = releasePageUrl(url)
   // Honors the existing disabled-by-default Obscura setting and domain-limited proxy.
-  return experimentalPage(target.href, manifest)
+  const html = await experimentalPage(target.href, manifest)
+  if (html && isChallengeHtml(html)) {
+    throw new Error('A fonte exige verificação no navegador.')
+  }
+  return html
 }
 
 function releasePageUrl(url: string): URL {
   const target = new URL(url)
   if (
-    target.origin !== 'https://www.releases.com' ||
+    (target.origin !== 'https://www.releases.com' &&
+      target.origin !== 'https://releases.com') ||
     target.username ||
     target.password ||
-    !/^\/(?:calendar(?:\/|$)|hot(?:\/|$)|partial\/Releases\.Www\.PL\.(?:Product\.Index|Calendar\.Group)$)/.test(
-      target.pathname
+    !(
+      target.pathname === '/' ||
+      target.pathname === '' ||
+      /^\/(?:calendar(?:\/|$)|hot(?:\/|$)|partial\/Releases\.Www\.PL\.(?:Product\.Index|Calendar\.Group)$)/.test(
+        target.pathname
+      )
     )
   )
     throw new Error('Endereço não permitido para o coletor alternativo.')
@@ -149,6 +176,8 @@ export async function scraplingReleasePage(
         result.html.length > 8 * 1024 * 1024
       )
         throw new Error('Documento inválido do coletor Scrapling.')
+      if (isChallengeHtml(result.html))
+        throw new Error('A fonte exige verificação no navegador.')
       return result.html
     } finally {
       proxy.close()
@@ -162,9 +191,7 @@ export async function parseResilient<T>(
   identity: string,
   parse: (html: string) => T
 ): Promise<T> {
-  if (
-    /Checking your browser|Just a moment|Um momento|Verify you are human|Verifique se voc|cf-chl|challenges\.cloudflare\.com|challenge-platform/i.test(html.slice(0, 40000))
-  )
+  if (isChallengeHtml(html))
     throw new Error(
       'A fonte exige verificação; os dados salvos foram preservados.'
     )

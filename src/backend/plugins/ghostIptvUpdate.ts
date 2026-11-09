@@ -833,6 +833,9 @@ function writeUpdatedManifest(
     '*.m3u8',
     '*.ts',
     '*.playerembcanais.com',
+    '*.playerembedcanais.site',
+    '*.cdn8embed.xyz',
+    '*.cdn10embed.xyz',
     'meufutebol.oneplayhd.com'
   ]
 

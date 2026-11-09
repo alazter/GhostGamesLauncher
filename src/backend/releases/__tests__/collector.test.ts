@@ -1,6 +1,7 @@
 jest.mock('../engines', () => ({
   obscuraReleasePage: jest.fn(),
-  scraplingReleasePage: jest.fn()
+  scraplingReleasePage: jest.fn(),
+  isChallengeHtml: jest.fn((html: string) => /challenge/i.test(html))
 }))
 import { obscuraReleasePage, scraplingReleasePage } from '../engines'
 import { collectReleasePage, validateReleaseCollector } from '../collector'

@@ -251,8 +251,20 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     const isReleases =
       realUrl.includes('releases.com') || realUrl.includes('cdn.releases.com')
     if (isReleases) {
+      delete forwardHeaders['Origin']
+      delete forwardHeaders['origin']
       forwardHeaders['referer'] = 'https://www.releases.com/'
       forwardHeaders['sec-ch-ua-platform'] = '"Windows"'
+      try {
+        const { getSourceSession } = await import('./releases/catalog')
+        const ses = getSourceSession('us')
+        const cookies = await ses.cookies.get({ domain: 'releases.com' })
+        if (cookies.length) {
+          forwardHeaders['cookie'] = cookies
+            .map((c) => `${c.name}=${c.value}`)
+            .join('; ')
+        }
+      } catch {}
     }
 
     let response = await net
@@ -265,10 +277,19 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
 
     if (!response.ok && response.status === 403 && isReleases) {
       try {
-        const { ensureReleaseClearance } = await import(
+        const { ensureReleaseClearance, getSourceSession } = await import(
           './releases/catalog'
         )
         await ensureReleaseClearance('us', true)
+        const ses = getSourceSession('us')
+        const cookies = await ses.cookies.get({ domain: 'releases.com' })
+        if (cookies.length) {
+          forwardHeaders['cookie'] = cookies
+            .map((c) => `${c.name}=${c.value}`)
+            .join('; ')
+        }
+        delete forwardHeaders['Origin']
+        delete forwardHeaders['origin']
         forwardHeaders['referer'] = 'https://www.releases.com/'
         forwardHeaders['sec-ch-ua-platform'] = '"Windows"'
         response = await net.fetch(realUrl, {

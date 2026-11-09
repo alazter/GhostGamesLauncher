@@ -486,7 +486,7 @@ export default function NativeReleases() {
       void window.api
         .releasesProduct(id, prefs.region, prefs.collector)
         .then(setSelected)
-        .catch((error) => setError(String(error)))
+        .catch((error) => setError(String(error).replace(/^Error:\s*/, '').replace(/Error invoking remote method '[^']+':\s*(Error:\s*)?/, '')))
   }, [location.key])
 
   useEffect(() => {
@@ -536,8 +536,13 @@ export default function NativeReleases() {
         setCatalog(result)
       })
       .catch((error) => {
-        if (generation.current === current)
-          setError(String(error).replace(/^Error: /, ''))
+        if (generation.current === current) {
+          const raw = String(error)
+          const formatted = raw
+            .replace(/^Error:\s*/, '')
+            .replace(/Error invoking remote method '[^']+':\s*(Error:\s*)?/, '')
+          setError(formatted)
+        }
       })
       .finally(() => {
         if (generation.current === current) setBusy(false)
@@ -827,7 +832,11 @@ export default function NativeReleases() {
       } catch (error) {
         if (current === generation.current) {
           setFailedPageDirection(direction)
-          setError(String(error).replace(/^Error: /, ''))
+          const raw = String(error)
+          const formatted = raw
+            .replace(/^Error:\s*/, '')
+            .replace(/Error invoking remote method '[^']+':\s*(Error:\s*)?/, '')
+          setError(formatted)
         }
       } finally {
         if (current === generation.current) {
@@ -1377,12 +1386,10 @@ export default function NativeReleases() {
                                         }}
                                         onError={(event) => {
                                           const img = event.currentTarget
-                                          img.style.opacity = '0'
-                                          img.style.display = 'none'
                                           const retries = Number(
                                             img.dataset.retryCount || '0'
                                           )
-                                          if (retries < 3) {
+                                          if (retries < 4) {
                                             img.dataset.retryCount = String(
                                               retries + 1
                                             )
@@ -1390,10 +1397,12 @@ export default function NativeReleases() {
                                               const originalSrc =
                                                 releaseImageUrl(product.image)
                                               if (originalSrc) {
-                                                img.style.display = 'block'
                                                 img.src = `${originalSrc}${originalSrc.includes('?') ? '&' : '?'}retry=${Date.now()}`
                                               }
-                                            }, 1500 * (retries + 1))
+                                            }, 1200 * (retries + 1))
+                                          } else {
+                                            img.style.opacity = '0'
+                                            img.style.display = 'none'
                                           }
                                         }}
                                       />

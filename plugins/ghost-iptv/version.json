@@ -1,19 +1,17 @@
 {
   "app_name": "Ghost IPTV",
-  "version": "2.4.8",
-  "build_number": 248,
-  "release_date": "2026-11-07",
+  "version": "2.5.0",
+  "build_number": 250,
+  "release_date": "2026-11-09",
   "channel": "stable",
   "repository": "alazter/ghost-iptv",
   "private_repo": true,
   "apk_url": "/ghost-iptv.apk",
   "changelog": [
-    "Sincronizacao continua e aprimoramento do fluxo de entrega para Android TV e PC Launcher",
-    "Preservacao inteligente dos escudos de clubes (Futebol e NBA) e logo oficial da Formula 1 em eventos de classificacao e corrida",
-    "Motor hibrido de EPG 24/7 automatizado (API JSON ClaroTV + MeuGuia + geracao XMLTV -0300 real)",
-    "Rolagem dinamica de texto (Marquee) automatica para titulos e descricoes longas no Guia EPG, Grade Inicial e InfoBar",
-    "InfoBar refatorada com logo do canal ampliado, rotulos inteligentes (A Seguir / Encerrado) e efeito glass original restaurado",
-    "Controles de volume com slider exclusivo no player de video e alternancia de proporcao de tela (Aspect Ratio 16:9 / Esticado)",
-    "Divisor redimensionavel (drag-to-resize) na lista de canais e ocultamento automatico do OSD apos 10s de inatividade"
+    "Atualizacao dos endpoints de CDN rotacionados para cdn8embed.xyz e novos cabecalhos de transmissao playerembedcanais.site",
+    "Restauracao e estabilizacao do streaming ao vivo de todos os 68 canais no PC e Android TV",
+    "Gaveta retratil lateral de canais em Tela Cheia e Picture-in-Picture (PiP) para PC",
+    "Sincronizacao automatica da grade EPG 24/7 e persistencia de canais",
+    "Compilacao e assinatura oficial do APK v2.5.0 para Android TV / TV Box / Fire TV Stick"
   ]
 }

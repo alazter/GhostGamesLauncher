@@ -10,6 +10,12 @@ export function releaseImageUrl(
   }
   try {
     const url = new URL(clean, 'https://www.releases.com')
+    if (
+      url.hostname === 'cdn.releases.com' ||
+      url.hostname === 'www.releases.com'
+    ) {
+      return `imagecache://localhost/${encodeURIComponent(url.href)}`
+    }
     return url.href
   } catch {
     return clean

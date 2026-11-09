@@ -9,7 +9,7 @@ import { engineVersionGt } from './enginePolicy'
 const DEFAULT_PORT = 8888
 const DEFAULT_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0'
-const DEFAULT_REF = 'https://2910.playerembcanais.com'
+const DEFAULT_REF = 'https://playerembedcanais.site'
 const LOCAL_DEV_ROOT =
   'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\Ghost IPTV'
 const LOCAL_DEV_FALLBACK_ROOT =
@@ -338,6 +338,12 @@ function proxyM3u8(
   customHeaders?: { ua?: string; referer?: string; origin?: string }
 ): void {
   try {
+    if (targetUrl.includes('cdn10embed.xyz')) {
+      targetUrl = targetUrl.replace(
+        'd1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz',
+        'd1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz'
+      )
+    }
     const parsed = new URL(targetUrl)
     const options: https.RequestOptions = {
       protocol: parsed.protocol,
@@ -456,6 +462,12 @@ function proxyM3u8(
 
 function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
   try {
+    if (targetUrl.includes('cdn10embed.xyz')) {
+      targetUrl = targetUrl.replace(
+        'd1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz',
+        'd1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz'
+      )
+    }
     const parsed = new URL(targetUrl)
     const options: https.RequestOptions = {
       protocol: parsed.protocol,
@@ -615,7 +627,7 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
             const cachedChannel = resolveChannelStreamFromCache(webDir, rawId)
             const targetUrl =
               cachedChannel?.url ||
-              `https://d1-ywppjexvlyulasvmgzjdftfjikth2210oq80soveui6lkbi2iza2zf.cdn10embed.xyz/${rawId}/index.m3u8`
+              `https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/${rawId}/index.m3u8`
             proxyM3u8(targetUrl, baseUrl, res, cachedChannel || undefined)
             return
           }

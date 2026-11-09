@@ -846,12 +846,15 @@ export async function withSourceEngine<T>(
     await mkdir(data, { recursive: true })
     return await run(join(directory(release), release.executable), data)
   } catch (error) {
-    messages[id] =
-      'A operação do motor falhou. O navegador padrão continua disponível.'
     // A website failure must not roll back a healthy motor. A failed self-test does.
     try {
       await smoke(release, directory(release))
+      if (!messages[id] || messages[id].includes('falhou')) {
+        messages[id] = 'A versão instalada está íntegra.'
+      }
     } catch {
+      messages[id] =
+        'A instalação falhou na verificação. Reinstale ou restaure uma versão.'
       try {
         await restore(id, true)
       } catch {

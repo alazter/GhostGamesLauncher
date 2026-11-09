@@ -1,4 +1,4 @@
-# Review das Alterações - 07/11/2026
+# Review das Alterações - 09/11/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -841,6 +841,23 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Auditoria do Sistema de Auto-Update e Botão Manual no Cabeçalho do ChangelogModal (`ChangelogModal/index.tsx`, `ChangelogModal/index.scss`, `HeroicVersion/index.tsx`, `main.ts`, `ipc.ts`, Conquista 249)**: Auditoria comprovou que o auto-update do Ghost está 100% íntegro (ocorrência isolada no amigo por flag `checkForUpdatesOnStartup: false` no `config.json` local dele); introduzido canal IPC `getLatestReleases(force?: boolean)` ignorando a flag de desativação na chamada manual; criado botão interativo `[🔄 Verificar Atualização]` no cabeçalho do `ChangelogModal` ao lado de `👻 Ghost v0.4.0-beta`, acionando a busca de releases no GitHub e transicionando fluidamente para o `UpdatePopupModal` ou confirmando `✓ Versão Atualizada`.
   - **Qualidade, Testes e Estabilidade**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 6/6 novos testes unitários Jest aprovados em `ghostIptvUpdate.test.ts`, compilação `electron-vite build` sincronizada e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
 
+### 57. Resolução Definitiva de Desafios Turnstile e Falhas de Rede no Releases.com, Proxy Seguro de Imagens com Cookies de Sessão e Resiliência Multi-motor
+* **Problema:** Usuários enfrentavam erros recorrentes na tela de Lançamentos: `ERR_FAILED (-2)` ao carregar páginas devido ao bloqueio estrito de redirecionamentos em `guard`; interrupções prematuras do loop de espera do Cloudflare Turnstile com erro `A fonte exige verificação; os dados salvos foram preservados`; remoção indiscriminada do cabeçalho `Origin` em requisições POST do Turnstile causando loop de verificação infinito de 14.4s; e falha no carregamento de capas (`cdn.releases.com`) no renderer por ausência de cookies de sessão (`cf_clearance`), resultando em cartões roxos vazios.
+* **Solução:**
+  - **Preservação Obrigatória de `Origin` para o Turnstile (`catalog.ts`, `main.ts`, Conquista 253)**: O interceptor `onBeforeSendHeaders` agora preserva e garante estritamente `Origin: https://www.releases.com` em métodos POST e rotas de desafio (`/challenge-platform/`), permitindo que a verificação automática do Turnstile seja concluída com sucesso em apenas 3 segundos com aquisição de `cf_clearance`.
+  - **Proxy de Imagens com Injeção de Cookies de Sessão (`images_cache.ts`, `releaseMedia.ts`, Conquista 253)**: O protocolo `imagecache://` consulta os cookies persistentes da partição do coletor (`persist:ghost-release-catalog-us`) e injeta `Cookie: cf_clearance=...` nas chamadas `net.fetch`, gravando capas em disco na pasta `images-cache/` para renderização instantânea (0ms) e suporte offline, com retentativa via `ensureReleaseClearance` se houver 403.
+  - **Detecção de Conteúdo no DOM e Loop Anti-Falso-Positivo (`catalog.ts`, Conquista 252)**: Nova lógica em `isChallengeHtml` valida se o DOM contém marcadores de desafio e confirma a ausência de elementos reais do catálogo (`.RWPC-CalendarItems`, etc.), evitando confusão com telemetria; loop em `readSource` aguarda ativamente a resolução do desafio e encerra instantaneamente ao encontrar elementos reais.
+  - **Blindagem de Redirecionamentos e Validação de Hostnames (`catalog.ts`, Conquista 251)**: `guard` reformulado para não interromper subframes e autorizar a malha de hostnames da infraestrutura (`releases.com`, `www.releases.com`, `cdn.releases.com`, `challenges.cloudflare.com`), eliminando `ERR_FAILED (-2)`.
+  - **Fallback Transparente Multi-motor e Cache de Segurança (`engines.ts`, `NativeReleases.tsx`, Conquistas 251 e 252)**: Fallback em cascata `readSource` -> `obscuraReleasePage` -> `scraplingReleasePage`; recuperação de catálogos salvos em disco em caso de offline; e higienização completa de prefixos crus de IPC (`Error invoking remote method...`) no frontend.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 24/24 suítes e 158/158 testes unitários Jest aprovados em `src/backend/releases/`, compilação `electron-vite build` e Regra Canônica 62 rigorosamente preservada.
+
+### 58. Resolução de Alerta Fantasma no Card do Scrapling via Autoteste de Resiliência e Pílula Semântica de Status
+* **Problema:** O card do motor Scrapling v0.5.1 na tela de Plugins exibia paradoxalmente uma mensagem de aviso/erro (*"A operação do motor falhou. O navegador padrão continua disponível."*) com uma pílula verde com tique de sucesso (`faCheckCircle`), mesmo quando o executável do Scrapling estava 100% íntegro e funcional (a falha temporária era de uma requisição externa a um site com Turnstile, mas a mensagem em memória ficava travada sem ser limpa).
+* **Solução:**
+  - **Autoteste de Resiliência em `withSourceEngine` (`sourceEngines.ts`, Conquista 254)**: Ao capturar erro de requisição externa, o backend executa o autoteste `smoke`. Confirmando que o executável continua perfeito, restaura o status `messages[id] = 'A versão instalada está íntegra.'`, evitando poluição indevida do card com falhas externas de terceiros.
+  - **Pílula Semântica de Status no Frontend (`SourceEnginesPanel.tsx`, `index.scss`, Conquista 254)**: A pílula de status agora adota dinamicamente ícone e cor correspondentes ao estado real: âmbar com `faExclamationTriangle` para avisos/erros (`.ghost-engine-warning-pill`), ciano giratório com `faRotate` para busy (`.ghost-engine-busy-pill`), e verde com `faCheckCircle` para sucesso (`.ghost-engine-status-pill`).
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 77/77 suítes Jest aprovadas (801/801 testes em `src/backend/plugins/`), compilação `electron-vite build` e Regra Canônica 62 rigorosamente preservada.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -894,6 +911,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [plugins/ghost-iptv/version.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/version.json)
 - [MODIFY] [plugins/ghost-iptv/web/alazterflix_tv.html](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/alazterflix_tv.html)
 - [MODIFY] [plugins/ghost-iptv/web/version.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/version.json)
+- [MODIFY] [plugins/ghost-iptv/web/assets/channels_cache.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/assets/channels_cache.json)
+- [NEW] [plugins/ghost-iptv/web/assets/logos/crests/carolina_panthers.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/assets/logos/crests/carolina_panthers.png)
+- [NEW] [plugins/ghost-iptv/web/assets/logos/crests/sarmiento.png](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/ghost-iptv/web/assets/logos/crests/sarmiento.png)
 - [MODIFY] [plugins/nuvio-player-addon/plugin.json](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/plugins/nuvio-player-addon/plugin.json)
 ### Backend & Core
 - [MODIFY] [src/backend/__mocks__/electron.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__mocks__/electron.ts)
@@ -931,6 +951,7 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/plugins/onlineFixWaitNotice.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/onlineFixWaitNotice.ts)
 - [NEW] [src/backend/plugins/sourceDownloadScript.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/sourceDownloadScript.ts)
 - [MODIFY] [src/backend/releases/__tests__/catalogPersistence.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/catalogPersistence.test.ts)
+- [MODIFY] [src/backend/releases/__tests__/filters.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/filters.test.ts)
 - [MODIFY] [src/backend/releases/__tests__/engines.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/engines.test.ts)
 - [MODIFY] [src/backend/releases/__tests__/parser.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/parser.test.ts)
 - [MODIFY] [src/backend/releases/__tests__/resilience.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/releases/__tests__/resilience.test.ts)

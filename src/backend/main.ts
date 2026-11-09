@@ -550,8 +550,15 @@ if (!gotTheLock) {
             details.url.includes('cdn.releases.com') ||
             details.url.includes('releases.com')
           ) {
-            delete requestHeaders['Origin']
-            delete requestHeaders['origin']
+            if (
+              details.method !== 'POST' &&
+              !details.url.includes('/challenge-platform/')
+            ) {
+              delete requestHeaders['Origin']
+              delete requestHeaders['origin']
+            } else if (!requestHeaders['Origin'] && !requestHeaders['origin']) {
+              requestHeaders['Origin'] = 'https://www.releases.com'
+            }
             delete requestHeaders['referer']
             delete requestHeaders['Referer']
             requestHeaders['Referer'] = 'https://www.releases.com/'

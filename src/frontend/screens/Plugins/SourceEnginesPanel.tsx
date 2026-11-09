@@ -32,6 +32,31 @@ import type {
   GhostIptvUpdateState
 } from 'common/types/ghostIptvUpdate'
 
+function getEnginePillStyle(busy?: boolean, message?: string) {
+  if (busy) {
+    return {
+      className: 'ghost-engine-status-pill ghost-engine-busy-pill',
+      icon: faRotate,
+      spin: true
+    }
+  }
+  const isWarning =
+    Boolean(message) &&
+    /falhou|falha|indisponível|erro|inválid|reinstale/i.test(message || '')
+  if (isWarning) {
+    return {
+      className: 'ghost-engine-status-pill ghost-engine-warning-pill',
+      icon: faExclamationTriangle,
+      spin: false
+    }
+  }
+  return {
+    className: 'ghost-engine-status-pill',
+    icon: faCheckCircle,
+    spin: false
+  }
+}
+
 function normalizeDisplayEngine(
   engine: EngineStatus,
   upgradedInSession: boolean
@@ -531,16 +556,22 @@ export default function SourceEnginesPanel({
                 </div>
               </div>
 
-              {(nuvioState.busy || nuvioState.message) && (
-                <p role="status" className="ghost-engine-status-pill">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>
-                    {nuvioState.busy
-                      ? 'Atualizando Nuvio Addon…'
-                      : nuvioState.message}
-                  </span>
-                </p>
-              )}
+              {(nuvioState.busy || nuvioState.message) && (() => {
+                const pill = getEnginePillStyle(
+                  nuvioState.busy,
+                  nuvioState.message
+                )
+                return (
+                  <p role="status" className={pill.className}>
+                    <FontAwesomeIcon icon={pill.icon} spin={pill.spin} />
+                    <span>
+                      {nuvioState.busy
+                        ? 'Atualizando Nuvio Addon…'
+                        : nuvioState.message}
+                    </span>
+                  </p>
+                )
+              })()}
 
               <div className="ghost-plugin-card-footer">
                 {nuvioState.updateAvailable && (
@@ -694,16 +725,22 @@ export default function SourceEnginesPanel({
                 </div>
               </div>
 
-              {(ghostIptvState.busy || ghostIptvState.message) && (
-                <p role="status" className="ghost-engine-status-pill">
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  <span>
-                    {ghostIptvState.busy
-                      ? 'Consultando GitHub oficial…'
-                      : ghostIptvState.message}
-                  </span>
-                </p>
-              )}
+              {(ghostIptvState.busy || ghostIptvState.message) && (() => {
+                const pill = getEnginePillStyle(
+                  ghostIptvState.busy,
+                  ghostIptvState.message
+                )
+                return (
+                  <p role="status" className={pill.className}>
+                    <FontAwesomeIcon icon={pill.icon} spin={pill.spin} />
+                    <span>
+                      {ghostIptvState.busy
+                        ? 'Consultando GitHub oficial…'
+                        : ghostIptvState.message}
+                    </span>
+                  </p>
+                )
+              })()}
 
               <div className="ghost-plugin-card-footer">
                 {ghostIptvState.updateAvailable && (
@@ -975,14 +1012,20 @@ export default function SourceEnginesPanel({
                     A versão {engine.upstream} foi publicada pelo autor ({isScrapling ? 'D4Vinci/Scrapling' : 'h4ckf0r0day/obscura'}), mas o pacote executável isolado compatível com o Ghost ainda não foi homologado. Sua versão instalada ({engine.installed}) é a oficial mais recente homologada e está 100% ativa.                  </p>
                 )}
 
-                {(engine.busy || engine.message) && (
-                  <p role="status" className="ghost-engine-status-pill">
-                    <FontAwesomeIcon icon={faCheckCircle} />
-                    <span>
-                      {engine.busy ? 'Motor em uso. Aguarde…' : engine.message}
-                    </span>
-                  </p>
-                )}
+                {(engine.busy || engine.message) && (() => {
+                  const pill = getEnginePillStyle(
+                    engine.busy,
+                    engine.message
+                  )
+                  return (
+                    <p role="status" className={pill.className}>
+                      <FontAwesomeIcon icon={pill.icon} spin={pill.spin} />
+                      <span>
+                        {engine.busy ? 'Motor em uso. Aguarde…' : engine.message}
+                      </span>
+                    </p>
+                  )
+                })()}
 
                 <div className="ghost-plugin-card-footer">
                   {engine.updateAvailable && (

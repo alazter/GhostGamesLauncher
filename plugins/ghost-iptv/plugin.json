@@ -1,7 +1,7 @@
 {
   "id": "com.ghost.iptv",
   "name": "Ghost IPTV - Alazterflix Addon",
-  "version": "2.4.8",
+  "version": "2.5.0",
   "description": "Plugin e Addon oficial Ghost IPTV integrado ao Alazterflix e Stremio. Traz a experiência completa de TV ao Vivo para PC com conversor de Addons Stremio, EPG perpétuo e atualização automática via GitHub oficial (alazter/ghost-iptv).",
   "author": "Alazter & Ghost Labs",
   "type": "media",
@@ -32,7 +32,10 @@
     "*.m3u8",
     "*.ts",
     "*.playerembcanais.com",
-    "meufutebol.oneplayhd.com"
+    "meufutebol.oneplayhd.com",
+    "*.playerembedcanais.site",
+    "*.cdn8embed.xyz",
+    "*.cdn10embed.xyz"
   ],
   "tier": 1,
   "minGhostVersion": "0.1.0"
