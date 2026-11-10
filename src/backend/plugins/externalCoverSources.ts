@@ -1,4 +1,4 @@
-import { BrowserWindow, session } from 'electron'
+import { net } from 'electron'
 import { externalTitleGroupKey, externalTitleKey } from 'common/externalTitle'
 import {
   matchingAnkerCovers,
@@ -35,88 +35,80 @@ function cached(
   return value
 }
 
-/** Use an isolated ordinary browser session. Challenges/consent are treated as unavailable. */
+/** Lightweight HTTP cover resolution via Steam Store Search API and direct HTTP fallback (ZERO BrowserWindow overhead). */
+async function fetchGameCoverCandidates(request: ExternalCoverRequest): Promise<string[]> {
+  const cleanTitle = request.title
+    .replace(/\b(?:v\d+(?:\.\d+)*|build\s*\d+|repack|edition|deluxe|complete|online\s*fix)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  // 1. Steam Store Search API (capa vertical oficial 600x900 da biblioteca Steam via HTTP JSON, 0% CPU, sem janelas nem captchas)
+  try {
+    const steamTarget = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(cleanTitle || request.title)}&l=portuguese&cc=BR`
+    const res = await net.fetch(steamTarget, { signal: AbortSignal.timeout(3000) })
+    if (res.ok) {
+      const data = (await res.json()) as { total?: number; items?: Array<{ id: number; name: string }> }
+      if (data.items && data.items.length > 0) {
+        const reqKey = externalTitleKey(cleanTitle || request.title)
+        const match =
+          data.items.find((item) => {
+            const itemKey = externalTitleKey(item.name)
+            return itemKey === reqKey || itemKey.startsWith(reqKey) || reqKey.startsWith(itemKey)
+          }) || data.items[0]
+
+        if (match) {
+          return [
+            `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${match.id}/library_600x900.jpg`,
+            `https://cdn.cloudflare.steamstatic.com/steam/apps/${match.id}/library_600x900.jpg`,
+            `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${match.id}/header.jpg`
+          ]
+        }
+      }
+    }
+  } catch {
+    /* Fallback para HTTP direto */
+  }
+
+  // 2. HTTP direto net.fetch para Google Images (texto simples HTTP, ZERO BrowserWindow)
+  if (Date.now() >= googleUnavailableUntil) {
+    try {
+      const target = new URL('https://www.google.com/search')
+      target.search = new URLSearchParams({
+        udm: '2',
+        hl: 'pt-BR',
+        q: `"${cleanTitle || request.title}" ${request.platform === 'switch' ? 'Nintendo Switch' : 'PC'} game cover 600x900`
+      }).toString()
+
+      const res = await net.fetch(target.toString(), {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        },
+        signal: AbortSignal.timeout(3500)
+      })
+      if (!res.ok) {
+        if (res.status === 429) googleUnavailableUntil = Date.now() + 10 * 60_000
+        return []
+      }
+      const html = await res.text()
+      if (/unusual traffic|\/sorry\/|g-recaptcha/i.test(html)) {
+        googleUnavailableUntil = Date.now() + 10 * 60_000
+        return []
+      }
+      return googleCoverCandidates(html)
+    } catch {
+      /* Retorna vazio em caso de falha de rede */
+    }
+  }
+
+  return []
+}
+
 function googleImages(request: ExternalCoverRequest): Promise<string[]> {
-  if (Date.now() < googleUnavailableUntil) return Promise.resolve([])
   const queuedAt = Date.now()
   const task = queue.then(async () => {
-    if (Date.now() - queuedAt > 6000 || Date.now() < googleUnavailableUntil)
-      return []
-    const imageSession = session.fromPartition('ghost-public-cover-search')
-    imageSession.setPermissionRequestHandler(
-      (_contents, _permission, respond) => respond(false)
-    )
-    imageSession.webRequest.onBeforeRequest((details, respond) =>
-      respond({
-        cancel: ['image', 'media', 'font'].includes(details.resourceType)
-      })
-    )
-    const window = new BrowserWindow({
-      show: false,
-      width: 1000,
-      height: 700,
-      webPreferences: {
-        session: imageSession,
-        sandbox: true,
-        contextIsolation: true,
-        nodeIntegration: false
-      }
-    })
-    window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    const target = new URL('https://www.google.com/search')
-    target.search = new URLSearchParams({
-      udm: '2',
-      hl: 'pt-BR',
-      q: `"${request.title}" ${request.platform === 'switch' ? 'Nintendo Switch' : 'PC'} game cover 600x900`
-    }).toString()
-    return new Promise<string[]>((resolve) => {
-      let settled = false
-      const finish = (urls: string[]) => {
-        if (settled) return
-        settled = true
-        clearTimeout(timer)
-        if (!window.isDestroyed()) window.destroy()
-        resolve(urls)
-      }
-      const timer = setTimeout(() => finish([]), 6000)
-      window.webContents.on('will-navigate', (event, url) => {
-        if (!/^https:\/\/(?:www\.)?google\.com\/(?:search|sorry\/)/.test(url)) {
-          event.preventDefault()
-          finish([])
-        }
-      })
-      window.webContents.on('did-navigate', (_event, url) => {
-        if (url.includes('/sorry/') || url.includes('consent.google.')) {
-          googleUnavailableUntil = Date.now() + 10 * 60_000
-          finish([])
-        }
-      })
-      window.webContents.on('did-finish-load', () => {
-        void window.webContents
-          .executeJavaScript('document.documentElement.outerHTML')
-          .then((html: unknown) => {
-            if (
-              typeof html === 'string' &&
-              /unusual traffic|\/sorry\/|g-recaptcha/i.test(html)
-            )
-              googleUnavailableUntil = Date.now() + 10 * 60_000
-            finish(typeof html === 'string' ? googleCoverCandidates(html) : [])
-          })
-          .catch(() => finish([]))
-      })
-      window.on('closed', () => finish([]))
-      void window.loadURL(target.toString()).catch((error: unknown) => {
-        if (
-          !(
-            error &&
-            typeof error === 'object' &&
-            'code' in error &&
-            error.code === 'ERR_ABORTED'
-          )
-        )
-          finish([])
-      })
-    })
+    if (Date.now() - queuedAt > 6000) return []
+    return await fetchGameCoverCandidates(request)
   })
   queue = task.then(
     () => undefined,

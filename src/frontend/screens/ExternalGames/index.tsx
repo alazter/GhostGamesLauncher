@@ -1213,7 +1213,13 @@ export default function ExternalGamesScreen() {
       setBusy(false)
     })
 
+    let lastFocusTime = 0
     const onFocus = () => {
+      const now = Date.now()
+      if (now - lastFocusTime < 20000) {
+        return
+      }
+      lastFocusTime = now
       refreshLocalGames()
       void refresh()
       loadCustomStores()

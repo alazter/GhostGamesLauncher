@@ -2,6 +2,7 @@ import { useContext, useState } from 'react'
 import Info from '@mui/icons-material/Info'
 import LinkIcon from '@mui/icons-material/Link'
 import PublicIcon from '@mui/icons-material/Public'
+import SwitchAccount from '@mui/icons-material/SwitchAccount'
 import { Button, Paper, Stack, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { loginPage, sidInfoPage } from 'frontend/helpers'
@@ -15,6 +16,7 @@ interface Props {
 
 export default function SIDLogin({ backdropClick }: Props) {
   const epicLoginUrl = 'https://legendary.gl/epiclogin'
+  const epicLogoutUrl = 'https://www.epicgames.com/id/logout'
 
   const { epic } = useContext(ContextProvider)
   const { t } = useTranslation('login')
@@ -30,6 +32,10 @@ export default function SIDLogin({ backdropClick }: Props) {
   const handleCopyLink = () => {
     window.api.clipboardWriteText(epicLoginUrl)
     setLinkCopied(true)
+  }
+
+  const handleSwitchAccount = () => {
+    window.api.openExternalUrl(epicLogoutUrl)
   }
 
   const handleLogin = async (sid: string) => {
@@ -128,6 +134,24 @@ export default function SIDLogin({ backdropClick }: Props) {
               {` ${t('message.part8')}`}
             </li>
           </ol>
+          <div className="account-switch-box">
+            <div className="account-switch-header">
+              <Info fontSize="small" style={{ color: '#00d4ff', marginRight: '6px' }} />
+              <strong>Está em outra conta ou quer alternar?</strong>
+            </div>
+            <p className="account-switch-text">
+              Se o navegador abrir uma conta diferente da sua, clique abaixo para deslogar da Epic Games no navegador, ou abra o link em uma <strong>Guia Anônima</strong> para digitar o seu e-mail e senha.
+            </p>
+            <Button
+              className="icon-button switch-account-btn"
+              endIcon={<SwitchAccount fontSize="small" />}
+              onClick={handleSwitchAccount}
+              size="small"
+              variant="outlined"
+            >
+              Trocar de Conta na Epic (Desconectar Navegador)
+            </Button>
+          </div>
         </div>
         <input
           type="text"

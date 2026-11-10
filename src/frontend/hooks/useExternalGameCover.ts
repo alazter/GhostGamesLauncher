@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { matchingAnkerCovers } from 'common/externalGameCover'
+import { matchingAnkerCovers, isPublicCoverUrl } from 'common/externalGameCover'
 import type {
   ExternalCoverRequest,
   ExternalCoverResult
@@ -53,7 +53,20 @@ export function useExternalGameCover(
     [excludedKey]
   )
   const requestKey = JSON.stringify([signature, excludedUrls])
-  const immediate = matchingAnkerCovers({ ...base, excludedUrls })[0]
+
+  // 1. Prioridade máxima: Capa curada da AnkerGames (se disponível)
+  // 2. Prioridade de fallback imediato: Capa válida da própria fonte/jogo (SteamRIP, Online-Fix, NXBrew, IGDB, etc.)
+  const sourceFallbackCover = useMemo(() => {
+    if (game?.coverUrl && isPublicCoverUrl(game.coverUrl) && !excludedUrls.includes(game.coverUrl)) {
+      return game.coverUrl
+    }
+    const matchedSource = (sources || []).find(
+      (s) => s.coverUrl && isPublicCoverUrl(s.coverUrl) && !excludedUrls.includes(s.coverUrl)
+    )
+    return matchedSource?.coverUrl
+  }, [game?.coverUrl, sources, excludedUrls])
+
+  const immediate = matchingAnkerCovers({ ...base, excludedUrls })[0] || sourceFallbackCover
   const cover =
     immediate || (resolved.key === requestKey ? resolved.url : undefined)
 

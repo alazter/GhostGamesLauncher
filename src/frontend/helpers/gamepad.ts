@@ -696,9 +696,16 @@ export const initGamepad = () => {
     return isValveGamepad(gamepad) || !isMaskedGamepad(valveGamepads, gamepad)
   }
 
-  // check all the buttons and axes every frame
+  let isPollingGamepad = false
+
+  // check all the buttons and axes with a throttled 50ms interval (20 FPS)
   function updateStatus() {
-    const gamepads = navigator.getGamepads()
+    if (controllers.length === 0) {
+      isPollingGamepad = false
+      return
+    }
+
+    const gamepads = navigator.getGamepads ? navigator.getGamepads() : []
 
     controllers.forEach((index) => {
       const controller = gamepads[index]
@@ -730,7 +737,17 @@ export const initGamepad = () => {
       }
     })
 
-    requestAnimationFrame(updateStatus)
+    if (controllers.length > 0) {
+      setTimeout(() => {
+        if (controllers.length > 0) {
+          updateStatus()
+        } else {
+          isPollingGamepad = false
+        }
+      }, 50)
+    } else {
+      isPollingGamepad = false
+    }
   }
 
   // function logState(index: number) {
@@ -764,8 +781,13 @@ export const initGamepad = () => {
 
   function addgamepad(gamepad: Gamepad) {
     console.log(`Gamepad added: ${JSON.stringify(gamepad.id)}`)
-    controllers.push(gamepad.index)
-    requestAnimationFrame(updateStatus)
+    if (!controllers.includes(gamepad.index)) {
+      controllers.push(gamepad.index)
+    }
+    if (!isPollingGamepad) {
+      isPollingGamepad = true
+      updateStatus()
+    }
   }
 
   function disconnecthandler(e: GamepadEvent) {

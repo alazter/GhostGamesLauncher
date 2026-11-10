@@ -5,10 +5,10 @@ import {
   NileUserData
 } from 'common/types/nile'
 import { libraryManagerMap } from '..'
-import { existsSync, readFileSync } from 'graceful-fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'graceful-fs'
 import { configStore } from './electronStores'
 import { clearCache } from 'backend/utils'
-import { nileUserData } from './constants'
+import { nileLibrary, nileUserData } from './constants'
 import { session } from 'electron'
 
 function authLogSanitizer(line: string) {
@@ -89,13 +89,26 @@ export class NileUser {
   static async logout() {
     const commandParts = ['auth', '--logout']
 
-    const res = await libraryManagerMap['nile'].runRunnerCommand(commandParts, {
-      abortId: 'nile-logout'
-    })
+    try {
+      const res = await libraryManagerMap['nile'].runRunnerCommand(commandParts, {
+        abortId: 'nile-logout'
+      })
+      if (res.abort) {
+        logError('Failed to logout: abort by user', LogPrefix.Nile)
+      }
+    } catch (err) {
+      logError(['Failed to run nile auth --logout:', err], LogPrefix.Nile)
+    }
 
-    if (res.abort) {
-      logError('Failed to logout: abort by user', LogPrefix.Nile)
-      return
+    try {
+      if (existsSync(nileUserData)) {
+        rmSync(nileUserData, { force: true })
+      }
+      if (existsSync(nileLibrary)) {
+        writeFileSync(nileLibrary, '[]', 'utf-8')
+      }
+    } catch (err) {
+      logError(['Failed to clean nile user files:', err], LogPrefix.Nile)
     }
 
     configStore.delete('userData')

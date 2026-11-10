@@ -167,6 +167,14 @@ const applyGameOverrides = (
   overrides: Record<string, GameOverride> = currentOverrides()
 ) => attachGameOverrides(lib, overrides)
 
+const lastRunnerFetch: Record<string, number> = {
+  legendary: 0,
+  gog: 0,
+  zoom: 0,
+  steam: 0,
+  nile: 0
+}
+
 export class GlobalState extends PureComponent<Props> {
   private updateCheckRequest = 0
   private externalSnapshotRevision = 0
@@ -778,6 +786,7 @@ export class GlobalState extends PureComponent<Props> {
 
   handleSuccessfulLogin = (runner: Runner) => {
     storage.setItem('category', 'all')
+    lastRunnerFetch[runner] = 0
     this.refreshLibrary({
       runInBackground: false,
       library: runner
@@ -789,6 +798,7 @@ export class GlobalState extends PureComponent<Props> {
     const response = await window.api.login(sid)
 
     if (response.status === 'done') {
+      lastRunnerFetch['legendary'] = 0
       this.setState({
         epic: {
           library: [],
@@ -803,6 +813,7 @@ export class GlobalState extends PureComponent<Props> {
   }
 
   epicLogout = async () => {
+    lastRunnerFetch['legendary'] = 0
     this.setState({ refreshing: true })
     await window.api.logoutLegendary().finally(() => {
       this.setState({
@@ -822,6 +833,7 @@ export class GlobalState extends PureComponent<Props> {
     const response = await window.api.authGOG(token)
 
     if (response.status === 'done') {
+      lastRunnerFetch['gog'] = 0
       this.setState({
         gog: {
           library: [],
@@ -836,6 +848,7 @@ export class GlobalState extends PureComponent<Props> {
   }
 
   gogLogout = async () => {
+    lastRunnerFetch['gog'] = 0
     window.api.logoutGOG()
     this.setState({
       gog: {
@@ -852,6 +865,7 @@ export class GlobalState extends PureComponent<Props> {
     const response = await window.api.authAmazon(data)
 
     if (response.status === 'done') {
+      lastRunnerFetch['nile'] = 0
       if (response.user) {
         nileConfigStore.set('userData', response.user)
       }
@@ -870,6 +884,7 @@ export class GlobalState extends PureComponent<Props> {
   }
 
   amazonLogout = async () => {
+    lastRunnerFetch['nile'] = 0
     await window.api.logoutAmazon()
     nileConfigStore.delete('userData')
     this.setState({
@@ -1025,15 +1040,30 @@ export class GlobalState extends PureComponent<Props> {
 
     const currentLibraryLength = epic.library?.length
 
+    const shouldCheckAll = !library || library === 'all'
+    const now = Date.now()
+
     let epicLibrary = libraryStore.get('library', [])
-    if (epic.username && (!epicLibrary.length || !epic.library.length)) {
+    if (
+      (shouldCheckAll || library === 'legendary') &&
+      epic.username &&
+      (!epicLibrary.length || !epic.library.length) &&
+      now - (lastRunnerFetch['legendary'] || 0) > 60000
+    ) {
+      lastRunnerFetch['legendary'] = now
       window.api.logInfo('No cache found, getting data from legendary...')
       const { library: legendaryLibrary } = await getLegendaryConfig()
       epicLibrary = legendaryLibrary
     }
 
     let gogLibrary = this.loadGOGLibrary(overrides)
-    if (gog.username && (!gogLibrary.length || !gog.library.length)) {
+    if (
+      (shouldCheckAll || library === 'gog') &&
+      gog.username &&
+      (!gogLibrary.length || !gog.library.length) &&
+      now - (lastRunnerFetch['gog'] || 0) > 60000
+    ) {
+      lastRunnerFetch['gog'] = now
       window.api.logInfo('No cache found, getting data from gog...')
       await window.api.refreshLibrary('gog')
       gogLibrary = this.loadGOGLibrary(overrides)
@@ -1042,7 +1072,13 @@ export class GlobalState extends PureComponent<Props> {
     let zoomLibrary: GameInfo[] = []
     if (zoom.enabled) {
       zoomLibrary = this.loadZoomLibrary(overrides)
-      if (zoom.username && (!zoomLibrary.length || !zoom.library.length)) {
+      if (
+        (shouldCheckAll || library === 'zoom') &&
+        zoom.username &&
+        (!zoomLibrary.length || !zoom.library.length) &&
+        now - (lastRunnerFetch['zoom'] || 0) > 60000
+      ) {
+        lastRunnerFetch['zoom'] = now
         window.api.logInfo('No cache found, getting data from zoom...')
         await window.api.refreshLibrary('zoom')
         zoomLibrary = this.loadZoomLibrary(overrides)
@@ -1053,7 +1089,12 @@ export class GlobalState extends PureComponent<Props> {
     const isSteamLoggedIn = steamConfigStore.get('isLoggedIn', false)
     if (steam.enabled && isSteamLoggedIn) {
       steamLibrary = this.loadSteamLibrary(overrides)
-      if (!steamLibrary.length) {
+      if (
+        (shouldCheckAll || library === 'steam') &&
+        !steamLibrary.length &&
+        now - (lastRunnerFetch['steam'] || 0) > 60000
+      ) {
+        lastRunnerFetch['steam'] = now
         window.api.logInfo('No cache found, getting data from steam...')
         await window.api.refreshLibrary('steam')
         steamLibrary = this.loadSteamLibrary(overrides)
@@ -1061,10 +1102,20 @@ export class GlobalState extends PureComponent<Props> {
     }
 
     let amazonLibrary = nileLibraryStore.get('library', [])
-    if (amazon.user_id && (!amazonLibrary.length || !amazon.library.length)) {
+    if (
+      (shouldCheckAll || library === 'nile') &&
+      amazon.user_id &&
+      (!amazonLibrary.length || !amazon.library.length) &&
+      now - (lastRunnerFetch['nile'] || 0) > 60000
+    ) {
+      lastRunnerFetch['nile'] = now
       window.api.logInfo('No cache found, getting data from nile...')
-      await window.api.refreshLibrary('nile')
-      amazonLibrary = this.loadAmazonLibrary(overrides)
+      try {
+        await window.api.refreshLibrary('nile')
+        amazonLibrary = this.loadAmazonLibrary(overrides)
+      } catch (err) {
+        window.api.logError(`Nile refresh failed: ${String(err)}`)
+      }
     }
 
     const updatedSideload = deduplicateSideloadGames(sideloadLibrary.get('games', []))
@@ -1289,12 +1340,18 @@ export class GlobalState extends PureComponent<Props> {
       })
     })
 
+    let lastSteamFocusRefresh = 0
     window.addEventListener('focus', () => {
+      const now = Date.now()
+      if (now - lastSteamFocusRefresh < 30000) {
+        return
+      }
       if (
         this.state.steam.enabled &&
         this.state.steam.username &&
         steamConfigStore.get('isLoggedIn', false)
       ) {
+        lastSteamFocusRefresh = now
         this.refresh('steam')
       }
     })

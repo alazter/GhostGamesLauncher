@@ -1110,33 +1110,56 @@ addHandler('runWineCommand', async (e, args) => runWineCommand(args))
 
 /// IPC handlers begin here.
 
-addHandler('checkGameUpdates', async (): Promise<string[]> => {
-  let oldGames: string[] = []
-  const { autoUpdateGames } = GlobalConfig.get().getSettings()
-  for (const runner of Object.keys(
-    libraryManagerMap
-  ) as (keyof typeof libraryManagerMap)[]) {
-    let gamesToUpdate = await libraryManagerMap[runner].listUpdateableGames()
-    if (autoUpdateGames) {
-      gamesToUpdate = autoUpdate(runner, gamesToUpdate)
-    }
-    oldGames = [...oldGames, ...gamesToUpdate]
+let lastGameUpdatesCheck = 0
+let cachedGameUpdates: string[] = []
+let activeGameUpdatesPromise: Promise<string[]> | null = null
+const GAME_UPDATES_COOLDOWN_MS = 3 * 60 * 1000 // Cooldown de 3 minutos para proteger a CPU contra loops de CLI
+
+addHandler('checkGameUpdates', async (e, force?: boolean): Promise<string[]> => {
+  const now = Date.now()
+  if (!force && lastGameUpdatesCheck > 0 && now - lastGameUpdatesCheck < GAME_UPDATES_COOLDOWN_MS) {
+    return cachedGameUpdates
+  }
+  if (activeGameUpdatesPromise) {
+    return activeGameUpdatesPromise
   }
 
-  // Checagem de atualizações para jogos externos e sideload
-  try {
-    const { ExternalGames } = await import('./plugins/externalGames')
-    const externalInstallations = ExternalGames.getInstance().snapshot().installations
-    for (const inst of externalInstallations) {
-      if (inst.availableUpdate && inst.appName) {
-        oldGames.push(inst.appName)
+  activeGameUpdatesPromise = (async () => {
+    try {
+      let oldGames: string[] = []
+      const { autoUpdateGames } = GlobalConfig.get().getSettings()
+      for (const runner of Object.keys(
+        libraryManagerMap
+      ) as (keyof typeof libraryManagerMap)[]) {
+        let gamesToUpdate = await libraryManagerMap[runner].listUpdateableGames()
+        if (autoUpdateGames) {
+          gamesToUpdate = autoUpdate(runner, gamesToUpdate)
+        }
+        oldGames = [...oldGames, ...gamesToUpdate]
       }
-    }
-  } catch (err) {
-    logWarning(['Erro ao checar atualizações de jogos externos:', err], LogPrefix.Backend)
-  }
 
-  return oldGames
+      // Checagem de atualizações para jogos externos e sideload
+      try {
+        const { ExternalGames } = await import('./plugins/externalGames')
+        const externalInstallations = ExternalGames.getInstance().snapshot().installations
+        for (const inst of externalInstallations) {
+          if (inst.availableUpdate && inst.appName) {
+            oldGames.push(inst.appName)
+          }
+        }
+      } catch (err) {
+        logWarning(['Erro ao checar atualizações de jogos externos:', err], LogPrefix.Backend)
+      }
+
+      lastGameUpdatesCheck = Date.now()
+      cachedGameUpdates = oldGames
+      return oldGames
+    } finally {
+      activeGameUpdatesPromise = null
+    }
+  })()
+
+  return activeGameUpdatesPromise
 })
 
 addHandler('getEpicGamesStatus', async () => isEpicServiceOffline())

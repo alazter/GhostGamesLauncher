@@ -255,7 +255,7 @@ interface AsyncIPCFunctions {
   ) => Promise<{ stdout: string; stderr: string }>
   winetricksInstalled: (runner: Runner, appName: string) => Promise<string[]>
   winetricksAvailable: (runner: Runner, appName: string) => Promise<string[]>
-  checkGameUpdates: () => Promise<string[]>
+  checkGameUpdates: (force?: boolean) => Promise<string[]>
   getEpicGamesStatus: () => Promise<boolean>
   updateAll: () => Promise<({ status: 'done' | 'error' | 'abort' } | null)[]>
   getMaxCpus: () => number

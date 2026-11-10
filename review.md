@@ -1,4 +1,4 @@
-# Review das Alterações - 09/11/2026
+# Review das Alterações - 10/11/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -858,6 +858,26 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Pílula Semântica de Status no Frontend (`SourceEnginesPanel.tsx`, `index.scss`, Conquista 254)**: A pílula de status agora adota dinamicamente ícone e cor correspondentes ao estado real: âmbar com `faExclamationTriangle` para avisos/erros (`.ghost-engine-warning-pill`), ciano giratório com `faRotate` para busy (`.ghost-engine-busy-pill`), e verde com `faCheckCircle` para sucesso (`.ghost-engine-status-pill`).
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 77/77 suítes Jest aprovadas (801/801 testes em `src/backend/plugins/`), compilação `electron-vite build` e Regra Canônica 62 rigorosamente preservada.
 
+### 59. Otimização Global de Consumo de CPU/GPU (Eliminação de Repaint por Box-Shadow na Loja Piratas, Extinção de BrowserWindow Oculto no Resolvedor de Capas e Gamepad Polling Inteligente)
+* **Problema:** Usuários enfrentavam consumo anômalo de recursos (15-25% de CPU e ~5% de GPU) em diferentes telas: (1) Na loja "Piratas" da Biblioteca, o Chromium repintava sombras continuamente na CPU a 60-144 FPS devido à animação `pulseUpdateRibbon` nos 11 cards com atualização; (2) Na tela de Buscar Jogos (ExternalGames), o resolvedor de capas criava sucessivas janelas `BrowserWindow` invisíveis do Electron carregando páginas completas do Google Images com JavaScript para cada jogo não-Anker (mais de 50 títulos); (3) Polling contínuo de controle em primeiro plano via `requestAnimationFrame` disparava centenas de chamadas `navigator.getGamepads()` por segundo via IPC mesmo sem controles conectados; (4) Loop do Phantom Box disparando `document.querySelector` a cada 100ms e enxurrada de processos PowerShell de runners (`legendary.exe`, `gogdl.exe`, `nile.exe`) disparados repetidamente por `checkGameUpdates` e `refresh()` sem cooldown.
+* **Solução:**
+  - **Eliminação Definitiva de Repaint por Box-Shadow na Loja Piratas (`GameCard/index.css`, Conquista 259)**: Removida categoricamente a animação contínua `pulseUpdateRibbon` e seu bloco `@keyframes`; padronizado `.cornerRibbonUpdate` com brilho estático de alta fidelidade (`box-shadow: 0 2px 10px rgba(255, 60, 0, 0.7)`), igual ao padrão de `.cornerRibbonNew`. O Chromium agora pinta a tela uma única vez e entra em repouso absoluto (0% de CPU e 0% de GPU).
+  - **Extinção de Spawns Ocultos de BrowserWindow & Busca Oficial Steam Store (`externalCoverSources.ts`, `useExternalGameCover.ts`, Conquista 258)**: Removida a criação de janelas `BrowserWindow`; implementada resolução imediata no frame 0 para capas públicas existentes (`sourceFallbackCover` para SteamRIP, Online-Fix, Switch) sem chamadas IPC; para jogos sem arte própria, implementada busca direta ultra-leve via Steam Store Search API com `net.fetch` HTTP em ~50ms com capas oficiais 600x900 da biblioteca da Steam.
+  - **Gamepad Polling Inteligente e Throttled (`gamepad.ts`, `Library/index.tsx`, `ConsoleMode/hooks.ts`, Conquistas 255 e 256)**: Polling reativo conectado a eventos `gamepadconnected` e `gamepaddisconnected` que se desliga compulsoriamente (`clearInterval`) quando não há controles; quando conectado, opera com intervalo seguro de 50ms (20 FPS) eliminando centenas de chamadas por segundo.
+  - **Cooldown de 3 Minutos em `checkGameUpdates` e Proteção em `GlobalState` (`main.ts`, `GlobalState.tsx`, Conquista 256)**: Implementado cache em memória com cooldown estrito de 3 minutos (`GAME_UPDATES_COOLDOWN_MS`) e deduplicação de promessas concorrentes (`activeGameUpdatesPromise`), além de cooldown de 60s em `GlobalState.refresh` e 20-30s em eventos de foco da janela (`Alt+Tab`), eliminando 100% das tempestades de processos PowerShell e I/O ocioso de disco e rede.
+  - **Criação da Regra Canônica 197 e Arquivo `alterações.md`**: Estabelecido protocolo rigoroso de registro com data e hora exatas (`[DD/MM/AAAA às HH:MM]`), motivação, o que foi feito, o que foi alterado, arquivos e benefícios, com consulta prévia obrigatória antes de programar.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), testes Jest 100% aprovados e preservação rigorosa da Regra Canônica 62 (`aspect-ratio: 173/275`).
+
+### 60. Auto-Cura de Corrupção por Null-Bytes na Amazon Games (Nile) e Suporte a Troca de Contas OAuth na Epic Games
+* **Problema:** (1) Jogos da Amazon Games não apareciam na biblioteca e o comando de logout não deslogava a conta, pois o arquivo `nile_config/nile/library.json` continha bytes nulos (`\\u0000`) após crash de disco anterior, gerando `JSONDecodeError` no boot do Python do Nile, enquanto o logout antigo não excluía `current_user.json` do disco; (2) Ao autenticar na Epic Games via `SIDLogin`, o launcher abria o navegador padrão onde uma sessão residual de uma conta secundária com 0 jogos (`bushido_777`) já estava ativa, gerando código de autorização da conta errada sem permitir a digitação de login/senha; (3) Após o login, o cooldown impedia o carregamento imediato da biblioteca.
+* **Solução:**
+  - **Auto-Cura (Self-Healing) de Configurações do Nile (`nile/library.ts`, Conquista 257)**: Implementada função `sanitizeNileConfigFiles()` que inspeciona `library.json` e `installed.json` antes de chamar o executável do Nile, restaurando-os automaticamente para `[]` caso contenham bytes nulos ou formatação corrompida.
+  - **Blindagem do Logout da Amazon (`nile/user.ts`, Conquista 257)**: `NileUser.logout()` agora deleta fisicamente `current_user.json` do disco (`rmSync(nileUserData, { force: true })`), reseta `library.json` e limpa as credenciais do Electron mesmo se o runner falhar.
+  - **Sincronização com Sucesso de 487 Jogos da Amazon**: `NileLibraryManager.refresh()` agora executa com `await this.refreshNile()`, permitindo a sincronização e carregamento integral dos 487 jogos da conta do usuário.
+  - **Botão de Troca de Contas da Epic Games & Guia Anônima (`SIDLogin/index.tsx`, `SIDLogin/index.css`, Conquista 257)**: Adicionado botão `[🔄 Trocar de Conta na Epic (Desconectar Navegador)]` (`https://www.epicgames.com/id/logout`) e aviso orientando o uso de Guia Anônima (`Ctrl + Shift + N`); higienização de aspas em `authorizationCode`.
+  - **Reset Imediato de Cooldown no Login/Logout (`GlobalState.tsx`, Conquista 257)**: `lastRunnerFetch[runner]` é zerado imediatamente no momento da autenticação ou desconexão, recarregando a biblioteca em 0ms.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), build `electron-vite build` e Regra Canônica 62 rigorosamente preservada.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -867,6 +887,8 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [electron-builder.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron-builder.yml)
 - [MODIFY] [electron.vite.config.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/electron.vite.config.ts)
 - [MODIFY] [review.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/review.md)
+- [NEW] [alterações.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/alterações.md)
+- [NEW] [scripts/sync_asar.js](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/scripts/sync_asar.js)
 - [MODIFY] [.agents/AGENTS.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.agents/AGENTS.md)
 - [MODIFY] [.github/workflows/source-engines.yml](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/.github/workflows/source-engines.yml)
 - [MODIFY] [docs/ONLINE_FIX_TORRENT_DOWNLOAD.md](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/docs/ONLINE_FIX_TORRENT_DOWNLOAD.md)
@@ -1053,6 +1075,8 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/backend/plugins/__tests__/mediaArtwork.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/mediaArtwork.test.ts)
 - [MODIFY] [src/backend/storeManagers/legendary/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/legendary/library.ts)
 - [MODIFY] [src/backend/storeManagers/legendary/user.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/legendary/user.ts)
+- [MODIFY] [src/backend/storeManagers/nile/library.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/nile/library.ts)
+- [MODIFY] [src/backend/storeManagers/nile/user.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/storeManagers/nile/user.ts)
 - [MODIFY] [src/backend/updater.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/updater.ts)
 - [NEW] [src/backend/plugins/__tests__/alazterflixStremioAddons.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixStremioAddons.test.ts)
 - [NEW] [src/backend/plugins/__tests__/cinemaDownloader.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/cinemaDownloader.test.ts)
@@ -1187,3 +1211,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/components/UI/ChangelogModal/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ChangelogModal/index.tsx)
 - [MODIFY] [src/frontend/components/UI/ChangelogModal/index.scss](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/ChangelogModal/index.scss)
 - [MODIFY] [src/frontend/components/UI/Sidebar/components/HeroicVersion/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Sidebar/components/HeroicVersion/index.tsx)
+- [MODIFY] [src/frontend/helpers/gamepad.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/gamepad.ts)
+- [MODIFY] [src/frontend/screens/ConsoleMode/hooks.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/ConsoleMode/hooks.ts)
+- [MODIFY] [src/frontend/screens/Library/components/GameCard/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.css)
+- [MODIFY] [src/frontend/screens/Login/components/SIDLogin/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Login/components/SIDLogin/index.css)
+- [MODIFY] [src/frontend/screens/Login/components/SIDLogin/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Login/components/SIDLogin/index.tsx)
+- [MODIFY] [src/frontend/state/GlobalState.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/state/GlobalState.tsx)

@@ -124,7 +124,7 @@ export class LegendaryUser {
   public static async login(
     authorizationCode: string
   ): Promise<{ status: 'done' | 'failed'; data: UserInfo | undefined }> {
-    let cleanCode = authorizationCode.trim()
+    let cleanCode = authorizationCode.trim().replace(/^["']+|["']+$/g, '').trim()
     if (cleanCode.startsWith('{') && cleanCode.includes('authorizationCode')) {
       try {
         const parsed = JSON.parse(cleanCode)

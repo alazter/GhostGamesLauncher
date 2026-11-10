@@ -27,6 +27,31 @@ import { nileConfigPath, nileInstalled, nileLibrary } from './constants'
 import NileGame from './games'
 import type { LibraryManager } from 'common/types/game_manager'
 
+function sanitizeNileConfigFiles(): void {
+  const filesToCheck = [nileLibrary, nileInstalled]
+  for (const filePath of filesToCheck) {
+    if (!existsSync(filePath)) continue
+    try {
+      const content = readFileSync(filePath, 'utf-8')
+      if (!content.trim() || content.includes('\u0000')) {
+        logWarning(
+          `Sanitizing corrupt or null-byte Nile file: ${filePath}`,
+          LogPrefix.Nile
+        )
+        writeFileSync(filePath, '[]', 'utf-8')
+        continue
+      }
+      JSON.parse(content)
+    } catch {
+      logWarning(
+        `Sanitizing unparseable Nile JSON file: ${filePath}`,
+        LogPrefix.Nile
+      )
+      writeFileSync(filePath, '[]', 'utf-8')
+    }
+  }
+}
+
 export default class NileLibraryManager implements LibraryManager {
   private installedGames: Map<string, NileInstallMetadataInfo> = new Map()
   private library: Map<string, GameInfo> = new Map()
@@ -61,9 +86,14 @@ export default class NileLibraryManager implements LibraryManager {
     if (!existsSync(nileLibrary)) {
       return
     }
-    const libraryJSON: NileGameInfo[] = JSON.parse(
-      readFileSync(nileLibrary, 'utf-8')
-    )
+    let libraryJSON: NileGameInfo[] = []
+    try {
+      libraryJSON = JSON.parse(readFileSync(nileLibrary, 'utf-8'))
+    } catch (err) {
+      logError(['Failed to parse nile library.json:', err], LogPrefix.Nile)
+      return
+    }
+    if (!Array.isArray(libraryJSON)) return
     libraryJSON.forEach((game) => {
       const { product } = game
       const { title, productDetail } = product
@@ -274,7 +304,7 @@ export default class NileLibraryManager implements LibraryManager {
     }
     logInfo('Refreshing library...', LogPrefix.Nile)
 
-    this.refreshNile()
+    await this.refreshNile()
     this.refreshInstalled()
     this.loadGamesInAccount()
 
@@ -472,6 +502,9 @@ export default class NileLibraryManager implements LibraryManager {
     }
 
     const { dir, bin } = getNileBin()
+
+    // Auto-recuperação (Self-Healing) de arquivos JSON corrompidos ou com null bytes
+    sanitizeNileConfigFiles()
 
     // Set NILE_CONFIG_PATH to a custom, Heroic-specific location so user-made
     // changes to Nile's main config file don't affect us

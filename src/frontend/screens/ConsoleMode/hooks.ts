@@ -30,18 +30,23 @@ export function useGamepadButtonPress(
     for (const gp of navigator.getGamepads()) {
       if (gp) prev.set(gp.index, isPressed(gp.buttons[buttonIndex]))
     }
-    let raf = 0
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let active = true
     const tick = () => {
+      if (!active) return
       for (const gp of navigator.getGamepads()) {
         if (!gp) continue
         const pressed = isPressed(gp.buttons[buttonIndex])
         if (pressed && !prev.get(gp.index)) handlerRef.current()
         prev.set(gp.index, pressed)
       }
-      raf = requestAnimationFrame(tick)
+      timer = setTimeout(tick, 50)
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    timer = setTimeout(tick, 50)
+    return () => {
+      active = false
+      if (timer) clearTimeout(timer)
+    }
   }, [buttonIndex, enabled])
 }
 
@@ -58,8 +63,10 @@ export function useGamepadButtonHold(
     let held = Array.from(navigator.getGamepads()).some(
       (gp) => gp && isPressed(gp.buttons[buttonIndex])
     )
-    let raf = 0
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let active = true
     const tick = () => {
+      if (!active) return
       let anyHeld = false
       for (const gp of navigator.getGamepads()) {
         if (gp && isPressed(gp.buttons[buttonIndex])) {
@@ -71,10 +78,13 @@ export function useGamepadButtonHold(
         held = anyHeld
         handlerRef.current(anyHeld)
       }
-      raf = requestAnimationFrame(tick)
+      timer = setTimeout(tick, 50)
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    timer = setTimeout(tick, 50)
+    return () => {
+      active = false
+      if (timer) clearTimeout(timer)
+    }
   }, [buttonIndex, enabled])
 }
 

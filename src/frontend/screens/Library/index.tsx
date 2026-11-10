@@ -365,6 +365,9 @@ export default memo(function Library(): JSX.Element {
     }
 
     let isUpdatingPhantom = false
+    let phantomInterval: ReturnType<typeof setInterval> | null = null
+    let consecutiveEmptyTicks = 0
+
     const updatePhantomBox = () => {
       // Fast check without getComputedStyle: if no open menu element exists, early exit in 0ms
       const quickCheck = document.querySelector(
@@ -375,8 +378,16 @@ export default memo(function Library(): JSX.Element {
           overlay.style.display = 'none'
         }
         lastMenuNode = null
+        consecutiveEmptyTicks++
+        // Suspende o timer após 2 ticks vazios quando nenhum menu está aberto (0% de CPU)
+        if (consecutiveEmptyTicks >= 2 && phantomInterval) {
+          clearInterval(phantomInterval)
+          phantomInterval = null
+        }
         return
       }
+
+      consecutiveEmptyTicks = 0
 
       if (isUpdatingPhantom) return
       isUpdatingPhantom = true
@@ -424,7 +435,16 @@ export default memo(function Library(): JSX.Element {
       })
     }
 
+    const startPhantomTracking = () => {
+      consecutiveEmptyTicks = 0
+      if (!phantomInterval) {
+        phantomInterval = setInterval(updatePhantomBox, 100)
+      }
+      updatePhantomBox()
+    }
+
     const handleMenuNav = (e: KeyboardEvent) => {
+      startPhantomTracking()
       const menu = getOpenMenu()
       if (menu) {
         if (e.key === 'ArrowDown') {
@@ -442,6 +462,7 @@ export default memo(function Library(): JSX.Element {
       if (!document.querySelector('.contexify--show, .react-contexify.contexify--show, [role="menu"][aria-hidden="false"]')) {
         return
       }
+      startPhantomTracking()
       const menu = getOpenMenu()
       if (!menu) return
 
@@ -456,16 +477,38 @@ export default memo(function Library(): JSX.Element {
       })
     }
 
+    const onContextMenuOpen = () => {
+      startPhantomTracking()
+      setTimeout(updatePhantomBox, 30)
+    }
+
+    const onPointerActivity = () => {
+      if (phantomInterval) {
+        setTimeout(updatePhantomBox, 60)
+      }
+    }
+
     window.addEventListener('keydown', handleMenuNav, { capture: true })
     window.addEventListener('mousemove', handleMouseMove, { capture: true, passive: true })
-    const interval = setInterval(updatePhantomBox, 100)
+    window.addEventListener('contextmenu', onContextMenuOpen, { passive: true })
+    window.addEventListener('pointerdown', onPointerActivity, { passive: true })
+
+    // Se já houver menu aberto ao montar
+    if (document.querySelector('.contexify--show, .react-contexify.contexify--show, [role="menu"][aria-hidden="false"]')) {
+      startPhantomTracking()
+    }
 
     return () => {
-      clearInterval(interval)
+      if (phantomInterval) {
+        clearInterval(phantomInterval)
+        phantomInterval = null
+      }
       window.removeEventListener('keydown', handleMenuNav, { capture: true })
       window.removeEventListener('mousemove', handleMouseMove, {
         capture: true
       })
+      window.removeEventListener('contextmenu', onContextMenuOpen)
+      window.removeEventListener('pointerdown', onPointerActivity)
       if (document.body.contains(overlay)) document.body.removeChild(overlay)
     }
   }, [])
@@ -1029,19 +1072,42 @@ export default memo(function Library(): JSX.Element {
       }
     }
 
+    let gamepadInterval: ReturnType<typeof setInterval> | null = null
+
+    const checkConnectedGamepads = () => {
+      try {
+        const list = navigator.getGamepads ? navigator.getGamepads() : []
+        let count = 0
+        for (const gp of list) {
+          if (gp && gp.connected) count++
+        }
+        return count
+      } catch {
+        return 0
+      }
+    }
+
     const pollGamepad = () => {
       try {
         const gamepads = navigator.getGamepads ? navigator.getGamepads() : []
         let gpX = false
         let gpB = false
         let gpY = false
+        let foundAny = false
 
         for (const gp of gamepads) {
-          if (gp && gp.buttons) {
+          if (gp && gp.connected && gp.buttons) {
+            foundAny = true
             if (gp.buttons[2] && gp.buttons[2].pressed) gpX = true // X = 2
             if (gp.buttons[1] && gp.buttons[1].pressed) gpB = true // B = 1
             if (gp.buttons[3] && gp.buttons[3].pressed) gpY = true // Y = 3
           }
+        }
+
+        // Se todos os controles desconectaram silenciosamente, desliga o loop
+        if (!foundAny && gamepadInterval) {
+          stopGamepadPolling()
+          return
         }
 
         if (gpB && !lastB) actionClearSelectionB()
@@ -1054,15 +1120,51 @@ export default memo(function Library(): JSX.Element {
       } catch {
         // Gamepad API not available or error polling
       }
-      reqId = requestAnimationFrame(pollGamepad)
+    }
+
+    const startGamepadPolling = () => {
+      if (gamepadInterval) return
+      pollGamepad()
+      // Intervalo adaptativo de 50ms (20 FPS): resposta instantânea para botões e 0% de sobrecarga de CPU
+      gamepadInterval = setInterval(pollGamepad, 50)
+    }
+
+    const stopGamepadPolling = () => {
+      if (gamepadInterval) {
+        clearInterval(gamepadInterval)
+        gamepadInterval = null
+      }
+      lastB = false
+      lastX = false
+      lastY = false
+    }
+
+    const onGamepadConnected = () => {
+      if (checkConnectedGamepads() > 0) {
+        startGamepadPolling()
+      }
+    }
+
+    const onGamepadDisconnected = () => {
+      if (checkConnectedGamepads() === 0) {
+        stopGamepadPolling()
+      }
+    }
+
+    // Inicialização segura: só ativa polling se realmente houver controle conectado
+    if (checkConnectedGamepads() > 0) {
+      startGamepadPolling()
     }
 
     window.addEventListener('keydown', handleKeyboard, { capture: true })
-    reqId = requestAnimationFrame(pollGamepad)
+    window.addEventListener('gamepadconnected', onGamepadConnected)
+    window.addEventListener('gamepaddisconnected', onGamepadDisconnected)
 
     return () => {
       window.removeEventListener('keydown', handleKeyboard, { capture: true })
-      cancelAnimationFrame(reqId)
+      window.removeEventListener('gamepadconnected', onGamepadConnected)
+      window.removeEventListener('gamepaddisconnected', onGamepadDisconnected)
+      stopGamepadPolling()
     }
   }, [])
   // ====================================================================
