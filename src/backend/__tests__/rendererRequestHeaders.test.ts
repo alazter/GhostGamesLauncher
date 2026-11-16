@@ -6,10 +6,14 @@ import type {
 } from 'electron'
 import {
   installRendererRequestHeaders,
-  YOUTUBE_APP_REFERER
+  YOUTUBE_APP_REFERER,
+  type CustomBeforeSendHeadersHandler
 } from '../rendererRequestHeaders'
 
-function setup(spoofWindows = false) {
+function setup(
+  spoofWindows = false,
+  customHandler?: CustomBeforeSendHeadersHandler
+) {
   type HeaderListener = (
     details: OnBeforeSendHeadersListenerDetails,
     callback: (response: BeforeSendResponse) => void
@@ -21,7 +25,8 @@ function setup(spoofWindows = false) {
   installRendererRequestHeaders(
     { webRequest: { onBeforeSendHeaders } } as unknown as Session,
     () => 7,
-    spoofWindows
+    spoofWindows,
+    customHandler
   )
   const [filter, listener] = onBeforeSendHeaders.mock.calls[0]
   const request = (
@@ -102,5 +107,30 @@ it('keeps Windows client hints and the embed fix in the same listener', () => {
   })
   expect(request({ url: 'https://example.com/' })).toEqual({
     'sec-ch-ua-platform': 'Windows'
+  })
+})
+
+it('runs custom stream header handler on non-YouTube domains without overwriting YouTube embed Referer', () => {
+  const { request, filter } = setup(false, (details, headers) => {
+    if (details.url.includes('cdn.releases.com')) {
+      headers.Referer = 'https://www.releases.com/'
+    } else {
+      headers['X-Stream'] = '1'
+    }
+    return headers
+  })
+  expect(filter.urls).toEqual(['*://*/*'])
+  // YouTube embed still receives YOUTUBE_APP_REFERER and is not touched by customHandler
+  expect(request()).toEqual({
+    Referer: YOUTUBE_APP_REFERER
+  })
+  // Non-YouTube domain receives custom handler headers
+  expect(
+    request({
+      url: 'https://cdn.releases.com/poster.jpg',
+      resourceType: 'image'
+    })
+  ).toEqual({
+    Referer: 'https://www.releases.com/'
   })
 })

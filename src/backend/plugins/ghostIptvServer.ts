@@ -35,6 +35,162 @@ const MIME_TYPES: Record<string, string> = {
 let activeServer: http.Server | undefined
 let activePort = DEFAULT_PORT
 let serverStartingPromise: Promise<{ port: number; url: string }> | undefined
+let cachedLiveEpgBuf: Buffer | undefined
+let cachedLiveEpgTs = 0
+let lastEpgFetchAttemptMs = 0
+let inFlightEpgSync: Promise<boolean> | undefined
+
+function getLiveEpgCachePath(): string | null {
+  try {
+    return path.join(
+      app.getPath('userData'),
+      'plugins',
+      'com.ghost.iptv',
+      'live_epg_cache.json'
+    )
+  } catch {
+    return null
+  }
+}
+
+function extractEpgTimestamp(buf: Buffer | null | undefined): number {
+  if (!buf || buf.length < 10) return 0
+  try {
+    const obj = JSON.parse(buf.toString('utf-8').replace(/^\uFEFF/, '').trim())
+    if (!obj || typeof obj !== 'object' || typeof obj.full_epg !== 'object') return 0
+    return Number(obj.generated_ts || obj.timestamp || 0) || 0
+  } catch {
+    return 0
+  }
+}
+
+function readBestLocalEpg(webDir: string): { buf: Buffer; ts: number } {
+  const candidates: Array<string | null> = [
+    getLiveEpgCachePath(),
+    findDataFile(webDir, ['epg_cache.json', path.join('assets', 'epg_cache.json')])
+  ]
+
+  // Incluir também possíveis raízes diretas se findDataFile parou em uma mais antiga
+  for (const root of [webDir, path.join(webDir, '..'), LOCAL_DEV_ROOT, LOCAL_DEV_FALLBACK_ROOT]) {
+    candidates.push(path.join(root, 'epg_cache.json'))
+    candidates.push(path.join(root, 'web', 'epg_cache.json'))
+  }
+
+  let bestBuf: Buffer = cachedLiveEpgBuf || Buffer.from('{}', 'utf-8')
+  let bestTs: number = cachedLiveEpgTs || 0
+  const visited = new Set<string>()
+
+  for (const c of candidates) {
+    if (!c || visited.has(c)) continue
+    visited.add(c)
+    try {
+      if (fs.existsSync(c) && fs.statSync(c).isFile()) {
+        const buf = fs.readFileSync(c)
+        const ts = extractEpgTimestamp(buf)
+        if (ts > bestTs || (bestTs === 0 && buf.length > 20 && bestBuf.length <= 2)) {
+          bestBuf = buf
+          bestTs = ts
+        }
+      }
+    } catch {}
+  }
+
+  if (bestTs > cachedLiveEpgTs) {
+    cachedLiveEpgBuf = bestBuf
+    cachedLiveEpgTs = bestTs
+  }
+  return { buf: bestBuf, ts: bestTs }
+}
+
+async function syncEpgFromPrivateRepo(
+  webDir: string,
+  force = false
+): Promise<boolean> {
+  if (inFlightEpgSync) return inFlightEpgSync
+
+  const nowMs = Date.now()
+  const { ts: localTs } = readBestLocalEpg(webDir)
+  const ageSec = nowMs / 1000 - localTs
+  const cooldownMs = force ? 60_000 : 180_000
+
+  if (!force && localTs > 0 && ageSec < 2 * 3600) {
+    return false
+  }
+  if (nowMs - lastEpgFetchAttemptMs < cooldownMs) {
+    return false
+  }
+
+  lastEpgFetchAttemptMs = nowMs
+  inFlightEpgSync = (async () => {
+    try {
+      const { fetchGitHubRawFile } = await import('./ghostIptvUpdate')
+      const remoteBuf = await fetchGitHubRawFile('epg_cache.json')
+      const remoteTs = extractEpgTimestamp(remoteBuf)
+      const curBest = readBestLocalEpg(webDir)
+      if (remoteBuf && remoteTs > 0 && (curBest.ts <= 0 || remoteTs > curBest.ts)) {
+        cachedLiveEpgBuf = remoteBuf
+        cachedLiveEpgTs = remoteTs
+
+        const livePath = getLiveEpgCachePath()
+        if (livePath) {
+          try {
+            fs.mkdirSync(path.dirname(livePath), { recursive: true })
+            fs.writeFileSync(livePath + '.tmp', remoteBuf)
+            fs.renameSync(livePath + '.tmp', livePath)
+          } catch {}
+        }
+
+        try {
+          if (fs.existsSync(webDir)) {
+            const webEpg = path.join(webDir, 'epg_cache.json')
+            fs.writeFileSync(webEpg + '.tmp', remoteBuf)
+            fs.renameSync(webEpg + '.tmp', webEpg)
+          }
+        } catch {}
+
+        logInfo(
+          `[GhostIptvServer] EPG atualizado automaticamente via GitHub privado (ts=${remoteTs})`,
+          LogPrefix.Backend
+        )
+        return true
+      }
+    } catch (err) {
+      logError(
+        ['[GhostIptvServer] Falha ao sincronizar EPG do repositório privado:', err],
+        LogPrefix.Backend
+      )
+    } finally {
+      inFlightEpgSync = undefined
+    }
+    return false
+  })()
+
+  return inFlightEpgSync
+}
+
+async function handleEpgApiRequest(
+  webDir: string,
+  forceRefresh: boolean,
+  res: http.ServerResponse
+): Promise<void> {
+  if (forceRefresh) {
+    await Promise.race([
+      syncEpgFromPrivateRepo(webDir, true),
+      new Promise<void>((resolve) => setTimeout(resolve, 6000))
+    ])
+  } else {
+    void syncEpgFromPrivateRepo(webDir, false)
+  }
+
+  const { buf } = readBestLocalEpg(webDir)
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': buf.length,
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-cache, no-store, must-revalidate'
+  })
+  res.end(buf)
+}
 
 export function getGhostIptvServerPort(): number {
   return activePort
@@ -677,20 +833,9 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
             pathname === '/epg.json' ||
             pathname === '/epg_cache.json'
           ) {
-            const epgFile = findDataFile(webDir, [
-              'epg_cache.json',
-              path.join('assets', 'epg_cache.json')
-            ])
-            const data = epgFile
-              ? fs.readFileSync(epgFile)
-              : Buffer.from('{}', 'utf-8')
-            res.writeHead(200, {
-              'Content-Type': 'application/json; charset=utf-8',
-              'Content-Length': data.length,
-              'Access-Control-Allow-Origin': '*',
-              'Cache-Control': 'no-cache, no-store, must-revalidate'
-            })
-            res.end(data)
+            const forceRefresh =
+              query.get('refresh') === '1' || query.get('refresh') === 'true'
+            void handleEpgApiRequest(webDir, forceRefresh, res)
             return
           }
 
@@ -1012,6 +1157,8 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
               `[GhostIptvServer] Servidor HLS e Assets ativo em http://127.0.0.1:${activePort}`,
               LogPrefix.Backend
             )
+            // Pré-aquece e sincroniza o EPG do repositório privado em segundo plano
+            void syncEpgFromPrivateRepo(resolveWebDirectory(), true)
             resolve({
               port: activePort,
               url: getGhostIptvServerUrl()

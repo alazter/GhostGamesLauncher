@@ -314,6 +314,7 @@ export class ExternalGames {
   private readonly statePath = join(this.root, 'state.json')
   private state: StoredState = { jobs: [], installations: [], backups: [] }
   private active = false
+  private lastHealTime = 0
   private controllers = new Map<string, AbortController>()
   private playing = new Set<string>()
   private locked = new Set<string>()
@@ -1162,12 +1163,16 @@ export class ExternalGames {
     let stateChanged = false
 
     if (heal) {
-      // Autocura defensiva: recupera instalações de jobs concluídos e jogos sideload
-      if (this.healInstallations(games)) {
-        stateChanged = true
+      const now = Date.now()
+      // Autocura defensiva de manifestos em disco: com cooldown de 5 minutos para eliminar I/O síncrono bloqueante no processo principal
+      if (now - this.lastHealTime >= 5 * 60 * 1000) {
+        this.lastHealTime = now
+        if (this.healInstallations(games)) {
+          stateChanged = true
+        }
       }
 
-      // Auto-prune: remove instalações se o jogo foi removido da biblioteca
+      // Auto-prune em memória: remove instalações se o jogo foi removido da biblioteca
       {
         const beforeCount = this.state.installations.length
         this.state.installations = this.state.installations.filter((inst) => {
@@ -2687,6 +2692,7 @@ export class ExternalGames {
       synchronizeExternalVersion(installed.appName, installed.game.version)
       job.status = 'completed'
       job.commitStarted = false
+      this.lastHealTime = 0
       this.save()
       sendFrontendMessage('refreshLibrary', 'sideload')
 

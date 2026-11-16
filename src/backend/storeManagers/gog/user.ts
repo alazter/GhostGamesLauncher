@@ -97,6 +97,10 @@ export class GOGUser {
 
     return data
   }
+
+  private static cachedCredentials?: GOGCredentials
+  private static credentialsExpiresAt = 0
+
   /**
    * Loads user credentials from config
    * if needed refreshes token and returns new credentials
@@ -109,15 +113,29 @@ export class GOGUser {
       })
       return
     }
+
+    const now = Date.now()
+    if (this.cachedCredentials && now < this.credentialsExpiresAt) {
+      return this.cachedCredentials
+    }
+
     const { stdout } = await libraryManagerMap['gog'].runRunnerCommand(
       ['auth'],
       {
         abortId: 'gogdl-get-credentials',
-        logSanitizer: authLogSanitizer
+        logSanitizer: authLogSanitizer,
+        directSpawn: true
       }
     )
     try {
-      return JSON.parse(stdout) as GOGCredentials | undefined
+      const parsed = JSON.parse(stdout) as GOGCredentials | undefined
+      if (parsed) {
+        this.cachedCredentials = parsed
+        // Token typically valid for 3600 seconds; cache for 50 minutes
+        const ttlSec = parsed.expires_in ? Math.max(300, parsed.expires_in - 300) : 3000
+        this.credentialsExpiresAt = now + ttlSec * 1000
+      }
+      return parsed
     } catch (error) {
       logError(['Error getting GOG credentials:', error])
       return undefined
@@ -125,6 +143,8 @@ export class GOGUser {
   }
 
   public static logout() {
+    this.cachedCredentials = undefined
+    this.credentialsExpiresAt = 0
     clearCache('gog')
     configStore.clear()
     if (existsSync(gogdlAuthConfig)) {

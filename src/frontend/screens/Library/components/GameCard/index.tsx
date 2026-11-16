@@ -97,15 +97,10 @@ const NonFocusableButton = ({
   activeController?: boolean | string
 }) => (
   <div
-    // Remove o evento de clique e a interatividade se o controle estiver ativo
-    onClick={
-      activeController
-        ? undefined
-        : (e) => {
-            if (disabled) return
-            onClick?.(e)
-          }
-    }
+    onClick={(e) => {
+      if (disabled) return
+      onClick?.(e)
+    }}
     title={title}
     className={`svg-button ${className} ${disabled ? 'iconDisabled' : ''}`}
     style={{
@@ -113,8 +108,7 @@ const NonFocusableButton = ({
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      // Trava de segurança física contra o sistema de foco do Heroic
-      pointerEvents: activeController ? 'none' : 'auto'
+      pointerEvents: 'auto'
     }}
     tabIndex={-1}
     data-sn-focusable="false"
@@ -761,8 +755,7 @@ const GameCard = ({
                 width: '100%',
                 padding: '6px 10px 2px 10px',
                 boxSizing: 'border-box',
-                // Essa linha barra fisicamente o foco do controle
-                pointerEvents: activeController ? 'none' : 'auto'
+                pointerEvents: 'auto'
               }}
             >
               <div

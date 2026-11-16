@@ -1,4 +1,4 @@
-import type { Session } from 'electron'
+import type { OnBeforeSendHeadersListenerDetails, Session } from 'electron'
 
 // Matches the installed application ID in electron-builder.yml and main.ts.
 export const YOUTUBE_APP_REFERER = 'https://com.ghostgameslauncher.ghost/'
@@ -9,16 +9,50 @@ const youtubeEmbeds = [
   'https://www.youtube-nocookie.com/embed/*'
 ]
 
+export type CustomBeforeSendHeadersHandler = (
+  details: OnBeforeSendHeadersListenerDetails,
+  headers: Record<string, string>
+) => Record<string, string>
+
+export function isYouTubeOrVideoEmbedDomain(rawUrl: string): boolean {
+  try {
+    const { hostname } = new URL(rawUrl)
+    return (
+      hostname === 'youtube.com' ||
+      hostname.endsWith('.youtube.com') ||
+      hostname === 'youtube-nocookie.com' ||
+      hostname.endsWith('.youtube-nocookie.com') ||
+      hostname === 'youtu.be' ||
+      hostname === 'googlevideo.com' ||
+      hostname.endsWith('.googlevideo.com') ||
+      hostname === 'ytimg.com' ||
+      hostname.endsWith('.ytimg.com') ||
+      hostname === 'ggpht.com' ||
+      hostname.endsWith('.ggpht.com') ||
+      hostname === 'vimeo.com' ||
+      hostname.endsWith('.vimeo.com') ||
+      hostname === 'vimeocdn.com' ||
+      hostname.endsWith('.vimeocdn.com')
+    )
+  } catch {
+    return false
+  }
+}
+
 /** Electron supports one onBeforeSendHeaders listener per session. */
 export function installRendererRequestHeaders(
   session: Session,
   mainWindowId: () => number | undefined,
-  spoofWindows = false
+  spoofWindows = false,
+  customHandler?: CustomBeforeSendHeadersHandler
 ): void {
   session.webRequest.onBeforeSendHeaders(
-    { urls: spoofWindows ? ['*://*/*'] : youtubeEmbeds },
+    { urls: spoofWindows || customHandler ? ['*://*/*'] : youtubeEmbeds },
     (details, callback) => {
-      const headers = { ...details.requestHeaders }
+      let headers = { ...details.requestHeaders }
+      if (customHandler && !isYouTubeOrVideoEmbedDomain(details.url)) {
+        headers = customHandler(details, headers)
+      }
       if (spoofWindows) headers['sec-ch-ua-platform'] = 'Windows'
 
       if (

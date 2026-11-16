@@ -2263,5 +2263,245 @@
     "name": "Bayern de Munique",
     "crest": "assets/logos/crests/bayern.png",
     "abbr": "BAY"
+  },
+  "arizona cardinals": {
+    "name": "Arizona Cardinals",
+    "crest": "assets/logos/crests/arizona_cardinals.png",
+    "abbr": "ARI"
+  },
+  "cardinals": {
+    "name": "Arizona Cardinals",
+    "crest": "assets/logos/crests/arizona_cardinals.png",
+    "abbr": "ARI"
+  },
+  "atlanta falcons": {
+    "name": "Atlanta Falcons",
+    "crest": "assets/logos/crests/atlanta_falcons.png",
+    "abbr": "ATL"
+  },
+  "falcons": {
+    "name": "Atlanta Falcons",
+    "crest": "assets/logos/crests/atlanta_falcons.png",
+    "abbr": "ATL"
+  },
+  "carolina panthers": {
+    "name": "Carolina Panthers",
+    "crest": "assets/logos/crests/carolina_panthers.png",
+    "abbr": "CAR"
+  },
+  "panthers": {
+    "name": "Carolina Panthers",
+    "crest": "assets/logos/crests/carolina_panthers.png",
+    "abbr": "CAR"
+  },
+  "cincinnati bengals": {
+    "name": "Cincinnati Bengals",
+    "crest": "assets/logos/crests/cincinnati_bengals.png",
+    "abbr": "CIN"
+  },
+  "bengals": {
+    "name": "Cincinnati Bengals",
+    "crest": "assets/logos/crests/cincinnati_bengals.png",
+    "abbr": "CIN"
+  },
+  "cleveland browns": {
+    "name": "Cleveland Browns",
+    "crest": "assets/logos/crests/cleveland_browns.png",
+    "abbr": "CLE"
+  },
+  "browns": {
+    "name": "Cleveland Browns",
+    "crest": "assets/logos/crests/cleveland_browns.png",
+    "abbr": "CLE"
+  },
+  "dallas cowboys": {
+    "name": "Dallas Cowboys",
+    "crest": "assets/logos/crests/dallas_cowboys.png",
+    "abbr": "DAL"
+  },
+  "cowboys": {
+    "name": "Dallas Cowboys",
+    "crest": "assets/logos/crests/dallas_cowboys.png",
+    "abbr": "DAL"
+  },
+  "green bay packers": {
+    "name": "Green Bay Packers",
+    "crest": "assets/logos/crests/green_bay_packers.png",
+    "abbr": "GB"
+  },
+  "packers": {
+    "name": "Green Bay Packers",
+    "crest": "assets/logos/crests/green_bay_packers.png",
+    "abbr": "GB"
+  },
+  "houston texans": {
+    "name": "Houston Texans",
+    "crest": "assets/logos/crests/houston_texans.png",
+    "abbr": "HOU"
+  },
+  "texans": {
+    "name": "Houston Texans",
+    "crest": "assets/logos/crests/houston_texans.png",
+    "abbr": "HOU"
+  },
+  "indianapolis colts": {
+    "name": "Indianapolis Colts",
+    "crest": "assets/logos/crests/indianapolis_colts.png",
+    "abbr": "IND"
+  },
+  "colts": {
+    "name": "Indianapolis Colts",
+    "crest": "assets/logos/crests/indianapolis_colts.png",
+    "abbr": "IND"
+  },
+  "jacksonville jaguars": {
+    "name": "Jacksonville Jaguars",
+    "crest": "assets/logos/crests/jacksonville_jaguars.png",
+    "abbr": "JAX"
+  },
+  "jaguars": {
+    "name": "Jacksonville Jaguars",
+    "crest": "assets/logos/crests/jacksonville_jaguars.png",
+    "abbr": "JAX"
+  },
+  "las vegas raiders": {
+    "name": "Las Vegas Raiders",
+    "crest": "assets/logos/crests/las_vegas_raiders.png",
+    "abbr": "LV"
+  },
+  "raiders": {
+    "name": "Las Vegas Raiders",
+    "crest": "assets/logos/crests/las_vegas_raiders.png",
+    "abbr": "LV"
+  },
+  "los angeles chargers": {
+    "name": "Los Angeles Chargers",
+    "crest": "assets/logos/crests/los_angeles_chargers.png",
+    "abbr": "LAC"
+  },
+  "chargers": {
+    "name": "Los Angeles Chargers",
+    "crest": "assets/logos/crests/los_angeles_chargers.png",
+    "abbr": "LAC"
+  },
+  "la chargers": {
+    "name": "Los Angeles Chargers",
+    "crest": "assets/logos/crests/los_angeles_chargers.png",
+    "abbr": "LAC"
+  },
+  "los angeles rams": {
+    "name": "Los Angeles Rams",
+    "crest": "assets/logos/crests/los_angeles_rams.png",
+    "abbr": "LAR"
+  },
+  "rams": {
+    "name": "Los Angeles Rams",
+    "crest": "assets/logos/crests/los_angeles_rams.png",
+    "abbr": "LAR"
+  },
+  "la rams": {
+    "name": "Los Angeles Rams",
+    "crest": "assets/logos/crests/los_angeles_rams.png",
+    "abbr": "LAR"
+  },
+  "miami dolphins": {
+    "name": "Miami Dolphins",
+    "crest": "assets/logos/crests/miami_dolphins.png",
+    "abbr": "MIA"
+  },
+  "dolphins": {
+    "name": "Miami Dolphins",
+    "crest": "assets/logos/crests/miami_dolphins.png",
+    "abbr": "MIA"
+  },
+  "new england patriots": {
+    "name": "New England Patriots",
+    "crest": "assets/logos/crests/new_england_patriots.png",
+    "abbr": "NE"
+  },
+  "patriots": {
+    "name": "New England Patriots",
+    "crest": "assets/logos/crests/new_england_patriots.png",
+    "abbr": "NE"
+  },
+  "new orleans saints": {
+    "name": "New Orleans Saints",
+    "crest": "assets/logos/crests/new_orleans_saints.png",
+    "abbr": "NO"
+  },
+  "saints": {
+    "name": "New Orleans Saints",
+    "crest": "assets/logos/crests/new_orleans_saints.png",
+    "abbr": "NO"
+  },
+  "new york giants": {
+    "name": "New York Giants",
+    "crest": "assets/logos/crests/new_york_giants.png",
+    "abbr": "NYG"
+  },
+  "giants": {
+    "name": "New York Giants",
+    "crest": "assets/logos/crests/new_york_giants.png",
+    "abbr": "NYG"
+  },
+  "ny giants": {
+    "name": "New York Giants",
+    "crest": "assets/logos/crests/new_york_giants.png",
+    "abbr": "NYG"
+  },
+  "new york jets": {
+    "name": "New York Jets",
+    "crest": "assets/logos/crests/new_york_jets.png",
+    "abbr": "NYJ"
+  },
+  "jets": {
+    "name": "New York Jets",
+    "crest": "assets/logos/crests/new_york_jets.png",
+    "abbr": "NYJ"
+  },
+  "ny jets": {
+    "name": "New York Jets",
+    "crest": "assets/logos/crests/new_york_jets.png",
+    "abbr": "NYJ"
+  },
+  "pittsburgh steelers": {
+    "name": "Pittsburgh Steelers",
+    "crest": "assets/logos/crests/pittsburgh_steelers.png",
+    "abbr": "PIT"
+  },
+  "steelers": {
+    "name": "Pittsburgh Steelers",
+    "crest": "assets/logos/crests/pittsburgh_steelers.png",
+    "abbr": "PIT"
+  },
+  "san francisco 49ers": {
+    "name": "San Francisco 49ers",
+    "crest": "assets/logos/crests/san_francisco_49ers.png",
+    "abbr": "SF"
+  },
+  "49ers": {
+    "name": "San Francisco 49ers",
+    "crest": "assets/logos/crests/san_francisco_49ers.png",
+    "abbr": "SF"
+  },
+  "tampa bay buccaneers": {
+    "name": "Tampa Bay Buccaneers",
+    "crest": "assets/logos/crests/tampa_bay_buccaneers.png",
+    "abbr": "TB"
+  },
+  "buccaneers": {
+    "name": "Tampa Bay Buccaneers",
+    "crest": "assets/logos/crests/tampa_bay_buccaneers.png",
+    "abbr": "TB"
+  },
+  "tennessee titans": {
+    "name": "Tennessee Titans",
+    "crest": "assets/logos/crests/tennessee_titans.png",
+    "abbr": "TEN"
+  },
+  "titans": {
+    "name": "Tennessee Titans",
+    "crest": "assets/logos/crests/tennessee_titans.png",
+    "abbr": "TEN"
   }
 }

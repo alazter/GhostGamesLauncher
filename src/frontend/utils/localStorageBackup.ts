@@ -33,13 +33,36 @@ export function collectLocalStorageBackup(): Record<string, string> {
 }
 
 let pending: Promise<void> = Promise.resolve()
-/** Resolve only after the main process confirms the snapshot was written. */
-export function syncLocalStorageToBackend(): Promise<void> {
-  const data = collectLocalStorageBackup()
-  pending = pending
-    .catch(() => undefined)
-    .then(() => window.api.syncLocalStorageBackup(data))
-  return pending
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let latestData: Record<string, string> | null = null
+
+/** Resolve only after the main process confirms the snapshot was written (debounced to avoid I/O storms). */
+export function syncLocalStorageToBackend(immediate = false): Promise<void> {
+  latestData = collectLocalStorageBackup()
+
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+
+  if (immediate) {
+    const dataToSend = latestData
+    pending = pending
+      .catch(() => undefined)
+      .then(() => window.api.syncLocalStorageBackup(dataToSend))
+    return pending
+  }
+
+  return new Promise((resolve) => {
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null
+      const dataToSend = latestData || collectLocalStorageBackup()
+      pending = pending
+        .catch(() => undefined)
+        .then(() => window.api.syncLocalStorageBackup(dataToSend))
+        .then(() => resolve())
+    }, 1500)
+  })
 }
 
 export async function restoreLocalStorageBackup(
@@ -59,7 +82,7 @@ export async function restoreLocalStorageBackup(
         localStorage.setItem(key, previous ? `${previous}\n${value}` : value)
     } else if (isBackupKey(key)) localStorage.setItem(key, value)
   }
-  await syncLocalStorageToBackend()
+  await syncLocalStorageToBackend(true)
   window.dispatchEvent(new Event('heroicSettingsChanged'))
   window.dispatchEvent(new Event('customBgChanged'))
   window.dispatchEvent(new Event('ghostReleaseTrackingChanged'))

@@ -32,7 +32,10 @@ import { existsSync, watch, readdirSync, readFileSync, writeFileSync, mkdirSync 
 import 'source-map-support/register'
 import { registerPluginsIPC } from './plugins/ipcHandler'
 import { registerReleasesIPC } from './releases/ipc'
-import { installRendererRequestHeaders } from './rendererRequestHeaders'
+import {
+  installRendererRequestHeaders,
+  isYouTubeOrVideoEmbedDomain
+} from './rendererRequestHeaders'
 import { createBackupPreferenceSync } from './backup/preferenceSync'
 import { getReleaseArchive, validateReleaseArchive } from './releases/archive'
 import { PluginManager } from './plugins/pluginManager'
@@ -462,12 +465,6 @@ if (!gotTheLock) {
       )
     }
 
-    installRendererRequestHeaders(
-      session.defaultSession,
-      () => getMainWindow()?.webContents.id,
-      process.argv.includes('--spoof-windows')
-    )
-
     // Network-level Ad & Tracker Blocker (Cancels socket connections to ad networks)
     const AD_TRACKER_DOMAINS = [
       'googlesyndication.com',
@@ -522,21 +519,23 @@ if (!gotTheLock) {
       logError(`Failed to setup network ad blocker: ${err}`, LogPrefix.Backend)
     }
 
-    // CORS, Headers Sanitizer & Stream Proxy Shield for IPTV, Stremio & Local Media
+    // Unified onBeforeSendHeaders (YouTube Embed Referer Fix + IPTV/Stremio/Releases Headers)
+    // Electron supports only ONE onBeforeSendHeaders listener per session.
     try {
-      session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://*/*'] },
-        (details, callback) => {
+      installRendererRequestHeaders(
+        session.defaultSession,
+        () => getMainWindow()?.webContents.id,
+        process.argv.includes('--spoof-windows'),
+        (details, requestHeaders) => {
           if (
             details.url.startsWith('http://localhost:') ||
             details.url.startsWith('http://127.0.0.1:') ||
             details.url.startsWith('devtools:') ||
             details.url.startsWith('chrome-extension:')
           ) {
-            return callback({ requestHeaders: details.requestHeaders })
+            return requestHeaders
           }
 
-          const requestHeaders = { ...details.requestHeaders }
           const customHeaders =
             StreamHeaderStore.getInstance().getHeadersForUrl(details.url)
 
@@ -579,9 +578,7 @@ if (!gotTheLock) {
               details.url.includes('.m3u8') ||
               details.url.includes('.ts') ||
               details.url.includes('.mpd') ||
-              details.resourceType === 'media' ||
-              details.resourceType === 'xhr' ||
-              details.resourceType === 'other'
+              details.resourceType === 'media'
 
             if (isMediaStream) {
               if (
@@ -606,20 +603,36 @@ if (!gotTheLock) {
             }
           }
 
-          callback({ requestHeaders })
+          return requestHeaders
         }
       )
 
       session.defaultSession.webRequest.onHeadersReceived(
         { urls: ['*://*/*'] },
         (details, callback) => {
-          // 0ms immediate bypass for Vite Dev Server (Conquista 208)
-          if (details.url.startsWith('http://localhost:')) {
+          // 0ms immediate bypass for Vite Dev Server, YouTube/Vimeo embeds & Releases.com
+          if (
+            details.url.startsWith('http://localhost:') ||
+            isYouTubeOrVideoEmbedDomain(details.url) ||
+            details.url.includes('releases.com')
+          ) {
             return callback({})
           }
 
           const responseHeaders = { ...details.responseHeaders }
-          responseHeaders['access-control-allow-origin'] = ['*']
+          const hasCredentials = Object.keys(responseHeaders).some(
+            (k) =>
+              k.toLowerCase() === 'access-control-allow-credentials' &&
+              String(responseHeaders[k]).toLowerCase().includes('true')
+          )
+          if (!hasCredentials) {
+            for (const k of Object.keys(responseHeaders)) {
+              if (k.toLowerCase() === 'access-control-allow-origin') {
+                delete responseHeaders[k]
+              }
+            }
+            responseHeaders['access-control-allow-origin'] = ['*']
+          }
           responseHeaders['access-control-allow-methods'] = [
             'GET, HEAD, OPTIONS'
           ]

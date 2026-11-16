@@ -1,17 +1,16 @@
 {
   "app_name": "Ghost IPTV",
-  "version": "2.5.0",
-  "build_number": 250,
-  "release_date": "2026-11-09",
-  "channel": "stable",
+  "version": "2.5.4",
   "repository": "alazter/ghost-iptv",
   "private_repo": true,
+  "build_number": 254,
+  "release_date": "2026-11-15",
+  "channel": "stable",
   "apk_url": "/ghost-iptv.apk",
   "changelog": [
-    "Atualizacao dos endpoints de CDN rotacionados para cdn8embed.xyz e novos cabecalhos de transmissao playerembedcanais.site",
-    "Restauracao e estabilizacao do streaming ao vivo de todos os 68 canais no PC e Android TV",
-    "Gaveta retratil lateral de canais em Tela Cheia e Picture-in-Picture (PiP) para PC",
-    "Sincronizacao automatica da grade EPG 24/7 e persistencia de canais",
-    "Compilacao e assinatura oficial do APK v2.5.0 para Android TV / TV Box / Fire TV Stick"
+    "Fallback multinivel para escudos esportivos e bandeiras nacionais (cache local, FlagCDN, API ESPN e SVG dinamico)",
+    "MainActivity: aprimoramento no carregamento de escudos empacotados via readAssetFully com headers de cache",
+    "Sincronizacao automatica da grade EPG real e persistencia de canais",
+    "Compilacao e assinatura oficial do APK v2.5.4 para Android TV / TV Box / Fire TV Stick e pacote web atualizado para o Ghost Launcher"
   ]
 }

@@ -965,22 +965,6 @@ export default memo(function Library(): JSX.Element {
         active.blur()
         document.body.focus()
       }
-
-      const rootElement = document.querySelector('#root') || document.body
-
-      const events = ['keydown', 'keypress', 'keyup']
-      events.forEach((eventType) => {
-        const enterEvent = new KeyboardEvent(eventType, {
-          key: 'Enter',
-          code: 'Enter',
-          keyCode: 13,
-          which: 13,
-          bubbles: true,
-          composed: true,
-          cancelable: true
-        })
-        rootElement.dispatchEvent(enterEvent)
-      })
     }
 
     const actionFocusStoreX = () => {
