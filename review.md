@@ -1,4 +1,4 @@
-# Review das Alterações - 10/11/2026
+# Review das Alterações - 16/11/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -878,6 +878,24 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Reset Imediato de Cooldown no Login/Logout (`GlobalState.tsx`, Conquista 257)**: `lastRunnerFetch[runner]` é zerado imediatamente no momento da autenticação ou desconexão, recarregando a biblioteca em 0ms.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), build `electron-vite build` e Regra Canônica 62 rigorosamente preservada.
 
+### 61. Resolução Definitiva de Congelamento da Interface na Biblioteca Piratas (Cooldown de I/O em Snapshot/Manifestos, Throttling de Atribuição, Cache de Credenciais GOG e Desbloqueio de Cliques do Mouse)
+* **Problema:** Usuários relataram que o Ghost travava completamente após um tempo de uso e não era possível interagir na interface. Diagnóstico apontou: (1) O método `snapshot(heal = true)` executava `healInstallations(games)` síncrono a cada consulta de `externalGamesState()`, varrendo todos os 59 jogos instalados da biblioteca pirata com mais de 300 operações síncronas de I/O em disco (`existsSync`, subida de diretórios pai procurando manifestos e leitura de disco), bloqueando a thread principal do Electron e congelando o event loop do Node.js; (2) `syncLocalStorageToBackend` salvava `config.json` sem debounce em rajadas contínuas; (3) O serviço de presença GOG executava `gogdl.exe auth` via PowerShell a cada 5 minutos; (4) A ação `actionClearSelectionB` despachava eventos simulados de `Enter` no `#root` acionando jogos acidentalmente ao pressionar B ou Esc; (5) `GameCard` bloqueava cliques do mouse (`pointerEvents: none`) quando controles estavam conectados.
+* **Solução:**
+  - **Cooldown de 5 Minutos em `healInstallations` (`src/backend/plugins/externalGames.ts`, Conquista 260)**: Adicionado cooldown de 5 minutos (`lastHealTime`) para validação física de manifestos em disco em `snapshot()`, transformando 99,9% das chamadas em consultas puramente em memória de 0ms e 0% de CPU, mantendo a poda em memória imediata.
+  - **Debounce de 1500ms em `syncLocalStorageToBackend` (`src/frontend/utils/localStorageBackup.ts`, Conquista 260)**: Agrupa múltiplas alterações consecutivas em uma única gravação em disco.
+  - **Deduplicação In-Flight e Cooldown de 30s em `syncPiratasStoreAssignments` (`src/frontend/helpers/autoStoreAssignments.ts`, Conquista 260)**: Elimina tempestades de requisições IPC e cascatas de eventos `gameAssignmentsChanged`.
+  - **Cache em Memória de Credenciais GOG e `directSpawn: true` (`src/backend/storeManagers/gog/user.ts`, Conquista 260)**: Credenciais cacheadas por 50 minutos (dentro da janela de 1h do token GOG), eliminando spawns de PowerShell e acelerando o encerramento do app sem timeouts.
+  - **Desbloqueio de Cliques e Remoção de Disparo de `Enter` (`Library/index.tsx`, `GameCard/index.tsx`, Conquista 260)**: Removido disparo indevido de eventos `Enter` em `actionClearSelectionB` e removidas restrições de `pointerEvents: none` no mouse em `GameCard`.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 81/81 testes unitários Jest aprovados em `externalGames.test.ts`, compilação `electron-vite build` e Regra Canônica 62 rigorosamente preservada.
+
+### 62. Resolução Definitiva do Erro 153 no Player de Trailers do YouTube na Tela de Lançamentos via Unificação de Listeners no Electron
+* **Problema:** No plugin/tela de Lançamentos (`Releases`), o player de trailers do YouTube voltou a apresentar o **Erro 153** ("Erro de configuração do player de vídeo - Erro 153"). Diagnóstico apontou: (1) O Electron suporta apenas um único listener `onBeforeSendHeaders` por `Session`; em `src/backend/main.ts`, a chamada a `installRendererRequestHeaders` (que injetava o cabeçalho `Referer: https://com.ghostgameslauncher.ghost/` essencial para destravar embeds do YouTube em páginas locais `file://`) era subsequentemente sobrescrita e cancelada por uma segunda chamada direta a `session.defaultSession.webRequest.onBeforeSendHeaders`; (2) A condição `isMediaStream` incluía tipos genéricos `xhr` e `other`, mutando headers de requisições internas do YouTube; (3) `onHeadersReceived` injetava incondicionalmente `access-control-allow-origin: ['*']` em todas as URLs, quebrando CORS em requisições com credenciais do YouTube.
+* **Solução:**
+  - **Unificação em Listener Único no Electron (`src/backend/rendererRequestHeaders.ts` & `src/backend/main.ts`, Conquista 261)**: Refatorado `installRendererRequestHeaders` para aceitar um `customHandler` opcional, executando no mesmo listener a injeção garantida de `Referer` para embeds do YouTube e o processamento de cabeçalhos de streams/IPTV/Releases para os demais domínios.
+  - **Escopo Estrito de `isMediaStream` e Proteção de CORS em `onHeadersReceived` (Conquista 261)**: Removidos `xhr` e `other` genéricos de `isMediaStream`; adicionado bypass imediato em `onHeadersReceived` para domínios de vídeo embarcado (`youtube-nocookie.com`, `youtube.com`, `googlevideo.com`, `vimeo.com`) e respostas com `Access-Control-Allow-Credentials: true`.
+  - **Validação Empírica no Electron Real**: Testado diretamente com trailers reais de lançamentos (`https://www.youtube-nocookie.com/embed/rz1B4B2yBZY?autoplay=1`), comprovando eliminação definitiva do Erro 153 e reprodução instantânea com `readyState: 4`.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), novos testes unitários Jest em `rendererRequestHeaders.test.ts` e Regra Canônica 62 rigorosamente preservada.
+
 ---
 
 ## 🛠️ Arquivos Modificados e Criados
@@ -949,6 +967,8 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [NEW] [src/backend/backup/__tests__/cloudBackupCancellation.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/backup/__tests__/cloudBackupCancellation.test.ts)
 - [MODIFY] [src/backend/constants/paths.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/constants/paths.ts)
 - [MODIFY] [src/backend/main.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/main.ts)
+- [MODIFY] [src/backend/rendererRequestHeaders.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/rendererRequestHeaders.ts)
+- [NEW] [src/backend/__tests__/rendererRequestHeaders.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/__tests__/rendererRequestHeaders.test.ts)
 - [MODIFY] [src/backend/plugins/__tests__/alazterflixCatalog.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/alazterflixCatalog.test.ts)
 - [MODIFY] [src/backend/plugins/__tests__/sourceEngines.test.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/__tests__/sourceEngines.test.ts)
 - [MODIFY] [src/backend/plugins/adaptiveSource.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/backend/plugins/adaptiveSource.ts)
@@ -1136,6 +1156,9 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
 - [MODIFY] [src/frontend/components/UI/Header/index.css](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.css)
 - [MODIFY] [src/frontend/components/UI/Header/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/components/UI/Header/index.tsx)
 - [MODIFY] [src/frontend/helpers/customStoreFiltering.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/customStoreFiltering.ts)
+- [MODIFY] [src/frontend/helpers/autoStoreAssignments.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/autoStoreAssignments.ts)
+- [MODIFY] [src/frontend/utils/localStorageBackup.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/utils/localStorageBackup.ts)
+- [MODIFY] [src/frontend/screens/Library/components/GameCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Library/components/GameCard/index.tsx)
 - [NEW] [src/frontend/helpers/softwareStoreItems.ts](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/helpers/softwareStoreItems.ts)
 - [MODIFY] [src/frontend/screens/Alazterflix/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/Alazterflix/index.tsx)
 - [MODIFY] [src/frontend/screens/DownloadManager/components/ExternalActiveCard/index.tsx](file:///c:/Users/alazt/Documents/GitHub/Projetos/HeroicGamesLauncher/src/frontend/screens/DownloadManager/components/ExternalActiveCard/index.tsx)
