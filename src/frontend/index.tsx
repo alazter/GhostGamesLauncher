@@ -110,6 +110,27 @@ if (!storage.getItem('heroic_hide_search_suggestions')) {
 if (!storage.getItem('heroic_store_filter_glow_mode')) {
   storage.setItem('heroic_store_filter_glow_mode', 'disabled')
 }
+if (!storage.getItem('heroic_store_bar_layout')) {
+  storage.setItem('heroic_store_bar_layout', 'default')
+}
+if (!storage.getItem('heroic_store_icon_size_default')) {
+  storage.setItem('heroic_store_icon_size_default', '40')
+}
+if (!storage.getItem('heroic_store_text_size_default')) {
+  storage.setItem('heroic_store_text_size_default', '18')
+}
+if (!storage.getItem('heroic_store_icon_size_single_vertical')) {
+  storage.setItem('heroic_store_icon_size_single_vertical', '32')
+}
+if (!storage.getItem('heroic_store_text_size_single_vertical')) {
+  storage.setItem('heroic_store_text_size_single_vertical', '12')
+}
+if (!storage.getItem('heroic_store_icon_size_single_horizontal')) {
+  storage.setItem('heroic_store_icon_size_single_horizontal', '26')
+}
+if (!storage.getItem('heroic_store_text_size_single_horizontal')) {
+  storage.setItem('heroic_store_text_size_single_horizontal', '13')
+}
 if (!storage.getItem('heroic_action_icons_glow_mode')) {
   storage.setItem('heroic_action_icons_glow_mode', 'disabled')
 }

@@ -95,29 +95,30 @@ export async function findActiveGameProcesses(
   }
 
   const active: ActiveProcess[] = []
+  const targetSet = new Set(executables.map((e) => e.toLowerCase()))
 
-  for (const exe of executables) {
-    try {
-      const { stdout } = await execAsync(
-        `tasklist /FO CSV /NH /FI "IMAGENAME eq ${exe}"`
-      )
-      if (stdout && !stdout.includes('No tasks are running')) {
-        const lines = stdout.trim().split('\n')
-        for (const line of lines) {
-          const parts = line
-            .split('","')
-            .map((p) => p.replace(/"/g, '').trim())
-          if (parts.length >= 2) {
-            const exeName = parts[0]
-            const pid = parseInt(parts[1], 10)
-            if (pid && !isNaN(pid)) {
-              active.push({ pid, exe: exeName })
-            }
+  try {
+    const cmd =
+      executables.length === 1
+        ? `tasklist /FO CSV /NH /FI "IMAGENAME eq ${executables[0].replace(/["\r\n]/g, '')}"`
+        : 'tasklist /FO CSV /NH'
+    const { stdout } = await execAsync(cmd)
+    if (stdout && !stdout.includes('No tasks are running')) {
+      const lines = stdout.trim().split('\n')
+      for (const line of lines) {
+        const parts = line
+          .split('","')
+          .map((p) => p.replace(/"/g, '').trim())
+        if (parts.length >= 2) {
+          const exeName = parts[0]
+          const pid = parseInt(parts[1], 10)
+          if (pid && !isNaN(pid) && targetSet.has(exeName.toLowerCase())) {
+            active.push({ pid, exe: exeName })
           }
         }
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
   return active
 }

@@ -146,6 +146,9 @@ export class PluginPacker {
         const fileName = zipBuffer.toString('utf8', offset + 30, offset + 30 + nameLen)
         const dataStart = offset + 30 + nameLen + extraLen
         const dataEnd = dataStart + compSize
+        if (dataStart > zipBuffer.length || dataEnd > zipBuffer.length) {
+          throw new Error('Pacote .ghost corrompido ou truncado.')
+        }
         const compressedData = zipBuffer.subarray(dataStart, dataEnd)
 
         // Zip Slip Security Protection
@@ -162,7 +165,9 @@ export class PluginPacker {
           if (compMethod === 0) {
             uncompressedData = compressedData
           } else if (compMethod === 8) {
-            uncompressedData = inflateRawSync(compressedData)
+            uncompressedData = inflateRawSync(compressedData, {
+              maxOutputLength: 100 * 1024 * 1024
+            })
           } else {
             throw new Error(`Unsupported zip compression method: ${compMethod}`)
           }

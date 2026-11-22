@@ -40,18 +40,22 @@ export const TRUSTED_GAME_MIRROR_DOMAINS = [
 ]
 
 function isPrivateIP(ip: string): boolean {
+  const cleanIp = ip.replace(/^\[|\]$/g, '')
+  if (isIP(cleanIp)) {
+    return !isPublicAddress(cleanIp)
+  }
   // Check 10.x.x.x
-  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip)) return true
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(cleanIp)) return true
   // Check 172.16-31.x.x
-  const match172 = ip.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/)
+  const match172 = cleanIp.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/)
   if (match172) {
     const secondOctet = parseInt(match172[1], 10)
     if (secondOctet >= 16 && secondOctet <= 31) return true
   }
   // Check 192.168.x.x
-  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(ip)) return true
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(cleanIp)) return true
   // Check Link-local 169.254.x.x
-  if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(ip)) return true
+  if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(cleanIp)) return true
   return false
 }
 
@@ -88,7 +92,9 @@ export class NetworkGuard {
       'Upgrade-Insecure-Requests: 1'
     ]
     for (const [k, v] of Object.entries(headers)) {
-      args.push('-H', `${k}: ${v}`)
+      const safeK = String(k).replace(/[\r\n]/g, '').trim()
+      const safeV = String(v).replace(/[\r\n]/g, '').trim()
+      if (safeK) args.push('-H', `${safeK}: ${safeV}`)
     }
     const addresses = await (await import('./secureDns')).resolvePublicHost(new URL(url).hostname)
     args.push('--resolve', `${new URL(url).hostname}:443:${addresses.map(item => item.family === 6 ? `[${item.address}]` : item.address).join(',')}`)
@@ -98,7 +104,7 @@ export class NetworkGuard {
       execFile(
         'curl.exe',
         args,
-        { maxBuffer: 15 * 1024 * 1024, encoding: 'buffer' },
+        { maxBuffer: 15 * 1024 * 1024, encoding: 'buffer', windowsHide: true, timeout: 25000 },
         (error, stdout) => {
           if (error) {
             return reject(error)
@@ -260,6 +266,7 @@ export class NetworkGuard {
 
         if ([301, 302, 303, 307, 308].includes(response.status)) {
           const location = response.headers?.get?.('location')
+          await response.body?.cancel().catch(() => {})
           if (!location) break
           if (hop === maxRedirects) {
             throw new Error('[GhostShield Network Violation]: Too many redirects')
@@ -279,7 +286,16 @@ export class NetworkGuard {
         throw new Error('Failed to fetch response')
       }
 
+      const contentLength = Number(response.headers?.get?.('content-length') || 0)
+      if (contentLength > 15 * 1024 * 1024) {
+        await response.body?.cancel().catch(() => {})
+        throw new Error('[GhostShield Network Violation]: Response exceeds 15 MB limit')
+      }
+
       const text = await response.text()
+      if (text.length > 15 * 1024 * 1024) {
+        throw new Error('[GhostShield Network Violation]: Response exceeds 15 MB limit')
+      }
 
       return {
         ok: response.ok,

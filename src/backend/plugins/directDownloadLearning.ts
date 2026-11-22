@@ -120,6 +120,7 @@ export function validDownloadAction(value: unknown): value is DownloadAction {
 
 /** Data-only recipes. Signed URLs, HTML, field values and scripts never persist. */
 export class DirectDownloadRuleStore {
+  private memoryCache?: { mtimeMs: number; size: number; rules: Rule[] }
   constructor(
     private file = join(
       userDataPath,
@@ -136,8 +137,19 @@ export class DirectDownloadRuleStore {
   }
   private records(): Rule[] {
     try {
-      if (!existsSync(this.file) || statSync(this.file).size > 128 * 1024)
+      if (!existsSync(this.file)) {
+        this.memoryCache = undefined
         return []
+      }
+      const st = statSync(this.file)
+      if (st.size > 128 * 1024) return []
+      if (
+        this.memoryCache &&
+        this.memoryCache.mtimeMs === st.mtimeMs &&
+        this.memoryCache.size === st.size
+      ) {
+        return structuredClone(this.memoryCache.rules)
+      }
       const data: unknown = JSON.parse(readFileSync(this.file, 'utf8'))
       if (
         !data ||
@@ -148,7 +160,7 @@ export class DirectDownloadRuleStore {
         !Array.isArray(data.rules)
       )
         return []
-      return (data.rules as Rule[])
+      const filtered = (data.rules as Rule[])
         .filter((rule) => {
           try {
             return (
@@ -175,6 +187,12 @@ export class DirectDownloadRuleStore {
           }
         })
         .slice(-128)
+      this.memoryCache = {
+        mtimeMs: st.mtimeMs,
+        size: st.size,
+        rules: structuredClone(filtered)
+      }
+      return filtered
     } catch {
       return []
     }
@@ -202,11 +220,18 @@ export class DirectDownloadRuleStore {
       const other = rules
         .filter((rule) => !disabledDefaults.includes(rule))
         .slice(-(128 - disabledDefaults.length))
+      const finalRules = [...disabledDefaults, ...other]
       writeFileSync(
         `${this.file}.tmp`,
-        JSON.stringify({ revision: 2, rules: [...disabledDefaults, ...other] })
+        JSON.stringify({ revision: 2, rules: finalRules })
       )
       renameSync(`${this.file}.tmp`, this.file)
+      const st = statSync(this.file)
+      this.memoryCache = {
+        mtimeMs: st.mtimeMs,
+        size: st.size,
+        rules: structuredClone(finalRules)
+      }
     } catch {
       /* Learning never interrupts a download. */
     }

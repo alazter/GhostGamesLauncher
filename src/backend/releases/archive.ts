@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import { mkdir, readFile, stat, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { createHash } from 'crypto'
 import type { ReleaseCatalog, ReleaseProduct } from 'common/types/releases'
@@ -24,14 +24,17 @@ const LIMIT = 16 * 1024 * 1024
 const valid = (kind: Kind, value: unknown) =>
   kind === 'catalog' ? isReleaseCatalog(value) : isReleaseProduct(value)
 
-export function validateReleaseArchive(value: unknown): ReleaseArchiveData {
+export function validateReleaseArchive(
+  value: unknown,
+  knownByteLength?: number
+): ReleaseArchiveData {
   const data = value as ReleaseArchiveData
   if (
     !data ||
     data.version !== 1 ||
     !Array.isArray(data.records) ||
     data.records.length > 120 ||
-    JSON.stringify(data).length > LIMIT
+    (knownByteLength ?? JSON.stringify(data).length) > LIMIT
   )
     throw new Error('Arquivo de proteção de lançamentos inválido.')
   for (const row of data.records) {
@@ -58,6 +61,11 @@ export function validateReleaseArchive(value: unknown): ReleaseArchiveData {
 /** One serialized writer, atomic replacement and a separately recoverable previous file. */
 export class ReleaseArchive {
   private pending: Promise<unknown> = Promise.resolve()
+  private memoryCache?: {
+    mtimeMs: number
+    size: number
+    data: ReleaseArchiveData
+  }
   readonly calendar: CalendarYearCache
   constructor(private directory: string) {
     this.calendar = new CalendarYearCache(directory)
@@ -66,12 +74,37 @@ export class ReleaseArchive {
     return createHash('sha256').update(`${kind}:${key}`).digest('hex')
   }
   private async read(): Promise<ReleaseArchiveData> {
+    const primaryPath = join(this.directory, 'archive.json')
+    if (this.memoryCache) {
+      try {
+        const st = await stat(primaryPath)
+        if (
+          st.mtimeMs === this.memoryCache.mtimeMs &&
+          st.size === this.memoryCache.size
+        ) {
+          return structuredClone(this.memoryCache.data)
+        }
+      } catch {
+        this.memoryCache = undefined
+      }
+    }
     let failure: unknown
     for (const name of ['archive.json', 'archive.previous.json']) {
       try {
-        return validateReleaseArchive(
-          JSON.parse(await readFile(join(this.directory, name), 'utf8'))
-        )
+        const filePath = join(this.directory, name)
+        const raw = await readFile(filePath, 'utf8')
+        const parsed = validateReleaseArchive(JSON.parse(raw), raw.length)
+        if (name === 'archive.json') {
+          const st = await stat(filePath).catch(() => null)
+          if (st) {
+            this.memoryCache = {
+              mtimeMs: st.mtimeMs,
+              size: st.size,
+              data: structuredClone(parsed)
+            }
+          }
+        }
+        return parsed
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') failure = error
       }
@@ -82,17 +115,20 @@ export class ReleaseArchive {
       )
     return { version: 1, records: [] }
   }
-  private async write(data: ReleaseArchiveData) {
+  private async write(data: ReleaseArchiveData, previousSnapshot?: ReleaseArchiveData) {
     data.records.sort((a, b) => b.revisions[0].at - a.revisions[0].at)
     data.records = data.records.slice(0, 120)
-    while (JSON.stringify(data).length > LIMIT && data.records.length > 1)
+    let serialized = JSON.stringify(data)
+    while (serialized.length > LIMIT && data.records.length > 1) {
       data.records.pop()
-    validateReleaseArchive(data)
+      serialized = JSON.stringify(data)
+    }
+    validateReleaseArchive(data, serialized.length)
     await mkdir(this.directory, { recursive: true })
-    const current = await this.read()
+    const current = previousSnapshot ?? (await this.read())
     await writeFile(
       join(this.directory, 'previous.tmp'),
-      JSON.stringify(current.records.length ? current : data),
+      current.records.length ? JSON.stringify(current) : serialized,
       'utf8'
     )
     await replaceCalendarFile(
@@ -101,13 +137,25 @@ export class ReleaseArchive {
     )
     await writeFile(
       join(this.directory, 'archive.tmp'),
-      JSON.stringify(data),
+      serialized,
       'utf8'
     )
     await replaceCalendarFile(
       join(this.directory, 'archive.tmp'),
       join(this.directory, 'archive.json')
     )
+    const st = await stat(join(this.directory, 'archive.json')).catch(
+      () => null
+    )
+    if (st) {
+      this.memoryCache = {
+        mtimeMs: st.mtimeMs,
+        size: st.size,
+        data: structuredClone(data)
+      }
+    } else {
+      this.memoryCache = undefined
+    }
   }
   private serialize<T>(operation: () => Promise<T>): Promise<T> {
     const next = this.pending.catch(() => undefined).then(operation)
@@ -132,6 +180,7 @@ export class ReleaseArchive {
       )
     return this.serialize(async () => {
       const data = await this.read()
+      const previousSnapshot = structuredClone(data)
       const hash = this.key(kind, key)
       let row = data.records.find(
         (row) => row.key === hash && row.kind === kind
@@ -150,7 +199,7 @@ export class ReleaseArchive {
           { at: Date.now(), value: clean },
           ...row.revisions
         ].slice(0, 3)
-      await this.write(data)
+      await this.write(data, previousSnapshot)
     })
   }
   async export(): Promise<ReleaseArchiveData> {
@@ -161,6 +210,7 @@ export class ReleaseArchive {
     const restored = validateReleaseArchive(incoming)
     return this.serialize(async () => {
       const current = await this.read()
+      const previousSnapshot = structuredClone(current)
       for (const row of restored.records) {
         const existing = current.records.find(
           (item) => item.kind === row.kind && item.key === row.key
@@ -179,7 +229,7 @@ export class ReleaseArchive {
             .slice(0, 3)
         }
       }
-      await this.write(current)
+      await this.write(current, previousSnapshot)
     })
   }
 }

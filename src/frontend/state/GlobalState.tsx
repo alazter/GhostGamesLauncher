@@ -1341,7 +1341,7 @@ export class GlobalState extends PureComponent<Props> {
     })
 
     let lastSteamFocusRefresh = 0
-    window.addEventListener('focus', () => {
+    this.handleWindowFocus = () => {
       const now = Date.now()
       if (now - lastSteamFocusRefresh < 30000) {
         return
@@ -1354,7 +1354,8 @@ export class GlobalState extends PureComponent<Props> {
         lastSteamFocusRefresh = now
         this.refresh('steam')
       }
-    })
+    }
+    window.addEventListener('focus', this.handleWindowFocus)
 
     window.api.handleMetadataChanged((e, overrides) => {
       this.updateGameOverrides(overrides)
@@ -1529,15 +1530,18 @@ export class GlobalState extends PureComponent<Props> {
       })
     }
 
+    this.handleControllerChanged = ((
+      e: CustomEvent<{ controllerId: string }>
+    ) => {
+      document.body.classList.toggle(
+        'controllerLayout',
+        e.detail.controllerId !== ''
+      )
+      this.setState({ activeController: e.detail.controllerId })
+    }) as EventListener
     window.addEventListener(
       'controller-changed',
-      (e: CustomEvent<{ controllerId: string }>) => {
-        document.body.classList.toggle(
-          'controllerLayout',
-          e.detail.controllerId !== ''
-        )
-        this.setState({ activeController: e.detail.controllerId })
-      }
+      this.handleControllerChanged
     )
 
     // listen to custom connectivity-changed event to update state
@@ -1560,17 +1564,25 @@ export class GlobalState extends PureComponent<Props> {
       })
     }
 
-    window.addEventListener('heroicSettingsChanged', () => {
+    this.handleBackupStateDirty = () => {
+      const restoredTheme = configStore.get('theme', 'midnightMirage')
+      this.setState({
+        hiddenGames: configStore.get('games.hidden', []),
+        favouriteGames: configStore.get('games.favourites', []),
+        customCategories: configStore.get('games.customCategories', {}),
+        theme: restoredTheme
+      })
+      if (typeof window.setTheme === 'function') {
+        window.setTheme(restoredTheme)
+      }
       ;(configStore as any).set('backup.lastModified', Date.now())
       window.dispatchEvent(new Event('backupStateChanged'))
-    })
-    window.addEventListener('customBgChanged', () => {
-      ;(configStore as any).set('backup.lastModified', Date.now())
-      window.dispatchEvent(new Event('backupStateChanged'))
-    })
+    }
+    window.addEventListener('heroicSettingsChanged', this.handleBackupStateDirty)
+    window.addEventListener('customBgChanged', this.handleBackupStateDirty)
 
     // Delayed daily automatic upload routine (runs after 2 minutes of startup)
-    setTimeout(() => {
+    this.autoBackupTimer = setTimeout(() => {
       const runAutoBackup = async () => {
         try {
           const settings = (configStore as any).get('settings', {}) as any
@@ -1614,8 +1626,37 @@ export class GlobalState extends PureComponent<Props> {
     window.api.frontendReady()
   }
 
+  private handleWindowFocus?: () => void
+  private handleControllerChanged?: EventListener
+  private handleBackupStateDirty?: () => void
+  private autoBackupTimer?: ReturnType<typeof setTimeout>
+  private lastLockState: { locked: boolean; playing: boolean } | null = null
+  private lastStorageSnapshot: {
+    language?: string
+    updates?: string
+    sidebar?: string
+    hideChangelogs?: string
+    lastChangelog?: string
+  } = {}
+
   componentWillUnmount() {
     this.removeExternalGamesListener?.()
+    if (this.handleWindowFocus) {
+      window.removeEventListener('focus', this.handleWindowFocus)
+    }
+    if (this.handleControllerChanged) {
+      window.removeEventListener('controller-changed', this.handleControllerChanged)
+    }
+    if (this.handleBackupStateDirty) {
+      window.removeEventListener('heroicSettingsChanged', this.handleBackupStateDirty)
+      window.removeEventListener('customBgChanged', this.handleBackupStateDirty)
+    }
+    if (this.autoBackupTimer) {
+      clearTimeout(this.autoBackupTimer)
+    }
+    if (this.zoomTimer) {
+      clearTimeout(this.zoomTimer)
+    }
     this.updateCheckRequest++
     this.externalSnapshotRevision++
   }
@@ -1630,13 +1671,35 @@ export class GlobalState extends PureComponent<Props> {
       language
     } = this.state
 
-    const isRTL = RTL_LANGUAGES.includes(language)
-    document.body.classList.toggle('isRTL', isRTL)
+    if (this.lastStorageSnapshot.language !== language) {
+      this.lastStorageSnapshot.language = language
+      const isRTL = RTL_LANGUAGES.includes(language)
+      document.body.classList.toggle('isRTL', isRTL)
+    }
 
-    storage.setItem('updates', JSON.stringify(gameUpdates))
-    storage.setItem('sidebar_collapsed', JSON.stringify(sidebarCollapsed))
-    storage.setItem('hide_changelogs', JSON.stringify(hideChangelogsOnStartup))
-    storage.setItem('last_changelog', JSON.stringify(lastChangelogShown))
+    const updatesJson = JSON.stringify(gameUpdates)
+    if (this.lastStorageSnapshot.updates !== updatesJson) {
+      this.lastStorageSnapshot.updates = updatesJson
+      storage.setItem('updates', updatesJson)
+    }
+
+    const sidebarJson = JSON.stringify(sidebarCollapsed)
+    if (this.lastStorageSnapshot.sidebar !== sidebarJson) {
+      this.lastStorageSnapshot.sidebar = sidebarJson
+      storage.setItem('sidebar_collapsed', sidebarJson)
+    }
+
+    const hideChangelogsJson = JSON.stringify(hideChangelogsOnStartup)
+    if (this.lastStorageSnapshot.hideChangelogs !== hideChangelogsJson) {
+      this.lastStorageSnapshot.hideChangelogs = hideChangelogsJson
+      storage.setItem('hide_changelogs', hideChangelogsJson)
+    }
+
+    const lastChangelogJson = JSON.stringify(lastChangelogShown)
+    if (this.lastStorageSnapshot.lastChangelog !== lastChangelogJson) {
+      this.lastStorageSnapshot.lastChangelog = lastChangelogJson
+      storage.setItem('last_changelog', lastChangelogJson)
+    }
 
     const allowedPendingOps: Status[] = [
       'installing',
@@ -1657,11 +1720,19 @@ export class GlobalState extends PureComponent<Props> {
     ).length
     const playing =
       libraryStatus.filter((game) => game.status === 'playing').length > 0
+    const shouldLock = pendingOps > 0
 
-    if (pendingOps) {
-      window.api.lock(playing)
-    } else {
-      window.api.unlock()
+    if (
+      !this.lastLockState ||
+      this.lastLockState.locked !== shouldLock ||
+      this.lastLockState.playing !== playing
+    ) {
+      this.lastLockState = { locked: shouldLock, playing }
+      if (shouldLock) {
+        window.api.lock(playing)
+      } else {
+        window.api.unlock()
+      }
     }
   }
 

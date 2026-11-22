@@ -1,6 +1,6 @@
 import { BrowserWindow, session } from 'electron'
 import { logInfo, logError, LogPrefix } from 'backend/logger'
-import { configStore } from './electronStores'
+import { configStore, encryptSteamSecret } from './electronStores'
 import { SteamUser } from './user'
 
 export class SteamAuthModal {
@@ -15,16 +15,27 @@ export class SteamAuthModal {
     logInfo('Opening Steam Community secure login modal', LogPrefix.Steam)
 
     return new Promise((resolve) => {
+      let resolved = false
+      const finish = (val: boolean) => {
+        if (resolved) return
+        resolved = true
+        resolve(val)
+      }
+
       this.authWindow = new BrowserWindow({
         width: 1024,
         height: 720,
         title: 'Conectar com a Steam',
         autoHideMenuBar: true,
         webPreferences: {
+          sandbox: true,
           nodeIntegration: false,
           contextIsolation: true
         }
       })
+      this.authWindow.webContents.setWindowOpenHandler(() => ({
+        action: 'deny'
+      }))
 
       const steamSession = this.authWindow.webContents.session
 
@@ -38,19 +49,23 @@ export class SteamAuthModal {
           )
           if (loginSecure && loginSecure.value) {
             logInfo('Steam login session cookie captured successfully', LogPrefix.Steam)
-            configStore.set('sessionCookie', loginSecure.value)
-            configStore.set('syncMode', 'webView')
-            configStore.set('isLoggedIn', true)
             const account = await SteamUser.getDetectedAccount()
-            if (account) {
-              configStore.set('username', account.personaName)
-              configStore.set('steamId', account.steamId64)
-              configStore.set('steamId32', account.steamId32)
-            }
+            ;(configStore as any).set({
+              sessionCookie: encryptSteamSecret(loginSecure.value),
+              syncMode: 'webView',
+              isLoggedIn: true,
+              ...(account
+                ? {
+                    username: account.personaName,
+                    steamId: account.steamId64,
+                    steamId32: account.steamId32
+                  }
+                : {})
+            })
             if (this.authWindow && !this.authWindow.isDestroyed()) {
               this.authWindow.close()
             }
-            resolve(true)
+            finish(true)
             return true
           }
         } catch (err) {
@@ -69,8 +84,10 @@ export class SteamAuthModal {
 
       this.authWindow.on('closed', async () => {
         this.authWindow = null
-        const isAuthed = await checkAuthCookies()
-        resolve(isAuthed)
+        if (!resolved) {
+          const isAuthed = await checkAuthCookies()
+          finish(isAuthed)
+        }
       })
 
       void this.authWindow.loadURL(

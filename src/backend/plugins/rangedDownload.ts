@@ -88,9 +88,12 @@ export async function rangedDownload(options: {
   let completed = offset
   let contiguous = offset
   let checkpoint = Promise.resolve()
+  let lastSavedPrefix = -1
   const saveCheckpoint = () => {
     if (options.resumeFrom === undefined) return Promise.resolve()
     const prefix = contiguous
+    if (prefix === lastSavedPrefix) return checkpoint
+    lastSavedPrefix = prefix
     checkpoint = checkpoint.then(async () => {
       await file.sync()
       const marker = `${destination}.resume.json`

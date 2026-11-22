@@ -18,7 +18,8 @@ import {
   writeFileSync,
   mkdirSync,
   rmSync,
-  statSync
+  statSync,
+  renameSync
 } from 'graceful-fs'
 import { join, resolve } from 'path'
 import { app, dialog, shell } from 'electron'
@@ -508,7 +509,7 @@ export class PluginManager {
 
     if (!options?.forceRefresh && existsSync(this.homeCacheFile)) {
       try {
-        const raw = readFileSync(this.homeCacheFile, 'utf-8')
+        const raw = readFileSync(this.homeCacheFile, 'utf-8').replace(/^\uFEFF/, '').trim()
         const parsed = JSON.parse(raw) as GhostHomeContent
         if (
           parsed &&
@@ -697,7 +698,14 @@ export class PluginManager {
 
     this.homeContentCache = newHomeContent
     try {
-      writeFileSync(this.homeCacheFile, JSON.stringify(newHomeContent, null, 2), 'utf-8')
+      const homePayload = JSON.stringify(newHomeContent, null, 2)
+      const homeTmp = `${this.homeCacheFile}.tmp`
+      try {
+        writeFileSync(homeTmp, homePayload, 'utf-8')
+        renameSync(homeTmp, this.homeCacheFile)
+      } catch {
+        writeFileSync(this.homeCacheFile, homePayload, 'utf-8')
+      }
     } catch (err) {
       logWarning(`[PluginManager] Falha ao salvar cache de home: ${err}`, LogPrefix.Backend)
     }
@@ -1036,6 +1044,7 @@ export class PluginManager {
                   const dstIndex = join(destPath, 'index.js')
                   if (existsSync(srcIndex) && existsSync(dstIndex)) {
                     if (
+
                       statSync(srcIndex).mtimeMs > statSync(dstIndex).mtimeMs
                     ) {
                       shouldCopy = true
@@ -1105,6 +1114,15 @@ export class PluginManager {
   }
 
   private saveStates(): void {
+    const stateContent = JSON.stringify(this.pluginStates, null, 2)
+    const stateTmp = `${this.stateFilePath}.tmp`
+    try {
+      writeFileSync(stateTmp, stateContent, 'utf8')
+      renameSync(stateTmp, this.stateFilePath)
+      return
+    } catch {
+      // Fallback direto abaixo caso renameSync falhe
+    }
     try {
       writeFileSync(
         this.stateFilePath,
@@ -1116,6 +1134,15 @@ export class PluginManager {
         ['[PluginManager] Failed to save states:', err],
         LogPrefix.Backend
       )
+    }
+  }
+
+  public reloadAllHostStorages(): void {
+    this.loadStates()
+    for (const host of this.hosts.values()) {
+      try {
+        host.reloadStorageFromDisk()
+      } catch {}
     }
   }
 
@@ -1798,6 +1825,12 @@ export class PluginManager {
   }
 
   public getMediaProvider(): MediaProvider | undefined {
+    for (const id of ['com.ghost.alazterflix', 'com.ghost.cinema']) {
+      if (this.pluginStates[id]?.enabled !== false) {
+        const activeProvider = this.hosts.get(id)?.getMediaProvider()
+        if (activeProvider) return activeProvider
+      }
+    }
     const plugin = this.getPlugins().find(
       (p) =>
         p.isEnabled &&
@@ -1808,6 +1841,11 @@ export class PluginManager {
   }
 
   public isCinemaPluginActive(): boolean {
+    for (const id of ['com.ghost.alazterflix', 'com.ghost.cinema']) {
+      if (this.hosts.has(id) && this.pluginStates[id]?.enabled !== false) {
+        return true
+      }
+    }
     const plugin = this.getPlugins().find(
       (p) => p.id === 'com.ghost.alazterflix' || p.id === 'com.ghost.cinema'
     )
@@ -1880,6 +1918,10 @@ export class PluginManager {
       throw new Error('Apenas arquivos .m3u, .m3u8 ou .txt são aceitos.')
     }
 
+    const stat = await fs.stat(filePath)
+    if (stat.size > 25 * 1024 * 1024) {
+      throw new Error('Lista excede o tamanho máximo de segurança (25 MB).')
+    }
     const content = await fs.readFile(filePath, 'utf-8')
     const playlistName = path.basename(filePath, ext)
     const result = parseM3u(content, {
@@ -1927,6 +1969,9 @@ export class PluginManager {
       }
 
       const content = await response.text()
+      if (content.length > 25 * 1024 * 1024) {
+        throw new Error('Lista excede o tamanho máximo de segurança (25 MB).')
+      }
       const urlObj = new URL(rawUrl)
       const pathname = urlObj.pathname
       const playlistName =
@@ -1985,12 +2030,20 @@ export class PluginManager {
       throw new Error('Apenas arquivos .xml, .xml.gz ou .gz são aceitos.')
     }
 
+    const stat = await fs.stat(filePath)
+    if (stat.size > 50 * 1024 * 1024) {
+      throw new Error('Arquivo EPG excede o tamanho máximo de segurança (50 MB).')
+    }
     const rawBuffer = await fs.readFile(filePath)
     let xmlContent = ''
 
-    // Decompress if gzip magic bytes (0x1f 0x8b) or .gz extension
+    // Decompress asynchronously with 100 MB cap to prevent main-thread freeze & Gzip Bomb
     if (rawBuffer.length >= 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
-      const decompressed = zlib.gunzipSync(rawBuffer)
+      const { promisify } = await import('util')
+      const gunzipAsync = promisify(zlib.gunzip)
+      const decompressed = await gunzipAsync(rawBuffer, {
+        maxOutputLength: 100 * 1024 * 1024
+      })
       xmlContent = decompressed.toString('utf-8')
     } else {
       xmlContent = rawBuffer.toString('utf-8')
@@ -2044,7 +2097,11 @@ export class PluginManager {
 
       let xmlContent = ''
       if (rawBuffer.length >= 2 && rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {
-        const decompressed = zlib.gunzipSync(rawBuffer)
+        const { promisify } = await import('util')
+        const gunzipAsync = promisify(zlib.gunzip)
+        const decompressed = await gunzipAsync(rawBuffer, {
+          maxOutputLength: 100 * 1024 * 1024
+        })
         xmlContent = decompressed.toString('utf-8')
       } else {
         xmlContent = rawBuffer.toString('utf-8')
@@ -2087,7 +2144,14 @@ export class PluginManager {
     const path = await import('path')
     const cacheFile = path.join(app.getPath('userData'), 'ghost_epg_cache.json')
     try {
-      await fs.writeFile(cacheFile, JSON.stringify(data), 'utf-8')
+      const epgTmp = `${cacheFile}.tmp`
+      const epgPayload = JSON.stringify(data)
+      try {
+        await fs.writeFile(epgTmp, epgPayload, 'utf-8')
+        await fs.rename(epgTmp, cacheFile)
+      } catch {
+        await fs.writeFile(cacheFile, epgPayload, 'utf-8')
+      }
       return true
     } catch (e) {
       console.error('[Ghost EPG] Erro ao gravar cache em disco:', e)

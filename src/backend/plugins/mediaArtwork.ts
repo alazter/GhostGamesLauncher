@@ -346,7 +346,8 @@ export async function saveMediaArtwork(
   showDir?: string,
   singleItem = false,
   deleteOld = true,
-  oldArtworkPath?: string
+  oldArtworkPath?: string,
+  depth = 0
 ): Promise<{ localPath: string; streamUrl: string }> {
   if (!['poster', 'backdrop'].includes(type))
     throw new Error('Tipo de imagem inválido.')
@@ -442,7 +443,8 @@ export async function saveMediaArtwork(
     const contentType = response.headers.get('content-type') || ''
     if (contentType.includes('text/html')) {
       const htmlText = await response.text()
-      const extractedUrl = extractImageFromHtml(htmlText, effectiveSource)
+      const extractedUrl =
+        depth < 2 ? extractImageFromHtml(htmlText, effectiveSource) : undefined
       if (extractedUrl) {
         return saveMediaArtwork(
           manifest,
@@ -452,7 +454,8 @@ export async function saveMediaArtwork(
           showDir,
           singleItem,
           deleteOld,
-          oldArtworkPath
+          oldArtworkPath,
+          depth + 1
         )
       }
       throw new Error(
@@ -484,7 +487,8 @@ export async function saveMediaArtwork(
   const headerCheck = buffer.subarray(0, 100).toString('utf8').trim().toLowerCase()
   if (headerCheck.startsWith('<!doctype html') || headerCheck.startsWith('<html')) {
     const htmlText = buffer.toString('utf8')
-    const extractedUrl = extractImageFromHtml(htmlText, effectiveSource)
+    const extractedUrl =
+      depth < 2 ? extractImageFromHtml(htmlText, effectiveSource) : undefined
     if (extractedUrl) {
       return saveMediaArtwork(
         manifest,
@@ -494,7 +498,8 @@ export async function saveMediaArtwork(
         showDir,
         singleItem,
         deleteOld,
-        oldArtworkPath
+        oldArtworkPath,
+        depth + 1
       )
     }
     throw new Error(

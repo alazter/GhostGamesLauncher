@@ -29,38 +29,58 @@ export class SteamWebApi {
     logInfo(`Fetching owned games via Steam Web API for ${cleanId}`, LogPrefix.Steam)
 
     return new Promise((resolve) => {
-      https
-        .get(url, { headers: { 'User-Agent': 'GhostLauncher/1.0' } }, (res) => {
-          let rawData = ''
-          res.on('data', (chunk) => (rawData += chunk))
-          res.on('end', () => {
-            try {
-              const parsed = JSON.parse(rawData)
-              const games = parsed?.response?.games
-              if (Array.isArray(games)) {
-                const results: SteamApiGame[] = games.map((g: any) => ({
-                  appId: g.appid.toString(),
-                  title: (g.name || `Steam App ${g.appid}`).trim(),
-                  playtimeForever: g.playtime_forever,
-                  imgIconUrl: g.img_icon_url
-                }))
-                logInfo(
-                  `Successfully fetched ${results.length} games via Steam Web API`,
-                  LogPrefix.Steam
-                )
-                resolve(results)
-                return
+      let settled = false
+      const finish = (val: SteamApiGame[]) => {
+        if (!settled) {
+          settled = true
+          resolve(val)
+        }
+      }
+      const req = https
+        .get(
+          url,
+          { headers: { 'User-Agent': 'GhostLauncher/1.0' }, timeout: 15000 },
+          (res) => {
+            let rawData = ''
+            res.on('data', (chunk) => {
+              rawData += chunk
+              if (rawData.length > 15 * 1024 * 1024) {
+                res.destroy()
+                finish([])
               }
-              resolve([])
-            } catch (err) {
-              logError(['Failed to parse Steam Web API response', err], LogPrefix.Steam)
-              resolve([])
-            }
-          })
+            })
+            res.on('end', () => {
+              try {
+                const parsed = JSON.parse(rawData)
+                const games = parsed?.response?.games
+                if (Array.isArray(games)) {
+                  const results: SteamApiGame[] = games.map((g: any) => ({
+                    appId: g.appid.toString(),
+                    title: (g.name || `Steam App ${g.appid}`).trim(),
+                    playtimeForever: g.playtime_forever,
+                    imgIconUrl: g.img_icon_url
+                  }))
+                  logInfo(
+                    `Successfully fetched ${results.length} games via Steam Web API`,
+                    LogPrefix.Steam
+                  )
+                  finish(results)
+                  return
+                }
+                finish([])
+              } catch (err) {
+                logError(['Failed to parse Steam Web API response', err], LogPrefix.Steam)
+                finish([])
+              }
+            })
+          }
+        )
+        .on('timeout', () => {
+          req.destroy(new Error('Steam Web API request timed out'))
         })
         .on('error', (err) => {
           logError(['Steam Web API network request failed', err], LogPrefix.Steam)
-          resolve([])
+          finish([])
         })
     })
   }
@@ -82,22 +102,36 @@ export class SteamWebApi {
     logInfo(`Fetching owned games via Steam Community Web Session`, LogPrefix.Steam)
 
     return new Promise((resolve) => {
+      let settled = false
+      const finish = (val: SteamApiGame[]) => {
+        if (!settled) {
+          settled = true
+          resolve(val)
+        }
+      }
       const cookieHeader = cleanCookie.includes('=')
         ? cleanCookie
         : `steamLoginSecure=${cleanCookie}`
 
-      https
+      const req = https
         .get(
           targetUrl,
           {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               Cookie: cookieHeader
-            }
+            },
+            timeout: 15000
           },
           (res) => {
             let rawData = ''
-            res.on('data', (chunk) => (rawData += chunk))
+            res.on('data', (chunk) => {
+              rawData += chunk
+              if (rawData.length > 15 * 1024 * 1024) {
+                res.destroy()
+                finish([])
+              }
+            })
             res.on('end', () => {
               try {
                 const appMatches = [
@@ -115,24 +149,27 @@ export class SteamWebApi {
                     `Successfully fetched ${results.length} games via Steam Community XML`,
                     LogPrefix.Steam
                   )
-                  resolve(results)
+                  finish(results)
                   return
                 }
 
-                resolve([])
+                finish([])
               } catch (err) {
                 logError(
                   ['Failed to parse Steam Community response', err],
                   LogPrefix.Steam
                 )
-                resolve([])
+                finish([])
               }
             })
           }
         )
+        .on('timeout', () => {
+          req.destroy(new Error('Steam Community session request timed out'))
+        })
         .on('error', (err) => {
           logError(['Steam Community session request failed', err], LogPrefix.Steam)
-          resolve([])
+          finish([])
         })
     })
   }

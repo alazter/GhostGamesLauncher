@@ -278,8 +278,13 @@ export default class SideloadLibraryManager implements LibraryManager {
 
 import { sanitizeExistingSideloadLibrary } from './scanner'
 
+let isRefreshingCovers = false
+
 export async function refresh() {
   sanitizeExistingSideloadLibrary()
+  if (isRefreshingCovers) {
+    return null
+  }
   const apiKey = getApiKey()
   if (!apiKey) {
     logInfo('[Sideload Library] Skip cover auto-update: SteamGridDB API key is missing.')
@@ -298,40 +303,60 @@ export async function refresh() {
   }
 
   // Execute the cover fetching in background to avoid blocking launcher startup
+  isRefreshingCovers = true
   const runBackgroundRefresh = async () => {
-    let updatedAny = false
-    const pool = new Set<Promise<void>>()
-    const concurrencyLimit = 12
+    try {
+      const resolvedCovers = new Map<
+        string,
+        { art_cover: string; art_square: string }
+      >()
+      const pool = new Set<Promise<void>>()
+      const concurrencyLimit = 12
 
-    for (const game of gamesToUpdate) {
-      const promise: Promise<void> = (async () => {
-        logInfo(`[Sideload Library] Searching SteamGridDB cover for: ${game.title}`)
-        try {
-          const coverData = await fetchCoverFromSteamGridDB(apiKey, game.title)
-          if (coverData) {
-            game.art_cover = coverData.art_cover
-            game.art_square = coverData.art_square
-            updatedAny = true
-            logInfo(`[Sideload Library] Applied SteamGridDB cover for: ${game.title}`)
+      for (const game of gamesToUpdate) {
+        const promise: Promise<void> = (async () => {
+          logInfo(`[Sideload Library] Searching SteamGridDB cover for: ${game.title}`)
+          try {
+            const coverData = await fetchCoverFromSteamGridDB(apiKey, game.title)
+            if (coverData) {
+              resolvedCovers.set(game.app_name, {
+                art_cover: coverData.art_cover,
+                art_square: coverData.art_square
+              })
+              logInfo(`[Sideload Library] Applied SteamGridDB cover for: ${game.title}`)
+            }
+          } catch (err) {
+            logError([`[Sideload Library] Failed fetching SteamGridDB cover for ${game.title}:`, err])
           }
-        } catch (err) {
-          logError([`[Sideload Library] Failed fetching SteamGridDB cover for ${game.title}:`, err])
+        })().then(() => {
+          pool.delete(promise)
+        })
+
+        pool.add(promise)
+        if (pool.size >= concurrencyLimit) {
+          await Promise.race(pool)
         }
-      })().then(() => {
-        pool.delete(promise)
-      })
-
-      pool.add(promise)
-      if (pool.size >= concurrencyLimit) {
-        await Promise.race(pool)
       }
-    }
 
-    await Promise.all(pool)
+      await Promise.all(pool)
 
-    if (updatedAny) {
-      libraryStore.set('games', games)
-      sendFrontendMessage('refreshLibrary', 'sideload')
+      if (resolvedCovers.size > 0) {
+        const latestGames = libraryStore.get('games', []) as GameInfo[]
+        const merged = latestGames.map((item) => {
+          const found = resolvedCovers.get(item.app_name)
+          return found
+            ? {
+                ...item,
+                art_cover: found.art_cover,
+                art_square: found.art_square
+              }
+            : item
+        })
+        libraryStore.set('games', merged)
+        sendFrontendMessage('refreshLibrary', 'sideload')
+      }
+    } finally {
+      isRefreshingCovers = false
     }
   }
 

@@ -268,7 +268,15 @@ export class LegendaryUser {
         displayName: userInfoObject.displayName,
         user: user().username
       }
-      configStore.set('userInfo', info)
+      const existing = configStore.get_nodefault('userInfo')
+      if (
+        !existing ||
+        existing.account_id !== info.account_id ||
+        existing.displayName !== info.displayName ||
+        existing.user !== info.user
+      ) {
+        configStore.set('userInfo', info)
+      }
       return info
     } catch (error) {
       logError(

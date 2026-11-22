@@ -2,14 +2,23 @@ import { libraryManagerMap } from 'backend/storeManagers'
 import { addListener, addHandler, sendFrontendMessage } from '../ipc'
 import { Winetricks, runWineCommandOnGame } from '.'
 import path from 'path'
-import { execAsync, getGame, sendGameStatusUpdate } from 'backend/utils'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { getGame, sendGameStatusUpdate } from 'backend/utils'
 import { isWindows } from 'backend/constants/environment'
+
+const execFileAsync = promisify(execFile)
 
 addHandler(
   'runWineCommandForGame',
   async (event, { appName, commandParts, runner }) => {
     if (isWindows) {
-      return execAsync(commandParts.join(' '))
+      if (!Array.isArray(commandParts) || commandParts.length === 0) {
+        return { stdout: '', stderr: '' }
+      }
+      return execFileAsync(commandParts[0], commandParts.slice(1), {
+        windowsHide: true
+      })
     }
 
     // FIXME: Why are we using `runinprefix` here?

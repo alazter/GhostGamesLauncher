@@ -2,6 +2,8 @@ import { BrowserWindow, session } from 'electron'
 import { logInfo, logWarning, LogPrefix } from 'backend/logger'
 
 const imdbCache = new Map<string, { resolvedUrl: string; expiresAt: number }>()
+const MAX_IMDB_CACHE = 200
+let imdbSessionConfigured = false
 
 /**
  * Verifica se uma URL é pertencente ao ecossistema IMDb / Amazon Media CDN.
@@ -93,6 +95,10 @@ export async function resolveImdbCoverImage(
       }
 
       if (result) {
+        if (imdbCache.size >= MAX_IMDB_CACHE && !imdbCache.has(trimmedUrl)) {
+          const oldest = imdbCache.keys().next().value
+          if (oldest !== undefined) imdbCache.delete(oldest)
+        }
         imdbCache.set(trimmedUrl, {
           resolvedUrl: result,
           expiresAt: Date.now() + 60 * 60 * 1000
@@ -118,21 +124,24 @@ export async function resolveImdbCoverImage(
 
     try {
       const imdbSession = session.fromPartition('persist:imdb-session')
-      imdbSession.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-      )
+      if (!imdbSessionConfigured) {
+        imdbSessionConfigured = true
+        imdbSession.setUserAgent(
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+        )
 
-      // Bloqueia mídias pesadas (áudio/vídeo) para aceleração
-      imdbSession.webRequest.onBeforeRequest(
-        { urls: ['*://*/*'] },
-        (details, callback) => {
-          if (['media', 'font'].includes(details.resourceType)) {
-            callback({ cancel: true })
-          } else {
-            callback({ cancel: false })
+        // Bloqueia mídias pesadas (áudio/vídeo) para aceleração
+        imdbSession.webRequest.onBeforeRequest(
+          { urls: ['*://*/*'] },
+          (details, callback) => {
+            if (['media', 'font'].includes(details.resourceType)) {
+              callback({ cancel: true })
+            } else {
+              callback({ cancel: false })
+            }
           }
-        }
-      )
+        )
+      }
 
       win = new BrowserWindow({
         show: false,

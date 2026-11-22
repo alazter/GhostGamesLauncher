@@ -2945,6 +2945,21 @@ const mediaProvider = {
       if (movie.filePath && movie.filePath !== targetId) {
         history[movie.filePath] = record
       }
+      movie.progressSeconds = progressSeconds
+      movie.duration = durationSeconds
+      movie.lastWatchedAt = nowIso
+      movie.isWatched = isWatched
+      if (typeof ghost.storage.setBatch === 'function') {
+        await ghost.storage.setBatch({
+          playback_history: history,
+          movies
+        })
+        libraryRevision++
+        return
+      }
+      if (movie.filePath && movie.filePath !== targetId) {
+        history[movie.filePath] = record
+      }
       await ghost.storage.set('playback_history', history)
       movie.progressSeconds = progressSeconds
       movie.duration = durationSeconds
@@ -2976,24 +2991,117 @@ const mediaProvider = {
       }
 
       const manifest = await res.json()
-      if (!manifest.id || !manifest.name || !manifest.version) {
-        throw new Error(
-          'Manifesto Stremio v3 inválido: campos id, name ou version ausentes.'
-        )
-      }
+      const isNuvioScraperRepo =
+        manifest &&
+        typeof manifest === 'object' &&
+        Array.isArray(manifest.scrapers) &&
+        manifest.scrapers.length > 0 &&
+        typeof manifest.name === 'string' &&
+        manifest.name.trim().length > 0
 
-      const addon = {
-        id: manifest.id,
-        name: manifest.name,
-        version: manifest.version,
-        description: manifest.description || '',
-        icon: manifest.icon || manifest.logo,
-        background: manifest.background,
-        manifestUrl: url,
-        types: manifest.types || ['movie'],
-        resources: manifest.resources || ['catalog', 'meta'],
-        catalogs: manifest.catalogs || [],
-        isEnabled: true
+      let addon
+      if (isNuvioScraperRepo) {
+        const validScrapers = manifest.scrapers
+          .filter(
+            (s) =>
+              s &&
+              typeof s === 'object' &&
+              typeof s.filename === 'string' &&
+              s.filename.trim().length > 0
+          )
+          .map((s, idx) => {
+            let resolvedFilename = s.filename.trim()
+            if (!/^https?:\/\//i.test(resolvedFilename)) {
+              try {
+                resolvedFilename = new URL(resolvedFilename, url).toString()
+              } catch {}
+            }
+            return {
+              id: String(s.id || `scraper-${idx}`),
+              name: String(s.name || s.id || `Fonte ${idx + 1}`),
+              description: typeof s.description === 'string' ? s.description : '',
+              version: typeof s.version === 'string' ? s.version : '1.0.0',
+              author: typeof s.author === 'string' ? s.author : undefined,
+              supportedTypes: Array.isArray(s.supportedTypes)
+                ? s.supportedTypes
+                : ['movie', 'tv'],
+              filename: resolvedFilename,
+              enabled: s.enabled !== false,
+              formats: Array.isArray(s.formats) ? s.formats : [],
+              contentLanguage: Array.isArray(s.contentLanguage)
+                ? s.contentLanguage
+                : [],
+              logo: typeof s.logo === 'string' ? s.logo : undefined
+            }
+          })
+
+        if (validScrapers.length === 0) {
+          throw new Error(
+            'Repositório Nuvio sem fontes válidas com campo filename.'
+          )
+        }
+
+        const slug = String(manifest.name)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 64)
+        const generatedId =
+          typeof manifest.id === 'string' && manifest.id.trim()
+            ? manifest.id.trim()
+            : `nuvio.scrapers.${slug || 'repo'}`
+        const sampleNames = validScrapers
+          .slice(0, 5)
+          .map((s) => s.name)
+          .join(', ')
+        const moreText =
+          validScrapers.length > 5
+            ? ` e +${validScrapers.length - 5} fontes`
+            : ''
+
+        addon = {
+          id: generatedId,
+          name: manifest.name.trim(),
+          version: String(manifest.version || '1.0.0'),
+          description:
+            manifest.description ||
+            `Repositório Nuvio com ${validScrapers.length} fontes (${sampleNames}${moreText}).`,
+          icon:
+            manifest.icon ||
+            manifest.logo ||
+            validScrapers.find((s) => s.logo)?.logo,
+          background: manifest.background,
+          manifestUrl: url,
+          types: ['movie', 'series', 'anime'],
+          resources: ['stream'],
+          catalogs: [],
+          isEnabled: true,
+          pluginFormat: 'nuvio-scrapers',
+          scrapers: validScrapers
+        }
+      } else {
+        if (!manifest || !manifest.id || !manifest.name || !manifest.version) {
+          throw new Error(
+            'Manifesto inválido: esperado um Addon Stremio v3 (id, name, version) ou um Repositório Nuvio (name, scrapers[]).'
+          )
+        }
+
+        addon = {
+          id: manifest.id,
+          name: manifest.name,
+          version: manifest.version,
+          description: manifest.description || '',
+          icon: manifest.icon || manifest.logo,
+          background: manifest.background,
+          manifestUrl: url,
+          types: manifest.types || ['movie'],
+          resources: manifest.resources || ['catalog', 'meta'],
+          catalogs: manifest.catalogs || [],
+          isEnabled: true,
+          pluginFormat: 'stremio-v3'
+        }
       }
 
       const addons = await this.stremioGetAddons()
@@ -3116,16 +3224,57 @@ const mediaProvider = {
   async stremioGetMeta(addonId, type = 'movie', id) {
     try {
       const addons = await this.stremioGetAddons()
-      const addon = addons.find((a) => a.id === addonId) || addons[0]
-      if (!addon) return null
+      const encodedId = encodeURIComponent(id)
+      const idLower = String(id || '').toLowerCase()
+      const candidates = []
+      const addUrl = (url) => {
+        if (url && !candidates.includes(url)) candidates.push(url)
+      }
 
-      const baseUrl = addon.manifestUrl.replace(/\/manifest\.json$/, '')
-      const url = `${baseUrl}/meta/${type}/${encodeURIComponent(id)}.json`
+      const requested = addonId ? addons.find((a) => a.id === addonId) : null
+      if (requested && requested.manifestUrl) {
+        const base = requested.manifestUrl.replace(/\/manifest\.json$/i, '')
+        addUrl(`${base}/meta/${encodeURIComponent(type)}/${encodedId}.json`)
+      }
 
-      const res = await ghost.http.fetch(url)
-      if (!res.ok) return null
-      const data = await res.json()
-      return data.meta || null
+      for (const a of addons) {
+        if (a.isEnabled === false || !a.manifestUrl) continue
+        const resources = Array.isArray(a.resources) ? a.resources : []
+        let supportsMeta = false
+        let prefixes = Array.isArray(a.idPrefixes) ? a.idPrefixes : []
+        for (const r of resources) {
+          if (typeof r === 'string' && r === 'meta') supportsMeta = true
+          else if (r && typeof r === 'object' && r.name === 'meta') {
+            supportsMeta = true
+            if (Array.isArray(r.idPrefixes) && r.idPrefixes.length) prefixes = r.idPrefixes
+          }
+        }
+        if (!supportsMeta) continue
+        const prefixOk = !prefixes.length || prefixes.some((p) => idLower.startsWith(String(p).toLowerCase()))
+        if (!prefixOk) continue
+        const base = a.manifestUrl.replace(/\/manifest\.json$/i, '')
+        addUrl(`${base}/meta/${encodeURIComponent(type)}/${encodedId}.json`)
+        if (type === 'anime') addUrl(`${base}/meta/series/${encodedId}.json`)
+      }
+
+      if (idLower.startsWith('kitsu:')) {
+        addUrl(`https://anime-kitsu.strem.fun/meta/anime/${encodedId}.json`)
+        addUrl(`https://anime-kitsu.strem.fun/meta/series/${encodedId}.json`)
+      }
+      addUrl(`https://v3-cinemeta.strem.io/meta/${encodeURIComponent(type)}/${encodedId}.json`)
+      if (type !== 'series' && type !== 'movie') {
+        addUrl(`https://v3-cinemeta.strem.io/meta/series/${encodedId}.json`)
+      }
+
+      for (const url of candidates) {
+        try {
+          const res = await ghost.http.fetch(url, { timeoutMs: 12000 })
+          if (!res.ok) continue
+          const data = await res.json()
+          if (data?.meta) return data.meta
+        } catch {}
+      }
+      return null
     } catch (err) {
       ghost.error(`Erro ao consultar meta ${id}:`, err)
       return null
@@ -3138,6 +3287,7 @@ const mediaProvider = {
       // Filtra addons habilitados que fornecem o recurso 'stream'
       const streamAddons = addons.filter((a) => {
         if (!a.isEnabled) return false
+        if (a.pluginFormat === 'nuvio-scrapers') return false
         if (!a.resources) return false
         return a.resources.some((r) => {
           if (typeof r === 'string') return r === 'stream'

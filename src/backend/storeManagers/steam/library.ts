@@ -1,11 +1,11 @@
-import { existsSync, readdirSync, readFileSync } from 'graceful-fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'graceful-fs'
 import { join } from 'path'
 import * as VDF from '@node-steam/vdf'
 import { ExecResult, GameInfo, InstallInfo, InstallPlatform, LaunchOption } from 'common/types'
 import { LibraryManager } from 'common/types/game_manager'
 import SteamGame from './games'
 import { SteamUser } from './user'
-import { configStore, libraryStore } from './electronStores'
+import { configStore, libraryStore, decryptSteamSecret } from './electronStores'
 import {
   STEAM_CDN,
   STEAM_PROTOCOL,
@@ -18,11 +18,29 @@ import { SteamDownloader } from './downloader'
 import { SteamWebApi, SteamApiGame } from './webApi'
 import { tsStore } from 'backend/constants/key_value_stores'
 
+const APPID_MARKER = Buffer.from([0x02, 0x01, 0x00, 0x00, 0x00])
+let cachedAppInfoVdf: {
+  path: string
+  mtimeMs: number
+  size: number
+  map: Map<string, { title: string; type: string }>
+} | null = null
+
 function parseAppInfoVdf(appinfoPath: string): Map<string, { title: string; type: string }> {
   const map = new Map<string, { title: string; type: string }>()
   if (!existsSync(appinfoPath)) return map
 
   try {
+    const st = statSync(appinfoPath)
+    if (
+      cachedAppInfoVdf &&
+      cachedAppInfoVdf.path === appinfoPath &&
+      cachedAppInfoVdf.mtimeMs === st.mtimeMs &&
+      cachedAppInfoVdf.size === st.size
+    ) {
+      return cachedAppInfoVdf.map
+    }
+
     const buf = readFileSync(appinfoPath)
     const str = buf.toString('latin1')
 
@@ -35,7 +53,7 @@ function parseAppInfoVdf(appinfoPath: string): Map<string, { title: string; type
 
       const startPos = Math.max(0, pos - 80)
       const chunk = buf.subarray(startPos, pos)
-      const idIdx = chunk.lastIndexOf(Buffer.from([0x02, 0x01, 0x00, 0x00, 0x00]))
+      const idIdx = chunk.lastIndexOf(APPID_MARKER)
       if (idIdx !== -1 && idIdx + 9 <= chunk.length) {
         const appId = chunk.readUInt32LE(idIdx + 5).toString()
 
@@ -51,6 +69,12 @@ function parseAppInfoVdf(appinfoPath: string): Map<string, { title: string; type
         }
       }
     }
+    cachedAppInfoVdf = {
+      path: appinfoPath,
+      mtimeMs: st.mtimeMs,
+      size: st.size,
+      map
+    }
   } catch (err) {
     logError(['Failed to parse appinfo.vdf', err], LogPrefix.Steam)
   }
@@ -59,12 +83,18 @@ function parseAppInfoVdf(appinfoPath: string): Map<string, { title: string; type
 }
 
 export default class SteamLibraryManager implements LibraryManager {
+  private readonly gameCache = new Map<string, SteamGame>()
+
   async init(): Promise<void> {
     await SteamUser.isLoggedIn()
   }
 
   getGame(id: string): SteamGame {
-    return new SteamGame(id)
+    const cached = this.gameCache.get(id)
+    if (cached) return cached
+    const game = new SteamGame(id)
+    this.gameCache.set(id, game)
+    return game
   }
 
   getGameInfo(appName: string): GameInfo | undefined {
@@ -90,8 +120,8 @@ export default class SteamLibraryManager implements LibraryManager {
 
     const { steamPath, steamId32, steamId64 } = account
     const syncMode = configStore.get('syncMode', 'all')
-    const apiKey = configStore.get('apiKey', '')
-    const sessionCookie = configStore.get('sessionCookie', '')
+    const apiKey = decryptSteamSecret(configStore.get('apiKey', ''))
+    const sessionCookie = decryptSteamSecret(configStore.get('sessionCookie', ''))
 
     // 1. Detect all Library folders from libraryfolders.vdf via AST VDF Parser
     const vdfPath = join(steamPath, 'steamapps', 'libraryfolders.vdf')
@@ -316,6 +346,13 @@ export default class SteamLibraryManager implements LibraryManager {
 
     const finalGames: GameInfo[] = []
     const gridDir = join(userDir, 'config', 'grid')
+    let gridFiles = new Set<string>()
+    if (existsSync(gridDir)) {
+      try {
+        gridFiles = new Set(readdirSync(gridDir))
+      } catch {}
+    }
+    const tsUpdates: Record<string, any> = {}
 
     for (const [appid, item] of ownedMap.entries()) {
       if (IGNORED_STEAM_APP_IDS.has(appid)) {
@@ -367,8 +404,10 @@ export default class SteamLibraryManager implements LibraryManager {
       // Check local user grid covers
       const localGridVertical = join(gridDir, `${appid}p.jpg`)
       const localGridPng = join(gridDir, `${appid}p.png`)
-      const hasLocalGrid = existsSync(localGridVertical) || existsSync(localGridPng)
-      const localGridPath = existsSync(localGridVertical) ? localGridVertical : localGridPng
+      const hasLocalGridJpg = gridFiles.has(`${appid}p.jpg`)
+      const hasLocalGridPng = gridFiles.has(`${appid}p.png`)
+      const hasLocalGrid = hasLocalGridJpg || hasLocalGridPng
+      const localGridPath = hasLocalGridJpg ? localGridVertical : localGridPng
 
       const localAppCache = join(steamPath, 'appcache', 'librarycache', appid)
       let localSquare: string | null = null
@@ -414,9 +453,9 @@ export default class SteamLibraryManager implements LibraryManager {
       if (playtimeData && playtimeData.playTime > 0) {
         const currentTs = tsStore.get_nodefault(appid) as { totalPlayed?: number } | undefined
         if (!currentTs || (currentTs.totalPlayed || 0) < playtimeData.playTime) {
-          tsStore.set(`${appid}.totalPlayed`, playtimeData.playTime)
+          tsUpdates[`${appid}.totalPlayed`] = playtimeData.playTime
           if (lastPlayedDate) {
-            tsStore.set(`${appid}.lastPlayed`, lastPlayedDate)
+            tsUpdates[`${appid}.lastPlayed`] = lastPlayedDate
           }
         }
       }
@@ -442,6 +481,10 @@ export default class SteamLibraryManager implements LibraryManager {
       }
 
       finalGames.push(game)
+    }
+
+    if (Object.keys(tsUpdates).length > 0) {
+      ;(tsStore as any).set(tsUpdates)
     }
 
     logInfo(

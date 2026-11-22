@@ -10,7 +10,7 @@ export function configureSecureDns() {
     secureDnsServers: [QUAD9_DOH]
   })
 }
-export function isPublicAddress(address: string): boolean {
+const BLOCKED_IPV4_LIST = (() => {
   const blocked = new BlockList()
   for (const [network, prefix] of [
     ['0.0.0.0', 8],
@@ -22,9 +22,14 @@ export function isPublicAddress(address: string): boolean {
     ['192.168.0.0', 16],
     ['224.0.0.0', 4],
     ['240.0.0.0', 4]
-  ] as const)
+  ] as const) {
     blocked.addSubnet(network, prefix, 'ipv4')
-  if (isIP(address) === 4) return !blocked.check(address, 'ipv4')
+  }
+  return blocked
+})()
+
+export function isPublicAddress(address: string): boolean {
+  if (isIP(address) === 4) return !BLOCKED_IPV4_LIST.check(address, 'ipv4')
   return isIP(address) === 6 && /^[23][0-9a-f]{3}:/i.test(address)
 }
 export async function resolvePublicHost(hostname: string) {

@@ -38,7 +38,7 @@ const reports = new Map<string, ReleaseDrmReport>()
 const queue = new DrmLookupQueue<ReleaseDrmReport>()
 let loading: Promise<void> | null = null
 let sourceReady = false
-const lookupVersion = 6
+const lookupVersion = 8
 let writer: Promise<unknown> = Promise.resolve()
 const directory = () => join(app.getPath('userData'), 'releases')
 const file = () => join(directory(), 'drm-cache.json')
@@ -244,6 +244,19 @@ async function readGame(url: string) {
   // report cache is kept separately, so an old service worker cannot poison reads.
   const partition = session.fromPartition('ghost-drm-metadata-v1')
   if (!sourceReady) {
+    if (
+      typeof partition.getUserAgent === 'function' &&
+      typeof partition.setUserAgent === 'function'
+    ) {
+      partition.setUserAgent(
+        partition
+          .getUserAgent()
+          .replace(
+            /\s*(?:HeroicGamesLauncher|GhostGamesLauncher|Electron)\/[^\s]+/gi,
+            ''
+          )
+      )
+    }
     partition.setPermissionRequestHandler(
       (_webContents, _permission, callback) => callback(false)
     )
@@ -291,12 +304,23 @@ async function readGame(url: string) {
         const heading = document.querySelector('h1');
         if (/game not found|couldn't find this game|game does not exist/i.test(document.body?.innerText || '')) return {title:'Game not found'};
         if (!heading) return undefined;
-        const info = heading.parentElement?.parentElement;
-        const allowed = /^(cracked|uncracked|unreleased|hypervisor|bypassed|drm free|drm removed|early access)$/i;
-        const status = Array.from(info?.querySelectorAll('span') || []).map(e => e.textContent.trim()).find(text => allowed.test(text));
+        const cleanLabel = text => (text || '').replace(/^[\\[\\s]+|[\\]\\s]+$/g, '').trim();
+        const allowed = /^(cracked|uncracked|unreleased|hypervisor|bypassed|drm[-\\s]?free|drm removed|early access)$/i;
+        const containers = [heading.parentElement?.parentElement, heading.parentElement?.parentElement?.parentElement, heading.closest('section,article,main')].filter(Boolean);
+        let status;
+        for (const box of containers) {
+          status = Array.from(box.querySelectorAll('span')).map(e => cleanLabel(e.textContent)).find(text => allowed.test(text));
+          if (status) break;
+        }
         const field = name => {
-          const label = Array.from(document.querySelectorAll('span')).find(e=>e.textContent.trim().toLowerCase()===name.toLowerCase());
-          return label?.parentElement?.parentElement?.querySelector('p')?.textContent?.trim();
+          const target = name.toLowerCase();
+          const label = Array.from(document.querySelectorAll('span')).find(e => cleanLabel(e.textContent).toLowerCase() === target);
+          if (!label) return undefined;
+          return (
+            label.parentElement?.parentElement?.querySelector('p')?.textContent?.trim() ||
+            label.parentElement?.querySelector('p')?.textContent?.trim() ||
+            label.nextElementSibling?.textContent?.trim()
+          );
         };
         return {title:heading.textContent.trim(),status,protection:field('DRM Protection'),crackDate:field('Crack Date'),group:field('Scene Group')};
       })()`)
@@ -311,12 +335,117 @@ async function readGame(url: string) {
   }
 }
 
+async function searchIsItCrackedUrl(title: string): Promise<string | undefined> {
+  const partition = session.fromPartition('ghost-drm-metadata-v1')
+  const searchUrl = `https://isitcracked.com/search?q=${encodeURIComponent(title)}`
+  if (!safeDrmSourceUrl(searchUrl)) return undefined
+  const window = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      session: partition,
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+      backgroundThrottling: false
+    }
+  })
+  window.webContents.setAudioMuted(true)
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  const guard = (event: Electron.Event, target: string) => {
+    if (new URL(target).origin !== 'https://isitcracked.com')
+      event.preventDefault()
+  }
+  window.webContents.on('will-navigate', guard)
+  window.webContents.on('will-redirect', guard)
+  const deadline = setTimeout(() => {
+    if (!window.isDestroyed()) window.destroy()
+  }, 12000)
+  try {
+    await window.loadURL(searchUrl)
+    const normalized = normalizeDrmTitle(title)
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const result: unknown = await window.webContents.executeJavaScript(`(() => {
+        const body = document.body?.innerText || '';
+        const links = Array.from(document.querySelectorAll('a[href^="/game/"]')).slice(0, 60).map(a => {
+          const heading = a.querySelector('h1,h2,h3,h4,p,span');
+          return {
+            href: a.getAttribute('href') || '',
+            label: (heading?.textContent || a.textContent || '').trim(),
+            full: (a.textContent || '').trim()
+          };
+        });
+        if (links.length) return { done: true, links };
+        if (/no games found|no results|0 results|nothing found/i.test(body)) return { done: true, links: [] };
+        return { done: false, links: [] };
+      })()`)
+      if (
+        result &&
+        typeof result === 'object' &&
+        'done' in result &&
+        (result as { done?: unknown }).done === true &&
+        'links' in result &&
+        Array.isArray((result as { links?: unknown }).links)
+      ) {
+        const links = (
+          result as unknown as {
+            links: Array<{ href: string; label: string; full: string }>
+          }
+        ).links
+        for (const link of links) {
+          const candidateUrl = safeDrmSourceUrl(
+            new URL(link.href, 'https://isitcracked.com').href
+          )
+          if (!candidateUrl) continue
+          const candidates = [
+            link.label,
+            ...link.full
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter(Boolean)
+          ]
+          if (candidates.some((text) => normalizeDrmTitle(text) === normalized))
+            return candidateUrl
+        }
+        return undefined
+      }
+      if (
+        result !== undefined &&
+        !(
+          typeof result === 'object' &&
+          result !== null &&
+          (result as { done?: unknown }).done === false
+        )
+      )
+        return undefined
+      await new Promise((resolve) => setTimeout(resolve, 300))
+    }
+    return undefined
+  } catch {
+    return undefined
+  } finally {
+    clearTimeout(deadline)
+    if (!window.isDestroyed()) window.destroy()
+  }
+}
+
 async function readMatchingGame(title: string) {
+  const tried = new Set<string>()
   for (const alias of drmTitleAliases(title)) {
     const url = 'https://isitcracked.com/game/' + drmGameSlug(alias)
+    if (tried.has(url)) continue
+    tried.add(url)
     const value = await readGame(url)
     if (normalizeDrmTitle(value?.title || '') === normalizeDrmTitle(title)) {
       const source = parseIsItCracked(value, title, url)
+      if (source) return source
+    }
+  }
+  const searchedUrl = await searchIsItCrackedUrl(title)
+  if (searchedUrl && !tried.has(searchedUrl)) {
+    const value = await readGame(searchedUrl)
+    if (normalizeDrmTitle(value?.title || '') === normalizeDrmTitle(title)) {
+      const source = parseIsItCracked(value, title, searchedUrl)
       if (source) return source
     }
   }

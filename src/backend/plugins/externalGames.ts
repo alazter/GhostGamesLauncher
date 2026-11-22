@@ -403,7 +403,8 @@ export class ExternalGames {
       } catch {}
     }
 
-    if (stateModified) {
+    // Consolidado no this.save() final do construtor abaixo
+    if (false && stateModified) {
       this.save()
     }
     backendEvents.on('gameStatusUpdate', ({ runner, appName, status }) => {
@@ -846,6 +847,55 @@ export class ExternalGames {
     })
 
     return result
+  }
+
+  /**
+   * Garante que qualquer jogo instalado na Loja Piratas que ainda não possua
+   * um snapshot de save em `external-games/backups` tenha seu savePath
+   * descoberto e copiado automaticamente antes de exportar o `.GhostBackup`.
+   */
+  public async ensureMissingSavesBackedUp(): Promise<void> {
+    let modified = false
+    const existingBackupInstIds = new Set(
+      this.state.backups.map((b) => b.installationId)
+    )
+
+    for (const installation of this.state.installations) {
+      if (!installation.id || existingBackupInstIds.has(installation.id)) {
+        continue
+      }
+      if (
+        installation.appName &&
+        EXCLUDED_PIRATAS_APP_NAMES.has(installation.appName)
+      ) {
+        continue
+      }
+      try {
+        if (!installation.savePath || !existsSync(installation.savePath)) {
+          const discovery = await this.discoverSavePathEnhanced(installation)
+          if (discovery?.path) {
+            installation.savePath = discovery.path
+            installation.saveDetectionType = discovery.detectionType
+            installation.saveDetectionDetails = discovery.details
+            installation.saveFilesCount = discovery.fileCount
+            installation.saveTotalBytes = discovery.totalBytes
+            modified = true
+          }
+        }
+        if (installation.savePath && existsSync(installation.savePath)) {
+          const files = await regularFiles(installation.savePath)
+          if (files.length > 0) {
+            await this.backup(installation)
+            existingBackupInstIds.add(installation.id)
+            modified = true
+          }
+        }
+      } catch {}
+    }
+
+    if (modified) {
+      this.saveStateOnly()
+    }
   }
 
   public async deleteBackup(

@@ -4,11 +4,11 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
-  padding: 4px 6px !important;
+  gap: var(--store-inner-gap, 6px) !important;
+  padding: 2px 5px !important;
   border-radius: var(--store-btn-border-radius, 12px) !important;
   color: #fff !important;
-  font-size: 18px !important;
+  font-size: var(--store-text-size, 18px) !important;
   font-weight: 400 !important;
   cursor: pointer !important;
   white-space: nowrap !important;
@@ -65,8 +65,8 @@
 
 /* Platform filter icon image styling */
 .platform-filter-icon-img {
-  width: 40px !important;
-  height: 40px !important;
+  width: var(--store-icon-size, 40px) !important;
+  height: var(--store-icon-size, 40px) !important;
   object-fit: contain !important;
   transition: transform 0.25s ease, filter 0.25s ease !important;
 }
@@ -161,4 +161,97 @@ button.platform-filter-btn--zero-bg.platform-filter-btn--active:hover {
   filter: none !important;
   transform: none !important;
 }
+
+/* ============================================================= */
+/* IDEIA 1: LINHA ÚNICA AUTO-CALIBRADA + SLIDE POR ARRASTE MOUSE */
+/* ============================================================= */
+.platforms-bar.platforms-bar--layout-single-vertical,
+.platforms-bar.platforms-bar--layout-single-horizontal {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  width: 100% !important;
+  padding: 4px 2px !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.platforms-bar.platforms-bar--layout-single-vertical::-webkit-scrollbar,
+.platforms-bar.platforms-bar--layout-single-horizontal::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.platforms-bar.platforms-bar--dragging .platform-filter-btn:hover {
+  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+/* Modo 1A: Linha Única com Ícone Acima do Nome (single-vertical) */
+.platforms-bar.platforms-bar--layout-single-vertical {
+  align-items: stretch !important;
+  gap: 10px !important;
+}
+
+.platforms-bar.platforms-bar--layout-single-vertical .platform-filter-btn {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--store-inner-gap, 3px) !important;
+  padding: 2px 6px !important;
+  flex: 1 0 auto !important;
+  min-width: 64px !important;
+  font-size: var(--store-text-size, 12px) !important;
+}
+
+.platforms-bar.platforms-bar--layout-single-vertical .platform-filter-icon-img {
+  width: var(--store-icon-size, 32px) !important;
+  height: var(--store-icon-size, 32px) !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+}
+
+.platforms-bar.platforms-bar--layout-single-vertical .platform-filter-btn > span {
+  font-size: var(--store-text-size, 12px) !important;
+  line-height: 1.05 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+}
+
+/* Modo 1B: Linha Única Lado a Lado Auto-Calibrado (single-horizontal) */
+.platforms-bar.platforms-bar--layout-single-horizontal {
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.platforms-bar.platforms-bar--layout-single-horizontal .platform-filter-btn {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--store-inner-gap, 5px) !important;
+  padding: 2px 6px !important;
+  flex: 1 0 auto !important;
+  min-width: max-content !important;
+  font-size: var(--store-text-size, 13px) !important;
+}
+
+.platforms-bar.platforms-bar--layout-single-horizontal .platform-filter-icon-img {
+  width: var(--store-icon-size, 26px) !important;
+  height: var(--store-icon-size, 26px) !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+}
+
+.platforms-bar.platforms-bar--layout-single-horizontal .platform-filter-btn > span {
+  font-size: var(--store-text-size, 13px) !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+}
+
 

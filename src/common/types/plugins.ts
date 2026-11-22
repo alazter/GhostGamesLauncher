@@ -589,6 +589,20 @@ export interface GhostShow {
   sampleMovie: GhostMovie
 }
 
+export interface NuvioScraperEntry {
+  id: string
+  name: string
+  description?: string
+  version?: string
+  author?: string
+  supportedTypes?: string[]
+  filename: string
+  enabled?: boolean
+  formats?: string[]
+  contentLanguage?: string[]
+  logo?: string
+}
+
 export interface StremioAddonManifest {
   id: string
   name: string
@@ -610,6 +624,8 @@ export interface StremioAddonManifest {
   isEnabled?: boolean
   idPrefixes?: string[]
   officialId?: string
+  pluginFormat?: 'stremio-v3' | 'nuvio-scrapers'
+  scrapers?: NuvioScraperEntry[]
 }
 
 export interface StremioMetaPreview {
@@ -665,6 +681,64 @@ export interface StremioStreamItem {
   ytId?: string
   externalUrl?: string
   description?: string
+}
+
+export interface StremioLibraryItem {
+  id: string
+  type: string
+  name: string
+  poster?: string
+  background?: string
+  logo?: string
+  year?: string
+  imdbRating?: string
+  releaseInfo?: string
+  description?: string
+  genres?: string[]
+  addedAt: string
+  lastWatchedAt?: string
+  timesWatched: number
+  progressSeconds: number
+  durationSeconds: number
+  isWatched: boolean
+  lastVideoId?: string
+  watchedVideos: string[]
+  newEpisodesCount?: number
+  source?: 'local' | 'stremio-account'
+}
+
+export interface StremioCalendarEpisode {
+  id: string
+  seriesId: string
+  seriesType: string
+  seriesName: string
+  seriesPoster?: string
+  seriesBackground?: string
+  videoId: string
+  season: number
+  episode: number
+  episodeTitle: string
+  overview?: string
+  thumbnail?: string
+  released: string
+  dateKey: string
+  isWatched: boolean
+  isUpcoming: boolean
+}
+
+export interface StremioCalendarResult {
+  episodes: StremioCalendarEpisode[]
+  updatedAt: string
+  seriesCount: number
+  syncedSeries: number
+  errors: string[]
+}
+
+export interface StremioAccountStatus {
+  connected: boolean
+  email?: string
+  lastSyncAt?: string
+  syncedItemsCount?: number
 }
 
 export interface CinemaLibraryState {

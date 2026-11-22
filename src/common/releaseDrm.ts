@@ -136,6 +136,7 @@ export function normalizeDrmTitle(title: string) {
       return offset > 0 && number >= 0 ? String(number + 1) : token
     })
     .toLowerCase()
+    .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]/g, '')
 }
 export function drmGameSlug(title: string) {
@@ -208,7 +209,7 @@ export function safeDrmSourceUrl(value: string) {
       return url.href
     if (
       url.hostname === 'isitcracked.com' &&
-      /^\/(?:game\/[a-z0-9-]+|games)\/?$/.test(url.pathname)
+      /^\/(?:game\/[a-z0-9-]+|games|search)\/?$/.test(url.pathname)
     )
       return url.href
     if (

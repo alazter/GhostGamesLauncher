@@ -34,14 +34,27 @@ async function genericSpawnWrapper(
   })
 
   return new Promise<SpawnWrapperReturn>((resolve) => {
-    child.on('close', (code, signal) =>
+    let settled = false
+    child.on('error', (err) => {
+      if (settled) return
+      settled = true
+      resolve({
+        stdout,
+        stderr: stderr ? `${stderr}\n${String(err)}` : String(err),
+        exitCode: -1,
+        signalName: null
+      })
+    })
+    child.on('close', (code, signal) => {
+      if (settled) return
+      settled = true
       resolve({
         stdout,
         stderr,
         exitCode: code,
         signalName: signal
       })
-    )
+    })
   })
 }
 

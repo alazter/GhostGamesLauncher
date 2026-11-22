@@ -26,24 +26,44 @@ interface VersionCacheEntry {
 
 const CACHE_DIR = path.join(userDataPath, 'store_cache')
 const CACHE_FILE = path.join(CACHE_DIR, 'version_lookup_cache.json')
+let memoryVersionCache: Record<string, VersionCacheEntry> | null = null
+const peVersionCache = new Map<
+  string,
+  { mtimeMs: number; size: number; result: { version?: string; compileDate?: string } | null }
+>()
 
 function loadVersionCache(): Record<string, VersionCacheEntry> {
+  if (memoryVersionCache) {
+    return memoryVersionCache
+  }
   try {
     if (fs.existsSync(CACHE_FILE)) {
-      return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
+      const parsed = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
+      if (parsed && typeof parsed === 'object') {
+        memoryVersionCache = parsed
+        return parsed
+      }
     }
   } catch {
     // ignore parse error
   }
-  return {}
+  memoryVersionCache = {}
+  return memoryVersionCache
 }
 
 function saveVersionCache(cache: Record<string, VersionCacheEntry>): void {
+  memoryVersionCache = cache
   try {
     if (!fs.existsSync(CACHE_DIR)) {
       fs.mkdirSync(CACHE_DIR, { recursive: true })
     }
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8')
+    const content = JSON.stringify(cache, null, 2)
+    try {
+      fs.writeFileSync(`${CACHE_FILE}.tmp`, content, 'utf8')
+      fs.renameSync(`${CACHE_FILE}.tmp`, CACHE_FILE)
+    } catch {
+      fs.writeFileSync(CACHE_FILE, content, 'utf8')
+    }
   } catch (err) {
     logError(`Erro ao salvar cache de versões: ${err}`, logPrefix)
   }
@@ -88,12 +108,45 @@ function extractPeVersion(exePath: string): { version?: string; compileDate?: st
   if (!fs.existsSync(exePath)) return null
 
   try {
+    const fileStats = fs.statSync(exePath)
+    const cached = peVersionCache.get(exePath)
+    if (
+      cached &&
+      cached.mtimeMs === fileStats.mtimeMs &&
+      cached.size === fileStats.size
+    ) {
+      return cached.result
+    }
+
     const fd = fs.openSync(exePath, 'r')
-    const stats = fs.fstatSync(fd)
-    const readSize = Math.min(stats.size, 8 * 1024 * 1024)
-    const buf = Buffer.alloc(readSize)
-    fs.readSync(fd, buf, 0, readSize, 0)
-    fs.closeSync(fd)
+    let stats: fs.Stats
+    let readSize: number
+    let buf: Buffer
+    try {
+      stats = fs.fstatSync(fd)
+      readSize = Math.min(stats.size, 8 * 1024 * 1024)
+      buf = Buffer.alloc(readSize)
+      fs.readSync(fd, buf, 0, readSize, 0)
+    } finally {
+      try {
+        fs.closeSync(fd)
+      } catch {}
+    }
+
+    const storeAndReturn = (
+      res: { version?: string; compileDate?: string } | null
+    ) => {
+      if (peVersionCache.size >= 256 && !peVersionCache.has(exePath)) {
+        const oldest = peVersionCache.keys().next().value
+        if (oldest !== undefined) peVersionCache.delete(oldest)
+      }
+      peVersionCache.set(exePath, {
+        mtimeMs: fileStats.mtimeMs,
+        size: fileStats.size,
+        result: res
+      })
+      return res
+    }
 
     let compileDate: string | undefined
     if (readSize > 0x40) {
@@ -134,7 +187,7 @@ function extractPeVersion(exePath: string): { version?: string; compileDate?: st
       // Descartar versões genéricas ou placeholders de engines
       if (!/^(0\.0\.0\.0|1\.0\.0\.0)$/.test(rawVer)) {
         if (!/^(UE5|UE4|Unreal)/i.test(rawVer)) {
-          return { version: rawVer, compileDate }
+          return storeAndReturn({ version: rawVer, compileDate })
         }
       }
     }
@@ -147,7 +200,7 @@ function extractPeVersion(exePath: string): { version?: string; compileDate?: st
       }
     }
 
-    return { compileDate }
+    return storeAndReturn({ compileDate })
   } catch {
     return null
   }
@@ -417,15 +470,23 @@ export function detectPirateGameVersion(game: GameInfo): DetectedVersionResult |
   return null
 }
 
-function fetchJson<T>(url: string): Promise<T> {
+function fetchJson<T>(url: string, timeoutMs = 5000): Promise<T> {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'GhostGamesLauncher/1.0' } }, (res) => {
+    const req = https.get(url, { headers: { 'User-Agent': 'GhostGamesLauncher/1.0' } }, (res) => {
       if (res.statusCode && res.statusCode >= 400) {
+        res.resume()
         reject(new Error(`HTTP ${res.statusCode}`))
         return
       }
       let data = ''
-      res.on('data', (chunk) => { data += chunk })
+      res.on('error', reject)
+      res.on('data', (chunk) => {
+        data += chunk
+        if (data.length > 2 * 1024 * 1024) {
+          req.destroy()
+          reject(new Error('Response too large'))
+        }
+      })
       res.on('end', () => {
         try {
           resolve(JSON.parse(data))
@@ -433,7 +494,12 @@ function fetchJson<T>(url: string): Promise<T> {
           reject(e)
         }
       })
-    }).on('error', reject)
+    })
+    req.on('error', reject)
+    req.setTimeout(timeoutMs, () => {
+      req.destroy()
+      reject(new Error('Request timeout'))
+    })
   })
 }
 

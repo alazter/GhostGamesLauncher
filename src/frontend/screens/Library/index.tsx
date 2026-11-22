@@ -69,6 +69,10 @@ import { configStore } from 'frontend/helpers/electronStores'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCloud, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { syncLocalStorageToBackend } from 'frontend/utils/localStorageBackup'
+import {
+  CloudBackupVisualState,
+  computeCloudBackupVisualStatus
+} from 'frontend/helpers/cloudBackupStatus'
 const storage = window.localStorage
 
 type SearchableGame = {
@@ -118,7 +122,8 @@ export default memo(function Library(): JSX.Element {
     return steps.reduce((prev, curr) => Math.abs(curr - stored) < Math.abs(prev - stored) ? curr : prev, 210)
   })
 
-  const [backupState, setBackupState] = useState<'inactive' | 'error' | 'outdated' | 'updated'>('inactive')
+  const [backupState, setBackupState] = useState<CloudBackupVisualState>('inactive')
+  const [daysSinceBackup, setDaysSinceBackup] = useState<number>(0)
   const [isUploading, setIsUploading] = useState(false)
   const [lastSuccessTime, setLastSuccessTime] = useState<number>(0)
   const [lastErrorMsg, setLastErrorMsg] = useState<string>('')
@@ -195,7 +200,6 @@ export default memo(function Library(): JSX.Element {
 
     const lastSuccess = (configStore as any).get('backup.lastSuccess', 0) as number
     const lastError = (configStore as any).get('backup.lastError', '') as string
-    const lastModified = (configStore as any).get('backup.lastModified', 0) as number
 
     setLastSuccessTime(lastSuccess)
     setLastErrorMsg(lastError)
@@ -210,17 +214,13 @@ export default memo(function Library(): JSX.Element {
       }).catch(() => {})
     }
 
-    if (provider === 'none') {
-      setBackupState('inactive')
-    } else if (lastError) {
-      setBackupState('error')
-    } else if (lastSuccess === 0) {
-      setBackupState('inactive')
-    } else if (lastModified > lastSuccess) {
-      setBackupState('outdated')
-    } else {
-      setBackupState('updated')
-    }
+    const visualStatus = computeCloudBackupVisualStatus({
+      provider,
+      lastSuccess,
+      lastError
+    })
+    setBackupState(visualStatus.state)
+    setDaysSinceBackup(visualStatus.daysSinceBackup)
   }, [])
 
   useEffect(() => {
@@ -234,8 +234,14 @@ export default memo(function Library(): JSX.Element {
       loadBackupStatus()
     }
 
+    // Reavalia periodicamente os dias decorridos desde o último backup (0-3d verde, 4-6d amarelo, 7+d vermelho)
+    const refreshInterval = setInterval(loadBackupStatus, 15 * 60 * 1000)
+
     window.addEventListener('backupStateChanged', handleStateChange)
-    return () => window.removeEventListener('backupStateChanged', handleStateChange)
+    return () => {
+      clearInterval(refreshInterval)
+      window.removeEventListener('backupStateChanged', handleStateChange)
+    }
   }, [loadBackupStatus])
 
   const handleCloudIconClick = async () => {
@@ -277,21 +283,39 @@ export default memo(function Library(): JSX.Element {
       title = t('backup.status.uploading', 'Enviando backup para a nuvem...')
       label = t('backup.label.uploading', 'Enviando backup para a nuvem...')
     } else {
+      const daysText =
+        daysSinceBackup === 0
+          ? 'hoje'
+          : daysSinceBackup === 1
+            ? 'há 1 dia'
+            : `há ${daysSinceBackup} dias`
+      const lastSuccessStr = lastSuccessTime
+        ? new Date(lastSuccessTime).toLocaleString()
+        : t('backup.status.never', 'Nunca')
+      const lastAttemptWarning = lastErrorMsg
+        ? ` (${t('backup.status.last_attempt_error', 'Última tentativa automática falhou')}: ${lastErrorMsg})`
+        : ''
+
       switch (backupState) {
         case 'error':
           color = '#ff1744'
           title = `${t('backup.status.error', 'Erro no último backup')}: ${lastErrorMsg || t('backup.status.unknown_error', 'Erro desconhecido')}. ${t('backup.status.retry', 'Clique para tentar novamente.')}`
           label = `${t('backup.label.error', 'Erro no backup')}: ${lastErrorMsg || t('backup.status.unknown_error', 'Erro desconhecido')}`
           break
-        case 'outdated':
+        case 'overdue':
+          color = '#ff1744'
+          title = `${t('backup.status.overdue', 'Backup atrasado')} (${daysText} sem atualização). ${t('backup.status.last_success', 'Último sucesso')}: ${lastSuccessStr}.${lastAttemptWarning} ${t('backup.status.click_to_sync', 'Clique para sincronizar agora.')}`
+          label = `${t('backup.label.overdue', 'Backup atrasado')} (${daysText})`
+          break
+        case 'warning':
           color = '#ffea00'
-          title = `${t('backup.status.outdated', 'Backup desatualizado (alterações locais pendentes)')}. ${t('backup.status.last_success', 'Último sucesso')}: ${lastSuccessTime ? new Date(lastSuccessTime).toLocaleString() : t('backup.status.never', 'Nunca')}. ${t('backup.status.click_to_sync', 'Clique para sincronizar agora.')}`
-          label = t('backup.label.outdated', 'Backup desatualizado (clique para sincronizar)')
+          title = `${t('backup.status.warning', 'Backup sem atualização')} (${daysText}). ${t('backup.status.last_success', 'Último sucesso')}: ${lastSuccessStr}.${lastAttemptWarning} ${t('backup.status.click_to_sync', 'Clique para sincronizar agora.')}`
+          label = `${t('backup.label.warning', 'Sem backup')} (${daysText})`
           break
         case 'updated':
           color = '#00e676'
-          title = `${t('backup.status.updated', 'Backup atualizado na nuvem')}. ${t('backup.status.last_success', 'Último sucesso')}: ${new Date(lastSuccessTime).toLocaleString()}. ${t('backup.status.click_to_sync_again', 'Clique para fazer backup novamente.')}`
-          label = `${t('backup.label.updated', 'Backup atualizado')} (${lastSuccessTime ? new Date(lastSuccessTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''})`
+          title = `${t('backup.status.updated', 'Backup atualizado na nuvem')} (${daysText}). ${t('backup.status.last_success', 'Último sucesso')}: ${lastSuccessStr}.${lastAttemptWarning} ${t('backup.status.click_to_sync_again', 'Clique para fazer backup novamente.')}`
+          label = `${t('backup.label.updated', 'Backup atualizado')} (${daysText})`
           break
         default:
           break
@@ -2653,7 +2677,7 @@ export default memo(function Library(): JSX.Element {
             flexDirection: 'row',
             flex: 1,
             minHeight: 0,
-            paddingTop: '4px',
+            paddingTop: '0px',
             position: 'relative',
             zIndex: 1
           }}
@@ -2722,7 +2746,7 @@ export default memo(function Library(): JSX.Element {
                   paddingBottom: '30px',
                   paddingRight: '8px',
                   marginTop: '0px',
-                  paddingTop: '6px'
+                  paddingTop: '2px'
                 }}
               >
                 <span id="top" />

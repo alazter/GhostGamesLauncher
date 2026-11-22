@@ -78,6 +78,15 @@ export interface CinemaMediaProbeResult {
   subtitleTracks: CinemaSubtitleTrack[]
 }
 
+const ALLOWED_STREAM_EXTS = new Set([
+  '.mp4', '.mkv', '.webm', '.avi', '.mov', '.m4v', '.ts',
+  '.wmv', '.flv', '.rmvb', '.vob', '.divx', '.ogv', '.mpg', '.mpeg', '.m2ts',
+  '.mp3', '.aac', '.flac', '.ogg', '.wav', '.m4a', '.opus',
+  '.srt', '.vtt', '.sub', '.ass', '.ssa',
+  '.jpg', '.jpeg', '.png', '.webp', '.avif', '.jfif', '.gif', '.svg', '.bmp', '.ico'
+])
+const ALLOWED_SUBTITLE_EXTS = new Set(['.srt', '.vtt', '.sub', '.ass', '.ssa'])
+
 export class MediaStreamServer {
   private static instance: MediaStreamServer
   private server?: http.Server
@@ -86,6 +95,7 @@ export class MediaStreamServer {
   private embeddedSubtitleCache = new Map<string, string>()
   private probeCache = new Map<string, CinemaMediaProbeResult>()
   private keyframeCache = new Map<string, number>()
+  private activeFfmpegProcs = new Set<ReturnType<typeof spawn>>()
 
   private constructor() {}
 
@@ -130,6 +140,11 @@ export class MediaStreamServer {
 
               if (rawFile) {
                 const subPath = path.resolve(rawFile)
+                if (!ALLOWED_SUBTITLE_EXTS.has(path.extname(subPath).toLowerCase())) {
+                  res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' })
+                  res.end('Extensão de arquivo não permitida na rota de legenda.')
+                  return
+                }
                 if (!fs.existsSync(subPath)) {
                   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
                   res.end('Arquivo de legenda não encontrado.')
@@ -241,6 +256,10 @@ export class MediaStreamServer {
                 }
                 cleanVtt = this.ensureVttDefaultPosition(cleanVtt)
 
+                if (this.embeddedSubtitleCache.size >= 50) {
+                  const oldest = this.embeddedSubtitleCache.keys().next().value
+                  if (oldest) this.embeddedSubtitleCache.delete(oldest)
+                }
                 this.embeddedSubtitleCache.set(cacheKey, cleanVtt)
 
                 res.writeHead(200, {
@@ -342,6 +361,8 @@ export class MediaStreamServer {
               )
 
               const ffmpegProc = spawn(ffmpegPath, ffmpegArgs)
+              this.activeFfmpegProcs.add(ffmpegProc)
+              ffmpegProc.once('close', () => this.activeFfmpegProcs.delete(ffmpegProc))
 
               ffmpegProc.stdout.pipe(res)
 
@@ -391,6 +412,11 @@ export class MediaStreamServer {
             }
 
             const ext = path.extname(filePath).toLowerCase()
+            if (!ALLOWED_STREAM_EXTS.has(ext)) {
+              res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' })
+              res.end('Extensão de arquivo não permitida para streaming.')
+              return
+            }
             const contentType = MIME_TYPES[ext] || 'application/octet-stream'
             const fileSize = stat.size
 
@@ -575,6 +601,10 @@ export class MediaStreamServer {
 
         if (deltaSec >= 0 && deltaSec <= 35) {
           const exactKf = Math.max(0, Math.round((targetTime - deltaSec) * 1000) / 1000)
+          if (this.keyframeCache.size >= 500) {
+            const oldest = this.keyframeCache.keys().next().value
+            if (oldest) this.keyframeCache.delete(oldest)
+          }
           this.keyframeCache.set(cacheKey, exactKf)
           return exactKf
         }
@@ -761,6 +791,10 @@ export class MediaStreamServer {
         audioTracks,
         subtitleTracks
       }
+      if (this.probeCache.size >= 200) {
+        const oldest = this.probeCache.keys().next().value
+        if (oldest) this.probeCache.delete(oldest)
+      }
       this.probeCache.set(filePath, result)
       return result
     } catch (err) {
@@ -913,6 +947,13 @@ export class MediaStreamServer {
   }
 
   public stop(): void {
+    for (const proc of this.activeFfmpegProcs) {
+      try {
+        proc.stdout?.destroy()
+        proc.kill('SIGKILL')
+      } catch {}
+    }
+    this.activeFfmpegProcs.clear()
     if (this.server) {
       try {
         this.server.close()

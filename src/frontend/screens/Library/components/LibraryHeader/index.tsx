@@ -147,9 +147,16 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     return Number(localStorage.getItem('heroic_alphabet_glow_strength') || '8')
   })
 
+  const [alphabetToCoversGap, setAlphabetToCoversGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_to_covers_gap')
+    return saved !== null ? Number(saved) : 0
+  })
+
   useEffect(() => {
     const handleSettingsChange = () => {
       setAlignment(localStorage.getItem('heroic_alphabet_alignment') || 'center')
+      const savedCoversGap = localStorage.getItem('heroic_alphabet_to_covers_gap')
+      setAlphabetToCoversGap(savedCoversGap !== null ? Number(savedCoversGap) : 0)
 
       const savedBtn = localStorage.getItem('heroic_alphabet_btn_default_bg_opacity') ?? localStorage.getItem('heroic_alphabet_btn_opacity')
       setBtnBgOpacity(savedBtn !== null ? Number(savedBtn) : 0.05)
@@ -304,7 +311,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
         justifyContent: 'flex-start',
         width: '100%',
         paddingTop: '0px',
-        paddingBottom: '4px',
+        paddingBottom: '0px',
+        marginBottom: `${alphabetToCoversGap}px`,
         paddingLeft: '35px',
         gap: '20px',
         position: 'sticky',
@@ -412,8 +420,8 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minWidth: '36px',
-                height: '36px',
+                minWidth: '28px',
+                height: '26px',
                 padding: '0 8px',
                 boxSizing: 'border-box',
                 borderRadius: `${btnBorderRadius}px`,

@@ -74,6 +74,7 @@ import { groupMoviesIntoShows, mediaPoster } from 'common/mediaCatalog'
 import MetadataSettings from './MetadataSettings'
 import IptvPlaylistsSettings from './IptvPlaylistsSettings'
 import AlazterflixTvHub from './AlazterflixTvHub'
+import StremioHub from './stremio/StremioHub'
 import type { GhostIptvUpdateState } from 'common/types/ghostIptvUpdate'
 import { RECOMMENDED_STREMIO_ADDONS } from 'common/stremioAddonUtils'
 import type { NuvioAddonUpdateState } from 'common/types/nuvioUpdate'
@@ -2398,11 +2399,14 @@ export default function AlazterflixScreen() {
   const playerContainerRef = useRef<HTMLDivElement | null>(null)
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  const metadataRevision = useRef<number | undefined>(undefined)
+
   // Fetch initial cinema state from backend plugin
   const loadCinemaState = useCallback(async () => {
     try {
       setLoading(true)
       const data = await window.api.cinemaGetState()
+      metadataRevision.current = data?.metadataJob?.libraryRevision
       setState(
         data || {
           isPluginActive: false,
@@ -2434,9 +2438,9 @@ export default function AlazterflixScreen() {
     }
   }, [loadCinemaState])
 
-  const metadataRevision = useRef<number | undefined>(undefined)
+  const isMetadataJobRunning = Boolean(state.metadataJob?.running)
   useEffect(() => {
-    if (!state.isPluginActive) return
+    if (!state.isPluginActive || !isMetadataJobRunning) return
     let disposed = false
     let polling = false
     const poll = async () => {
@@ -2450,7 +2454,26 @@ export default function AlazterflixScreen() {
           if (disposed) return
           metadataRevision.current = data.metadataJob?.libraryRevision
           setState(data)
-        } else setState((previous) => ({ ...previous, metadataJob: job }))
+        } else {
+          setState((previous) => {
+            const prevJob = previous.metadataJob
+            if (
+              prevJob &&
+              prevJob.running === job.running &&
+              prevJob.completed === job.completed &&
+              prevJob.total === job.total &&
+              prevJob.matched === job.matched &&
+              prevJob.failed === job.failed &&
+              prevJob.unidentified === job.unidentified &&
+              prevJob.currentTitle === job.currentTitle &&
+              prevJob.lastError === job.lastError &&
+              prevJob.libraryRevision === job.libraryRevision
+            ) {
+              return previous
+            }
+            return { ...previous, metadataJob: job }
+          })
+        }
       } catch (error) {
         if (!disposed)
           setCatalogFeedback(
@@ -2467,7 +2490,7 @@ export default function AlazterflixScreen() {
       disposed = true
       clearInterval(timer)
     }
-  }, [state.isPluginActive])
+  }, [state.isPluginActive, isMetadataJobRunning])
 
   const handleRefreshMetadata = async (
     mode: 'missing' | 'all' | 'portuguese'
@@ -2506,6 +2529,43 @@ export default function AlazterflixScreen() {
     setSelectedMovie((current) => current ? updated.movies.find((movie) => movie.id === current.id) || null : null)
     setSelectedShow((current) => current ? groupMoviesIntoShows(updated.movies).find((show) => show.id === current.id) || null : null)
     setStremioPlayShow((current) => current ? groupMoviesIntoShows(updated.movies).find((show) => show.id === current.id) || null : null)
+
+    if (preferences.isWatched !== undefined) {
+      const targetIdSet = new Set(movieIds)
+      const affected = updated.movies.filter((m) => targetIdSet.has(m.id))
+      const seenStremioIds = new Set<string>()
+      for (const m of affected) {
+        const stremioId =
+          m.imdbId ||
+          (m.id.startsWith('tt') || m.id.startsWith('kitsu:') ? m.id : undefined)
+        if (!stremioId || seenStremioIds.has(stremioId)) continue
+        seenStremioIds.add(stremioId)
+        const stremioType =
+          m.mediaCategory === 'anime'
+            ? 'anime'
+            : m.isSeries
+              ? 'series'
+              : 'movie'
+        void window.api
+          .cinemaStremioUpsertLibraryItem({
+            id: stremioId,
+            type: stremioType,
+            name: m.showTitle || m.customTitle || m.cleanTitle || m.title,
+            poster: m.coverUrl,
+            background: m.backdropUrl,
+            year: m.year ? String(m.year) : undefined,
+            isWatched: preferences.isWatched,
+            lastWatchedAt: new Date().toISOString()
+          })
+          .then(() =>
+            window.api.cinemaStremioToggleWatched(
+              stremioId,
+              Boolean(preferences.isWatched)
+            )
+          )
+          .catch(() => {})
+      }
+    }
   }, [])
 
   // Local Folder Handlers
@@ -2901,6 +2961,40 @@ export default function AlazterflixScreen() {
       const rawBackdrop = movie.backdropUrl || movie.localBackdropPath
       const backdropUrl = getMediaImageUrl(rawBackdrop)
 
+      const stremioId =
+        movie.imdbId ||
+        (movie.id.startsWith('tt') || movie.id.startsWith('kitsu:')
+          ? movie.id
+          : undefined)
+      if (stremioId) {
+        const stremioType =
+          movie.mediaCategory === 'anime'
+            ? 'anime'
+            : movie.isSeries
+              ? 'series'
+              : 'movie'
+        const epVideoId =
+          movie.isSeries &&
+          movie.season !== undefined &&
+          movie.episode !== undefined
+            ? `${stremioId}:${movie.season}:${movie.episode}`
+            : undefined
+        stremioPlayingMetaRef.current = {
+          id: stremioId,
+          type: stremioType,
+          name:
+            movie.showTitle ||
+            movie.customTitle ||
+            movie.cleanTitle ||
+            movie.title,
+          poster: movie.coverUrl,
+          background: movie.backdropUrl,
+          videoId: epVideoId
+        }
+      } else {
+        stremioPlayingMetaRef.current = null
+      }
+
       setPlayerMovie({
         title: movie.customTitle || movie.title,
         streamUrl,
@@ -2957,19 +3051,7 @@ export default function AlazterflixScreen() {
     [state.addons]
   )
 
-  useEffect(() => {
-    if (activeTab === 'stremio' && state.isPluginActive) {
-      loadStremioCatalog(selectedCatalogId, stremioSearch)
-    }
-  }, [
-    activeTab,
-    selectedCatalogId,
-    state.isPluginActive,
-    loadStremioCatalog,
-    stremioSearch
-  ])
-
-  // Stremio Streams Resolver
+  // Stremio Streams Resolver (legacy fallback modal)
   const handleOpenStremioItem = async (item: StremioMetaPreview) => {
     setSelectedStremioItem(item)
     setLoadingStreams(true)
@@ -2985,30 +3067,89 @@ export default function AlazterflixScreen() {
     }
   }
 
-  const handlePlayStremioStream = (
+  const stremioPlayingMetaRef = useRef<{
+    id: string
+    type: string
+    name: string
+    poster?: string
+    background?: string
+    videoId?: string
+  } | null>(null)
+
+  const handlePlayStremioStream = async (
     stream: StremioStreamItem,
-    item: StremioMetaPreview
+    item: StremioMetaPreview,
+    episodeInfo?: { videoId: string; season: number; episode: number; title: string }
   ) => {
-    if (!stream.url) {
+    let resolvedUrl = stream.url
+    if (!resolvedUrl && stream.infoHash) {
+      try {
+        const srv = await window.api.cinemaEnsureStremioServer()
+        if (srv?.online && srv.url) {
+          const base = srv.url.replace(/\/+$/, '')
+          resolvedUrl = `${base}/${stream.infoHash}/${stream.fileIdx ?? 0}`
+        }
+      } catch {}
+    }
+
+    if (!resolvedUrl) {
       alert(
-        'Este stream requer um descompactador torrent ou cliente Debrid configurado.'
+        'Este stream requer o Stremio Server local ativo ou um addon com link direto/Debrid configurado.'
       )
       return
     }
+
+    const customStreamHeaders =
+      stream.behaviorHints?.headers || stream.behaviorHints?.proxyHeaders?.request
+    if (customStreamHeaders && Object.keys(customStreamHeaders).length > 0 && window.api?.cinemaSetStreamHeaders) {
+      try {
+        await window.api.cinemaSetStreamHeaders(resolvedUrl, customStreamHeaders)
+      } catch {}
+    }
+
+    stremioPlayingMetaRef.current = {
+      id: item.id,
+      type: item.type || 'movie',
+      name: item.name,
+      poster: item.poster,
+      background: item.background,
+      videoId: episodeInfo?.videoId
+    }
+
+    void window.api
+      .cinemaStremioUpsertLibraryItem({
+        id: item.id,
+        type: item.type || 'movie',
+        name: item.name,
+        poster: item.poster,
+        background: item.background,
+        releaseInfo: item.releaseInfo,
+        imdbRating: item.imdbRating,
+        lastWatchedAt: new Date().toISOString(),
+        lastVideoId: episodeInfo?.videoId
+      })
+      .catch(() => {})
+
+    const displayTitle = episodeInfo
+      ? `${item.name} · S${String(episodeInfo.season).padStart(2, '0')}E${String(episodeInfo.episode).padStart(2, '0')} - ${episodeInfo.title}`
+      : `${item.name} (${stream.quality || 'HD'})`
 
     isTranscodingRef.current = false
     streamStartTimeRef.current = 0
     durationRef.current = 0
     setDuration(0)
     setPlayerMovie({
-      title: `${item.name} (${stream.quality || 'HD'})`,
-      streamUrl: stream.url,
+      title: displayTitle,
+      streamUrl: resolvedUrl,
       movieId: item.id,
       initialProgress: 0,
       duration: 0,
       coverUrl: getMediaImageUrl(item.poster),
       backdropUrl: getMediaImageUrl(item.background),
       resolution: stream.quality || 'HD',
+      season: episodeInfo?.season,
+      episode: episodeInfo?.episode,
+      showTitle: item.name,
       imdbId: item.id
     })
     setSelectedStremioItem(null)
@@ -3406,6 +3547,16 @@ export default function AlazterflixScreen() {
       } catch (err) {
         console.warn('[Alazterflix] Erro ao salvar progresso de reprodução:', err)
       }
+
+      if (stremioPlayingMetaRef.current) {
+        try {
+          await window.api.cinemaStremioSaveProgress({
+            ...stremioPlayingMetaRef.current,
+            progressSeconds: curTime,
+            durationSeconds: durTime
+          })
+        } catch {}
+      }
     },
     []
   )
@@ -3585,27 +3736,39 @@ export default function AlazterflixScreen() {
       if (!active) return
       if (!video.paused && !video.ended) {
         updateActiveCue()
+        animId = requestAnimationFrame(loop)
+      } else {
+        animId = null
       }
+    }
+
+    const startLoop = () => {
+      updateActiveCue()
+      if (active && animId === null && !video.paused && !video.ended) {
+        animId = requestAnimationFrame(loop)
+      }
+    }
+
+    const syncNow = () => updateActiveCue()
+
+    if (!video.paused && !video.ended) {
       animId = requestAnimationFrame(loop)
     }
 
-    animId = requestAnimationFrame(loop)
-
-    const syncNow = () => updateActiveCue()
     video.addEventListener('timeupdate', syncNow)
     video.addEventListener('seeked', syncNow)
     video.addEventListener('seeking', syncNow)
-    video.addEventListener('play', syncNow)
+    video.addEventListener('play', startLoop)
     video.addEventListener('pause', syncNow)
     video.addEventListener('ratechange', syncNow)
 
     return () => {
       active = false
-      if (animId) cancelAnimationFrame(animId)
+      if (animId !== null) cancelAnimationFrame(animId)
       video.removeEventListener('timeupdate', syncNow)
       video.removeEventListener('seeked', syncNow)
       video.removeEventListener('seeking', syncNow)
-      video.removeEventListener('play', syncNow)
+      video.removeEventListener('play', startLoop)
       video.removeEventListener('pause', syncNow)
       video.removeEventListener('ratechange', syncNow)
     }
@@ -4633,7 +4796,7 @@ export default function AlazterflixScreen() {
   return (
     <div
       id="alazterflix-page"
-      className={`alazterflixScreen ${activeTab === 'tv' ? 'alazterflixScreen--tv-active' : ''}`}
+      className={`alazterflixScreen ${activeTab === 'tv' ? 'alazterflixScreen--tv-active' : ''} ${activeTab === 'stremio' ? 'alazterflixScreen--stremio-active' : ''}`}
     >
       {/* =========================================================================
          TOP HEADER COM IDENTIDADE VISUAL DO MOCKUP
@@ -5181,103 +5344,27 @@ export default function AlazterflixScreen() {
       )}
   
       {/* =========================================================================
-                 TAB 2: STREMIO & CATÁLOGO
+                 TAB 2: STREMIO & CATÁLOGO (BIBLIOTECA + CALENDÁRIO + EXPLORAR)
                  ========================================================================= */}
       {activeTab === 'stremio' && (
-        <section className="view-container">
-          <div className="filter-bar">
-            <div className="filter-search" style={{ width: 380 }}>
-              <FontAwesomeIcon icon={faSearch} />
-              <input
-                type="text"
-                placeholder="Buscar no ecossistema Stremio Addons..."
-                value={stremioSearch}
-                onChange={(e) => setStremioSearch(e.target.value)}
-              />
-            </div>
-            <div className="filter-chips">
-              <button
-                className={`chip-btn ${selectedCatalogId === 'top' ? 'active' : ''}`}
-                onClick={() => setSelectedCatalogId('top')}
-              >
-                Populares (Cinemeta)
-              </button>
-              <button
-                className={`chip-btn ${selectedCatalogId === 'imdbRating' ? 'active' : ''}`}
-                onClick={() => setSelectedCatalogId('imdbRating')}
-              >
-                Mais Bem Avaliados
-              </button>
-              <span
-                style={{
-                  background: 'rgba(0, 255, 255, 0.1)',
-                  border: '1px solid var(--alazter-cyan)',
-                  color: 'var(--alazter-cyan)',
-                  padding: '4px 10px',
-                  borderRadius: 12,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                <FontAwesomeIcon icon={faGlobe} /> Stremio v3 Ready
-              </span>
-            </div>
-          </div>
-  
-          <div>
-            <div className="section-header">
-              <h3 className="section-title">
-                <FontAwesomeIcon icon={faGlobe} />
-                <span>Catálogo Global Stremio</span>
-              </h3>
-              <span className="section-subtitle">
-                Provedor primário: Cinemeta Oficial
-              </span>
-            </div>
-  
-            {stremioLoading ? (
-              <div className="alazter-empty-state">
-                <p>Carregando catálogo Stremio...</p>
-              </div>
-            ) : (
-              <div className="movies-grid">
-                {stremioCatalog.map((item) => (
-                  <div
-                    key={item.id}
-                    className="movie-poster-card"
-                    onClick={() => handleOpenStremioItem(item)}
-                  >
-                    <div className="poster-image-box">
-                      {item.poster ? (
-                        <img src={item.poster} alt={item.name} loading="lazy" />
-                      ) : (
-                        <div className="poster-fallback">
-                          <FontAwesomeIcon icon={faTv} />
-                        </div>
-                      )}
-                      <div className="card-top-badges">
-                        <span className="badge-res res-4k">ONLINE</span>
-                        <span className="badge-rating">
-                          <FontAwesomeIcon icon={faStar} />{' '}
-                          {item.imdbRating || '8.0'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="movie-card-info">
-                      <h4>{item.name}</h4>
-                      <div className="movie-card-meta">
-                        <span>{item.releaseInfo || 'Stremio'}</span>
-                        <span>Filme</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <section className="view-container" style={{ paddingTop: 12 }}>
+          <StremioHub
+            addons={state.addons}
+            localMovies={state.movies}
+            onOpenAddonsSettings={() => {
+              setSettingsSubTab('stremio')
+              setActiveTab('settings')
+            }}
+            onPlayStream={handlePlayStremioStream}
+            onPlayLocalMovie={handlePlayMovie}
+            onFeedback={(msg) => setCatalogFeedback(msg)}
+            onAddonsChanged={async () => {
+              const freshAddons = await window.api.cinemaStremioGetAddons().catch(() => null)
+              if (freshAddons) {
+                setState((prev) => ({ ...prev, addons: freshAddons }))
+              }
+            }}
+          />
         </section>
       )}
   
@@ -5904,12 +5991,12 @@ export default function AlazterflixScreen() {
                   </div>
                 </div>
                 <p>
-                  Cole a URL do manifesto de qualquer addon do protocolo Stremio v3 (ex: https://torrentio.strem.fun/manifest.json):
+                  Cole a URL do manifesto de qualquer addon Stremio v3 (ex: https://torrentio.strem.fun/manifest.json) ou repositório de fontes Nuvio/Prism (manifest.json com scrapers):
                 </p>
                 <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                   <input
                     type="text"
-                    placeholder="Cole aqui a URL do manifesto Stremio..."
+                    placeholder="Cole aqui a URL do manifesto Stremio v3 ou Nuvio..."
                     value={newAddonUrl}
                     onChange={(e) => setNewAddonUrl(e.target.value)}
                     style={{
@@ -5940,8 +6027,25 @@ export default function AlazterflixScreen() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
                   {state.addons.map((addon) => (
                     <div key={addon.id} className="folder-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10, padding: 14 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong style={{ color: '#fff', fontSize: 14 }}>{addon.name}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <strong style={{ color: '#fff', fontSize: 14 }}>{addon.name}</strong>
+                          {addon.pluginFormat === 'nuvio-scrapers' && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                padding: '2px 7px',
+                                borderRadius: 99,
+                                background: 'rgba(123, 91, 245, 0.22)',
+                                border: '1px solid rgba(156, 130, 255, 0.5)',
+                                color: '#d8ccff',
+                                fontWeight: 700
+                              }}
+                            >
+                              NUVIO · {addon.scrapers?.length || 0} FONTES
+                            </span>
+                          )}
+                        </div>
                         <button
                           type="button"
                           className="btn-action"

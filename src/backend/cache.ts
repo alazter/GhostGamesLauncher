@@ -85,8 +85,15 @@ export default class CacheStore<ValueType, KeyType extends string = string> {
   }
 
   public set(key: KeyType, value: ValueType) {
-    this.current_store.set(key, value)
-    this.current_store.set(`__timestamp.${key}`, Date() as ValueType)
+    if (this.using_in_memory) {
+      this.in_memory_store.set(key, value)
+      this.in_memory_store.set(`__timestamp.${key}`, Date() as ValueType)
+    } else {
+      this.store.set({
+        [key]: value,
+        [`__timestamp.${key}`]: Date()
+      })
+    }
   }
 
   public delete(key: KeyType) {

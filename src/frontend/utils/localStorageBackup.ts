@@ -18,7 +18,18 @@ const isBackupKey = (key: string) =>
     'ghost_alazterflix_card_preferences',
     'ghost_alazterflix_favorites',
     'ghost_alazterflix_cover_size',
-    'ghost_alazterflix_cover_sizes'
+    'ghost_alazterflix_cover_sizes',
+    'ghost_stremio_library_v1',
+    'ghost_alazterflix_sub_settings',
+    'ghost_alazterflix_season_drawer_layout',
+    'ghost_stremio_preferred_player',
+    'alazterflix_tv_mode',
+    'alazterflix_player_volume',
+    'current_custom_categories',
+    'sidebar_collapsed',
+    'hide_changelogs',
+    'last_changelog',
+    'updates'
   ].includes(key)
 
 export function collectLocalStorageBackup(): Record<string, string> {

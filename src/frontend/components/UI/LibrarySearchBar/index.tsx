@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState, useEffect, ReactNode } from 'react'
+import { useContext, useMemo, useState, useEffect, useRef, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ContextProvider from 'frontend/state/ContextProvider'
 import { GameInfo, Runner } from 'common/types'
@@ -117,6 +117,92 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
     return localStorage.getItem('heroic_store_filter_glow_target') || 'both'
   })
 
+  const [storeBarLayout, setStoreBarLayout] = useState<'default' | 'single-vertical' | 'single-horizontal'>(() => {
+    return (localStorage.getItem('heroic_store_bar_layout') as 'default' | 'single-vertical' | 'single-horizontal') || 'default'
+  })
+
+  const [storeIconSizes, setStoreIconSizes] = useState<Record<'default' | 'single-vertical' | 'single-horizontal', number>>(() => ({
+    default: Number(localStorage.getItem('heroic_store_icon_size_default') || '40'),
+    'single-vertical': Number(localStorage.getItem('heroic_store_icon_size_single_vertical') || '32'),
+    'single-horizontal': Number(localStorage.getItem('heroic_store_icon_size_single_horizontal') || '26')
+  }))
+
+  const [storeTextSizes, setStoreTextSizes] = useState<Record<'default' | 'single-vertical' | 'single-horizontal', number>>(() => ({
+    default: Number(localStorage.getItem('heroic_store_text_size_default') || '18'),
+    'single-vertical': Number(localStorage.getItem('heroic_store_text_size_single_vertical') || '12'),
+    'single-horizontal': Number(localStorage.getItem('heroic_store_text_size_single_horizontal') || '13')
+  }))
+
+  const [storeInnerGap, setStoreInnerGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_inner_gap')
+    return saved !== null ? Number(saved) : 3
+  })
+
+  const [searchToStoreGap, setSearchToStoreGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_search_to_store_gap')
+    return saved !== null ? Number(saved) : 10
+  })
+
+  const [storeToAlphabetGap, setStoreToAlphabetGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_to_alphabet_gap')
+    return saved !== null ? Number(saved) : 0
+  })
+
+  // Slide horizontal por clique e arraste com o mouse na barra de lojas (sem barra de rolagem)
+  const platformsBarRef = useRef<HTMLDivElement | null>(null)
+  const isDraggingStoresRef = useRef(false)
+  const hasDraggedStoresRef = useRef(false)
+  const storesDragStartXRef = useRef(0)
+  const storesScrollStartLeftRef = useRef(0)
+  const [isDraggingStores, setIsDraggingStores] = useState(false)
+
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!isDraggingStoresRef.current) return
+      const el = platformsBarRef.current
+      if (!el) return
+      const dx = e.clientX - storesDragStartXRef.current
+      if (Math.abs(dx) > 4) {
+        hasDraggedStoresRef.current = true
+      }
+      el.scrollLeft = storesScrollStartLeftRef.current - dx * 1.15
+    }
+    const handleWindowMouseUp = () => {
+      if (!isDraggingStoresRef.current) return
+      isDraggingStoresRef.current = false
+      setIsDraggingStores(false)
+      setTimeout(() => {
+        hasDraggedStoresRef.current = false
+      }, 60)
+    }
+    window.addEventListener('mousemove', handleWindowMouseMove)
+    window.addEventListener('mouseup', handleWindowMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove)
+      window.removeEventListener('mouseup', handleWindowMouseUp)
+    }
+  }, [])
+
+  const handleStoresMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0 || storeBarLayout === 'default') return
+    const el = platformsBarRef.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    isDraggingStoresRef.current = true
+    hasDraggedStoresRef.current = false
+    storesDragStartXRef.current = e.clientX
+    storesScrollStartLeftRef.current = el.scrollLeft
+    setIsDraggingStores(true)
+  }
+
+  const handleStoresWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (storeBarLayout === 'default') return
+    const el = platformsBarRef.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY
+    }
+  }
+
   useEffect(() => {
     const handleStoresChange = () => {
       const saved = localStorage.getItem('heroic_custom_stores')
@@ -156,6 +242,23 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
 
       setStoreFilterGlowMode(localStorage.getItem('heroic_store_filter_glow_mode') || 'disabled')
       setStoreFilterGlowTarget(localStorage.getItem('heroic_store_filter_glow_target') || 'both')
+      setStoreBarLayout((localStorage.getItem('heroic_store_bar_layout') as 'default' | 'single-vertical' | 'single-horizontal') || 'default')
+      setStoreIconSizes({
+        default: Number(localStorage.getItem('heroic_store_icon_size_default') || '40'),
+        'single-vertical': Number(localStorage.getItem('heroic_store_icon_size_single_vertical') || '32'),
+        'single-horizontal': Number(localStorage.getItem('heroic_store_icon_size_single_horizontal') || '26')
+      })
+      setStoreTextSizes({
+        default: Number(localStorage.getItem('heroic_store_text_size_default') || '18'),
+        'single-vertical': Number(localStorage.getItem('heroic_store_text_size_single_vertical') || '12'),
+        'single-horizontal': Number(localStorage.getItem('heroic_store_text_size_single_horizontal') || '13')
+      })
+      const savedInnerGap = localStorage.getItem('heroic_store_inner_gap')
+      setStoreInnerGap(savedInnerGap !== null ? Number(savedInnerGap) : 3)
+      const savedSearchGap = localStorage.getItem('heroic_search_to_store_gap')
+      setSearchToStoreGap(savedSearchGap !== null ? Number(savedSearchGap) : 10)
+      const savedToAlphabetGap = localStorage.getItem('heroic_store_to_alphabet_gap')
+      setStoreToAlphabetGap(savedToAlphabetGap !== null ? Number(savedToAlphabetGap) : 0)
     }
     window.addEventListener('heroicSettingsChanged', handleSettingsChange)
     return () =>
@@ -246,7 +349,7 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
+        gap: `${searchToStoreGap}px`,
         width: '100%',
         boxSizing: 'border-box'
       }}
@@ -305,18 +408,27 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
         const isZeroBg = storeBtnBgOpacity <= 0.001 || (localStorage.getItem('heroic_store_btn_default_bg_opacity') ?? localStorage.getItem('heroic_store_btn_bg_opacity')) === '0'
         return (
           <div
-            className={`platforms-bar glow-mode-${storeFilterGlowMode} glow-target-${storeFilterGlowTarget} ${isZeroBg ? 'platforms-bar--zero-bg' : ''}`}
+            ref={platformsBarRef}
+            onMouseDown={handleStoresMouseDown}
+            onWheel={handleStoresWheel}
+            className={`platforms-bar platforms-bar--layout-${storeBarLayout} ${isDraggingStores ? 'platforms-bar--dragging' : ''} glow-mode-${storeFilterGlowMode} glow-target-${storeFilterGlowTarget} ${isZeroBg ? 'platforms-bar--zero-bg' : ''}`}
             style={{
               display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'flex-start',
-              gap: '12px',
+              flexWrap: storeBarLayout === 'default' ? 'wrap' : 'nowrap',
+              justifyContent: storeBarLayout === 'default' ? 'flex-start' : 'flex-start',
+              gap: storeBarLayout === 'default' ? '12px' : '10px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
+              userSelect: 'none',
+              ...(isDraggingStores ? { cursor: 'grabbing' } : {}),
               ...(isUnclassifiedActive ? { pointerEvents: 'none', opacity: 0.4 } : {}),
               '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
               '--store-btn-border-width': storeBtnBorderEnabled && !isZeroBg ? '1px' : '0px',
+              '--store-icon-size': `${storeIconSizes[storeBarLayout]}px`,
+              '--store-text-size': `${storeTextSizes[storeBarLayout]}px`,
+              '--store-inner-gap': `${storeInnerGap}px`,
+              marginBottom: `${storeToAlphabetGap}px`,
               '--store-btn-bg': isZeroBg
                 ? 'transparent'
                 : storeBtnGradientEnabled
@@ -365,7 +477,10 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
                 return (
                   <button
                     key={store.id}
-                    onClick={() => handleFilterClick(store.id)}
+                    onClick={() => {
+                      if (hasDraggedStoresRef.current) return
+                      handleFilterClick(store.id)
+                    }}
                     className={`platform-filter-btn ${
                       isActive ? 'platform-filter-btn--active' : ''
                     } ${isZeroBg ? 'platform-filter-btn--zero-bg' : ''}`}
@@ -389,6 +504,8 @@ export default function LibrarySearchBar({ children, isUnclassifiedActive }: { c
                         src={imageSource}
                         alt={store.name}
                         className="platform-filter-icon-img"
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'
                         }}

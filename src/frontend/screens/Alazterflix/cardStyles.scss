@@ -749,3 +749,182 @@
 .catalog-modern-card--clean .catalog-modern-poster .catalog-cover-badges {
   display: none !important;
 }
+
+/* Stremio Watched Badge (✓ Amarelo no canto superior esquerdo), Barra de Progresso e Biblioteca Stremio */
+#alazterflix-page {
+  .stremio-watched-corner-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 6;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #f5c518;
+    color: #0b0e14;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+    pointer-events: none;
+  }
+
+  .stremio-poster-progress-bar {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 6;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+
+    > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: #ffffff;
+    }
+  }
+
+  .stremio-center-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(15, 20, 30, 0.68);
+    border: 2px solid rgba(255, 255, 255, 0.88);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    transition: transform 180ms ease, background 180ms ease;
+  }
+
+  .movie-poster-card:hover .stremio-center-play-overlay {
+    transform: translate(-50%, -50%) scale(1.1);
+    background: rgba(123, 92, 245, 0.88);
+  }
+
+  .stremio-ep-count-pill {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #0b0e14;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+  }
+
+  .stremio-card-quick-actions {
+    position: absolute;
+    bottom: 18px;
+    right: 8px;
+    z-index: 7;
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 160ms ease;
+
+    .stremio-quick-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(10, 14, 23, 0.86);
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: transform 140ms ease, background 140ms ease, color 140ms ease;
+
+      &:hover {
+        transform: scale(1.1);
+        border-color: #ffffff;
+      }
+
+      &.is-watched {
+        background: #f5c518;
+        border-color: #f5c518;
+        color: #0b0e14;
+      }
+
+      &.is-saved {
+        background: #7b5cf5;
+        border-color: #9b82f8;
+        color: #ffffff;
+      }
+    }
+  }
+
+  .movie-poster-card:hover .stremio-card-quick-actions {
+    opacity: 1;
+  }
+
+  .stremio-library-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+
+    .stremio-type-select {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #f1f5f9;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+
+      option {
+        background: #111622;
+        color: #f1f5f9;
+      }
+    }
+
+    .stremio-pill-tab {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 150ms ease, color 150ms ease;
+
+      &:hover {
+        color: #f8fafc;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      &.active {
+        background: #7b5cf5;
+        color: #ffffff;
+        box-shadow: 0 2px 12px rgba(123, 92, 245, 0.45);
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-# Review das Alterações - 16/11/2026
+# Review das Alterações - 22/11/2026
 
 Compilado de todas as modificações de estilo, alinhamento, estrutura e novas funcionalidades aplicadas no Ghost Games Launcher hoje e nas últimas sessões.
 
@@ -895,6 +895,38 @@ Compilado de todas as modificações de estilo, alinhamento, estrutura e novas f
   - **Escopo Estrito de `isMediaStream` e Proteção de CORS em `onHeadersReceived` (Conquista 261)**: Removidos `xhr` e `other` genéricos de `isMediaStream`; adicionado bypass imediato em `onHeadersReceived` para domínios de vídeo embarcado (`youtube-nocookie.com`, `youtube.com`, `googlevideo.com`, `vimeo.com`) e respostas com `Access-Control-Allow-Credentials: true`.
   - **Validação Empírica no Electron Real**: Testado diretamente com trailers reais de lançamentos (`https://www.youtube-nocookie.com/embed/rz1B4B2yBZY?autoplay=1`), comprovando eliminação definitiva do Erro 153 e reprodução instantânea com `readyState: 4`.
   - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), novos testes unitários Jest em `rendererRequestHeaders.test.ts` e Regra Canônica 62 rigorosamente preservada.
+
+---
+
+### 63. Consolidação das 4 Rodadas de Auditoria Sênior Global (51 Correções Cirúrgicas nos 5 Pilares: SSD/TBW, CPU/RAM, Cibersegurança, Estabilidade e Resiliência — Conquistas 261 a 264)
+* **Problema:** Auditoria contínua de código identificou oportunidades críticas de blindagem contra desgastes desnecessários de disco (SSD TBW), vazamento de streams/processos órfãos, sobrecarga de leituras síncronas de arquivos grandes (como `archive.json`, `appinfo.vdf` e dumps EPG/M3U) e pontos de injeção ou travamento de interface em rotinas do backend.
+* **Solução:**
+  - **Rodada 1 (Conquista 261 - 13 Correções)**: Blindagem contra Command Injection (`spawn` parametrizado em `openUrlOrFile` e expansão em memória em `getShellPath`); proteção contra Path Traversal em `.GhostBackup` e servidor Ghost IPTV (`path.resolve` + `startsWith`); escrita atômica `.tmp` + `renameSync` em `GlobalConfig` e `GameConfig`; dirty-checking no `GlobalState`; cache de 30s em `resolveWebDirectory()`; destruição de sockets órfãos em `proxyTsSegment`; teto de 64 MB no cache de imagens e `APPID_MARKER` isolado fora de loops.
+  - **Rodada 2 (Conquista 262 - 8 Correções)**: Cache em memória RAM (`storageCache`) e gravação em lote (`setBatch`) no `PluginHost` e Alazterflix; coalescência de rajadas de log em voo (`#pendingBuffer`) no `log_writer.ts`; blindagem de extensões no `MediaStreamServer` (`/subtitle` e `/stream`); escrita atômica em caches de TV/EPG; encerramento limpo (`stop()`) de processos `ffmpeg` ativos no shutdown do app; e limites FIFO de memória RAM em probes de mídia.
+  - **Rodada 3 (Conquista 263 - 18 Correções)**: Trava de fronteira em `SideloadGame.uninstall` impedindo exclusão acidental de raízes de disco ou pastas do sistema; criptografia Windows DPAPI (`safeStorage`) em tokens GitHub/Zoom; blindagem contra XSS/Code Injection em `steamhelper.ts` (`JSON.stringify(src)`); caches em memória validados por `mtimeMs`/`size` em `archive.json`, `downloadEngineMemory` e `directDownloadLearning`; e prevenção de *Lost Update* em `sideload/library.ts`.
+  - **Rodada 4 (Conquista 264 - 12 Correções)**: Blindagem de auto-update com whitelist estrita de domínios GitHub e `execFile('reg.exe')` sem shell intermediário; criptografia DPAPI para credenciais Steam (`encryptSteamSecret`/`decryptSteamSecret`); blindagem SSRF IPv6 com `BLOCKED_IPV4_LIST` estática e teto de 15 MB/15s no `safeFetch`; dirty-check global em todos os `ElectronStore` evitando gravações desnecessárias no SSD; descompressão assíncrona de EPG via `gunzipAsync` com teto de 100 MB anti-gzip bomb; e caches em RAM para `ensurePermanentAppIcon` e `parseAppInfoVdf`.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 14/14 suítes de testes Jest 100% aprovadas e Regra Canônica 62 rigorosamente preservada.
+
+### 64. Ecossistema Completo Stremio no Alazterflix (Biblioteca Stremio com Filtros e Progresso, Calendário Mensal de Séries, Identificação de Mídias Locais "NO PC" e Suporte a Fontes Nuvio/Prism — Conquistas 265 a 268)
+* **Problema:** A integração do Alazterflix com conteúdos Stremio necessitava de um hub centralizado para sincronizar biblioteca de filmes/séries salvos, acompanhar episódios semanais em formato de calendário, identificar mídias baixadas localmente no disco para reprodução offline instantânea e suportar raspagem de fontes de provedores de streaming com estabilidade.
+* **Solução:**
+  - **Biblioteca Stremio Sincronizada (`StremioLibraryService` & `stremio_library.json`)**: Sincronização e persistência atômica de biblioteca pessoal do usuário, suportando filtros por Tipo (Filmes / Séries), Status (Assistidos / Em Andamento / Não Assistidos) e Ordenação (Mais Recentes, Título, Progresso), exibindo o selo visual circular amarelo `✓` nos itens assistidos e barra de progresso em itens parciais.
+  - **Calendário Mensal de Lançamento de Séries (`SeriesCalendar.tsx`)**: Exibição em grade visual e responsiva dos lançamentos de novos episódios por dia do mês, com contagem regressiva em tempo real e visualização de capas de séries.
+  - **Identificação Automática de Mídias Locais "NO PC" (`stremioLocalMedia.ts`)**: Varredura inteligente de pastas de download locais configuradas, mapeando nomes de arquivos e episódios com os metadados do Stremio para permitir reprodução local direta com zero buffer e identificador neon "NO PC".
+  - **Suporte a Scrapers e Motores Nuvio/Prism (`nuvioScraperService.ts`)**: Motor de raspagem em sandbox isolada para múltiplos provedores de mídia com resolução de cabeçalhos de proteção e fallback automático de fontes.
+  - **Qualidade & Testes**: Suítes de testes Jest dedicadas em `stremioLibraryService.test.ts`, `stremioLocalMedia.test.ts` e `nuvioScraperService.test.ts` 100% aprovadas (29/29 testes), sem erros de tipagem.
+
+### 65. Auditoria Completa da Verificação de DRM na Tela de Lançamentos e Hardening de CI/CD Multiplataforma (SkidrowReloaded, IsItCracked, CrackWatch e GitHub Actions — Conquistas 269 e 270)
+* **Problema:** Na tela de Lançamentos (`Releases`), a verificação de status de proteção DRM dos jogos apresentava discrepâncias em lançamentos Early Access/P2P do SkidrowReloaded, falhas em títulos com nomes longos no IsItCracked e sobrecarga na sincronização de abas do CrackWatch. Além disso, as rotinas de compilação em nuvem (GitHub Actions) falhavam em runners de Linux (AppImage), Mac e Windows devido a formatação de `fileAssociations` e falta da flag `--publish=never`.
+* **Solução:**
+  - **Parser SkidrowReloaded Robusto**: Suporte completo a tags de atualização de versão (`vDate`, `Update 1.x`), detecção de lançamentos P2P e status Early Access sem falsos negativos.
+  - **Busca Reversa no IsItCracked**: Algoritmo de correspondência flexível com fallback de busca reversa para jogos com caracteres especiais, subtítulos ou pontuações.
+  - **Integração das 12 Abas do Google Sheets CrackWatch**: Cache otimizado em memória e normalização de nomes para consulta instantânea de status de crack e proteção antipirataria (Denuvo, VMProtect, etc.).
+  - **Hardening Multiplataforma de CI/CD (`electron-builder.yml` & `.github/workflows/build-base.yml`)**:
+    - Reestruturação atômica de `fileAssociations` para que a extensão `.GhostBackup` seja interpretada como string única no empacotador AppImage do Linux (`app-builder-bin` em Go), eliminando erro de deserialização JSON.
+    - Inclusão do ícone `mac-icon.icns` espelhado em `win_icon.icns` para evitar falha de recurso no empacotamento do macOS.
+    - Adição de `--publish=never` e mapeamento de tokens nos passos de build do Windows no GitHub Actions, garantindo pipelines de compilação 100% verdes em todos os sistemas operacionais.
+  - **Qualidade & Testes**: `pnpm run codecheck` com 0 erros TypeScript (`tsc --noEmit`), 81/81 testes de jogos externos e DRM aprovados, e Regra Canônica 62 preservada.
 
 ---
 

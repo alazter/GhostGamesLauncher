@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  renameSync,
   writeFileSync,
   cpSync,
   statSync
@@ -9,7 +10,7 @@ import {
 import { join } from 'path'
 import os from 'os'
 import { execFileSync } from 'child_process'
-import { app, shell, BrowserWindow, session } from 'electron'
+import { app, shell, BrowserWindow, session, safeStorage } from 'electron'
 import { startGhostIptvServer, getGhostIptvServerUrl } from './ghostIptvServer'
 import type {
   GhostIptvAction,
@@ -20,10 +21,20 @@ import { secureFetch } from './secureDns'
 
 export const GHOST_IPTV_GITHUB_REPO = 'alazter/ghost-iptv'
 export const GHOST_IPTV_GITHUB_URL = 'https://github.com/alazter/ghost-iptv'
-export const GHOST_IPTV_LOCAL_DEV_PATH =
-  'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\Ghost IPTV'
-export const GHOST_IPTV_LOCAL_DEV_FALLBACK_PATH =
-  'C:\\Users\\alazt\\Documents\\GitHub\\Projetos\\App Tv addon stremio e m3u'
+export const GHOST_IPTV_LOCAL_DEV_PATH = join(
+  os.homedir(),
+  'Documents',
+  'GitHub',
+  'Projetos',
+  'Ghost IPTV'
+)
+export const GHOST_IPTV_LOCAL_DEV_FALLBACK_PATH = join(
+  os.homedir(),
+  'Documents',
+  'GitHub',
+  'Projetos',
+  'App Tv addon stremio e m3u'
+)
 
 const GHOST_IPTV_RELEASES_API =
   'https://api.github.com/repos/alazter/ghost-iptv/releases?per_page=5'
@@ -142,7 +153,21 @@ export function resolveGitHubToken(): string {
   try {
     const tokFile = getTokenFilePath()
     if (existsSync(tokFile)) {
-      const saved = readFileSync(tokFile, 'utf-8').trim()
+      let saved = readFileSync(tokFile, 'utf-8').trim()
+      if (
+        saved.startsWith('enc:') &&
+        safeStorage &&
+        typeof safeStorage.isEncryptionAvailable === 'function' &&
+        safeStorage.isEncryptionAvailable()
+      ) {
+        try {
+          saved = safeStorage
+            .decryptString(Buffer.from(saved.slice(4), 'base64'))
+            .trim()
+        } catch {
+          saved = ''
+        }
+      }
       if (saved.length > 10) {
         cachedGitHubToken = saved
         return saved
@@ -161,7 +186,15 @@ export function resolveGitHubToken(): string {
       if (ghToken && ghToken.length > 10) {
         cachedGitHubToken = ghToken
         try {
-          writeFileSync(getTokenFilePath(), ghToken, 'utf-8')
+          const tokFile = getTokenFilePath()
+          const payload =
+            safeStorage &&
+            typeof safeStorage.isEncryptionAvailable === 'function' &&
+            safeStorage.isEncryptionAvailable()
+              ? 'enc:' + safeStorage.encryptString(ghToken).toString('base64')
+              : ghToken
+          writeFileSync(`${tokFile}.tmp`, payload, 'utf-8')
+          renameSync(`${tokFile}.tmp`, tokFile)
         } catch {}
         return ghToken
       }
@@ -304,6 +337,11 @@ export function getActivePluginDirs(): string[] {
   return dirs
 }
 
+const htmlBadgeCache = new Map<
+  string,
+  { size: number; mtimeMs: number; badgeVer?: string }
+>()
+
 function readActualDirVersion(dir: string): {
   manifestVersion?: string
   webVersion?: string
@@ -354,12 +392,31 @@ function readActualDirVersion(dir: string): {
       hasWebHtml = st.size > 0
       htmlSize = st.size
       htmlMtimeMs = st.mtimeMs || 0
-      const htmlContent = readFileSync(htmlPath, 'utf-8')
-      const badgeMatch = htmlContent.match(
-        /id=["']headerVersionBadge["'][^>]*>\s*v?([0-9]+\.[0-9]+\.[0-9]+)\s*</i
-      )
-      if (badgeMatch?.[1]) {
-        const badgeVer = badgeMatch[1].trim()
+      const cached = htmlBadgeCache.get(htmlPath)
+      let badgeVer: string | undefined
+      if (
+        cached &&
+        cached.size === htmlSize &&
+        cached.mtimeMs === htmlMtimeMs
+      ) {
+        badgeVer = cached.badgeVer
+      } else {
+        const htmlContent = readFileSync(htmlPath, 'utf-8')
+        const badgeMatch = htmlContent.match(
+          /id=["']headerVersionBadge["'][^>]*>\s*v?([0-9]+\.[0-9]+\.[0-9]+)\s*</i
+        )
+        badgeVer = badgeMatch?.[1]?.trim()
+        if (htmlBadgeCache.size >= 32) {
+          const oldest = htmlBadgeCache.keys().next().value
+          if (oldest) htmlBadgeCache.delete(oldest)
+        }
+        htmlBadgeCache.set(htmlPath, {
+          size: htmlSize,
+          mtimeMs: htmlMtimeMs,
+          badgeVer
+        })
+      }
+      if (badgeVer) {
         if (!webVersion || engineVersionGt(webVersion, badgeVer)) {
           webVersion = badgeVer
         }
@@ -515,7 +572,13 @@ function clearElectronHttpCache(): void {
 function persistState(): void {
   try {
     const filePath = getStateFilePath()
-    writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8')
+    const payload = JSON.stringify(state, null, 2)
+    try {
+      writeFileSync(`${filePath}.tmp`, payload, 'utf-8')
+      renameSync(`${filePath}.tmp`, filePath)
+    } catch {
+      writeFileSync(filePath, payload, 'utf-8')
+    }
   } catch {}
 }
 

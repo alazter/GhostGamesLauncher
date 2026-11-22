@@ -2,7 +2,11 @@ import { app, net } from 'electron'
 import { mkdir, readFile, writeFile, rename } from 'fs/promises'
 import { join } from 'path'
 import type { ReleaseDrmSource } from 'common/releaseDrm'
-import { normalizeDrmTitle, releaseDrmLabels } from 'common/releaseDrm'
+import {
+  drmTitleAliases,
+  normalizeDrmTitle,
+  releaseDrmLabels
+} from 'common/releaseDrm'
 import {
   CRACKWATCH_DOCUMENT,
   DRM_SHEETS,
@@ -120,10 +124,10 @@ export async function getCrackWatchSheetSources(
       inFlight = undefined
     }
   }
-  const key = normalizeDrmTitle(title)
+  const keys = new Set(drmTitleAliases(title).map(normalizeDrmTitle))
   const sources = [...sheets.values()]
     .flatMap((sheet) =>
-      sheet.sources.filter((source) => normalizeDrmTitle(source.title!) === key)
+      sheet.sources.filter((source) => keys.has(normalizeDrmTitle(source.title!)))
     )
     .sort(
       (a, b) =>

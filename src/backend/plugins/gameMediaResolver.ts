@@ -5,6 +5,16 @@ const warn = (msg: string, err?: unknown) => console.warn(`[GameMediaResolver]: 
 
 const descriptionCache = new Map<string, string>()
 const trailerCache = new Map<string, string>()
+const MAX_MEDIA_RESOLVER_CACHE = 200
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
+function setBoundedCache(map: Map<string, string>, key: string, value: string) {
+  if (map.size >= MAX_MEDIA_RESOLVER_CACHE && !map.has(key)) {
+    const oldest = map.keys().next().value
+    if (oldest !== undefined) map.delete(oldest)
+  }
+  map.set(key, value)
+}
 
 function fetchJson<T = any>(url: string, timeoutMs = 3500): Promise<T | null> {
   return new Promise((resolve) => {
@@ -19,7 +29,14 @@ function fetchJson<T = any>(url: string, timeoutMs = 3500): Promise<T | null> {
       },
       (res) => {
         let data = ''
-        res.on('data', (chunk) => (data += chunk))
+        res.on('error', () => resolve(null))
+        res.on('data', (chunk) => {
+          data += chunk
+          if (data.length > MAX_RESPONSE_BYTES) {
+            req.destroy()
+            resolve(null)
+          }
+        })
         res.on('end', () => {
           try {
             resolve(JSON.parse(data) as T)
@@ -51,7 +68,14 @@ function fetchText(url: string, timeoutMs = 4000): Promise<string> {
       },
       (res) => {
         let data = ''
-        res.on('data', (chunk) => (data += chunk))
+        res.on('error', () => resolve(''))
+        res.on('data', (chunk) => {
+          data += chunk
+          if (data.length > MAX_RESPONSE_BYTES) {
+            req.destroy()
+            resolve('')
+          }
+        })
         res.on('end', () => resolve(data))
       }
     )
@@ -116,7 +140,7 @@ export async function resolvePortugueseDescription(
   if (cached) return cached
 
   if (rawEnglishDesc && isPortugueseText(rawEnglishDesc)) {
-    descriptionCache.set(cacheKey, rawEnglishDesc)
+    setBoundedCache(descriptionCache, cacheKey, rawEnglishDesc)
     return rawEnglishDesc
   }
 
@@ -144,7 +168,7 @@ export async function resolvePortugueseDescription(
       const desc = detailsRes?.[topApp.id]?.data?.short_description
       if (desc && desc.length > 20) {
         const clean = decodeHtmlEntities(desc)
-        descriptionCache.set(cacheKey, clean)
+        setBoundedCache(descriptionCache, cacheKey, clean)
         log(`Descrição oficial obtida da Steam para "${canonicalTitle}"`)
         return clean
       }
@@ -164,7 +188,7 @@ export async function resolvePortugueseDescription(
       const translated = trRes?.responseData?.translatedText
       if (translated && translated.length > 20 && !translated.toLowerCase().includes('quota exceeded')) {
         const clean = decodeHtmlEntities(translated)
-        descriptionCache.set(cacheKey, clean)
+        setBoundedCache(descriptionCache, cacheKey, clean)
         log(`Descrição traduzida via MyMemory para "${canonicalTitle}"`)
         return clean
       }
@@ -175,7 +199,7 @@ export async function resolvePortugueseDescription(
 
   // Camada 4: Fallback padrão localizado GhostShield
   const fallback = `Explore e jogue ${canonicalTitle} com download automatizado e verificação de integridade de arquivos. Todas as atualizações e backups de saves são protegidos pela tecnologia GhostShield.`
-  descriptionCache.set(cacheKey, fallback)
+  setBoundedCache(descriptionCache, cacheKey, fallback)
   return fallback
 }
 
@@ -204,7 +228,7 @@ export async function resolveYouTubeTrailerId(canonicalTitle: string): Promise<s
 
     if (ids.length > 0) {
       const selectedId = ids[0]
-      trailerCache.set(cacheKey, selectedId)
+      setBoundedCache(trailerCache, cacheKey, selectedId)
       log(`YouTube Trailer ID encontrado para "${canonicalTitle}": ${selectedId}`)
       return selectedId
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react'
+import React, { useState, useEffect, useContext, useMemo, useRef } from 'react'
 import ContextProvider from 'frontend/state/ContextProvider'
 import './index.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -267,6 +267,89 @@ export default function PersonalizationScreen() {
   const [storeFilterGlowTarget, setStoreFilterGlowTarget] = useState<'logo' | 'text' | 'both'>(() => {
     return (localStorage.getItem('heroic_store_filter_glow_target') as 'logo' | 'text' | 'both') || 'both'
   })
+  const [storeBarLayout, setStoreBarLayout] = useState<'default' | 'single-vertical' | 'single-horizontal'>(() => {
+    return (localStorage.getItem('heroic_store_bar_layout') as 'default' | 'single-vertical' | 'single-horizontal') || 'default'
+  })
+  const [storeIconSizes, setStoreIconSizes] = useState<Record<'default' | 'single-vertical' | 'single-horizontal', number>>(() => ({
+    default: Number(localStorage.getItem('heroic_store_icon_size_default') || '40'),
+    'single-vertical': Number(localStorage.getItem('heroic_store_icon_size_single_vertical') || '32'),
+    'single-horizontal': Number(localStorage.getItem('heroic_store_icon_size_single_horizontal') || '26')
+  }))
+  const [storeTextSizes, setStoreTextSizes] = useState<Record<'default' | 'single-vertical' | 'single-horizontal', number>>(() => ({
+    default: Number(localStorage.getItem('heroic_store_text_size_default') || '18'),
+    'single-vertical': Number(localStorage.getItem('heroic_store_text_size_single_vertical') || '12'),
+    'single-horizontal': Number(localStorage.getItem('heroic_store_text_size_single_horizontal') || '13')
+  }))
+  const [storeInnerGap, setStoreInnerGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_inner_gap')
+    return saved !== null ? Number(saved) : 3
+  })
+  const [searchToStoreGap, setSearchToStoreGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_search_to_store_gap')
+    return saved !== null ? Number(saved) : 10
+  })
+  const [storeToAlphabetGap, setStoreToAlphabetGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_store_to_alphabet_gap')
+    return saved !== null ? Number(saved) : 0
+  })
+  const [alphabetToCoversGap, setAlphabetToCoversGap] = useState<number>(() => {
+    const saved = localStorage.getItem('heroic_alphabet_to_covers_gap')
+    return saved !== null ? Number(saved) : 0
+  })
+
+  // Slide horizontal por clique e arraste com o mouse na barra de lojas do Preview (sem barra de rolagem)
+  const previewPlatformsBarRef = useRef<HTMLDivElement | null>(null)
+  const isDraggingPreviewStoresRef = useRef(false)
+  const hasDraggedPreviewStoresRef = useRef(false)
+  const previewStoresDragStartXRef = useRef(0)
+  const previewStoresScrollStartLeftRef = useRef(0)
+  const [isDraggingPreviewStores, setIsDraggingPreviewStores] = useState(false)
+
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!isDraggingPreviewStoresRef.current) return
+      const el = previewPlatformsBarRef.current
+      if (!el) return
+      const dx = e.clientX - previewStoresDragStartXRef.current
+      if (Math.abs(dx) > 4) {
+        hasDraggedPreviewStoresRef.current = true
+      }
+      el.scrollLeft = previewStoresScrollStartLeftRef.current - dx * 1.15
+    }
+    const handleWindowMouseUp = () => {
+      if (!isDraggingPreviewStoresRef.current) return
+      isDraggingPreviewStoresRef.current = false
+      setIsDraggingPreviewStores(false)
+      setTimeout(() => {
+        hasDraggedPreviewStoresRef.current = false
+      }, 60)
+    }
+    window.addEventListener('mousemove', handleWindowMouseMove)
+    window.addEventListener('mouseup', handleWindowMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove)
+      window.removeEventListener('mouseup', handleWindowMouseUp)
+    }
+  }, [])
+
+  const handlePreviewStoresMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    const el = previewPlatformsBarRef.current
+    if (!el) return
+    isDraggingPreviewStoresRef.current = true
+    hasDraggedPreviewStoresRef.current = false
+    previewStoresDragStartXRef.current = e.clientX
+    previewStoresScrollStartLeftRef.current = el.scrollLeft
+    setIsDraggingPreviewStores(true)
+  }
+
+  const handlePreviewStoresWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const el = previewPlatformsBarRef.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      el.scrollLeft += e.deltaY
+    }
+  }
 
   // 2. Filtro Alfabético & Contador
   const [alphabetGlowColor, setAlphabetGlowColor] = useState<string>(() => {
@@ -1081,6 +1164,93 @@ export default function PersonalizationScreen() {
   const handleStoreFilterGlowTargetChange = (target: 'logo' | 'text' | 'both') => {
     setStoreFilterGlowTarget(target)
     localStorage.setItem('heroic_store_filter_glow_target', target)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreBarLayoutChange = (layout: 'default' | 'single-vertical' | 'single-horizontal') => {
+    setStoreBarLayout(layout)
+    localStorage.setItem('heroic_store_bar_layout', layout)
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const STORE_LAYOUT_STORAGE_KEYS: Record<'default' | 'single-vertical' | 'single-horizontal', { iconKey: string; textKey: string; defaultIcon: number; defaultText: number; label: string }> = {
+    default: {
+      iconKey: 'heroic_store_icon_size_default',
+      textKey: 'heroic_store_text_size_default',
+      defaultIcon: 40,
+      defaultText: 18,
+      label: 'Padrão (2 Linhas)'
+    },
+    'single-vertical': {
+      iconKey: 'heroic_store_icon_size_single_vertical',
+      textKey: 'heroic_store_text_size_single_vertical',
+      defaultIcon: 32,
+      defaultText: 12,
+      label: '✨ Ideia 1 (1 Linha - Ícone Acima)'
+    },
+    'single-horizontal': {
+      iconKey: 'heroic_store_icon_size_single_horizontal',
+      textKey: 'heroic_store_text_size_single_horizontal',
+      defaultIcon: 26,
+      defaultText: 13,
+      label: '1 Linha Compacta (Lado a Lado)'
+    }
+  }
+
+  const handleStoreIconSizeChange = (layout: 'default' | 'single-vertical' | 'single-horizontal', val: number) => {
+    setStoreIconSizes((prev) => ({ ...prev, [layout]: val }))
+    localStorage.setItem(STORE_LAYOUT_STORAGE_KEYS[layout].iconKey, val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreTextSizeChange = (layout: 'default' | 'single-vertical' | 'single-horizontal', val: number) => {
+    setStoreTextSizes((prev) => ({ ...prev, [layout]: val }))
+    localStorage.setItem(STORE_LAYOUT_STORAGE_KEYS[layout].textKey, val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleResetStoreGroupSizes = (layout: 'default' | 'single-vertical' | 'single-horizontal') => {
+    const cfg = STORE_LAYOUT_STORAGE_KEYS[layout]
+    setStoreIconSizes((prev) => ({ ...prev, [layout]: cfg.defaultIcon }))
+    setStoreTextSizes((prev) => ({ ...prev, [layout]: cfg.defaultText }))
+    localStorage.setItem(cfg.iconKey, cfg.defaultIcon.toString())
+    localStorage.setItem(cfg.textKey, cfg.defaultText.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreInnerGapChange = (val: number) => {
+    setStoreInnerGap(val)
+    localStorage.setItem('heroic_store_inner_gap', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleSearchToStoreGapChange = (val: number) => {
+    setSearchToStoreGap(val)
+    localStorage.setItem('heroic_search_to_store_gap', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleStoreToAlphabetGapChange = (val: number) => {
+    setStoreToAlphabetGap(val)
+    localStorage.setItem('heroic_store_to_alphabet_gap', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleAlphabetToCoversGapChange = (val: number) => {
+    setAlphabetToCoversGap(val)
+    localStorage.setItem('heroic_alphabet_to_covers_gap', val.toString())
+    window.dispatchEvent(new Event('heroicSettingsChanged'))
+  }
+
+  const handleResetVerticalSpacings = () => {
+    setStoreInnerGap(3)
+    setSearchToStoreGap(10)
+    setStoreToAlphabetGap(0)
+    setAlphabetToCoversGap(0)
+    localStorage.setItem('heroic_store_inner_gap', '3')
+    localStorage.setItem('heroic_search_to_store_gap', '10')
+    localStorage.setItem('heroic_store_to_alphabet_gap', '0')
+    localStorage.setItem('heroic_alphabet_to_covers_gap', '0')
     window.dispatchEvent(new Event('heroicSettingsChanged'))
   }
 
@@ -2411,10 +2581,10 @@ export default function PersonalizationScreen() {
           display: flex;
           flex-direction: column;
           align-items: stretch;
-          gap: 14px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          margin-bottom: 16px;
+          gap: 8px;
+          padding-bottom: 2px;
+          border-bottom: none;
+          margin-bottom: 0px;
           width: 100%;
         }
 
@@ -2497,10 +2667,10 @@ export default function PersonalizationScreen() {
           display: flex;
           flex-wrap: wrap;
           justify-content: flex-start;
-          gap: 16px;
+          gap: 12px;
           width: 100%;
           box-sizing: border-box;
-          padding: 6px;
+          padding: 2px 4px;
           border: 1.5px dashed transparent;
           border-radius: 14px;
           transition: border-color 0.2s, background-color 0.2s;
@@ -2518,15 +2688,15 @@ export default function PersonalizationScreen() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 4px 6px;
+          gap: var(--store-inner-gap, 5px);
+          padding: 2px 5px;
           border-radius: var(--store-btn-border-radius, 12px);
           background: var(--store-btn-bg, rgba(255, 255, 255, 0.03)) padding-box, transparent border-box !important;
           border: 1px solid var(--store-btn-border-color, rgba(255, 255, 255, 0.08)) !important;
           background-clip: padding-box, border-box !important;
           background-origin: padding-box, border-box !important;
           color: #fff;
-          font-size: 18px;
+          font-size: var(--store-text-size, 18px);
           font-weight: 400;
           cursor: pointer;
           white-space: nowrap;
@@ -2613,20 +2783,20 @@ export default function PersonalizationScreen() {
         }
 
         .preview-platform-icon-img {
-          width: 40px;
-          height: 40px;
+          width: var(--store-icon-size, 40px);
+          height: var(--store-icon-size, 40px);
           object-fit: contain;
         }
 
         .preview-platform-icon-placeholder {
-          width: 40px;
-          height: 40px;
+          width: var(--store-icon-size, 40px);
+          height: var(--store-icon-size, 40px);
           border-radius: 50%;
           background: #4CAF50;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
+          font-size: var(--store-text-size, 18px);
           color: #fff;
           font-weight: bold;
         }
@@ -2635,8 +2805,8 @@ export default function PersonalizationScreen() {
           display: flex;
           align-items: center;
           justify-content: flex-start;
-          padding-bottom: 10px;
-          margin-bottom: 16px;
+          padding-bottom: 0px;
+          margin-bottom: 2px;
           width: 100%;
           gap: 20px;
         }
@@ -2664,7 +2834,7 @@ export default function PersonalizationScreen() {
           display: flex;
           flex-wrap: nowrap;
           gap: 6px;
-          padding: 6px 12px;
+          padding: 0px 12px;
           background-color: rgba(var(--base-r), var(--base-g), var(--base-b), var(--bg-op));
           border-radius: 20px;
           border: 1px solid rgba(var(--base-r), var(--base-g), var(--base-b), calc(var(--bg-op) * 0.8));
@@ -3232,7 +3402,7 @@ export default function PersonalizationScreen() {
               style={{ flex: 1 }}
             >
               {/* 1. TOP BAR */}
-              <div className="preview-top-bar">
+              <div className="preview-top-bar" style={{ gap: `${searchToStoreGap}px` }}>
                 {/* LINHA 1: Barra de busca, navegação e botões/filtros mockados */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '15px' }}>
                   {/* Lado Esquerdo: Navegação, Busca, Botão Adicionar e Ícones */}
@@ -3425,15 +3595,25 @@ export default function PersonalizationScreen() {
                   </div>
                 </div>
 
-                {/* LINHA 2: Barra de Lojas / Plataformas */}
+                {/* LINHA 2: Barra de Lojas / Plataformas (Slide por Clique e Arraste com o Mouse - Sem Scrollbar) */}
                 <div 
-                  className={`preview-platforms-bar ${storeFilterGlowMode === 'neon' ? 'preview-platforms-bar--neon' : ''} ${storeBtnGradientEnabled ? 'preview-platforms-bar--gradient' : ''} preview-platforms-bar--target-${storeFilterGlowTarget} ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''} ${storeBtnDefaultBgOpacity === 0 ? 'preview-platforms-bar--zero-bg' : ''}`}
+                  ref={previewPlatformsBarRef}
+                  className={`preview-platforms-bar preview-platforms-bar--layout-${storeBarLayout} ${isDraggingPreviewStores ? 'preview-platforms-bar--dragging' : ''} ${storeFilterGlowMode === 'neon' ? 'preview-platforms-bar--neon' : ''} ${storeBtnGradientEnabled ? 'preview-platforms-bar--gradient' : ''} preview-platforms-bar--target-${storeFilterGlowTarget} ${rightPanelMode === 'storeButtons' ? 'preview-platforms-bar--selected' : ''} ${storeBtnDefaultBgOpacity === 0 ? 'preview-platforms-bar--zero-bg' : ''}`}
+                  onMouseDown={handlePreviewStoresMouseDown}
+                  onWheel={handlePreviewStoresWheel}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (hasDraggedPreviewStoresRef.current) return;
                     setRightPanelMode('storeButtons');
                   }}
+                  title="Clique e arraste para esquerda ou direita para visualizar todas as lojas"
                   style={{
-                    cursor: 'pointer',
+                    cursor: isDraggingPreviewStores ? 'grabbing' : 'grab',
+                    userSelect: 'none',
+                    '--store-icon-size': `${storeIconSizes[storeBarLayout]}px`,
+                    '--store-text-size': `${storeTextSizes[storeBarLayout]}px`,
+                    '--store-inner-gap': `${storeInnerGap}px`,
+                    marginBottom: `${storeToAlphabetGap}px`,
                     '--store-btn-border-radius': `${storeBtnBorderRadius}px`,
                     '--store-btn-border-width': storeBtnBorderEnabled ? '1px' : '0px',
                     '--preview-store-color-1': storeBtnBgColor,
@@ -3497,13 +3677,14 @@ export default function PersonalizationScreen() {
                           className={`preview-platform-btn ${isActive ? 'preview-platform-btn--active' : ''} ${storeBtnDefaultBgOpacity === 0 ? 'preview-platform-btn--zero-bg' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (hasDraggedPreviewStoresRef.current) return;
                             setActivePreviewStoreId(store.id);
                             setRightPanelMode('storeButtons');
                           }}
-                          style={{ cursor: 'pointer' }}
+                          style={{ cursor: isDraggingPreviewStores ? 'grabbing' : 'grab', userSelect: 'none' }}
                         >
                           {store.icon || ['epic', 'gog', 'amazon', 'zoom', 'sideloaded', 'steam'].includes(store.id) ? (
-                            <img src={imageSource} className="preview-platform-icon-img" alt="" onError={(e) => {
+                            <img src={imageSource} className="preview-platform-icon-img" alt="" draggable={false} onDragStart={(e) => e.preventDefault()} onError={(e) => {
                               e.currentTarget.style.display = 'none'
                             }} />
                           ) : (
@@ -3526,10 +3707,10 @@ export default function PersonalizationScreen() {
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   width: '100%',
-                  paddingBottom: '10px',
+                  paddingBottom: '0px',
                   gap: '20px',
                   flexDirection: 'row',
-                  marginBottom: '16px'
+                  marginBottom: `${alphabetToCoversGap}px`
                 }}
               >
                 {/* 1. TÍTULO E TOTAL DE JOGOS (Esquerda) */}
@@ -3549,8 +3730,8 @@ export default function PersonalizationScreen() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        minWidth: '36px',
-                        height: '36px',
+                        minWidth: '28px',
+                        height: '26px',
                         padding: '0 8px',
                         boxSizing: 'border-box',
                         borderRadius: `${alphabetBtnBorderRadius}px`,
@@ -4472,6 +4653,501 @@ export default function PersonalizationScreen() {
                   border: '1px solid rgba(255,255,255,0.05)'
                 }}
               >
+                {/* 1. SELETOR DE LAYOUT E ORGANIZAÇÃO DA BARRA DE LOJAS (PADRÃO VS IDEIA 1 - LINHA ÚNICA) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={styles.toggleTextGroup}>
+                    <span style={styles.toggleTitle}>
+                      Layout e Organização da Barra de Lojas
+                    </span>
+                    <span style={styles.toggleSub}>
+                      Escolha entre o layout padrão com quebra de linha ou a Ideia 1 (Linha Única Auto-Calibrada sem scroll)
+                    </span>
+                  </div>
+
+                  {/* Cards Visuais com Preview Embutido para Livre Escolha */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                    {/* Opção 1: Padrão (Multi-Linha) */}
+                    <div
+                      onClick={() => handleStoreBarLayoutChange('default')}
+                      className={`target-effect-card ${storeBarLayout === 'default' ? 'target-effect-card--selected' : ''}`}
+                      style={{
+                        cursor: 'pointer',
+                        background: storeBarLayout === 'default' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                        border: storeBarLayout === 'default' ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                        padding: '10px 6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        transition: 'all 0.25s ease',
+                        boxShadow: storeBarLayout === 'default' ? '0 0 12px rgba(0, 229, 255, 0.25)' : 'none'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          padding: '6px 8px',
+                          minHeight: '44px',
+                          borderRadius: `${Math.min(storeBtnBorderRadius, 8)}px`,
+                          background: storeBtnDefaultBgOpacity === 0
+                            ? 'rgba(255, 255, 255, 0.04)'
+                            : storeBtnDefaultBgGradientEnabled
+                              ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                              : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                          border: storeBtnDefaultBgOpacity === 0
+                            ? '1px solid rgba(255, 255, 255, 0.08)'
+                            : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {targetExampleStore?.icon ? (
+                          <img src={targetExampleStore.icon} alt="" style={{ width: `${Math.min(34, Math.max(14, Math.round(storeIconSizes.default * 0.55)))}px`, height: `${Math.min(34, Math.max(14, Math.round(storeIconSizes.default * 0.55)))}px`, objectFit: 'contain' }} />
+                        ) : (
+                          <SteamLogo style={{ width: `${Math.min(34, Math.max(14, Math.round(storeIconSizes.default * 0.55)))}px`, height: `${Math.min(34, Math.max(14, Math.round(storeIconSizes.default * 0.55)))}px`, fill: '#ffffff' }} />
+                        )}
+                        <span style={{ fontSize: `${Math.min(18, Math.max(9, Math.round(storeTextSizes.default * 0.65)))}px`, color: '#fff', fontWeight: 600 }}>
+                          {targetExampleStore?.name || 'Steam'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: storeBarLayout === 'default' ? 'bold' : 600, color: storeBarLayout === 'default' ? '#00e5ff' : '#ddd', textAlign: 'center' }}>
+                          Padrão (2 Linhas) {storeBarLayout === 'default' ? '✓' : ''}
+                        </span>
+                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+                          Ícone {storeIconSizes.default}px · Texto {storeTextSizes.default}px
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Opção 2: Ideia 1 - Linha Única (Ícone Acima do Nome) */}
+                    <div
+                      onClick={() => handleStoreBarLayoutChange('single-vertical')}
+                      className={`target-effect-card ${storeBarLayout === 'single-vertical' ? 'target-effect-card--selected' : ''}`}
+                      style={{
+                        cursor: 'pointer',
+                        background: storeBarLayout === 'single-vertical' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                        border: storeBarLayout === 'single-vertical' ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                        padding: '10px 6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        transition: 'all 0.25s ease',
+                        boxShadow: storeBarLayout === 'single-vertical' ? '0 0 12px rgba(0, 229, 255, 0.25)' : 'none'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '3px',
+                          padding: '5px 6px',
+                          minHeight: '44px',
+                          borderRadius: `${Math.min(storeBtnBorderRadius, 8)}px`,
+                          background: storeBtnDefaultBgOpacity === 0
+                            ? 'rgba(0, 229, 255, 0.06)'
+                            : storeBtnDefaultBgGradientEnabled
+                              ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                              : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                          border: storeBtnDefaultBgOpacity === 0
+                            ? '1px solid rgba(0, 229, 255, 0.25)'
+                            : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {targetExampleStore?.icon ? (
+                          <img src={targetExampleStore.icon} alt="" style={{ width: `${Math.min(32, Math.max(12, Math.round(storeIconSizes['single-vertical'] * 0.6)))}px`, height: `${Math.min(32, Math.max(12, Math.round(storeIconSizes['single-vertical'] * 0.6)))}px`, objectFit: 'contain' }} />
+                        ) : (
+                          <SteamLogo style={{ width: `${Math.min(32, Math.max(12, Math.round(storeIconSizes['single-vertical'] * 0.6)))}px`, height: `${Math.min(32, Math.max(12, Math.round(storeIconSizes['single-vertical'] * 0.6)))}px`, fill: '#ffffff' }} />
+                        )}
+                        <span style={{ fontSize: `${Math.min(16, Math.max(8, Math.round(storeTextSizes['single-vertical'] * 0.8)))}px`, color: '#fff', fontWeight: 600, lineHeight: 1.1 }}>
+                          {targetExampleStore?.name || 'Steam'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: storeBarLayout === 'single-vertical' ? 'bold' : 600, color: storeBarLayout === 'single-vertical' ? '#00e5ff' : '#ddd', textAlign: 'center' }}>
+                          ✨ Ideia 1 (1 Linha) {storeBarLayout === 'single-vertical' ? '✓' : ''}
+                        </span>
+                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+                          Ícone {storeIconSizes['single-vertical']}px · Texto {storeTextSizes['single-vertical']}px
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Opção 3: Ideia 1B - Linha Única (Lado a Lado Compacto) */}
+                    <div
+                      onClick={() => handleStoreBarLayoutChange('single-horizontal')}
+                      className={`target-effect-card ${storeBarLayout === 'single-horizontal' ? 'target-effect-card--selected' : ''}`}
+                      style={{
+                        cursor: 'pointer',
+                        background: storeBarLayout === 'single-horizontal' ? 'rgba(0, 229, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+                        border: storeBarLayout === 'single-horizontal' ? '1px solid #00e5ff' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '8px',
+                        padding: '10px 6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        transition: 'all 0.25s ease',
+                        boxShadow: storeBarLayout === 'single-horizontal' ? '0 0 12px rgba(0, 229, 255, 0.25)' : 'none'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          padding: '6px 6px',
+                          minHeight: '44px',
+                          borderRadius: `${Math.min(storeBtnBorderRadius, 8)}px`,
+                          background: storeBtnDefaultBgOpacity === 0
+                            ? 'rgba(255, 255, 255, 0.04)'
+                            : storeBtnDefaultBgGradientEnabled
+                              ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                              : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                          border: storeBtnDefaultBgOpacity === 0
+                            ? '1px solid rgba(255, 255, 255, 0.08)'
+                            : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`,
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {targetExampleStore?.icon ? (
+                          <img src={targetExampleStore.icon} alt="" style={{ width: `${Math.min(30, Math.max(12, Math.round(storeIconSizes['single-horizontal'] * 0.6)))}px`, height: `${Math.min(30, Math.max(12, Math.round(storeIconSizes['single-horizontal'] * 0.6)))}px`, objectFit: 'contain' }} />
+                        ) : (
+                          <SteamLogo style={{ width: `${Math.min(30, Math.max(12, Math.round(storeIconSizes['single-horizontal'] * 0.6)))}px`, height: `${Math.min(30, Math.max(12, Math.round(storeIconSizes['single-horizontal'] * 0.6)))}px`, fill: '#ffffff' }} />
+                        )}
+                        <span style={{ fontSize: `${Math.min(16, Math.max(8, Math.round(storeTextSizes['single-horizontal'] * 0.78)))}px`, color: '#fff', fontWeight: 600 }}>
+                          {targetExampleStore?.name || 'Steam'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontSize: '10.5px', fontWeight: storeBarLayout === 'single-horizontal' ? 'bold' : 600, color: storeBarLayout === 'single-horizontal' ? '#00e5ff' : '#ddd', textAlign: 'center' }}>
+                          1 Linha Compacta {storeBarLayout === 'single-horizontal' ? '✓' : ''}
+                        </span>
+                        <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+                          Ícone {storeIconSizes['single-horizontal']}px · Texto {storeTextSizes['single-horizontal']}px
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sliders Individuais de Tamanho de Ícone e Texto para o Grupo de Estilo Selecionado */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(0, 229, 255, 0.18)',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#00e5ff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          📏 Tamanho do Ícone e Texto — {STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].label}
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                          Estes sliders são salvos exclusivamente para o grupo "{STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].label}"
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleResetStoreGroupSizes(storeBarLayout)}
+                        title={`Restaurar tamanho padrão deste estilo (${STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].defaultIcon}px / ${STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].defaultText}px)`}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          color: '#ddd',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        ↺ Padrão ({STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].defaultIcon}px / {STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].defaultText}px)
+                      </button>
+                    </div>
+
+                    {/* Slider 1: Tamanho do Ícone */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ color: '#fff' }}>🖼️ Tamanho dos Ícones</span>
+                        <span style={{ color: '#00e5ff', fontWeight: 'bold' }}>{storeIconSizes[storeBarLayout]}px</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', height: '20px' }}>
+                        <input
+                          type="range"
+                          min="14"
+                          max="72"
+                          step="1"
+                          value={storeIconSizes[storeBarLayout]}
+                          onChange={(e) => handleStoreIconSizeChange(storeBarLayout, Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            accentColor: '#00e5ff',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            height: '6px',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Slider 2: Tamanho do Texto */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ color: '#fff' }}>🔤 Tamanho do Texto (Nome da Loja)</span>
+                        <span style={{ color: '#00e5ff', fontWeight: 'bold' }}>{storeTextSizes[storeBarLayout]}px</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', height: '20px' }}>
+                        <input
+                          type="range"
+                          min="8"
+                          max="36"
+                          step="1"
+                          value={storeTextSizes[storeBarLayout]}
+                          onChange={(e) => handleStoreTextSizeChange(storeBarLayout, Number(e.target.value))}
+                          style={{
+                            width: '100%',
+                            accentColor: '#00e5ff',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            height: '6px',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sliders de Organização de Espaços Verticais (Logo/Nome, Lojas -> Alfabeto, Alfabeto -> Capas) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#8a9bb0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          ↕️ Organização de Espaços Verticais
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.5)' }}>
+                          Controle a distância entre o cabeçalho, os logos/nomes das lojas, o filtro alfabético e as capas
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleResetVerticalSpacings}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.06)',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          color: '#ddd',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        ↺ Padrão Compacto
+                      </button>
+                    </div>
+
+                    {/* Espaço 0: Entre Cabeçalho (Busca/Adicionar) e Lojas */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}>
+                        <span style={{ color: '#fff' }}>Espaço entre Cabeçalho (Busca/Adicionar) e Lojas</span>
+                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{searchToStoreGap}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="32"
+                        step="1"
+                        value={searchToStoreGap}
+                        onChange={(e) => handleSearchToStoreGapChange(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: '#4CAF50', height: '5px', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    {/* Espaço 1: Entre Logo e Nome da Loja */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}>
+                        <span style={{ color: '#fff' }}>Espaço entre Logo e Nome da Loja</span>
+                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{storeInnerGap}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="16"
+                        step="1"
+                        value={storeInnerGap}
+                        onChange={(e) => handleStoreInnerGapChange(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: '#4CAF50', height: '5px', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    {/* Espaço 2: Entre Barra de Lojas e Filtro Alfabético */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}>
+                        <span style={{ color: '#fff' }}>Espaço entre Lojas e Filtro Alfabético</span>
+                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{storeToAlphabetGap}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-14"
+                        max="24"
+                        step="1"
+                        value={storeToAlphabetGap}
+                        onChange={(e) => handleStoreToAlphabetGapChange(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: '#4CAF50', height: '5px', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    {/* Espaço 3: Entre Filtro Alfabético e Capas */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px' }}>
+                        <span style={{ color: '#fff' }}>Espaço entre Filtro Alfabético e Capas</span>
+                        <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>{alphabetToCoversGap}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-14"
+                        max="24"
+                        step="1"
+                        value={alphabetToCoversGap}
+                        onChange={(e) => handleAlphabetToCoversGapChange(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: '#4CAF50', height: '5px', cursor: 'pointer' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preview Ao Vivo Embutido da Régua de Lojas */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '10px 12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#00e5ff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Preview Ao Vivo ({STORE_LAYOUT_STORAGE_KEYS[storeBarLayout].label})
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)' }}>
+                        Ícone: {storeIconSizes[storeBarLayout]}px · Texto: {storeTextSizes[storeBarLayout]}px
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: storeBarLayout === 'default' ? 'wrap' : 'nowrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '6px',
+                        width: '100%'
+                      }}
+                    >
+                      {stores
+                        .filter((s) => s.isVisible ?? true)
+                        .slice(0, 5)
+                        .map((sampleStore, idx) => {
+                          const isSampleActive = idx === 0
+                          const sampleImg = sampleStore.icon || `/images/${sampleStore.id}.png`
+                          const previewIconPx = Math.min(44, Math.max(12, Math.round(storeIconSizes[storeBarLayout] * 0.72)))
+                          const previewTextPx = Math.min(20, Math.max(8, Math.round(storeTextSizes[storeBarLayout] * 0.82)))
+                          return (
+                            <div
+                              key={sampleStore.id}
+                              style={{
+                                display: 'flex',
+                                flexDirection: storeBarLayout === 'single-vertical' ? 'column' : 'row',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: storeBarLayout === 'single-vertical' ? '4px' : '5px',
+                                padding: storeBarLayout === 'single-vertical' ? '6px 4px' : '5px 7px',
+                                flex: storeBarLayout === 'default' ? '0 0 auto' : '1 1 0',
+                                minWidth: 0,
+                                borderRadius: `${Math.min(storeBtnBorderRadius, 10)}px`,
+                                background: storeBtnDefaultBgOpacity === 0
+                                  ? (isSampleActive ? 'rgba(0, 229, 255, 0.08)' : 'transparent')
+                                  : storeBtnDefaultBgGradientEnabled
+                                    ? `linear-gradient(135deg, rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity}) 0%, rgba(${rgbStoreDefaultBg2.r}, ${rgbStoreDefaultBg2.g}, ${rgbStoreDefaultBg2.b}, ${storeBtnDefaultBgOpacity}) 100%)`
+                                    : `rgba(${rgbStoreDefaultBg1.r}, ${rgbStoreDefaultBg1.g}, ${rgbStoreDefaultBg1.b}, ${storeBtnDefaultBgOpacity})`,
+                                border: isSampleActive
+                                  ? '1px solid rgba(0, 229, 255, 0.5)'
+                                  : storeBtnDefaultBgOpacity === 0
+                                    ? '1px solid transparent'
+                                    : `1px solid rgba(${rgbStoreDefaultBgGlow.r}, ${rgbStoreDefaultBgGlow.g}, ${rgbStoreDefaultBgGlow.b}, ${Math.min(1, storeBtnDefaultBgOpacity * 2.5 + 0.05)})`
+                              }}
+                            >
+                              <img
+                                src={sampleImg}
+                                alt=""
+                                style={{
+                                  width: `${previewIconPx}px`,
+                                  height: `${previewIconPx}px`,
+                                  objectFit: 'contain'
+                                }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                              <span
+                                style={{
+                                  fontSize: `${previewTextPx}px`,
+                                  fontWeight: isSampleActive ? 700 : 500,
+                                  color: isSampleActive ? '#00e5ff' : '#fff',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  maxWidth: '100%'
+                                }}
+                              >
+                                {sampleStore.name}
+                              </span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Divisor entre Layout e Estilo Neon */}
+                <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '2px 0' }} />
+
                 <div style={styles.toggleTextGroup}>
                   <span style={styles.toggleTitle}>
                     Estilo dos Botões de Lojas

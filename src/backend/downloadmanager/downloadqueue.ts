@@ -129,7 +129,7 @@ function addToFinished(element: DMQueueElement, status: DMStatus) {
     elements.push({ ...element, status })
   }
 
-  downloadManager.set('finished', elements)
+  downloadManager.set('finished', elements.slice(-100))
   logInfo(
     [element.params.appName, 'added to download manager finished.'],
     LogPrefix.DownloadManager
@@ -295,7 +295,6 @@ async function removeFromQueue(appName: string) {
       )
       if (index !== -1) {
         elements.splice(index, 1)
-        downloadManager.delete('queue')
         downloadManager.set('queue', elements)
       }
     }

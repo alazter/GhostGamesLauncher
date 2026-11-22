@@ -12,7 +12,21 @@ const DEFAULT_GOOGLE_CLIENT_SECRET = 'GOCSPX-' + 'v5zglxklLQkVSmAzHaPomo1ZXJ-N'
 export function getGoogleCredentials(): { clientId: string; clientSecret: string } {
   const storeAny = configStore as any
   const customId = storeAny.get('google_client_id', '')
-  const customSecret = storeAny.get('google_client_secret', '')
+  let customSecret = storeAny.get('google_client_secret', '')
+  if (
+    customSecret &&
+    typeof customSecret === 'string' &&
+    customSecret.startsWith('enc:') &&
+    safeStorage.isEncryptionAvailable()
+  ) {
+    try {
+      customSecret = safeStorage.decryptString(
+        Buffer.from(customSecret.slice(4), 'base64')
+      )
+    } catch {
+      customSecret = ''
+    }
+  }
   return {
     clientId: customId || DEFAULT_GOOGLE_CLIENT_ID,
     clientSecret: customSecret || DEFAULT_GOOGLE_CLIENT_SECRET
@@ -22,7 +36,14 @@ export function getGoogleCredentials(): { clientId: string; clientSecret: string
 export function setGoogleCredentials(clientId: string, clientSecret: string): void {
   const storeAny = configStore as any
   storeAny.set('google_client_id', clientId.trim())
-  storeAny.set('google_client_secret', clientSecret.trim())
+  const trimmedSecret = clientSecret.trim()
+  if (trimmedSecret && safeStorage.isEncryptionAvailable()) {
+    const encrypted =
+      'enc:' + safeStorage.encryptString(trimmedSecret).toString('base64')
+    storeAny.set('google_client_secret', encrypted)
+  } else {
+    storeAny.set('google_client_secret', trimmedSecret)
+  }
 }
 
 const DROPBOX_CLIENT_ID = 'j01l30j4ay8cor1'
@@ -132,9 +153,33 @@ export function connectCloudProvider(provider: 'google' | 'onedrive' | 'dropbox'
         const returnedState = parsedUrl.query.state as string
         const oauthError = parsedUrl.query.error as string
 
+        // Verify CSRF state first before handling any query result
+        if (!returnedState || returnedState !== secureState) {
+          res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' })
+          res.end('<h1>Erro de Segurança</h1><p>A assinatura de estado (state) não coincide. Operação abortada por segurança.</p>')
+          clearTimeout(timeoutId)
+          if (oauthServer) {
+            oauthServer.close()
+            oauthServer = null
+          }
+          resolve({ success: false, error: 'Falha de validação de segurança (CSRF State mismatch).' })
+          return
+        }
+
         if (oauthError) {
           res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' })
-          let msg = `Erro na autorização: ${oauthError}`
+          const safeError = String(oauthError).replace(
+            /[&<>"']/g,
+            (ch) =>
+              ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+              })[ch] || ch
+          )
+          let msg = `Erro na autorização: ${safeError}`
           if (oauthError === 'access_denied') {
             msg = 'Acesso negado (Erro 403). Certifique-se de adicionar seu e-mail em "Usuários de teste" no Google Cloud Console ou publicar o app.'
           }
@@ -145,19 +190,6 @@ export function connectCloudProvider(provider: 'google' | 'onedrive' | 'dropbox'
             oauthServer = null
           }
           resolve({ success: false, error: msg })
-          return
-        }
-
-        // Verify CSRF state
-        if (!returnedState || returnedState !== secureState) {
-          res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' })
-          res.end('<h1>Erro de Segurança</h1><p>A assinatura de estado (state) não coincide. Operação abortada por segurança.</p>')
-          clearTimeout(timeoutId)
-          if (oauthServer) {
-            oauthServer.close()
-            oauthServer = null
-          }
-          resolve({ success: false, error: 'Falha de validação de segurança (CSRF State mismatch).' })
           return
         }
 
@@ -232,13 +264,13 @@ async function exchangeCodeForTokens(provider: string, code: string): Promise<Cl
   if (provider === 'google') {
     const { clientId, clientSecret } = getGoogleCredentials()
     tokenUrl = 'https://oauth2.googleapis.com/token'
-    body = `code=${code}&client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
+    body = `code=${encodeURIComponent(code)}&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
   } else if (provider === 'dropbox') {
     tokenUrl = 'https://api.dropboxapi.com/oauth2/token'
-    body = `code=${code}&client_id=${DROPBOX_CLIENT_ID}&client_secret=${DROPBOX_CLIENT_SECRET}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
+    body = `code=${encodeURIComponent(code)}&client_id=${encodeURIComponent(DROPBOX_CLIENT_ID)}&client_secret=${encodeURIComponent(DROPBOX_CLIENT_SECRET)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
   } else if (provider === 'onedrive') {
     tokenUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
-    body = `code=${code}&client_id=${ONEDRIVE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
+    body = `code=${encodeURIComponent(code)}&client_id=${encodeURIComponent(ONEDRIVE_CLIENT_ID)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&grant_type=authorization_code`
   }
 
   const response = await fetch(tokenUrl, {

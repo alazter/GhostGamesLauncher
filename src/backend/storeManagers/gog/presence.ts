@@ -16,7 +16,7 @@ interface PresencePayload {
 }
 
 let CURRENT_GAME = ''
-let interval: NodeJS.Timeout
+let interval: NodeJS.Timeout | undefined
 
 function setCurrentGame(game: string) {
   CURRENT_GAME = game
@@ -38,6 +38,7 @@ async function setPresence() {
 
     if (!interval) {
       interval = setInterval(setPresence, 5 * 60 * 1000)
+      interval.unref?.()
     }
 
     const payload: PresencePayload = {
@@ -66,7 +67,10 @@ async function setPresence() {
 }
 
 async function deletePresence(force = false, signal?: AbortSignal) {
-  clearInterval(interval)
+  if (interval) {
+    clearInterval(interval)
+    interval = undefined
+  }
   const abort = () => callAbortController('gogdl-get-credentials')
   signal?.addEventListener('abort', abort, { once: true })
   try {

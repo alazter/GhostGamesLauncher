@@ -1,4 +1,5 @@
-import { execSync } from 'child_process'
+import { exec } from 'child_process'
+import { promisify } from 'util'
 import { existsSync, statfsSync } from 'graceful-fs'
 import { readdir, stat } from 'fs/promises'
 import { join } from 'path'
@@ -6,6 +7,8 @@ import type { StorageDrive } from 'common/types/ipc'
 import type { Runner } from 'common/types'
 import { SteamDownloader } from '../../storeManagers/steam/downloader'
 import { configStore } from '../../constants/key_value_stores'
+
+const execAsync = promisify(exec)
 
 export async function getFolderSize(folderPath: string): Promise<number> {
   if (!folderPath || !existsSync(folderPath)) return 0
@@ -49,9 +52,9 @@ export async function getFolderSize(folderPath: string): Promise<number> {
 let cachedVolumeLabels: Record<string, string> = {}
 let lastLabelsFetch = 0
 
-function getVolumeLabels(): Record<string, string> {
+async function getVolumeLabels(): Promise<Record<string, string>> {
   const now = Date.now()
-  if (Object.keys(cachedVolumeLabels).length > 0 && now - lastLabelsFetch < 60000) {
+  if (Object.keys(cachedVolumeLabels).length > 0 && now - lastLabelsFetch < 300000) {
     return cachedVolumeLabels
   }
 
@@ -59,12 +62,14 @@ function getVolumeLabels(): Record<string, string> {
     try {
       const psCommand =
         'Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, VolumeName | ConvertTo-Json'
-      const output = execSync(`powershell -NoProfile -Command "${psCommand}"`, {
-        windowsHide: true,
-        timeout: 3000
-      })
-        .toString()
-        .trim()
+      const { stdout } = await execAsync(
+        `powershell -NoProfile -Command "${psCommand}"`,
+        {
+          windowsHide: true,
+          timeout: 3000
+        }
+      )
+      const output = (stdout || '').trim()
       if (output) {
         const parsed = JSON.parse(output)
         const items = Array.isArray(parsed) ? parsed : [parsed]
@@ -88,7 +93,7 @@ export async function getAvailableStorageDrives(
   const isWindows = process.platform === 'win32'
 
   if (isWindows) {
-    const labels = getVolumeLabels()
+    const labels = await getVolumeLabels()
     const seenLetters = new Set<string>()
     const userConfiguredPaths = configStore.get_nodefault('moveGameDrivePaths') || {}
 

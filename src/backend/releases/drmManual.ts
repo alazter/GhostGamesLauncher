@@ -157,6 +157,19 @@ async function windowForHiz() {
   if (!hizWindow || hizWindow.isDestroyed()) {
     const browserSession = session.fromPartition('persist:ghost-drm-hiz')
     if (!hizSessionPrepared) {
+      if (
+        typeof browserSession.getUserAgent === 'function' &&
+        typeof browserSession.setUserAgent === 'function'
+      ) {
+        browserSession.setUserAgent(
+          browserSession
+            .getUserAgent()
+            .replace(
+              /\s*(?:HeroicGamesLauncher|GhostGamesLauncher|Electron)\/[^\s]+/gi,
+              ''
+            )
+        )
+      }
       browserSession.setPermissionRequestHandler(
         (_contents, _permission, callback) => callback(false)
       )

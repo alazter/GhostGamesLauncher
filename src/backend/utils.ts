@@ -250,7 +250,18 @@ const handleExit = createExitHandler({
 
     return true
   },
-  hide: () => getMainWindow()?.hide(),
+  hide: () => {
+    getMainWindow()?.hide()
+    import('./plugins/ghostIptvServer')
+      .then(({ stopGhostIptvServer }) => stopGhostIptvServer())
+      .catch(() => {})
+    import('./storeManagers/steam/queueWatcher')
+      .then(({ SteamQueueWatcher }) => SteamQueueWatcher.stopWatcher())
+      .catch(() => {})
+    import('./plugins/mediaStreamServer')
+      .then(({ MediaStreamServer }) => MediaStreamServer.getInstance().stop())
+      .catch(() => {})
+  },
   presence: (signal) => gogPresence.deletePresence(false, signal),
   backup: async (signal) => {
     const settings = GlobalConfig.get().getSettings()
@@ -387,8 +398,11 @@ async function openUrlOrFile(url: string): Promise<string | void> {
       await shell.openExternal(url)
       return
     } catch {
-      if (isWindows) {
-        exec(`start "" "${url}"`)
+      if (isWindows && !/["&|<>^`\r\n]/.test(url)) {
+        spawn('cmd.exe', ['/c', 'start', '""', url], {
+          windowsHide: true,
+          stdio: 'ignore'
+        }).unref()
       }
       return
     }
@@ -911,8 +925,13 @@ async function shutdownWine(gameSettings: GameSettings) {
   }
 }
 
-const getShellPath = async (path: string): Promise<string> =>
-  normalize((await execAsync(`echo ${path}`)).stdout.trim())
+const getShellPath = async (rawPath: string): Promise<string> => {
+  const expanded = String(rawPath || '')
+    .replace(/^~(?=$|[\\/])/, process.env.USERPROFILE || process.env.HOME || '')
+    .replace(/%([^%]+)%/g, (_, name) => process.env[name] ?? `%${name}%`)
+    .replace(/\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g, (_, name) => process.env[name] ?? '')
+  return normalize(expanded.trim())
+}
 
 export const spawnAsync = async (
   command: string,

@@ -147,6 +147,8 @@ export class PluginHost {
   private gameExitedCallbacks: Array<(game: any) => void> = []
   private isDisposed = false
   private pluginTimers = new Set<NodeJS.Timeout>()
+  private storageCache: Record<string, any> | null = null
+  private lastSavedSerialized: string | null = null
 
   constructor(
     manifest: PluginManifest,
@@ -161,35 +163,61 @@ export class PluginHost {
   }
 
   private loadStorage(): Record<string, any> {
+    if (this.storageCache !== null) return this.storageCache
     try {
       if (existsSync(this.storageFilePath)) {
-        const raw = readFileSync(this.storageFilePath, 'utf8')
-        return JSON.parse(raw)
+        const raw = readFileSync(this.storageFilePath, 'utf8').replace(/^\uFEFF/, '').trim()
+        try {
+          const parsed = raw ? JSON.parse(raw) : {}
+          this.storageCache = parsed
+          this.lastSavedSerialized = JSON.stringify(parsed, null, 2)
+          return parsed
+        } catch (parseErr) {
+          logWarning(
+            `[PluginHost:${this.manifest.id}] Corrupted storage JSON, resetting to empty object: ${parseErr}`,
+            LogPrefix.Backend
+          )
+          return (this.storageCache = {})
+        }
+
+
       }
     } catch (err) {
       logWarning(
         `[PluginHost:${this.manifest.id}] Failed to read storage file: ${err}`,
         LogPrefix.Backend
       )
+
       throw err
     }
-    return {}
+    return (this.storageCache = {})
   }
 
   private saveStorage(data: Record<string, any>): void {
+    this.storageCache = data
+    const serialized = JSON.stringify(data, null, 2)
+    if (serialized === this.lastSavedSerialized) return
     const temporary = `${this.storageFilePath}.tmp`
     try {
-      writeFileSync(temporary, JSON.stringify(data, null, 2), 'utf8')
+      writeFileSync(temporary, serialized, 'utf8')
       renameSync(temporary, this.storageFilePath)
+      this.lastSavedSerialized = serialized
     } catch (err) {
       logError(
         [`[PluginHost:${this.manifest.id}] Failed to write storage file:`, err],
         LogPrefix.Backend
       )
+
       throw err
     } finally {
       if (existsSync(temporary)) unlinkSync(temporary)
     }
+  }
+
+  public reloadStorageFromDisk(): void {
+    this.storageCache = null
+    this.lastSavedSerialized = null
+    this.loadStorage()
   }
 
   public getDynamicCSS(): string {
@@ -307,6 +335,14 @@ export class PluginHost {
           const store = this.loadStorage()
           store[key] = value
           this.saveStorage(store)
+        },
+        setBatch: async (entries: Record<string, any>) => {
+          if (this.isDisposed) throw new Error('O plugin foi desativado.')
+          const store = this.loadStorage()
+          for (const [k, v] of Object.entries(entries)) {
+            store[k] = v
+          }
+          this.saveStorage(store)
         }
       },
 
@@ -324,8 +360,14 @@ export class PluginHost {
           return { remove: () => {} }
         },
         setThemeVariable: (varName: string, value: string) => {
-          const cssRule = `:root { ${varName}: ${value} !important; }`
-          this.dynamicCSS.push(cssRule)
+          const cleanVar = String(varName || '').trim()
+          const cleanVal = String(value || '').trim()
+          if (!/^--[a-zA-Z0-9_-]+$/.test(cleanVar) || /[{};<>]/.test(cleanVal)) {
+            return
+          }
+          const prefix = `:root { ${cleanVar}:`
+          this.dynamicCSS = this.dynamicCSS.filter((c) => !c.startsWith(prefix))
+          this.dynamicCSS.push(`:root { ${cleanVar}: ${cleanVal} !important; }`)
         },
         registerHeaderWidget: (widget: {
           id: string
@@ -662,13 +704,17 @@ export class PluginHost {
         [`[PluginHost:${this.manifest.id}] Execution failed:`, err],
         LogPrefix.Backend
       )
+
       throw err
     }
   }
 
   public dispose(): void {
     this.isDisposed = true
-    for (const timer of this.pluginTimers) clearTimeout(timer)
+    for (const timer of this.pluginTimers) {
+      clearTimeout(timer)
+      clearInterval(timer)
+    }
     this.pluginTimers.clear()
     this.dynamicCSS = []
     this.sourceProvider = undefined

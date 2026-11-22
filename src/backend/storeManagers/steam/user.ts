@@ -243,14 +243,15 @@ export class SteamUser {
   }
 
   public static async logout(): Promise<void> {
-    configStore.set('isLoggedIn', false)
     configStore.delete('username')
     configStore.delete('steamId')
     configStore.delete('steamId32')
     configStore.delete('apiKey')
     configStore.delete('sessionCookie')
-    configStore.set('syncMode', 'all')
-    libraryStore.clear()
+    ;(configStore as any).set({
+      isLoggedIn: false,
+      syncMode: 'all'
+    })
     libraryStore.set('games', [])
     logInfo('Steam account disconnected and library cleared', LogPrefix.Steam)
   }

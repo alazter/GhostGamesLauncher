@@ -19,7 +19,7 @@
   justify-content: flex-start;
   gap: 6px;
   margin: 0;
-  padding: 6px 12px;
+  padding: 0px 12px;
   -ms-overflow-style: none;
   scrollbar-width: none;
   background-color: rgba(var(--alphabet-filter-base-r, 255), var(--alphabet-filter-base-g, 255), var(--alphabet-filter-base-b, 255), var(--alphabet-filter-container-bg-opacity, 0.08));
@@ -51,8 +51,8 @@
   opacity: 1 !important;
 
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 26px;
   padding: 0;
   display: flex;
   align-items: center;

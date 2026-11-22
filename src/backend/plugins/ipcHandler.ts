@@ -528,7 +528,8 @@ export function registerPluginsIPC(): void {
       type: string,
       catalogId: string,
       skip?: number,
-      search?: string
+      search?: string,
+      extra?: Record<string, string>
     ) => {
       const provider = manager.getMediaProvider()
       if (!provider) return { metas: [] }
@@ -537,7 +538,8 @@ export function registerPluginsIPC(): void {
         type,
         catalogId,
         skip,
-        search
+        search,
+        extra
       )
     }
   )
@@ -556,9 +558,100 @@ export function registerPluginsIPC(): void {
     async (_event, type: string, id: string) => {
       const provider = manager.getMediaProvider()
       if (!provider) return []
-      return await provider.stremioGetStreams(type, id)
+      const [stremioStreams, nuvioStreams] = await Promise.all([
+        provider.stremioGetStreams(type, id).catch(() => []),
+        (async () => {
+          try {
+            const addons = await provider.stremioGetAddons()
+            const hasNuvio = addons.some(
+              (a) => a.isEnabled !== false && a.pluginFormat === 'nuvio-scrapers'
+            )
+            if (!hasNuvio) return []
+            const { getNuvioScraperService } = await import('./nuvioScraperService')
+            return await getNuvioScraperService().getStreamsFromAddons(addons, type, id)
+          } catch {
+            return []
+          }
+        })()
+      ])
+      return [...(Array.isArray(stremioStreams) ? stremioStreams : []), ...nuvioStreams]
     }
   )
+
+  const getStremioService = async () => {
+    const { getStremioLibraryService } = await import('./stremioLibraryService')
+    return getStremioLibraryService(
+      async () => {
+        const provider = manager.getMediaProvider()
+        if (!provider) return []
+        return await provider.stremioGetAddons()
+      },
+      async (manifestUrl: string) => {
+        const provider = manager.getMediaProvider()
+        if (!provider) return { success: false }
+        return await provider.stremioAddAddon(manifestUrl)
+      }
+    )
+  }
+
+  addHandler('cinemaStremioGetLibrary', async () => {
+    const svc = await getStremioService()
+    return svc.getLibrary()
+  })
+
+  addHandler('cinemaStremioUpsertLibraryItem', async (_event, item) => {
+    const svc = await getStremioService()
+    return svc.upsertLibraryItem(item)
+  })
+
+  addHandler('cinemaStremioRemoveLibraryItem', async (_event, id: string) => {
+    const svc = await getStremioService()
+    return svc.removeLibraryItem(id)
+  })
+
+  addHandler(
+    'cinemaStremioToggleWatched',
+    async (_event, id: string, isWatched: boolean, videoId?: string) => {
+      const svc = await getStremioService()
+      return svc.toggleWatched(id, isWatched, videoId)
+    }
+  )
+
+  addHandler('cinemaStremioSaveProgress', async (_event, payload) => {
+    const svc = await getStremioService()
+    return svc.saveProgress(payload)
+  })
+
+  addHandler(
+    'cinemaStremioGetCalendar',
+    async (_event, forceRefresh?: boolean) => {
+      const svc = await getStremioService()
+      return await svc.getCalendar(Boolean(forceRefresh))
+    }
+  )
+
+  addHandler('cinemaStremioGetAccountStatus', async () => {
+    const svc = await getStremioService()
+    return svc.getAccountStatus()
+  })
+
+  addHandler(
+    'cinemaStremioLoginAndSync',
+    async (_event, email: string, password: string, importAddons?: boolean) => {
+      const svc = await getStremioService()
+      return await svc.loginAndSync(email, password, Boolean(importAddons))
+    }
+  )
+
+  addHandler('cinemaStremioSyncAccount', async () => {
+    const svc = await getStremioService()
+    return await svc.syncAccount()
+  })
+
+  addHandler('cinemaStremioLogoutAccount', async () => {
+    const svc = await getStremioService()
+    return svc.logoutAccount()
+  })
 
     addHandler('cinemaGetDownloadDirectories', async () => {
     const { getCinemaDownloadDirectories } = await import('./cinemaDownloader')
@@ -582,7 +675,55 @@ export function registerPluginsIPC(): void {
 
   addHandler('cinemaFindLocalMedia', async (_event, payload) => {
     const { findLocalMediaFile } = await import('./cinemaDownloader')
-    return findLocalMediaFile(payload)
+    const { existsSync } = await import('fs')
+    const {
+      buildLocalMediaIndex,
+      matchStremioItemToLocal,
+      findLocalFilesForEpisode
+    } = await import('common/stremioLocalMedia')
+    let extraDirs: string[] = []
+    try {
+      const provider = manager.getMediaProvider()
+      if (provider) {
+        const state = await provider.getState().catch(() => null)
+        if (state) {
+          if (Array.isArray(state.folders)) {
+            extraDirs = state.folders
+          }
+          const movies = Array.isArray(state.movies) ? state.movies : []
+          const index = buildLocalMediaIndex(movies)
+          const matched = matchStremioItemToLocal(index, {
+            name: payload?.title,
+            year: payload?.year,
+            type: payload?.type
+          })
+          if (matched) {
+            const candidates =
+              payload.season !== undefined && payload.episode !== undefined
+                ? findLocalFilesForEpisode(
+                    matched.movies,
+                    Number(payload.season),
+                    Number(payload.episode)
+                  )
+                : matched.movies
+            const existing = candidates.find(
+              (m) => m.filePath && existsSync(m.filePath)
+            )
+            if (existing) {
+              return {
+                exists: true,
+                filePath: existing.filePath,
+                fileName: existing.fileName,
+                fileSize: String(existing.fileSize || ''),
+                fileSizeBytes: existing.fileSizeBytes,
+                resolution: existing.resolution
+              }
+            }
+          }
+        }
+      }
+    } catch {}
+    return findLocalMediaFile({ ...payload, extraDirs })
   })
 
   addHandler('cinemaSaveStremioMedia', async (_event, payload) => {

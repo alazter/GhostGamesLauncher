@@ -226,6 +226,11 @@ const launchEventCallback: (args: LaunchParams) => StatusPromise = async ({
         status: 'done'
       })
 
+      if (powerDisplayId !== null) {
+        powerSaveBlocker.stop(powerDisplayId)
+        powerDisplayId = null
+      }
+
       await logWriter.close()
 
       return { status: 'error' }
@@ -313,17 +318,25 @@ const launchEventCallback: (args: LaunchParams) => StatusPromise = async ({
   if (powerDisplayId !== null) {
     logInfo('Stopping Display Power Saver Blocker', LogPrefix.Backend)
     powerSaveBlocker.stop(powerDisplayId)
+    powerDisplayId = null
   }
 
   // Update playtime and last played date
   const finishedPlayingDate = new Date()
-  tsStore.set(`${appName}.lastPlayed`, finishedPlayingDate.toISOString())
   // Playtime of this session in minutes
   const sessionPlaytime =
     (finishedPlayingDate.getTime() - startPlayingDate.getTime()) / 1000 / 60
   const totalPlaytime =
     sessionPlaytime + tsStore.get(`${appName}.totalPlayed`, 0)
-  tsStore.set(`${appName}.totalPlayed`, Math.floor(totalPlaytime))
+  const currentTsEntry = (tsStore.get_nodefault(appName as any) || {}) as Record<
+    string,
+    unknown
+  >
+  tsStore.set(appName as any, {
+    ...currentTsEntry,
+    lastPlayed: finishedPlayingDate.toISOString(),
+    totalPlayed: Math.floor(totalPlaytime)
+  } as any)
 
   const { disablePlaytimeSync } = GlobalConfig.get().getSettings()
   if (runner === 'gog') {

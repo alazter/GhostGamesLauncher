@@ -202,6 +202,14 @@ export default memo(function CatalogPoster(props: Props) {
     return res.includes('4K') ? '4K HDR' : `${res} REMUX`
   }, [movie.resolution, props])
 
+  const progressPercent = useMemo(() => {
+    const prog = movie.progressSeconds ?? 0
+    const dur = movie.duration ?? 0
+    if (!prog || prog <= 0 || props.isWatched) return 0
+    if (dur > 0) return Math.min(100, Math.max(4, Math.round((prog / dur) * 100)))
+    return 35
+  }, [movie.progressSeconds, movie.duration, props.isWatched])
+
   if (modern)
     return (
       <article
@@ -248,6 +256,20 @@ export default memo(function CatalogPoster(props: Props) {
               }}
             >
               {image}
+              {!open && props.isWatched && (
+                <span
+                  className="stremio-watched-corner-badge"
+                  title="Já Assistido"
+                  aria-label="Já Assistido"
+                >
+                  <FontAwesomeIcon icon={faCheck} />
+                </span>
+              )}
+              {!open && progressPercent > 0 && (
+                <span className="stremio-poster-progress-bar" aria-hidden="true">
+                  <span style={{ width: `${progressPercent}%` }} />
+                </span>
+              )}
               {!clean && !open && (
                 <div className="catalog-cover-badges">
                 {itemCategories.map((c) => (
@@ -416,6 +438,20 @@ export default memo(function CatalogPoster(props: Props) {
           }}
         >
           {image}
+          {props.isWatched && (
+            <span
+              className="stremio-watched-corner-badge"
+              title="Já Assistido"
+              aria-label="Já Assistido"
+            >
+              <FontAwesomeIcon icon={faCheck} />
+            </span>
+          )}
+          {progressPercent > 0 && (
+            <span className="stremio-poster-progress-bar" aria-hidden="true">
+              <span style={{ width: `${progressPercent}%` }} />
+            </span>
+          )}
           <span className="catalog-poster-art-title">{title}</span>
         </button>
         <div className="catalog-cover-badges">

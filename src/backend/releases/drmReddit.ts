@@ -58,7 +58,18 @@ async function readPage(url: string): Promise<RedditPage> {
   if (!ready) {
     // Reddit translates scene names (e.g. voices38 -> vozes38) in pt-BR.
     // Keep source metadata in its original language; Ghost's UI stays in pt-BR.
-    partition.setUserAgent(partition.getUserAgent(), 'en-US,en;q=0.9')
+    if (
+      typeof partition.getUserAgent === 'function' &&
+      typeof partition.setUserAgent === 'function'
+    ) {
+      const cleanUa = partition
+        .getUserAgent()
+        .replace(
+          /\s*(?:HeroicGamesLauncher|GhostGamesLauncher|Electron)\/[^\s]+/gi,
+          ''
+        )
+      partition.setUserAgent(cleanUa, 'en-US,en;q=0.9')
+    }
     partition.setPermissionRequestHandler(
       (_webContents, _permission, callback) => callback(false)
     )
@@ -127,6 +138,10 @@ async function readPage(url: string): Promise<RedditPage> {
         if (responseCode >= 400) {
           if (responseCode === 429)
             rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + 60000)
+          if (responseCode === 403)
+            throw new Error(
+              'Reddit: acesso bloqueado pela proteção de rede (HTTP 403); consulte o link da fonte.'
+            )
           throw new Error(
             `Reddit: consulta indisponível (HTTP ${responseCode}).`
           )
@@ -134,10 +149,15 @@ async function readPage(url: string): Promise<RedditPage> {
         for (let attempt = 0; attempt < 15; attempt++) {
           const html: unknown = await window.webContents
             .executeJavaScript(`(() => {
+            if (/blocked by network security|whoa there, pardner/i.test(document.body?.innerText || '')) return '__BLOCKED__';
             if (!document.querySelector('shreddit-post, [data-testid="search-results-filter-spacer"], [data-testid="search-post-unit"], search-results-page')) return undefined;
             const html = document.documentElement.outerHTML;
             return html.length <= 8 * 1024 * 1024 ? html : '';
           })()`)
+          if (html === '__BLOCKED__')
+            throw new Error(
+              'Reddit: acesso bloqueado pela proteção de rede (HTTP 403); consulte o link da fonte.'
+            )
           if (html !== undefined) {
             if (typeof html !== 'string')
               throw new Error('Reddit: resposta inválida.')

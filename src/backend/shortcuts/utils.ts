@@ -11,9 +11,7 @@ function createImage(
   outputFilePath: string
 ): string | undefined {
   try {
-    writeFileSync(outputFilePath, buffer, {
-      encoding: 'ascii'
-    })
+    writeFileSync(outputFilePath, buffer)
   } catch (error) {
     return `${error}`
   }

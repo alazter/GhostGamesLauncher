@@ -1,6 +1,7 @@
 import {
   parseDrmSiteGame,
   findDrmSiteGame,
+  findDrmSiteGames,
   drmPageUnavailable
 } from '../drmSitesParser'
 import {
@@ -358,5 +359,149 @@ it('honors Anker Retry-After even during manual refresh without starting the bro
     ).toHaveLength(calls + 1)
   } finally {
     now.mockRestore()
+  }
+})
+
+it('recognizes real SkidrowReloaded P2P/GOG announcements with date/hotfix versions and uppercase Size paragraphs', () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-11-20T12:00:00Z'))
+  try {
+    const eldenUrl = 'https://www.skidrowreloaded.com/elden-ring-v1-17-2-p2p/'
+    const eldenPage = `<link rel="canonical" href="${eldenUrl}">
+<div class="post-extended">
+<h2>Elden Ring v1.17.2-P2P</h2>
+<div class="meta">Posted November 10, 2026 in <a rel="category tag">PC GAMES</a></div>
+<p>Title: ELDEN RING\nGenre: Action, RPG\nRelease Date: 24 Feb, 2022</p>
+<p>ELDEN RING v1.17.2-P2P\nSize: 68 GB</p>
+</div>`
+    expect(
+      parseDrmSiteGame(eldenPage, 'Elden Ring', eldenUrl, 'SkidrowReloaded')
+    ).toMatchObject({
+      status: 'cracked',
+      group: 'P2P',
+      availability: 'listed',
+      url: eldenUrl
+    })
+
+    const doomUrl =
+      'https://www.skidrowreloaded.com/doom-the-dark-ages-v20261119-p2p/'
+    const doomPage = `<link rel="canonical" href="${doomUrl}">
+<div class="post-extended">
+<h2>DOOM The Dark Ages v20261119-P2P</h2>
+<div class="meta">Posted November 19, 2026 in <a rel="category tag">PC GAMES</a></div>
+<p>Title: DOOM: The Dark Ages\nRelease Date: 14 May, 2025</p>
+<p>DOOM The Dark Ages v20261119-P2P\nSize: 72 GB</p>
+</div>`
+    expect(
+      parseDrmSiteGame(
+        doomPage,
+        'DOOM: The Dark Ages',
+        doomUrl,
+        'SkidrowReloaded'
+      )
+    ).toMatchObject({
+      status: 'cracked',
+      group: 'P2P',
+      url: doomUrl
+    })
+
+    const cpUrl = 'https://www.skidrowreloaded.com/cyberpunk-2077-v2-5-hf-gog/'
+    const cpPage = `<link rel="canonical" href="${cpUrl}">
+<div class="post-extended">
+<h2>Cyberpunk 2077 v2.5.HF-GOG</h2>
+<div class="meta">Posted October 1, 2026 in <a rel="category tag">PC GAMES</a></div>
+<p>Title: Cyberpunk 2077\nRelease Date: 10 Dec, 2020</p>
+<p>CYBERPUNK 2077 v2.5.HF-GOG\nSize: 85 GB</p>
+</div>`
+    expect(
+      parseDrmSiteGame(cpPage, 'Cyberpunk 2077', cpUrl, 'SkidrowReloaded')
+    ).toMatchObject({
+      status: 'drm-free',
+      group: 'GOG',
+      url: cpUrl
+    })
+  } finally {
+    jest.useRealTimers()
+  }
+})
+
+it('prioritizes SkidrowReloaded h2 search results, skips update/repack links, and allows IsItCracked search URLs', () => {
+  const html = `
+    <div class="sidebar"><a href="https://www.skidrowreloaded.com/elden-ring-update-v1-17-2-p2p/">Elden Ring Update v1.17.2-P2P</a></div>
+    <h2><a href="https://www.skidrowreloaded.com/elden-ring-repack-fitgirl/">Elden Ring Repack</a></h2>
+    <h2><a href="https://www.skidrowreloaded.com/elden-ring-v1-17-2-p2p/">Elden Ring v1.17.2-P2P</a></h2>
+    <h2><a href="https://www.skidrowreloaded.com/elden-ring-codex/">Elden Ring-CODEX</a></h2>
+  `
+  expect(findDrmSiteGames(html, 'Elden Ring', 'SkidrowReloaded')).toEqual([
+    'https://www.skidrowreloaded.com/elden-ring-v1-17-2-p2p/',
+    'https://www.skidrowreloaded.com/elden-ring-codex/'
+  ])
+  expect(
+    safeDrmSourceUrl('https://isitcracked.com/search?q=Elden%20Ring')
+  ).toBe('https://isitcracked.com/search?q=Elden%20Ring')
+})
+
+it('recognizes SkidrowReloaded Early Access, bare Build releases, and & vs and title matching', () => {
+  jest.useFakeTimers().setSystemTime(new Date('2026-11-20T21:00:00Z'))
+  try {
+    const littlelandsUrl =
+      'https://www.skidrowreloaded.com/littlelands-early-access/'
+    const littlelandsPage = `<link rel="canonical" href="${littlelandsUrl}">
+<div class="post-extended">
+<h2>Littlelands Early Access</h2>
+<div class="meta">Posted November 18, 2026 in <a rel="category tag">PC GAMES</a>, <a rel="category tag">REQUEST ACCEPTED</a></div>
+<p>Title: Littlelands\nGenre: Action, Adventure, Early Access\nRelease Date: 16 Nov, 2026</p>
+<p>Littlelands Early Access\nSize: 2.2 GB</p>
+</div>`
+    expect(
+      parseDrmSiteGame(
+        littlelandsPage,
+        'Littlelands',
+        littlelandsUrl,
+        'SkidrowReloaded'
+      )
+    ).toMatchObject({
+      status: 'cracked',
+      url: littlelandsUrl
+    })
+
+    const dereliktUrl =
+      'https://www.skidrowreloaded.com/derelikt-build-26681065/'
+    const dereliktPage = `<link rel="canonical" href="${dereliktUrl}">
+<div class="post-extended">
+<h2>DERELIKT Build 26681065</h2>
+<div class="meta">Posted November 16, 2026 in <a rel="category tag">REQUEST ACCEPTED</a></div>
+<p>Title: DERELIKT\nGenre: Action, Indie\nRelease Date: 13 Nov, 2026</p>
+<p>DERELIKT Build 26681065\nSize: 536 MB</p>
+</div>`
+    expect(
+      parseDrmSiteGame(dereliktPage, 'Derelikt', dereliktUrl, 'SkidrowReloaded')
+    ).toMatchObject({
+      status: 'cracked',
+      url: dereliktUrl
+    })
+
+    const ckUrl =
+      'https://www.skidrowreloaded.com/crusader-kings-iii-silk-and-silver-rune/'
+    const ckPage = `<link rel="canonical" href="${ckUrl}">
+<div class="post-extended">
+<h2>Crusader Kings III Silk and Silver-RUNE</h2>
+<div class="meta">Posted November 17, 2026 in <a rel="category tag">PC GAMES</a></div>
+<p>Title: Crusader Kings III: Silk &#038; Silver\nRelease Date: 17 Nov, 2026</p>
+<p>Crusader Kings III Silk and Silver-RUNE\nSize: 8.9 GB</p>
+</div>`
+    expect(
+      parseDrmSiteGame(
+        ckPage,
+        'Crusader Kings III: Silk & Silver',
+        ckUrl,
+        'SkidrowReloaded'
+      )
+    ).toMatchObject({
+      status: 'cracked',
+      group: 'RUNE',
+      url: ckUrl
+    })
+  } finally {
+    jest.useRealTimers()
   }
 })

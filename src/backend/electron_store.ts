@@ -81,10 +81,20 @@ export class TypeCheckedStoreBackend<
     key: KeyType,
     value: UnknownGuard<Get<StoreStructure[Name], KeyType>>
   ) {
+    if (
+      typeof key === 'string' &&
+      (typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean') &&
+      this.store.get(key) === value
+    ) {
+      return
+    }
     this.store.set(key, value)
   }
 
   public delete<KeyType extends string>(key: KeyType) {
+    if (!this.store.has(key)) return
     this.store.delete(key)
   }
 

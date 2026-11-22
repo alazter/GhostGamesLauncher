@@ -1,5 +1,6 @@
 import { existsSync } from 'fs'
 import { join } from 'path'
+import { homedir } from 'os'
 import { spawn } from 'child_process'
 
 export const STREMIO_STREAMING_URL = 'http://127.0.0.1:11470'
@@ -27,8 +28,8 @@ export function findStremioExecutable(): { runtime?: string; serverJs?: string }
       serverJs: join(localAppData, 'Programs', 'LNV', 'Stremio-4', 'server.js')
     },
     {
-      runtime: 'C:\\Users\\alazt\\AppData\\Local\\Programs\\Stremio\\stremio-runtime.exe',
-      serverJs: 'C:\\Users\\alazt\\AppData\\Local\\Programs\\Stremio\\server.js'
+      runtime: join(homedir(), 'AppData', 'Local', 'Programs', 'Stremio', 'stremio-runtime.exe'),
+      serverJs: join(homedir(), 'AppData', 'Local', 'Programs', 'Stremio', 'server.js')
     }
   ]
 

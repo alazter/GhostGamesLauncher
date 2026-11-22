@@ -118,6 +118,12 @@ export function openSkidrowSource(
 function skidrowSession() {
   const partition = session.fromPartition('persist:ghost-drm-skidrow-public')
   if (!prepared) {
+    if (typeof partition.getUserAgent === 'function' && typeof partition.setUserAgent === 'function') {
+      const cleanUa = partition
+        .getUserAgent()
+        .replace(/\s*(?:HeroicGamesLauncher|GhostGamesLauncher|ghost|Electron)\/[^\s]+/gi, '')
+      partition.setUserAgent(cleanUa, 'en-US,en;q=0.9')
+    }
     partition.setPermissionRequestHandler((_contents, _permission, callback) =>
       callback(false)
     )

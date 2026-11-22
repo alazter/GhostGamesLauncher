@@ -265,7 +265,21 @@ function inspectWebDirectoryCandidate(dir: string): CandidateWebDirInfo | null {
   }
 }
 
+let cachedResolvedWebDir: string | undefined
+let cachedResolvedWebDirAt = 0
+
 export function resolveWebDirectory(customCandidates?: string[]): string {
+  const now = Date.now()
+  if (
+    !customCandidates &&
+    !process.env.JEST_WORKER_ID &&
+    cachedResolvedWebDir &&
+    now - cachedResolvedWebDirAt < 30_000 &&
+    fs.existsSync(cachedResolvedWebDir)
+  ) {
+    return cachedResolvedWebDir
+  }
+
   const candidates: string[] = customCandidates ? [...customCandidates] : []
   if (!customCandidates) {
     try {
@@ -314,6 +328,10 @@ export function resolveWebDirectory(customCandidates?: string[]): string {
       }
       return b.size - a.size
     })
+    if (!customCandidates) {
+      cachedResolvedWebDir = valid[0].dir
+      cachedResolvedWebDirAt = now
+    }
     return valid[0].dir
   }
 
@@ -677,6 +695,10 @@ function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
       }
 
       res.writeHead(200, headers)
+      res.on('close', () => {
+        upstreamRes.destroy()
+        req.destroy()
+      })
       upstreamRes.pipe(res)
     })
 
@@ -1100,8 +1122,24 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
             filePath = candidateAsset
           }
 
-          if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-            const ext = path.extname(filePath).toLowerCase()
+          const resolvedFile = path.resolve(filePath)
+          const allowedRoots = [
+            path.resolve(webDir),
+            path.resolve(webDir, '..'),
+            path.resolve(LOCAL_DEV_ROOT),
+            path.resolve(LOCAL_DEV_FALLBACK_ROOT)
+          ]
+          const isInsideAllowedRoot = allowedRoots.some(
+            (root) =>
+              resolvedFile === root || resolvedFile.startsWith(root + path.sep)
+          )
+
+          if (
+            isInsideAllowedRoot &&
+            fs.existsSync(resolvedFile) &&
+            fs.statSync(resolvedFile).isFile()
+          ) {
+            const ext = path.extname(resolvedFile).toLowerCase()
             const contentType = MIME_TYPES[ext] || 'application/octet-stream'
             const isDynamicDoc =
               ext === '.html' ||
@@ -1116,7 +1154,12 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
                 ? 'no-cache, no-store, must-revalidate'
                 : 'public, max-age=3600'
             })
-            fs.createReadStream(filePath).pipe(res)
+            const stream = fs.createReadStream(resolvedFile)
+            stream.on('error', () => {
+              if (!res.writableEnded) res.end()
+            })
+            res.on('close', () => stream.destroy())
+            stream.pipe(res)
             return
           }
 

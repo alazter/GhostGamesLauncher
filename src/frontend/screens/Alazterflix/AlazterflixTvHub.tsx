@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faTv,
@@ -109,9 +109,19 @@ export default function AlazterflixTvHub({
   const [visibleCount, setVisibleCount] = useState<number>(100)
 
   // Sincronização e Persistência
+  const lastSavedPlaylistsRef = useRef<string>(
+    localStorage.getItem(STORAGE_KEY_PLAYLISTS) || '[]'
+  )
+  const lastSavedChannelsRef = useRef<string>(
+    localStorage.getItem(STORAGE_KEY_CHANNELS) || '[]'
+  )
+
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_PLAYLISTS, JSON.stringify(playlists))
+      const serialized = JSON.stringify(playlists)
+      if (serialized === lastSavedPlaylistsRef.current) return
+      lastSavedPlaylistsRef.current = serialized
+      localStorage.setItem(STORAGE_KEY_PLAYLISTS, serialized)
       if (window.api?.cinemaTvSavePlaylists) {
         window.api.cinemaTvSavePlaylists(playlists).catch(() => {})
       }
@@ -122,7 +132,10 @@ export default function AlazterflixTvHub({
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_CHANNELS, JSON.stringify(channels))
+      const serialized = JSON.stringify(channels)
+      if (serialized === lastSavedChannelsRef.current) return
+      lastSavedChannelsRef.current = serialized
+      localStorage.setItem(STORAGE_KEY_CHANNELS, serialized)
       if (window.api?.cinemaTvSaveChannels) {
         window.api.cinemaTvSaveChannels(channels).catch(() => {})
       }
@@ -158,7 +171,10 @@ export default function AlazterflixTvHub({
             if (raw) loadedPlaylists = JSON.parse(raw)
           } catch {}
         }
-        if (loadedPlaylists.length > 0) setPlaylists(loadedPlaylists)
+        if (loadedPlaylists.length > 0) {
+          lastSavedPlaylistsRef.current = JSON.stringify(loadedPlaylists)
+          setPlaylists(loadedPlaylists)
+        }
 
         if (window.api?.cinemaTvGetChannels) {
           const backendChannels = await window.api.cinemaTvGetChannels()
@@ -172,7 +188,10 @@ export default function AlazterflixTvHub({
             if (raw) loadedChannels = JSON.parse(raw)
           } catch {}
         }
-        if (loadedChannels.length > 0) setChannels(loadedChannels)
+        if (loadedChannels.length > 0) {
+          lastSavedChannelsRef.current = JSON.stringify(loadedChannels)
+          setChannels(loadedChannels)
+        }
       } catch (e) {
         console.error('[Alazterflix TV] Erro ao carregar dados do backend:', e)
       }

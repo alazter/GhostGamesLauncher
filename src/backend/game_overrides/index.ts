@@ -30,15 +30,14 @@ const removeImagesForApp = (appName: string) => {
   removeImagesMatching(customCoversDir, (file) => file.startsWith(`${appName}_`))
 }
 
+let overridesMemoryCache: Record<string, GameMetadataOverride> | null = null
+
 /**
  * Get stored overrides for a specific game
  */
 export function getGameOverrides(appName: string): GameMetadataOverride | null {
   try {
-    const overrides = gameOverridesStore.get('overrides', {}) as Record<
-      string,
-      GameMetadataOverride
-    >
+    const overrides = getAllGameOverrides()
     return overrides[appName] || null
   } catch {
     logError(`Failed to get overrides for ${appName}`, logPrefix)
@@ -50,11 +49,15 @@ export function getGameOverrides(appName: string): GameMetadataOverride | null {
  * Get all stored overrides
  */
 export function getAllGameOverrides(): Record<string, GameMetadataOverride> {
+  if (overridesMemoryCache !== null) {
+    return overridesMemoryCache
+  }
   try {
-    return gameOverridesStore.get('overrides', {}) as Record<
+    overridesMemoryCache = gameOverridesStore.get('overrides', {}) as Record<
       string,
       GameMetadataOverride
     >
+    return overridesMemoryCache
   } catch {
     logError('Failed to get all overrides', logPrefix)
     return {}
@@ -69,10 +72,9 @@ export function setGameOverrides(
   override: GameMetadataOverride
 ): boolean {
   try {
-    const currentOverrides = gameOverridesStore.get('overrides', {}) as Record<
-      string,
-      GameMetadataOverride
-    >
+    const currentOverrides = {
+      ...getAllGameOverrides()
+    }
 
     if (!override.art_cover && !override.art_square && !override.art_background) {
       removeImagesForApp(appName)
@@ -88,6 +90,7 @@ export function setGameOverrides(
       }
     }
 
+    overridesMemoryCache = { ...currentOverrides }
     gameOverridesStore.set('overrides', currentOverrides)
     logInfo(`Saved overrides for ${appName}`, logPrefix)
     return true
@@ -115,10 +118,7 @@ export function attachOverrides(gameInfo: GameInfo): GameInfo {
  */
 export function setAllGameOverrides(overrides: Record<string, GameMetadataOverride>): boolean {
   try {
-    const previousOverrides = gameOverridesStore.get('overrides', {}) as Record<
-      string,
-      GameMetadataOverride
-    >
+    const previousOverrides = getAllGameOverrides()
 
     // Find apps that had overrides but now either don't, or have empty cover fields
     for (const appName of Object.keys(previousOverrides)) {
@@ -132,6 +132,7 @@ export function setAllGameOverrides(overrides: Record<string, GameMetadataOverri
       }
     }
 
+    overridesMemoryCache = { ...overrides }
     gameOverridesStore.set('overrides', overrides)
     logInfo('Saved all overrides', logPrefix)
     return true

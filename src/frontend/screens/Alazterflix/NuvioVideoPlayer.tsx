@@ -677,6 +677,21 @@ export const NuvioVideoPlayer: React.FC<NuvioVideoPlayerProps> = ({
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current)
+        toastTimerRef.current = null
+      }
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close().catch(() => {})
+        audioCtxRef.current = null
+        gainNodeRef.current = null
+        connectedVideoRef.current = null
+      }
+    }
+  }, [])
+
   /* Apply Volume (0% - 200% with Boost) cleanly without CORS silencing */
   const applyVolume = useCallback(
     (nextPercent: number, explicitMute?: boolean) => {

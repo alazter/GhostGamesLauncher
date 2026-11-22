@@ -140,6 +140,10 @@ const CachedImage = (props: Props) => {
       src={finalSrc}
       onLoad={(e) => {
         if (isInView && displaySrc) {
+          if (loadedUrls.size >= 5000) {
+            const oldest = loadedUrls.values().next().value
+            if (oldest !== undefined) loadedUrls.delete(oldest)
+          }
           loadedUrls.add(displaySrc)
           setLoaded(true)
         }

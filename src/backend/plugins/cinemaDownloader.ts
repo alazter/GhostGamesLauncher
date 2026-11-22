@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs'
+import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from 'fs'
 import { basename, extname, join } from 'path'
 import http from 'http'
 import https from 'https'
@@ -47,7 +47,7 @@ const CONFIG_FILE = join(userDataPath, 'cinema_download_directories.json')
 export function getCinemaDownloadDirectories(): CinemaDownloadDirectories {
   try {
     if (existsSync(CONFIG_FILE)) {
-      const raw = readFileSync(CONFIG_FILE, 'utf-8')
+      const raw = readFileSync(CONFIG_FILE, 'utf-8').replace(/^\uFEFF/, '').trim()
       return JSON.parse(raw)
     }
   } catch (err) {
@@ -64,7 +64,14 @@ export function setCinemaDownloadDirectories(
   const current = getCinemaDownloadDirectories()
   const updated = { ...current, ...dirs }
   try {
-    writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2), 'utf-8')
+    const content = JSON.stringify(updated, null, 2)
+    const tmpFile = `${CONFIG_FILE}.tmp`
+    try {
+      writeFileSync(tmpFile, content, 'utf-8')
+      renameSync(tmpFile, CONFIG_FILE)
+    } catch {
+      writeFileSync(CONFIG_FILE, content, 'utf-8')
+    }
   } catch (err) {
     logError(LogPrefix.General, `Erro ao salvar diretórios de download do Cinema: ${err}`)
   }
@@ -147,6 +154,7 @@ export function findLocalMediaFile(payload: {
   episode?: number
   year?: string
   type?: 'movie' | 'series' | 'anime'
+  extraDirs?: string[]
 }): {
   exists: boolean
   filePath?: string
@@ -158,11 +166,16 @@ export function findLocalMediaFile(payload: {
   try {
     const dirs = getCinemaDownloadDirectories()
     const mediaType = payload.type || (payload.season !== undefined ? 'series' : 'movie')
-    const candidateDirs = [
-      dirs.seriesDir,
-      dirs.animesDir,
-      dirs.moviesDir
-    ].filter((d): d is string => Boolean(d && existsSync(d)))
+    const candidateDirs = Array.from(
+      new Set(
+        [
+          dirs.seriesDir,
+          dirs.animesDir,
+          dirs.moviesDir,
+          ...(Array.isArray(payload.extraDirs) ? payload.extraDirs : [])
+        ].filter((d): d is string => Boolean(d && existsSync(d)))
+      )
+    )
 
     if (candidateDirs.length === 0) {
       return { exists: false }
@@ -322,6 +335,14 @@ export async function saveStremioMediaToLibrary(
     status: 'downloading',
     startTime: Date.now()
   }
+  if (activeTasks.size >= 100) {
+    for (const [k, v] of activeTasks.entries()) {
+      if (v.status !== 'downloading') {
+        activeTasks.delete(k)
+        break
+      }
+    }
+  }
   activeTasks.set(taskId, task)
 
   logInfo(LogPrefix.General, `Iniciando download de mídia "${payload.title}" para ${filePath}`)
@@ -411,6 +432,7 @@ export async function saveStremioMediaToLibrary(
     }
   )
 
+  void downloadPromise.catch(() => {})
   // Save posters / backdrops if provided
   if (payload.posterUrl) {
     try {
@@ -420,6 +442,7 @@ export async function saveStremioMediaToLibrary(
         client.get(payload.posterUrl, (res) => {
           if (res.statusCode === 200) {
             const ps = createWriteStream(posterPath)
+            ps.on('error', () => ps.close())
             res.pipe(ps)
           }
         }).on('error', () => {})

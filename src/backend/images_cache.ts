@@ -24,20 +24,42 @@ interface MemoryCacheEntry {
 }
 
 const memoryCache = new Map<string, MemoryCacheEntry>()
-const MAX_MEMORY_CACHE = 500
+const MAX_MEMORY_CACHE = 250
+const MAX_SINGLE_IMAGE_BYTES = 2 * 1024 * 1024
+const MAX_MEMORY_BYTES = 64 * 1024 * 1024
+let currentMemoryBytes = 0
 
 export const invalidateLocalImage = (path: string) => {
-  for (const key of memoryCache.keys())
-    if (key === path || key.startsWith(`${path}?v=`)) memoryCache.delete(key)
+  for (const key of memoryCache.keys()) {
+    if (key === path || key.startsWith(`${path}?v=`)) {
+      const entry = memoryCache.get(key)
+      if (entry) currentMemoryBytes = Math.max(0, currentMemoryBytes - entry.buffer.byteLength)
+      memoryCache.delete(key)
+    }
+  }
   failedUrls.delete(path)
 }
 
 const setMemoryCache = (key: string, entry: MemoryCacheEntry) => {
-  if (memoryCache.size >= MAX_MEMORY_CACHE) {
+  if (entry.buffer.byteLength > MAX_SINGLE_IMAGE_BYTES) return
+  const existing = memoryCache.get(key)
+  if (existing) {
+    currentMemoryBytes = Math.max(0, currentMemoryBytes - existing.buffer.byteLength)
+    memoryCache.delete(key)
+  }
+  while (
+    (memoryCache.size >= MAX_MEMORY_CACHE ||
+      currentMemoryBytes + entry.buffer.byteLength > MAX_MEMORY_BYTES) &&
+    memoryCache.size > 0
+  ) {
     const oldest = memoryCache.keys().next().value
-    if (oldest) memoryCache.delete(oldest)
+    if (!oldest) break
+    const oldEntry = memoryCache.get(oldest)
+    if (oldEntry) currentMemoryBytes = Math.max(0, currentMemoryBytes - oldEntry.buffer.byteLength)
+    memoryCache.delete(oldest)
   }
   memoryCache.set(key, entry)
+  currentMemoryBytes += entry.buffer.byteLength
 }
 
 export const initImagesCache = () => {
@@ -202,6 +224,10 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
         return new Response('File read error', { status: 500 })
       }
     }
+    if (failedUrls.size >= 2000) {
+      const oldestFailed = failedUrls.values().next().value
+      if (oldestFailed) failedUrls.delete(oldestFailed)
+    }
     failedUrls.add(realUrl)
     return new Response('File not found', { status: 404 })
   }
@@ -324,7 +350,11 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
 
     // Only cache genuine 404 so subsequent requests respond in 0ms!
     if (response.status === 404 && !isReleases) {
-      failedUrls.add(realUrl)
+      if (failedUrls.size >= 2000) {
+      const oldestFailed = failedUrls.values().next().value
+      if (oldestFailed) failedUrls.delete(oldestFailed)
+    }
+    failedUrls.add(realUrl)
     }
     return new Response('Not found', {
       status: response.status || 404,

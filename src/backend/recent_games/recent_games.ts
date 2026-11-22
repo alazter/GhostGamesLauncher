@@ -39,7 +39,7 @@ const addRecentGame = async (game: GameInfo) => {
     title: game.title,
     runner: game.runner
   })
-  setRecentGames(updatedList)
+  setRecentGames(updatedList.slice(0, 50))
 }
 
 const removeRecentGame = async (appName: string) => {

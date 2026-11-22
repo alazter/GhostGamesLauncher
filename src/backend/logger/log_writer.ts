@@ -41,6 +41,8 @@ export default class LogWriter {
    * file. This is used in case a Promise is passed to {@link writeString}
    */
   #messageWaitPromise: Promise<unknown>
+  #pendingBuffer = ''
+  #activeFlushPromise: Promise<void> | null = null
 
   public constructor(
     logFilePath: string,
@@ -128,7 +130,22 @@ export default class LogWriter {
     const appendNewline = !message.endsWith('\n')
     if (appendNewline) message += '\n'
 
-    await fsPromises.appendFile(this.logFilePath, message, 'utf-8')
+    this.#pendingBuffer += message
+    if (!this.#activeFlushPromise) {
+      this.#activeFlushPromise = (async () => {
+        while (this.#pendingBuffer.length > 0) {
+          const chunk = this.#pendingBuffer
+          this.#pendingBuffer = ''
+          try {
+            await fsPromises.appendFile(this.logFilePath, chunk, 'utf-8')
+          } catch {
+            // Evita falha fatal se o arquivo de log estiver temporariamente bloqueado
+          }
+        }
+        this.#activeFlushPromise = null
+      })()
+    }
+    await this.#activeFlushPromise
     this.#wasWrittenTo = true
   }
 

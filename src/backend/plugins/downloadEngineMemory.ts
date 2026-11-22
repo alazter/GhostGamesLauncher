@@ -105,6 +105,7 @@ export function validEngineControl(value: unknown): value is DownloadAction {
 
 /** Bounded semantic controls and outcomes only. Never HTML, URLs, cookies or selectors containing tokens. */
 export class DownloadEngineMemory {
+  private memoryCache?: { mtimeMs: number; size: number; pages: Memory[] }
   constructor(
     private file: string | undefined,
     private valid: (
@@ -113,12 +114,19 @@ export class DownloadEngineMemory {
   ) {}
   private read(): Memory[] {
     try {
-      if (
-        !this.file ||
-        !existsSync(this.file) ||
-        statSync(this.file).size > 128 * 1024
-      )
+      if (!this.file || !existsSync(this.file)) {
+        this.memoryCache = undefined
         return []
+      }
+      const st = statSync(this.file)
+      if (st.size > 128 * 1024) return []
+      if (
+        this.memoryCache &&
+        this.memoryCache.mtimeMs === st.mtimeMs &&
+        this.memoryCache.size === st.size
+      ) {
+        return structuredClone(this.memoryCache.pages)
+      }
       const data: unknown = JSON.parse(readFileSync(this.file, 'utf8'))
       if (
         !data ||
@@ -129,7 +137,7 @@ export class DownloadEngineMemory {
         !Array.isArray(data.pages)
       )
         return []
-      return (data.pages as Memory[])
+      const filtered = (data.pages as Memory[])
         .filter((item) => {
           try {
             return (
@@ -161,6 +169,12 @@ export class DownloadEngineMemory {
           }
         })
         .slice(-128)
+      this.memoryCache = {
+        mtimeMs: st.mtimeMs,
+        size: st.size,
+        pages: structuredClone(filtered)
+      }
+      return filtered
     } catch {
       return []
     }
@@ -195,16 +209,19 @@ export class DownloadEngineMemory {
       )
       mkdirSync(dirname(this.file), { recursive: true })
       const bounded = [...pages, { ...item, updated: Date.now() }].slice(-128)
-      while (
-        Buffer.byteLength(JSON.stringify({ revision: 1, pages: bounded })) >
-        128 * 1024
-      )
+      let serialized = JSON.stringify({ revision: 1, pages: bounded })
+      while (Buffer.byteLength(serialized) > 128 * 1024) {
         bounded.shift()
-      writeFileSync(
-        this.file + '.tmp',
-        JSON.stringify({ revision: 1, pages: bounded })
-      )
+        serialized = JSON.stringify({ revision: 1, pages: bounded })
+      }
+      writeFileSync(this.file + '.tmp', serialized)
       renameSync(this.file + '.tmp', this.file)
+      const st = statSync(this.file)
+      this.memoryCache = {
+        mtimeMs: st.mtimeMs,
+        size: st.size,
+        pages: structuredClone(bounded)
+      }
     } catch {
       /* Optional knowledge cannot interrupt a transfer. */
     }

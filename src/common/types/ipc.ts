@@ -88,6 +88,9 @@ import type {
   StremioAddonManifest,
   StremioMetaPreview,
   StremioStreamItem,
+  StremioLibraryItem,
+  StremioCalendarResult,
+  StremioAccountStatus,
   CinemaLibraryState,
   CinemaMetadataCandidate,
   CinemaMetadataSettings,
@@ -852,6 +855,50 @@ interface AsyncIPCFunctions {
     type: string,
     id: string
   ) => Promise<StremioStreamItem[]>
+  cinemaStremioGetLibrary: () => Promise<StremioLibraryItem[]>
+  cinemaStremioUpsertLibraryItem: (
+    item: Partial<StremioLibraryItem> & { id: string; type: string; name: string }
+  ) => Promise<StremioLibraryItem[]>
+  cinemaStremioRemoveLibraryItem: (id: string) => Promise<StremioLibraryItem[]>
+  cinemaStremioToggleWatched: (
+    id: string,
+    isWatched: boolean,
+    videoId?: string
+  ) => Promise<StremioLibraryItem[]>
+  cinemaStremioSaveProgress: (payload: {
+    id: string
+    type?: string
+    name?: string
+    poster?: string
+    background?: string
+    progressSeconds: number
+    durationSeconds: number
+    videoId?: string
+  }) => Promise<StremioLibraryItem[]>
+  cinemaStremioGetCalendar: (
+    forceRefresh?: boolean
+  ) => Promise<StremioCalendarResult>
+  cinemaStremioGetAccountStatus: () => Promise<StremioAccountStatus>
+  cinemaStremioLoginAndSync: (
+    email: string,
+    password: string,
+    importAddons?: boolean
+  ) => Promise<{
+    success: boolean
+    error?: string
+    importedCount?: number
+    importedAddons?: number
+    library?: StremioLibraryItem[]
+    status?: StremioAccountStatus
+  }>
+  cinemaStremioSyncAccount: () => Promise<{
+    success: boolean
+    error?: string
+    importedCount?: number
+    library?: StremioLibraryItem[]
+    status?: StremioAccountStatus
+  }>
+  cinemaStremioLogoutAccount: () => Promise<{ success: boolean }>
   cinemaEnsureStremioServer: () => Promise<{
     online: boolean
     url: string

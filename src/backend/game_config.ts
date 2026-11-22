@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'graceful-fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'graceful-fs'
 
 import { GameConfigVersion, GameSettings } from 'common/types'
 import { GlobalConfig } from './config'
@@ -44,6 +44,11 @@ abstract class GameConfig {
    * @returns GameConfig instance.
    */
   public static get(appName: string): GameConfig {
+    const existing = GameConfig.instances.get(appName)
+    if (existing) {
+      return existing
+    }
+
     let version: GameConfigVersion
     const path = join(gamesConfigPath, appName + '.json')
     // Config file doesn't already exist, make one with the current version.
@@ -69,9 +74,7 @@ abstract class GameConfig {
       }
     }
 
-    if (!GameConfig.instances.get(appName)) {
-      GameConfig.reload(appName, version)
-    }
+    GameConfig.reload(appName, version)
 
     return GameConfig.instances.get(appName)!
   }
@@ -144,7 +147,18 @@ abstract class GameConfig {
   public abstract resetToDefaults(): void
 
   protected writeToFile(config: Record<string, unknown>) {
-    return writeFileSync(this.path, JSON.stringify(config, null, 2))
+    const content = JSON.stringify(config, null, 2)
+    const tempPath = `${this.path}.tmp`
+    try {
+      writeFileSync(tempPath, content, 'utf-8')
+      renameSync(tempPath, this.path)
+    } catch {
+      try {
+        writeFileSync(this.path, content, 'utf-8')
+      } catch (err) {
+        logError([`Failed to write game config ${this.path}:`, err], LogPrefix.GameConfig)
+      }
+    }
   }
 
   /**

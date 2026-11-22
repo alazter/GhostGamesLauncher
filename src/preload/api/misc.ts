@@ -148,14 +148,31 @@ export const storeNew = function (storeName: string, options: Store.Options<Reco
   }
 }
 
-export const storeSet = (storeName: string, key: string, value?: unknown) => stores[storeName]?.set(key, value)
+export const storeSet = (storeName: string, key: string, value?: unknown) => {
+  const s = stores[storeName]
+  if (!s) return
+  if (
+    typeof key === 'string' &&
+    (typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean') &&
+    s.get(key) === value
+  ) {
+    return
+  }
+  s.set(key as any, value)
+}
 
 export const storeHas = (storeName: string, key: string) => stores[storeName]?.has(key) ?? false
 
 export const storeGet = (storeName: string, key: string, defaultValue?: unknown) =>
   stores[storeName]?.get(key, defaultValue) ?? defaultValue
 
-export const storeDelete = (storeName: string, key: string) => stores[storeName]?.delete(key)
+export const storeDelete = (storeName: string, key: string) => {
+  const s = stores[storeName]
+  if (!s || !s.has(key)) return
+  s.delete(key as any)
+}
 
 export const getWikiGameInfo = makeHandlerInvoker('getWikiGameInfo')
 export const fetchPlaytimeFromServer = makeHandlerInvoker('getPlaytimeFromRunner')

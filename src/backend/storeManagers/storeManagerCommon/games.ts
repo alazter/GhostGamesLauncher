@@ -424,7 +424,8 @@ async function waitForChildGameProcessInFolder(
 }
 
 async function isProcessRunning(processName: string): Promise<boolean> {
-  let name = basename(processName)
+  let name = basename(processName).replace(/["'`$\\;\r\n]/g, '')
+  if (!name) return false
   if (process.platform === 'win32' && !name.toLowerCase().endsWith('.exe')) {
     name += '.exe'
   }

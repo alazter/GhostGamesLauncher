@@ -99,7 +99,11 @@ import {
   getFolderSize
 } from './utils/filesystem/drives'
 import { SteamAuthModal } from './storeManagers/steam/authModal'
-import { configStore as steamConfigStore } from './storeManagers/steam/electronStores'
+import {
+  configStore as steamConfigStore,
+  encryptSteamSecret,
+  decryptSteamSecret
+} from './storeManagers/steam/electronStores'
 
 import { Path } from './schemas'
 
@@ -730,13 +734,17 @@ if (!gotTheLock) {
 
         // Registrar associação de arquivos .GhostBackup com o ícone oficial do Ghost
         try {
-          const { exec } = require('child_process')
+          const { execFile } = require('child_process')
           const appExe = process.execPath
-          const cmd1 = `reg add "HKCU\\Software\\Classes\\.GhostBackup" /ve /d "GhostGamesLauncher.Backup" /f`
-          const cmd2 = `reg add "HKCU\\Software\\Classes\\GhostGamesLauncher.Backup" /ve /d "Ghost Games Launcher Backup" /f`
-          const cmd3 = `reg add "HKCU\\Software\\Classes\\GhostGamesLauncher.Backup\\DefaultIcon" /ve /d "${iconToUse},0" /f`
-          const cmd4 = `reg add "HKCU\\Software\\Classes\\GhostGamesLauncher.Backup\\shell\\open\\command" /ve /d "\\"${appExe}\\" \\"%1\\"" /f`
-          exec(`${cmd1} && ${cmd2} && ${cmd3} && ${cmd4}`, () => {})
+          const regEntries: string[][] = [
+            ['add', 'HKCU\\Software\\Classes\\.GhostBackup', '/ve', '/d', 'GhostGamesLauncher.Backup', '/f'],
+            ['add', 'HKCU\\Software\\Classes\\GhostGamesLauncher.Backup', '/ve', '/d', 'Ghost Games Launcher Backup', '/f'],
+            ['add', 'HKCU\\Software\\Classes\\GhostGamesLauncher.Backup\\DefaultIcon', '/ve', '/d', `${iconToUse},0`, '/f'],
+            ['add', 'HKCU\\Software\\Classes\\GhostGamesLauncher.Backup\\shell\\open\\command', '/ve', '/d', `"${appExe}" "%1"`, '/f']
+          ]
+          for (const args of regEntries) {
+            execFile('reg.exe', args, { windowsHide: true }, () => {})
+          }
         } catch {}
       } catch (err) {
         logError(`Failed to create shortcuts on startup: ${err}`, LogPrefix.Backend)
@@ -1003,25 +1011,26 @@ addHandler('steamLogout', async () => {
 })
 addHandler('steamGetConfig', async () => ({
   syncMode: steamConfigStore.get('syncMode', 'all'),
-  apiKey: steamConfigStore.get('apiKey', ''),
+  apiKey: decryptSteamSecret(steamConfigStore.get('apiKey', '')),
   hasSession: steamConfigStore.has('sessionCookie')
 }))
 addHandler('steamSaveConfig', async (_e, config) => {
-  if (config.syncMode) steamConfigStore.set('syncMode', config.syncMode)
+  const updates: Record<string, any> = { isLoggedIn: true }
+  if (config.syncMode) updates.syncMode = config.syncMode
   if (config.apiKey !== undefined) {
-    if (config.apiKey) {
-      steamConfigStore.set('apiKey', config.apiKey.trim())
+    if (config.apiKey && config.apiKey.trim()) {
+      updates.apiKey = encryptSteamSecret(config.apiKey.trim())
     } else {
       steamConfigStore.delete('apiKey')
     }
   }
-  steamConfigStore.set('isLoggedIn', true)
   const account = await SteamUser.getDetectedAccount()
   if (account) {
-    steamConfigStore.set('username', account.personaName)
-    steamConfigStore.set('steamId', account.steamId64)
-    steamConfigStore.set('steamId32', account.steamId32)
+    updates.username = account.personaName
+    updates.steamId = account.steamId64
+    updates.steamId32 = account.steamId32
   }
+  ;(steamConfigStore as any).set(updates)
 })
 
 addHandler('isFrameless', () => isFrameless())
@@ -1112,7 +1121,8 @@ addListener('showConfigFileInFolder', async (event, appName) => {
   if (appName === 'default') {
     return openUrlOrFile(configPath)
   }
-  return openUrlOrFile(path.join(gamesConfigPath, `${appName}.json`))
+  const safeAppName = path.basename(String(appName || ''))
+  return openUrlOrFile(path.join(gamesConfigPath, `${safeAppName}.json`))
 })
 
 addListener('removeFolder', async (e, [path, folderName]) => {
@@ -1317,11 +1327,37 @@ addHandler('downloadLauncherUpdate', async (event, assets: any[]) => {
     }
   }
 
-  const destPath = path.join(installDir, selectedAsset.name)
+  const safeAssetName = path.basename(String(selectedAsset.name || ''))
+  if (!safeAssetName.toLowerCase().endsWith('.exe')) {
+    return { success: false, error: 'Nome de arquivo de atualização inválido.' }
+  }
+  let parsedDownloadUrl: URL
+  try {
+    parsedDownloadUrl = new URL(String(selectedAsset.browser_download_url || ''))
+  } catch {
+    return { success: false, error: 'URL de atualização inválida.' }
+  }
+  const allowedUpdateHosts = [
+    'github.com',
+    'objects.githubusercontent.com',
+    'release-assets.githubusercontent.com'
+  ]
+  if (
+    parsedDownloadUrl.protocol !== 'https:' ||
+    !allowedUpdateHosts.some(
+      (h) =>
+        parsedDownloadUrl.hostname === h ||
+        parsedDownloadUrl.hostname.endsWith(`.${h}`)
+    )
+  ) {
+    return { success: false, error: 'Domínio de atualização não autorizado.' }
+  }
+
+  const destPath = path.join(installDir, safeAssetName)
 
   try {
     await downloadFile({
-      url: selectedAsset.browser_download_url,
+      url: parsedDownloadUrl.href,
       dest: destPath,
       progressCallback: (bytes, speed, percentage, writingSpeed) => {
         sendFrontendMessage('download-launcher-update-progress', {
@@ -1480,6 +1516,21 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
     if (backupData.zoomPercent !== undefined) {
       configStore.set('zoomPercent', backupData.zoomPercent)
     }
+    if (typeof backupData.theme === 'string' && backupData.theme) {
+      configStore.set('theme', backupData.theme)
+    }
+    if (Array.isArray(backupData.hiddenGames)) {
+      configStore.set('games.hidden', backupData.hiddenGames)
+    }
+    if (Array.isArray(backupData.favouriteGames)) {
+      configStore.set('games.favourites', backupData.favouriteGames)
+    }
+    if (backupData.customCategories && typeof backupData.customCategories === 'object') {
+      configStore.set('games.customCategories', backupData.customCategories)
+    }
+    if (Array.isArray(backupData.recentGames)) {
+      configStore.set('games.recent', backupData.recentGames)
+    }
     if (Array.isArray(backupData.sideloadedGames)) {
       libraryStore.set('games', backupData.sideloadedGames)
     }
@@ -1509,15 +1560,24 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
       }
     }
     if (Array.isArray(backupData.blacklist)) {
-      await clearBlacklist()
+      const dedupedBlacklist: Array<{ title: string; executable: string }> = []
       for (const item of backupData.blacklist) {
-        await addGameToBlacklist(item)
+        if (
+          item?.executable &&
+          !dedupedBlacklist.some(
+            (b) => b.executable.toLowerCase() === String(item.executable).toLowerCase()
+          )
+        ) {
+          dedupedBlacklist.push({
+            title: String(item.title || ''),
+            executable: String(item.executable)
+          })
+        }
       }
+      libraryStore.set('blacklist', dedupedBlacklist)
     }
-    if (backupData.playtimes) {
-      Object.entries(backupData.playtimes).forEach(([key, value]) => {
-        tsStore.set(key as any, value as any)
-      })
+    if (backupData.playtimes && typeof backupData.playtimes === 'object') {
+      ;(tsStore as any).set(backupData.playtimes)
     }
 
     // Restaurar metadados e snapshots de saves da Loja Piratas
@@ -1536,15 +1596,18 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
         }
 
         if (Array.isArray(backupData.externalGames.snapshots)) {
-          const backupsDir = join(userDataPath, 'external-games', 'backups')
+          const backupsDir = path.resolve(userDataPath, 'external-games', 'backups')
           for (const pack of backupData.externalGames.snapshots) {
-            if (pack.backupId && Array.isArray(pack.files)) {
-              const targetFolder = join(backupsDir, pack.backupId)
+            const safeBackupId = String(pack.backupId || '').replace(/[^a-zA-Z0-9_-]/g, '')
+            if (safeBackupId && Array.isArray(pack.files)) {
+              const targetFolder = path.resolve(backupsDir, safeBackupId)
+              if (!targetFolder.startsWith(backupsDir + path.sep)) continue
               mkdirSync(targetFolder, { recursive: true })
               for (const file of pack.files) {
                 if (file.relativePath && file.contentBase64) {
-                  const targetFile = join(targetFolder, file.relativePath)
-                  const fileDir = join(targetFile, '..')
+                  const targetFile = path.resolve(targetFolder, String(file.relativePath))
+                  if (!targetFile.startsWith(targetFolder + path.sep)) continue
+                  const fileDir = path.dirname(targetFile)
                   mkdirSync(fileDir, { recursive: true })
                   writeFileSync(targetFile, Buffer.from(file.contentBase64, 'base64'))
                 }
@@ -1556,6 +1619,84 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
       } catch (err) {
         logWarning(['Failed to restore external games saves from backup:', err], LogPrefix.Backend)
       }
+    }
+
+    // Restaurar dados de Plugins (Alazterflix playback_history, filmes assistidos, catálogo, addons Stremio e IPTV)
+    try {
+      const { userDataPath } = await import('./constants/paths')
+      const { mkdirSync, writeFileSync, renameSync } = await import('graceful-fs')
+
+      const writeAtomicJson = (targetPath: string, payload: unknown) => {
+        mkdirSync(path.dirname(targetPath), { recursive: true })
+        const tmpPath = `${targetPath}.tmp`
+        const content = JSON.stringify(payload, null, 2)
+        try {
+          writeFileSync(tmpPath, content, 'utf8')
+          renameSync(tmpPath, targetPath)
+        } catch {
+          writeFileSync(targetPath, content, 'utf8')
+        }
+      }
+
+      if (backupData.pluginsData && typeof backupData.pluginsData === 'object') {
+        const pluginsDataDir = path.resolve(userDataPath, 'plugins_data')
+        mkdirSync(pluginsDataDir, { recursive: true })
+        for (const [pluginId, pluginPayload] of Object.entries(backupData.pluginsData)) {
+          const safeId = path.basename(String(pluginId || '')).replace(/[^a-zA-Z0-9._-]/g, '')
+          if (!safeId || !pluginPayload || typeof pluginPayload !== 'object') continue
+          const targetFile = path.resolve(pluginsDataDir, `${safeId}.json`)
+          if (!targetFile.startsWith(pluginsDataDir + path.sep)) continue
+          writeAtomicJson(targetFile, pluginPayload)
+        }
+      }
+
+      if (Array.isArray(backupData.ghostIptvAddons)) {
+        const iptvAddonsPath = path.resolve(userDataPath, 'plugins', 'com.ghost.iptv', 'web', 'addons.json')
+        writeAtomicJson(iptvAddonsPath, backupData.ghostIptvAddons)
+      }
+
+      if (backupData.pluginsState && typeof backupData.pluginsState === 'object') {
+        const statePath = path.resolve(userDataPath, 'plugins_state.json')
+        writeAtomicJson(statePath, backupData.pluginsState)
+      }
+
+      if (backupData.sourceEnginesState && typeof backupData.sourceEnginesState === 'object') {
+        const enginesStatePath = path.resolve(userDataPath, 'source-engines', 'state.json')
+        writeAtomicJson(enginesStatePath, backupData.sourceEnginesState)
+      }
+
+      if (backupData.sourceSettings && typeof backupData.sourceSettings === 'object') {
+        const sourceSettingsPath = path.resolve(userDataPath, 'source-settings.json')
+        writeAtomicJson(sourceSettingsPath, backupData.sourceSettings)
+      }
+
+      if (backupData.stremioData && typeof backupData.stremioData === 'object') {
+        const stremioDir = path.resolve(userDataPath, 'stremio_data')
+        mkdirSync(stremioDir, { recursive: true })
+        if (Array.isArray(backupData.stremioData.library)) {
+          writeAtomicJson(path.resolve(stremioDir, 'stremio_library.json'), backupData.stremioData.library)
+        }
+        if (backupData.stremioData.calendarCache && typeof backupData.stremioData.calendarCache === 'object') {
+          writeAtomicJson(path.resolve(stremioDir, 'stremio_calendar_cache.json'), backupData.stremioData.calendarCache)
+        }
+        if (backupData.stremioData.account !== undefined) {
+          writeAtomicJson(path.resolve(stremioDir, 'stremio_account.json'), backupData.stremioData.account)
+        }
+        if (backupData.stremioData.cinemaDownloadDirectories && typeof backupData.stremioData.cinemaDownloadDirectories === 'object') {
+          writeAtomicJson(
+            path.resolve(userDataPath, 'cinema_download_directories.json'),
+            backupData.stremioData.cinemaDownloadDirectories
+          )
+        }
+        try {
+          const { getStremioLibraryService } = await import('./plugins/stremioLibraryService')
+          getStremioLibraryService().reloadFromDisk()
+        } catch {}
+      }
+
+      PluginManager.getInstance().reloadAllHostStorages()
+    } catch (err) {
+      logWarning(['Failed to restore plugins data from backup:', err], LogPrefix.Backend)
     }
 
     sendFrontendMessage('refreshLibrary')
@@ -1661,7 +1802,19 @@ addListener('clearAchievementCache', (event, appName: string) => {
 addListener('resetHeroic', () => resetHeroic())
 
 addListener('createNewWindow', (e, url) => {
-  new BrowserWindow({ height: 700, width: 1200 }).loadURL(url)
+  try {
+    const parsed = new URL(String(url || ''))
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return
+    new BrowserWindow({
+      height: 700,
+      width: 1200,
+      webPreferences: {
+        sandbox: true,
+        contextIsolation: true,
+        nodeIntegration: false
+      }
+    }).loadURL(parsed.href)
+  } catch {}
 })
 
 addHandler('isGameAvailable', async (e, args) => {
@@ -2339,8 +2492,12 @@ addHandler('getCustomThemes', async () => {
 
 addHandler('getThemeCSS', async (event, theme) => {
   const { customThemesPath = '' } = GlobalConfig.get().getSettings()
+  const safeTheme = path.basename(String(theme || ''))
+  if (!customThemesPath || !safeTheme.endsWith('.css')) {
+    return ''
+  }
 
-  const cssPath = path.join(customThemesPath, theme)
+  const cssPath = path.join(customThemesPath, safeTheme)
 
   if (!existsSync(cssPath)) {
     return ''

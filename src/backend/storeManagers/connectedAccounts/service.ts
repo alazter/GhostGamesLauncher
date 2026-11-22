@@ -78,6 +78,10 @@ async function enrichCovers(provider: AccountProvider): Promise<void> {
     const pending = libraryStore
       .get('games', [])
       .filter((game) => game.accountProvider === provider && !game.art_cover)
+    const valid = new Map<
+      string,
+      NonNullable<Awaited<ReturnType<typeof fetchCoverFromSteamGridDB>>>
+    >()
     for (let offset = 0; offset < pending.length; offset += 3) {
       if (!store().get('accounts')[provider]?.status.connected) break
       const covers = await Promise.all(
@@ -86,13 +90,14 @@ async function enrichCovers(provider: AccountProvider): Promise<void> {
           art: await fetchCoverFromSteamGridDB(key, game.title)
         }))
       )
-      const valid = new Map(
-        covers
-          .filter((entry) => entry.art)
-          .map((entry) => [entry.appName, entry.art!])
-      )
-      if (!valid.size) continue
-      // Merge into the latest store so concurrent synchronization/disconnection is never undone.
+      for (const entry of covers) {
+        if (entry.art) {
+          valid.set(entry.appName, entry.art)
+        }
+      }
+    }
+    if (valid.size > 0 && store().get('accounts')[provider]?.status.connected) {
+      // Merge into the latest store once so concurrent synchronization/disconnection is never undone and SSD writes are minimized.
       libraryStore.set(
         'games',
         libraryStore.get('games', []).map((game) => {

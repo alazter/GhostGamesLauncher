@@ -32,6 +32,10 @@ export class StreamHeaderStore {
       }
     }
 
+    if (this.headersByUrl.size >= 500) {
+      const oldestUrl = this.headersByUrl.keys().next().value
+      if (oldestUrl) this.headersByUrl.delete(oldestUrl)
+    }
     this.headersByUrl.set(streamUrl, sanitizedHeaders)
 
     try {
@@ -39,6 +43,11 @@ export class StreamHeaderStore {
       const host = parsed.hostname.toLowerCase()
       const origin = parsed.origin.toLowerCase()
 
+      while (this.headersByHost.size >= 500) {
+        const oldestHost = this.headersByHost.keys().next().value
+        if (!oldestHost) break
+        this.headersByHost.delete(oldestHost)
+      }
       this.headersByHost.set(host, sanitizedHeaders)
       this.headersByHost.set(origin, sanitizedHeaders)
 

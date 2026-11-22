@@ -84,12 +84,27 @@ export const windowIcon = fixAsarPath(
   join(publicDir, isWindows ? 'win_icon.ico' : 'icon.png')
 )
 
+let cachedPermanentIconPath: string | null = null
+
 export function ensurePermanentAppIcon(): string {
   if (!isWindows) {
     return windowIcon
   }
 
+  if (cachedPermanentIconPath && existsSync(cachedPermanentIconPath)) {
+    return cachedPermanentIconPath
+  }
+
   const permanentIconPath = join(userDataPath, 'win_icon.ico')
+  if (existsSync(permanentIconPath)) {
+    try {
+      if (require('fs').statSync(permanentIconPath).size > 0) {
+        cachedPermanentIconPath = permanentIconPath
+        return permanentIconPath
+      }
+    } catch {}
+  }
+
   const possibleSources = [
     join(process.resourcesPath || '', 'app.asar.unpacked', 'build', 'win_icon.ico'),
     join(process.resourcesPath || '', 'app.asar.unpacked', 'public', 'win_icon.ico'),
@@ -105,12 +120,14 @@ export function ensurePermanentAppIcon(): string {
     if (src && existsSync(src)) {
       try {
         require('fs').copyFileSync(src, permanentIconPath)
+        cachedPermanentIconPath = permanentIconPath
         return permanentIconPath
       } catch {}
     }
   }
 
   if (existsSync(permanentIconPath)) {
+    cachedPermanentIconPath = permanentIconPath
     return permanentIconPath
   }
 

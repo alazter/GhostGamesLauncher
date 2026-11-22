@@ -32,7 +32,7 @@ const generateImage = async (
   }
 
   return window.webContents.executeJavaScript(
-    `window.imageData("${src}", ${width}, ${height})`
+    `window.imageData(${JSON.stringify(src)}, ${Number(width)}, ${Number(height)})`
   )
 }
 

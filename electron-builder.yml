@@ -16,6 +16,7 @@ asarUnpack:
   - build/icon.png
   - build/icon.icns
   - build/mac-icon.icns
+  - build/win_icon.icns
   - build/win_icon.ico
   - build/icon-dark.png
   - build/icon-light.png
@@ -24,9 +25,12 @@ asarUnpack:
   - build/preload/webviewPreload.js
 
 fileAssociations:
-  - ext:
-      - GhostBackup
-      - Ghost.Backup
+  - ext: GhostBackup
+    name: Ghost Backup
+    description: Ghost Games Launcher Backup File
+    icon: build/win_icon.ico
+    role: Editor
+  - ext: Ghost.Backup
     name: Ghost Backup
     description: Ghost Games Launcher Backup File
     icon: build/win_icon.ico

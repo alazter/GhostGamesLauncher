@@ -18,6 +18,7 @@ import {
 import { sendFrontendMessage } from '../../ipc'
 import { logError, logInfo, LogPrefix, logWarning } from 'backend/logger'
 import { dirname, basename, join, relative, resolve, isAbsolute } from 'path'
+import { homedir } from 'os'
 import { existsSync, rmSync } from 'graceful-fs'
 import i18next from 'i18next'
 import {
@@ -186,7 +187,41 @@ export default class SideloadGame implements Game {
 
     if (deleteFiles && executable !== undefined && existsSync(executable)) {
       try {
-        rmSync(dirname(executable), { recursive: true })
+        const targetDir = resolve(dirname(executable))
+        const parentDir = dirname(targetDir)
+        const lowerDir = targetDir.toLowerCase()
+        const home = homedir().toLowerCase()
+        const forbiddenNames = new Set([
+          'desktop',
+          'downloads',
+          'documents',
+          'documentos',
+          'appdata',
+          'windows',
+          'program files',
+          'program files (x86)',
+          'users',
+          'usuarios',
+          'jogos',
+          'games',
+          'alazter games'
+        ])
+        const folderBase = basename(targetDir).toLowerCase()
+        if (
+          targetDir !== parentDir &&
+          !forbiddenNames.has(folderBase) &&
+          lowerDir !== home &&
+          lowerDir !== join(home, 'desktop') &&
+          lowerDir !== join(home, 'downloads') &&
+          lowerDir !== join(home, 'documents')
+        ) {
+          rmSync(targetDir, { recursive: true })
+        } else {
+          logWarning(
+            `[SideloadGame] Exclusão bloqueada por segurança para pasta protegida/raiz: ${targetDir}`,
+            LogPrefix.Backend
+          )
+        }
       } catch {}
     }
 

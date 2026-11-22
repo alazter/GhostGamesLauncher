@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import {
   existsSync,
+  renameSync,
   unlinkSync,
   writeFileSync,
   readFileSync
@@ -11,7 +12,7 @@ import { isOnline } from '../../online_monitor'
 import { ZoomCredentials } from 'common/types/zoom'
 import { clearCache } from 'backend/utils'
 import { tokenPath, embedUrl, apiUrl } from './constants'
-import { session } from 'electron'
+import { safeStorage, session } from 'electron'
 
 export class ZoomUser {
   static async login(url: string): Promise<{
@@ -27,7 +28,18 @@ export class ZoomUser {
       return { status: 'error' }
     }
     try {
-      writeFileSync(tokenPath, token, { encoding: 'utf-8' })
+      const payload =
+        safeStorage &&
+        typeof safeStorage.isEncryptionAvailable === 'function' &&
+        safeStorage.isEncryptionAvailable()
+          ? 'enc:' + safeStorage.encryptString(token).toString('base64')
+          : token
+      try {
+        writeFileSync(`${tokenPath}.tmp`, payload, { encoding: 'utf-8' })
+        renameSync(`${tokenPath}.tmp`, tokenPath)
+      } catch {
+        writeFileSync(tokenPath, payload, { encoding: 'utf-8' })
+      }
       logInfo('Zoom token saved successfully', LogPrefix.Zoom)
       configStore.set('isLoggedIn', true)
       return { status: 'done' }
@@ -76,7 +88,17 @@ export class ZoomUser {
       return
     }
     try {
-      const token = readFileSync(tokenPath, { encoding: 'utf-8' })
+      let token = readFileSync(tokenPath, { encoding: 'utf-8' })
+      if (
+        token.startsWith('enc:') &&
+        safeStorage &&
+        typeof safeStorage.isEncryptionAvailable === 'function' &&
+        safeStorage.isEncryptionAvailable()
+      ) {
+        token = safeStorage.decryptString(
+          Buffer.from(token.slice(4), 'base64')
+        )
+      }
       if (!token) {
         logError('Empty Zoom token file', LogPrefix.Zoom)
         return

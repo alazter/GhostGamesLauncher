@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, cpSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, rmSync, cpSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import type {
@@ -80,7 +80,13 @@ function readInstalledVersionFromManifest(): string {
 function persistState(): void {
   try {
     const filePath = getStateFilePath()
-    writeFileSync(filePath, JSON.stringify(state, null, 2), 'utf-8')
+    const payload = JSON.stringify(state, null, 2)
+    try {
+      writeFileSync(`${filePath}.tmp`, payload, 'utf-8')
+      renameSync(`${filePath}.tmp`, filePath)
+    } catch {
+      writeFileSync(filePath, payload, 'utf-8')
+    }
   } catch {}
 }
 

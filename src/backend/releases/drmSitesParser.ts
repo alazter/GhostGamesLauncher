@@ -41,16 +41,35 @@ export function drmPageUnavailable(html: string) {
   return undefined
 }
 
+const KNOWN_RELEASE_GROUPS =
+  'RUNE|CODEX|SKIDROW|RELOADED|TENOKE|FLT|RAZOR1911|voices38|P2P|0xdeadcode|0xdeadc0de|GOG|EMPRESS|CPY|PLAZA|HOODLUM|DARKSiDERS|I_KnoW|TiNYiSO|DOGE|CHRONOS|DELUSIONAL|GOLDBERG|INSANERAMZES|DINOByTES|SiMPLEX|FCKDRM|bADkARMA'
+const TRAILING_GROUP_RE = new RegExp(`[-–](${KNOWN_RELEASE_GROUPS})\\s*$`, 'i')
+const VERSION_SUFFIX_RE =
+  /\s+(?:v\d+(?:\.\d+)*(?:\.[a-z0-9]+|[a-z])?(?:\s+(?:build\s*)?\d+)?|build\s*\d+)\s*$/i
+const EARLY_ACCESS_SUFFIX_RE = /\s+early\s+access\s*$/i
+
 function matchingTitle(value: string, title: string, releaseName = false) {
-  const clean = releaseName
-    ? value
-        .replace(
-          /[-–](?:RUNE|CODEX|SKIDROW|RELOADED|TENOKE|FLT|RAZOR1911|voices38)\s*$/i,
-          ''
-        )
-        .replace(/\s+v\d+(?:\.\d+)+(?:\s+(?:build\s*)?\d+)?$/i, '')
-    : value
+  let clean = value.trim()
+  if (releaseName) {
+    clean = clean.replace(TRAILING_GROUP_RE, '').trim()
+    // Strip version/build/early-access suffixes (e.g. v1.17.2, v20261119, v2.5.HF, Build 26681065, Early Access)
+    // only when not part of edition/update/repack noise.
+    if (!/\b(update|hotfix|repack|dlc|demo|bypass|hypervisor)\b/i.test(clean)) {
+      for (let i = 0; i < 2; i++) {
+        const next = clean
+          .replace(EARLY_ACCESS_SUFFIX_RE, '')
+          .replace(VERSION_SUFFIX_RE, '')
+          .trim()
+        if (next === clean) break
+        clean = next
+      }
+    }
+  }
   return !!title.trim() && normalizeDrmTitle(clean) === normalizeDrmTitle(title)
+}
+
+function normalizeUrlForCompare(raw: string): string {
+  return raw.trim().replace(/\/+$/, '').toLowerCase()
 }
 
 /** A complete scene-release announcement, not a download link or a bare scene tag. */
@@ -64,7 +83,8 @@ function skidrowAnnouncement(
     (e) => e.name === 'link' && e.attribs.rel === 'canonical',
     root.children
   )[0]?.attribs.href
-  if (canonical !== url) return undefined
+  if (!canonical || normalizeUrlForCompare(canonical) !== normalizeUrlForCompare(url))
+    return undefined
   const post = DomUtils.findAll(
     (e) =>
       /(?:^|\s)post-extended(?:\s|$)/.test(e.attribs.class || '') &&
@@ -81,12 +101,13 @@ function skidrowAnnouncement(
     !matchingTitle(text(heading), title, true)
   )
     return undefined
-  const group = text(heading).match(
-    /-(RUNE|CODEX|SKIDROW|RELOADED|TENOKE|FLT|RAZOR1911|voices38)$/i
-  )?.[1]
+  const headingText = text(heading)
+  const group = headingText.match(TRAILING_GROUP_RE)?.[1]
+  const isEarlyAccessRelease = EARLY_ACCESS_SUFFIX_RE.test(headingText)
+  const isBuildOrVersionRelease = VERSION_SUFFIX_RE.test(headingText)
   if (
-    !group ||
-    /\b(update|hotfix|repack|dlc|demo|bypass|hypervisor)\b/i.test(text(heading))
+    (!group && !isEarlyAccessRelease && !isBuildOrVersionRelease) ||
+    /\b(update|hotfix|repack|dlc|demo|bypass|hypervisor)\b/i.test(headingText)
   )
     return undefined
   const meta = DomUtils.findAll(
@@ -98,8 +119,10 @@ function skidrowAnnouncement(
     (e) => e.name === 'a' && /category/.test(e.attribs.rel || ''),
     meta.children
   ).map(text)
+  const hasFullGameCategory =
+    categories.includes('PC GAMES') || categories.includes('REQUEST ACCEPTED')
   if (
-    !categories.includes('PC GAMES') ||
+    !hasFullGameCategory ||
     categories.some((category) => /UPDATE|REPACK/i.test(category))
   )
     return undefined
@@ -112,51 +135,84 @@ function skidrowAnnouncement(
     (e) => e.name === 'p' && !excluded(e),
     post.children
   ).map(text)
-  const metadata = paragraphs.find((value) => /^Title:\s*/.test(value))
-  const game = metadata?.match(/^Title:\s*([^\r\n]+)/)?.[1]
-  const releaseLabel = metadata?.match(/Release Date:\s*([^\r\n]+)/)?.[1] || ''
+  const metadata = paragraphs.find((value) => /^Title:\s*/i.test(value))
+  const game = metadata?.match(/^Title:\s*([^\r\n]+)/i)?.[1]
+  const releaseLabel = metadata?.match(/Release Date:\s*([^\r\n]+)/i)?.[1] || ''
   const releaseDate = exactDate(
     releaseLabel.replace(/^(\d{1,2})\s+([A-Za-z]+),?\s+(\d{4})$/, '$2 $1, $3')
   )
+  const headingLower = headingText.toLowerCase()
+  const hasReleaseSize = paragraphs.some((value) => {
+    const firstLine = value.split(/\r?\n/)[0]?.trim().toLowerCase() || ''
+    return (
+      (value.toLowerCase().startsWith(headingLower + '\n') ||
+        value.toLowerCase().startsWith(headingLower + '\r\n') ||
+        (firstLine.length > 0 &&
+          normalizeDrmTitle(firstLine) === normalizeDrmTitle(headingText))) &&
+      /\bSize:\s*\d/i.test(value)
+    )
+  })
   if (
     !game ||
     !matchingTitle(game, title) ||
     !releaseDate ||
     releaseDate > posted ||
-    !paragraphs.some(
-      (value) =>
-        value.startsWith(text(heading) + '\n') && /\bSize:\s*\d/.test(value)
-    )
+    !hasReleaseSize
   )
     return undefined
+  const isGogDrmFree = !!group && /^gog$/i.test(group)
+  const formattedDate = posted.split('-').reverse().join('/')
   return {
     name: 'SkidrowReloaded',
     url,
-    title: text(heading),
-    status: 'cracked',
-    group,
+    title: headingText,
+    status: isGogDrmFree ? 'drm-free' : 'cracked',
+    ...(group ? { group } : {}),
     availability: 'listed',
     observedAt: new Date().toISOString(),
-    category: `Anúncio do grupo publicado em ${posted.split('-').reverse().join('/')}; quebra relatada pela fonte.`
+    category: isGogDrmFree
+      ? `Release GOG (sem DRM) publicado em ${formattedDate}.`
+      : group
+        ? `Anúncio do grupo publicado em ${formattedDate}; quebra relatada pela fonte.`
+        : isEarlyAccessRelease
+          ? `Release Early Access publicado em ${formattedDate}; quebra relatada pela fonte.`
+          : `Release P2P publicado em ${formattedDate}; quebra relatada pela fonte.`
   }
 }
 
-/** Search results only identify a page; they never supply a DRM verdict. */
-export function findDrmSiteGame(
+/** Search results only identify candidate pages; they never supply a DRM verdict. */
+export function findDrmSiteGames(
   html: string,
   title: string,
   name: 'AnkerGames' | 'SkidrowReloaded'
-) {
+): string[] {
   const base =
     name === 'AnkerGames'
       ? 'https://ankergames.net'
       : 'https://www.skidrowreloaded.com'
   const root = parseDocument(html)
-  for (const link of DomUtils.findAll(
+  const allLinks = DomUtils.findAll(
     (element) =>
       element.name === 'a' && !!element.attribs.href && !excluded(element),
     root.children
-  )) {
+  )
+
+  // On SkidrowReloaded, prioritize main search result headings (h2 > a) over sidebar links
+  const orderedLinks =
+    name === 'SkidrowReloaded'
+      ? [
+          ...allLinks.filter(
+            (el) => el.parent && DomUtils.isTag(el.parent) && el.parent.name === 'h2'
+          ),
+          ...allLinks.filter(
+            (el) => !(el.parent && DomUtils.isTag(el.parent) && el.parent.name === 'h2')
+          )
+        ]
+      : allLinks
+
+  const groupedMatches: string[] = []
+  const otherMatches: string[] = []
+  for (const link of orderedLinks) {
     let url: string | undefined
     try {
       url = safeDrmSourceUrl(new URL(link.attribs.href, base).href)
@@ -173,9 +229,30 @@ export function findDrmSiteGame(
       DomUtils.findAll((e) => e.name === 'img', link.children)[0]?.attribs
         .alt ||
       ''
-    if (matchingTitle(label, title, name === 'SkidrowReloaded')) return url
+    if (
+      name === 'SkidrowReloaded' &&
+      /\b(update|hotfix|repack|dlc|demo|bypass|hypervisor)\b/i.test(label)
+    )
+      continue
+    if (matchingTitle(label, title, name === 'SkidrowReloaded')) {
+      const bucket =
+        name === 'SkidrowReloaded' && TRAILING_GROUP_RE.test(label)
+          ? groupedMatches
+          : otherMatches
+      if (!groupedMatches.includes(url) && !otherMatches.includes(url))
+        bucket.push(url)
+    }
   }
-  return undefined
+  return [...groupedMatches, ...otherMatches].slice(0, 4)
+}
+
+/** Search results only identify a page; they never supply a DRM verdict. */
+export function findDrmSiteGame(
+  html: string,
+  title: string,
+  name: 'AnkerGames' | 'SkidrowReloaded'
+) {
+  return findDrmSiteGames(html, title, name)[0]
 }
 
 export function parseDrmSiteGame(

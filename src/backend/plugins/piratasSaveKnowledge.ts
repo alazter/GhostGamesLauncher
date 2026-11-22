@@ -497,25 +497,46 @@ export const PIRATAS_48_KNOWLEDGE_BASE: Record<string, PiratasKnowledgeEntry> = 
   }
 }
 
-export function inspectFolderSaveFiles(folderPath: string): { fileCount: number; bytes: number } {
-  if (!existsSync(folderPath)) return { fileCount: 0, bytes: 0 }
+export function inspectFolderSaveFiles(
+  folderPath: string,
+  depth = 0,
+  counter = { files: 0 }
+): { fileCount: number; bytes: number } {
+  if (depth > 5 || counter.files >= 2000 || !existsSync(folderPath)) {
+    return { fileCount: 0, bytes: 0 }
+  }
   let fileCount = 0
   let bytes = 0
+  const skipDirs = new Set([
+    'shadercache',
+    'pipelinecaches',
+    'crashes',
+    'logs',
+    'gpucache',
+    'code cache'
+  ])
   try {
-    const stat = statSync(folderPath)
-    if (!stat.isDirectory()) {
-      return { fileCount: 1, bytes: stat.size }
+    if (depth === 0) {
+      const stat = statSync(folderPath)
+      if (!stat.isDirectory()) {
+        return { fileCount: 1, bytes: stat.size }
+      }
     }
     const entries = readdirSync(folderPath, { withFileTypes: true })
     for (const entry of entries) {
+      if (counter.files >= 2000) break
+      if (entry.isSymbolicLink()) continue
       const full = join(folderPath, entry.name)
       try {
-        const s = statSync(full)
-        if (s.isFile()) {
+        if (entry.isFile()) {
+          const s = statSync(full)
           fileCount++
+          counter.files++
           bytes += s.size
-        } else if (s.isDirectory()) {
-          const sub = inspectFolderSaveFiles(full)
+        } else if (entry.isDirectory()) {
+          const lower = entry.name.toLowerCase()
+          if (skipDirs.has(lower) || lower.startsWith('webcache')) continue
+          const sub = inspectFolderSaveFiles(full, depth + 1, counter)
           fileCount += sub.fileCount
           bytes += sub.bytes
         }

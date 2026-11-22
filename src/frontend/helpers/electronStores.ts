@@ -104,8 +104,13 @@ class CacheStore<ValueType, KeyType extends string = string> {
   }
 
   public set(key: KeyType, value: ValueType) {
-    window.api.storeSet(this.storeName, key, value)
-    window.api.storeSet(this.storeName, `__timestamp.${key}`, Date())
+    window.api.storeSet(
+      this.storeName,
+      {
+        [key]: value,
+        [`__timestamp.${key}`]: Date()
+      } as any
+    )
   }
 }
 

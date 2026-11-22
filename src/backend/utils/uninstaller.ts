@@ -13,7 +13,7 @@ import { storeMap } from 'common/utils'
 import { Event } from 'electron'
 import { existsSync, readdirSync, rmSync } from 'graceful-fs'
 import i18next from 'i18next'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { libraryStore } from 'backend/storeManagers/sideload/electronStores'
 import { removeShortcuts as removeShortcutsUtil } from 'backend/shortcuts/shortcuts/shortcuts'
 import { removeNonSteamGame } from 'backend/shortcuts/nonesteamgame/nonesteamgame'
@@ -78,13 +78,15 @@ export const removePrefix = async (appName: string, runner: Runner) => {
 }
 
 const removeFixFile = (appName: string, runner: Runner) => {
-  const fixFilePath = join(fixesPath, `${appName}-${storeMap[runner]}.json`)
+  const safeAppName = basename(String(appName || ''))
+  const fixFilePath = join(fixesPath, `${safeAppName}-${storeMap[runner]}.json`)
   if (existsSync(fixFilePath)) {
     rmSync(fixFilePath)
   }
 }
 
 const removeSettingsAndLogs = (appName: string) => {
+  const safeAppName = basename(String(appName || ''))
   const removeIfExists = (filename: string) => {
     logInfo(`Removing ${filename}`, LogPrefix.Backend)
     const gameSettingsFile = join(gamesConfigPath, filename)
@@ -93,9 +95,9 @@ const removeSettingsAndLogs = (appName: string) => {
     }
   }
 
-  removeIfExists(appName.concat('.json'))
-  removeIfExists(appName.concat('.log'))
-  removeIfExists(appName.concat('-lastPlay.log'))
+  removeIfExists(safeAppName.concat('.json'))
+  removeIfExists(safeAppName.concat('.log'))
+  removeIfExists(safeAppName.concat('-lastPlay.log'))
 }
 
 export const uninstallGameCallback = async (

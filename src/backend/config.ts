@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'graceful-fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'graceful-fs'
 
 import {
   AppSettings,
@@ -255,7 +255,18 @@ abstract class GlobalConfig {
   public abstract resetToDefaults(): void
 
   protected writeToFile(config: Record<string, unknown>) {
-    return writeFileSync(configPath, JSON.stringify(config, null, 2))
+    const content = JSON.stringify(config, null, 2)
+    const tempPath = `${configPath}.tmp`
+    try {
+      writeFileSync(tempPath, content, 'utf-8')
+      renameSync(tempPath, configPath)
+    } catch {
+      try {
+        writeFileSync(configPath, content, 'utf-8')
+      } catch (err) {
+        logError(['Failed to write global config file:', err], LogPrefix.GlobalConfig)
+      }
+    }
   }
 
   /**

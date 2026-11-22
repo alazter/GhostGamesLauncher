@@ -221,8 +221,13 @@ addHandler('steamgriddb.downloadCover', async (event, args) => {
     response.data.pipe(writer)
 
     await new Promise<void>((resolve, reject) => {
+      const onError = (err: Error) => {
+        writer.destroy()
+        reject(err)
+      }
+      response.data.on('error', onError)
       writer.on('finish', resolve)
-      writer.on('error', reject)
+      writer.on('error', onError)
     })
 
     return destPath
@@ -357,8 +362,11 @@ addHandler('steamgriddb.syncMissingCovers', async () => {
               try {
                 const b = Buffer.alloc(4)
                 const fd = openSync(sq, 'r')
-                readSync(fd, b, 0, 4, 0)
-                closeSync(fd)
+                try {
+                  readSync(fd, b, 0, 4, 0)
+                } finally {
+                  closeSync(fd)
+                }
                 if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) {
                   return true
                 }

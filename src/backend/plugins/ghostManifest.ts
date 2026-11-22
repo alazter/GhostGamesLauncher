@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'graceful-fs'
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'graceful-fs'
 import { join, dirname, resolve } from 'path'
 
 export const GHOST_MANIFEST_FILENAME = '.ghost-manifest.json'
@@ -44,7 +44,13 @@ export function writeGhostManifest(
       ...manifest
     }
     const manifestPath = join(targetDir, GHOST_MANIFEST_FILENAME)
-    writeFileSync(manifestPath, JSON.stringify(fullManifest, null, 2), 'utf8')
+    const content = JSON.stringify(fullManifest, null, 2)
+    try {
+      writeFileSync(`${manifestPath}.tmp`, content, 'utf8')
+      renameSync(`${manifestPath}.tmp`, manifestPath)
+    } catch {
+      writeFileSync(manifestPath, content, 'utf8')
+    }
     return true
   } catch (err) {
     const code = (err as NodeJS.ErrnoException | undefined)?.code

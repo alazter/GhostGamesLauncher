@@ -7,9 +7,17 @@ import {
 } from 'common/releaseDrm'
 import {
   drmPageUnavailable,
-  findDrmSiteGame,
+  findDrmSiteGames,
   parseDrmSiteGame
 } from './drmSitesParser'
+
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  Accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9'
+}
 
 const unavailableUntil = new Map<string, number>()
 const notices = new Map<string, string>()
@@ -35,11 +43,37 @@ async function page(
   const current = inFlight.get(url)
   if (current) return current
   const read = (async () => {
-    const response = await net.fetch(url, {
-      signal: AbortSignal.timeout(12000),
-      redirect: 'error',
-      credentials: 'omit'
-    })
+    let targetUrl = url
+    let response: Response | undefined
+    for (let hop = 0; hop < 3; hop++) {
+      response = await net.fetch(targetUrl, {
+        signal: AbortSignal.timeout(12000),
+        redirect: 'manual',
+        credentials: 'omit',
+        headers: BROWSER_HEADERS
+      })
+      if (
+        response.status >= 300 &&
+        response.status < 400 &&
+        response.headers.get('location')
+      ) {
+        const nextUrl = new URL(
+          response.headers.get('location')!,
+          targetUrl
+        ).href
+        await response.body?.cancel().catch(() => undefined)
+        if (
+          !safeDrmSourceUrl(nextUrl) ||
+          new URL(nextUrl).hostname !== host
+        ) {
+          throw new Error('Redirecionamento da fonte não permitido.')
+        }
+        targetUrl = nextUrl
+        continue
+      }
+      break
+    }
+    if (!response) throw new Error('A fonte não respondeu.')
     if (response.status === 404) return undefined
     if (response.status === 429) {
       const retry = response.headers.get('retry-after') || ''
@@ -130,12 +164,50 @@ async function lookup(
       }
     }
     const html = await read(search)
-    const match = html && findDrmSiteGame(html, title, name)
-    if (match) {
+    const matches = html ? findDrmSiteGames(html, title, name) : []
+    let fallback: ReleaseDrmSource | undefined
+    for (const match of matches) {
       const detail = await read(match)
-      const source = detail && parseDrmSiteGame(detail, title, match, name)
-      if (source) return source
+      const source = detail
+        ? parseDrmSiteGame(detail, title, match, name)
+        : undefined
+      if (source?.status) return source
+      if (source && !fallback) fallback = source
     }
+    // On SkidrowReloaded, WordPress search sometimes fails on punctuation (e.g. ":", "&", "™")
+    // or Roman numeral differences; retry with sanitized / alias queries if no confirmed status yet.
+    if (name === 'SkidrowReloaded' && matches.length === 0) {
+      const altQueries = Array.from(
+        new Set(
+          [
+            title
+              .replace(/&/g, ' and ')
+              .replace(/[:™®©–—]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim(),
+            title
+              .replace(/[&:™®©–—]/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim(),
+            ...drmTitleAliases(title)
+          ].filter((q) => q && q !== title)
+        )
+      )
+      for (const altQuery of altQueries.slice(0, 3)) {
+        const altSearch = `https://www.skidrowreloaded.com/?s=${encodeURIComponent(altQuery)}`
+        const altHtml = await read(altSearch)
+        const altMatches = altHtml ? findDrmSiteGames(altHtml, title, name) : []
+        for (const match of altMatches) {
+          const detail = await read(match)
+          const source = detail
+            ? parseDrmSiteGame(detail, title, match, name)
+            : undefined
+          if (source?.status) return source
+          if (source && !fallback) fallback = source
+        }
+      }
+    }
+    if (fallback) return fallback
     return {
       name,
       url: search,

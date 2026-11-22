@@ -19,7 +19,12 @@ export async function archiveSize(
             return
           }
           const entries: ArchiveEntry[] = []
-          zip.on('error', reject)
+          zip.on('error', (err) => {
+            try {
+              zip.close()
+            } catch {}
+            reject(err)
+          })
           zip.on('entry', (entry: Entry) => {
             const type = (entry.externalFileAttributes >>> 16) & 0o170000
             entries.push({

@@ -61,9 +61,9 @@ async function getDiskInfo_windows(path: Path): Promise<DiskInfo> {
 }
 
 async function isWritable_windows(path: Path): Promise<boolean> {
+  const safePath = String(path).replace(/'/g, "''")
   const { stdout } = await genericSpawnWrapper('powershell', [
-    '(Get-Acl',
-    `${path}).Access`,
+    `(Get-Acl -LiteralPath '${safePath}').Access`,
     '|',
     'Select-Object',
     'FileSystemRights,IdentityReference',

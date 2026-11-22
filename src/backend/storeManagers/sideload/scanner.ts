@@ -542,6 +542,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
   const alreadySideloaded = libraryStore.get('games', [])
   const apiKey = getApiKey()
   const addedGames: string[] = []
+  let scanCoversUpdated = false
 
   for (const entry of rawEntries) {
     if (isScanAborted) break
@@ -567,8 +568,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
           if (coverData) {
             existingGame.art_square = coverData.art_square
             existingGame.art_cover = coverData.art_cover
-            libraryStore.set('games', alreadySideloaded)
-            sendFrontendMessage('refreshLibrary', 'sideload')
+            scanCoversUpdated = true
             logInfo(`Automatically updated missing cover for existing game: ${title}`)
           }
         } catch (err) {
@@ -627,6 +627,10 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
     // Add to library
     const app_name = short.generate().toString()
     try {
+      if (scanCoversUpdated) {
+        libraryStore.set('games', alreadySideloaded)
+        scanCoversUpdated = false
+      }
       libraryManagerMap['sideload'].addNewApp({
         app_name,
         title,
@@ -669,8 +673,7 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
           if (coverData) {
             existingGame.art_square = coverData.art_square
             existingGame.art_cover = coverData.art_cover
-            libraryStore.set('games', alreadySideloaded)
-            sendFrontendMessage('refreshLibrary', 'sideload')
+            scanCoversUpdated = true
             logInfo(`Automatically updated missing cover for existing Steam game: ${sGame.title}`)
           }
         } catch (err) {
@@ -697,6 +700,10 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
 
     const app_name = short.generate().toString()
     try {
+      if (scanCoversUpdated) {
+        libraryStore.set('games', alreadySideloaded)
+        scanCoversUpdated = false
+      }
       libraryManagerMap['sideload'].addNewApp({
         app_name,
         title: sGame.title,
@@ -727,6 +734,11 @@ export async function scanInstalledGames(): Promise<{ count: number; games: stri
     } catch (err) {
       logError([`Failed to add Steam game ${sGame.title}:`, err])
     }
+  }
+
+  if (scanCoversUpdated) {
+    libraryStore.set('games', alreadySideloaded)
+    sendFrontendMessage('refreshLibrary', 'sideload')
   }
 
   return {
@@ -770,6 +782,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
   const blacklist: Array<{ title: string; executable: string }> = libraryStore.get('blacklist', [])
   const apiKey = getApiKey()
   const candidates: GameCandidate[] = []
+  let discoverCoversUpdated = false
 
   for (const entry of rawEntries) {
     if (isScanAborted) break
@@ -828,8 +841,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
           if (coverData) {
             existingGame.art_square = coverData.art_square
             existingGame.art_cover = coverData.art_cover
-            libraryStore.set('games', alreadySideloaded)
-            sendFrontendMessage('refreshLibrary', 'sideload')
+            discoverCoversUpdated = true
             logInfo(`Automatically updated missing cover for existing game: ${title}`)
           }
         } catch (err) {
@@ -883,8 +895,7 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
           if (coverData) {
             existingGame.art_square = coverData.art_square
             existingGame.art_cover = coverData.art_cover
-            libraryStore.set('games', alreadySideloaded)
-            sendFrontendMessage('refreshLibrary', 'sideload')
+            discoverCoversUpdated = true
             logInfo(`Automatically updated missing cover for existing Steam game: ${sGame.title}`)
           }
         } catch (err) {
@@ -924,10 +935,37 @@ export async function discoverInstalledGames(): Promise<GameCandidate[]> {
     })
   }
 
+  if (discoverCoversUpdated) {
+    libraryStore.set('games', alreadySideloaded)
+    sendFrontendMessage('refreshLibrary', 'sideload')
+  }
+
   return candidates
 }
 
+let cachedDrives: { list: string[]; timestamp: number } | null = null
+
 export function getDrives(): string[] {
+  const now = Date.now()
+  if (cachedDrives && now - cachedDrives.timestamp < 30_000) {
+    return cachedDrives.list
+  }
+
+  if (process.platform === 'win32') {
+    const fastDrives: string[] = []
+    for (let code = 67; code <= 90; code++) {
+      const drive = `${String.fromCharCode(code)}:\\`
+      try {
+        if (existsSync(drive)) {
+          fastDrives.push(drive)
+        }
+      } catch {}
+    }
+    if (fastDrives.length > 0) {
+      cachedDrives = { list: fastDrives, timestamp: now }
+      return fastDrives
+    }
+  }
   try {
     // 1. Try modern PowerShell method (supported on Win 10 & 11, robust and handles ready status)
     const output = execSync('powershell -Command "[System.IO.DriveInfo]::GetDrives() | Where-Object { $_.IsReady } | Select-Object -ExpandProperty Name"', { encoding: 'utf8', timeout: 3000 })
