@@ -232,4 +232,62 @@ describe('SideloadLibraryManager - Connected Accounts & is_installed integrity',
     expect(games).toHaveLength(1)
     expect(games[0].title).toBe('Renamed New Title')
   })
+
+  test('Manual add with allowDuplicateExecutable creates a separate card when title differs even with same executable', () => {
+    const sharedExe =
+      'T:\\Jogos\\Decompiladores\\Longshot (Zelda Ocarina of Time Switch 2)\\LongshotLauncher.exe'
+
+    const zeldaId = manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'zelda-id-1',
+      title: 'Zelda Ocarina of Time',
+      install: { executable: sharedExe, platform: 'Windows' },
+      is_installed: true
+    } as any)
+    expect(zeldaId).toBe('zelda-id-1')
+
+    const longshotId = manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'longshot-id-2',
+      title: 'Longshot Launcher',
+      install: { executable: sharedExe, platform: 'Windows' },
+      is_installed: true,
+      allowDuplicateExecutable: true
+    } as any)
+    expect(longshotId).toBe('longshot-id-2')
+
+    const games = libraryStore.get('games', [])
+    expect(games).toHaveLength(2)
+    expect(games.find((g: any) => g.app_name === 'zelda-id-1')?.title).toBe(
+      'Zelda Ocarina of Time'
+    )
+    expect(games.find((g: any) => g.app_name === 'longshot-id-2')?.title).toBe(
+      'Longshot Launcher'
+    )
+  })
+
+  test('Manual add with same title and same executable returns existing app_name so store assignment is never orphaned', () => {
+    const sharedExe =
+      'T:\\Jogos\\Decompiladores\\Longshot (Zelda Ocarina of Time Switch 2)\\LongshotLauncher.exe'
+
+    manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'existing-longshot-id',
+      title: 'Longshot Launcher',
+      install: { executable: sharedExe, platform: 'Windows' },
+      is_installed: true
+    } as any)
+
+    const returnedId = manager.addNewApp({
+      runner: 'sideload',
+      app_name: 'new-random-id',
+      title: 'Longshot Launcher',
+      install: { executable: sharedExe, platform: 'Windows' },
+      is_installed: true,
+      allowDuplicateExecutable: true
+    } as any)
+
+    expect(returnedId).toBe('existing-longshot-id')
+    expect(libraryStore.get('games', [])).toHaveLength(1)
+  })
 })

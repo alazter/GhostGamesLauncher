@@ -1998,6 +1998,7 @@ export default function AlazterflixScreen() {
     'local' | 'tv' | 'stremio' | 'addons' | 'settings'
   >('local')
   const [ghostIptvState, setGhostIptvState] = useState<GhostIptvUpdateState>()
+  const [iptvReloadNonce, setIptvReloadNonce] = useState(0)
   const [tvViewMode, setTvViewMode] = useState<'app' | 'hub'>(() => {
     return (localStorage.getItem('alazterflix_tv_mode') as 'app' | 'hub') || 'app'
   })
@@ -2066,6 +2067,14 @@ export default function AlazterflixScreen() {
       window.api.pluginsGhostIptvState().then(setGhostIptvState).catch(() => {})
     }
   }, [activeTab])
+
+  useEffect(() => {
+    const handleIptvRestored = () => {
+      setIptvReloadNonce((n) => n + 1)
+    }
+    window.addEventListener('ghostTvPlaylistsChanged', handleIptvRestored)
+    return () => window.removeEventListener('ghostTvPlaylistsChanged', handleIptvRestored)
+  }, [])
 
   // Debounce da pesquisa por 150ms para eliminar qualquer travamento ao digitar
   useEffect(() => {
@@ -5377,7 +5386,7 @@ export default function AlazterflixScreen() {
           {tvViewMode === 'app' ? (
             <div className="alazterflix-tv-player-wrap">
               <iframe
-                key={ghostIptvState?.webUrl || 'ghost-iptv-iframe'}
+                key={`${ghostIptvState?.webUrl || 'ghost-iptv-iframe'}-${iptvReloadNonce}`}
                 title="Ghost IPTV TV Box Player"
                 src={ghostIptvState?.webUrl || 'http://127.0.0.1:8888/alazterflix_tv.html?v=2.4.8'}
                 style={{

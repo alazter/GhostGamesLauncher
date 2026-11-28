@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import classNames from 'classnames'
 import { observeImageVisibility } from 'frontend/helpers/imageVisibilityObserver'
+import {
+  canUrlBeAnimated,
+  captureStaticFrame,
+  checkIsAnimatedImage,
+  getCachedFrozenFrame,
+  isGhostWindowActive,
+  subscribeWindowActivity
+} from 'frontend/helpers/animatedCoverFreeze'
 
 const PLACEHOLDER_SRC = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="173" height="275"></svg>'
 
@@ -62,11 +70,21 @@ const CachedImage = (props: Props) => {
 
   const isAlreadyLoaded = displaySrc ? loadedUrls.has(displaySrc) : false
   const [loaded, setLoaded] = useState<boolean>(isAlreadyLoaded)
+  const [isWindowActive, setIsWindowActive] = useState<boolean>(() =>
+    isGhostWindowActive()
+  )
+  const [frozenSrc, setFrozenSrc] = useState<string | null>(null)
 
   useEffect(() => {
     const nextLoaded = displaySrc ? loadedUrls.has(displaySrc) : false
     setLoaded(nextLoaded)
+    setFrozenSrc(null)
   }, [displaySrc])
+
+  useEffect(() => {
+    setIsWindowActive(isGhostWindowActive())
+    return subscribeWindowActivity(setIsWindowActive)
+  }, [])
 
   // Se loading for explicitamente 'eager' sem flag de priority dinâmica, mantém o elemento ativo permanentemente (ex: modais isolados)
   const isStaticEager = props.loading === 'eager' && !props.priority
@@ -89,6 +107,38 @@ const CachedImage = (props: Props) => {
       setIsInView(visible)
     })
   }, [isStaticEager, displaySrc])
+
+  // Congela capas animadas (WebP animado, GIF, APNG) em um frame estático quando a janela do Ghost perde foco ou fica sobreposta/oculta
+  useEffect(() => {
+    if (isWindowActive) {
+      setFrozenSrc(null)
+      return
+    }
+    if (!isInView || !loaded || !displaySrc || !canUrlBeAnimated(displaySrc)) {
+      return
+    }
+
+    const cachedFrame = getCachedFrozenFrame(displaySrc)
+    if (cachedFrame) {
+      setFrozenSrc(cachedFrame)
+      return
+    }
+
+    let cancelled = false
+    void checkIsAnimatedImage(displaySrc).then(async (isAnimated) => {
+      if (cancelled || !isAnimated || isGhostWindowActive()) return
+      const el = imgRef.current
+      if (!el || !el.complete || el.naturalWidth <= 0) return
+      const snapshotUrl = await captureStaticFrame(displaySrc, el)
+      if (!cancelled && snapshotUrl && !isGhostWindowActive()) {
+        setFrozenSrc(snapshotUrl)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isWindowActive, isInView, loaded, displaySrc])
 
   // Ouvinte do comando global de Reconectar Capas Pendentes
   useEffect(() => {
@@ -123,11 +173,16 @@ const CachedImage = (props: Props) => {
     ...rest
   } = props
 
-  const finalSrc = isInView
+  const activeSrc = isInView
     ? reconnectCount > 0 && displaySrc
       ? `${displaySrc}${displaySrc.includes('?') ? '&' : '?'}reconnect=${reconnectCount}`
       : displaySrc
     : PLACEHOLDER_SRC
+
+  const isShowingFrozen = Boolean(!isWindowActive && isInView && frozenSrc)
+  const finalSrc = isShowingFrozen ? frozenSrc! : activeSrc
+  const needsAnonymousCors =
+    !isShowingFrozen && typeof finalSrc === 'string' && finalSrc.startsWith('imagecache://')
 
   return (
     <img
@@ -137,8 +192,10 @@ const CachedImage = (props: Props) => {
       loading={isInView ? 'eager' : 'lazy'}
       decoding={decoding}
       {...rest}
+      crossOrigin={needsAnonymousCors ? 'anonymous' : rest.crossOrigin}
       src={finalSrc}
       onLoad={(e) => {
+        if (isShowingFrozen) return
         if (isInView && displaySrc) {
           if (loadedUrls.size >= 5000) {
             const oldest = loadedUrls.values().next().value
@@ -150,6 +207,10 @@ const CachedImage = (props: Props) => {
         props.onLoad?.(e)
       }}
       onError={(e) => {
+        if (isShowingFrozen) {
+          setFrozenSrc(null)
+          return
+        }
         if (props.hideOnError) {
           setErrorHidden(true)
           props.onError?.(e)

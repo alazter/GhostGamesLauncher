@@ -1,16 +1,17 @@
 {
   "app_name": "Ghost IPTV",
-  "version": "2.5.4",
+  "version": "2.5.7",
+  "build_number": 257,
+  "release_date": "2026-11-24",
+  "channel": "stable",
   "repository": "alazter/ghost-iptv",
   "private_repo": true,
-  "build_number": 254,
-  "release_date": "2026-11-15",
-  "channel": "stable",
   "apk_url": "/ghost-iptv.apk",
   "changelog": [
-    "Fallback multinivel para escudos esportivos e bandeiras nacionais (cache local, FlagCDN, API ESPN e SVG dinamico)",
-    "MainActivity: aprimoramento no carregamento de escudos empacotados via readAssetFully com headers de cache",
-    "Sincronizacao automatica da grade EPG real e persistencia de canais",
-    "Compilacao e assinatura oficial do APK v2.5.4 para Android TV / TV Box / Fire TV Stick e pacote web atualizado para o Ghost Launcher"
+    "Playlist M3U padrao multifonte (ghost_iptv.m3u) e channels_base_cache.json empacotados no APK e no pacote web",
+    "Parser M3U (Python e Java): suporte ao atributo source-label e extracao automatica do sufixo '(Fonte N ...)' do nome do canal como rotulo de fonte",
+    "Fontes cruzadas (cross_list) removidas dos canais nativos com reindexacao e contagem de fontes corrigida",
+    "Cache de canais e interface web (alazterflix_tv.html) atualizados",
+    "Compilacao e assinatura oficial do APK v2.5.7 para Android TV / TV Box / Fire TV Stick e pacote web atualizado para o Ghost Launcher"
   ]
 }

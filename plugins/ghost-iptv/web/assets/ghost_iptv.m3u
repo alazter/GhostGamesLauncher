@@ -1,0 +1,551 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="APPLE TV+ 1" tvg-name="APPLE TV+ 1" tvg-logo="/assets/logos/appletv1.png" group-title="Esportes Ao Vivo",APPLE TV+ 1
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/appletv01/index.m3u8
+#EXTINF:-1 tvg-id="APPLE TV+ 2" tvg-name="APPLE TV+ 2" tvg-logo="/assets/logos/appletv1.png" group-title="Esportes Ao Vivo",APPLE TV+ 2
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/appletv02/index.m3u8
+#EXTINF:-1 tvg-id="APPLE TV+ 3" tvg-name="APPLE TV+ 3" tvg-logo="/assets/logos/appletv1.png" group-title="Esportes Ao Vivo",APPLE TV+ 3
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/appletv03/index.m3u8
+#EXTINF:-1 tvg-id="APPLE TV+ 4" tvg-name="APPLE TV+ 4" tvg-logo="/assets/logos/appletv1.png" group-title="Esportes Ao Vivo",APPLE TV+ 4
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/appletv04/index.m3u8
+#EXTINF:-1 tvg-id="APPLE TV+ 5" tvg-name="APPLE TV+ 5" tvg-logo="/assets/logos/appletv1.png" group-title="Esportes Ao Vivo",APPLE TV+ 5
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/appletv05/index.m3u8
+#EXTINF:-1 tvg-id="APPLE TV+ 6" tvg-name="APPLE TV+ 6" tvg-logo="https://embedcanaisdetv.com/images/appletv1.png" group-title="Esportes Ao Vivo",APPLE TV+ 6
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/appletv06/index.m3u8
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/bandsports/index.m3u8
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g1/BAND%20Sports%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 3 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event29/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 4 · SAIMO TV)
+http://170.83.49.66:8083/BANDSPORTSHD/index.m3u8
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 5 · SAIMO TV)
+#KODIPROP:inputstream.adaptive.license_type=clearkey
+#KODIPROP:inputstream.adaptive.license_key=74481194bf32774e0cb44a1d71d6cc19:4bfd25bc9419f1c71e3ee8e6bf5ccf2a
+https://video41.mais.uol.com.br/live/290.mpd
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 6 · SAIMO TV)
+http://170.83.16.50/BAND_SPORTS/index.m3u8
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 7 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/9edb176f1d4e35ac788e95b40423be19/error.txt
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 8 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/bandsports/index.m3u8
+#EXTINF:-1 tvg-id="BAND SPORTS" tvg-name="BAND SPORTS" tvg-logo="https://embedcanaisdetv.com/images/bandsports.png" group-title="Esportes Ao Vivo",BAND SPORTS (Fonte 9 · Brasil IPTV)
+https://cdn-5.nxplay.com.br/BAND_SPORTS/index.m3u8
+#EXTINF:-1 tvg-id="CANAL OFF" tvg-name="CANAL OFF" tvg-logo="https://embedcanaisdetv.com/images/canaloff.png" group-title="Esportes Ao Vivo",CANAL OFF (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/canaloff/index.m3u8
+#EXTINF:-1 tvg-id="CANAL OFF" tvg-name="CANAL OFF" tvg-logo="https://embedcanaisdetv.com/images/canaloff.png" group-title="Esportes Ao Vivo",CANAL OFF (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/476d2d51bb17ca11b980026de6dcd854/error.txt
+#EXTINF:-1 tvg-id="CANAL OFF" tvg-name="CANAL OFF" tvg-logo="https://embedcanaisdetv.com/images/canaloff.png" group-title="Esportes Ao Vivo",CANAL OFF (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/canaloff/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV" tvg-name="CAZÉ TV" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/cazetv/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV" tvg-name="CAZÉ TV" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV (Fonte 2 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event55/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="CAZÉ TV" tvg-name="CAZÉ TV" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV (Fonte 3 · SAIMO TV)
+https://amg01391-amg01391c10-tcl-br-9630.playouts.now.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV" tvg-name="CAZÉ TV" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV (Fonte 4 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/f92330b599495de0797949e4aac02b23/error.txt
+#EXTINF:-1 tvg-id="CAZÉ TV" tvg-name="CAZÉ TV" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV (Fonte 5 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/cazetv/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 2" tvg-name="CAZÉ TV 2" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 2 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/cazetv2/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 2" tvg-name="CAZÉ TV 2" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 2 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g3/CazeTV%202%20TV/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 2" tvg-name="CAZÉ TV 2" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 2 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/bcd133c48d2e28b7f321095e7abbcd42/error.txt
+#EXTINF:-1 tvg-id="CAZÉ TV 2" tvg-name="CAZÉ TV 2" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 2 (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/cazetv2/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 3" tvg-name="CAZÉ TV 3" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 3 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/cazetv3/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 3" tvg-name="CAZÉ TV 3" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 3 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g3/CazeTV%203%20TV/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 3" tvg-name="CAZÉ TV 3" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 3 (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/cazetv3/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 4" tvg-name="CAZÉ TV 4" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 4 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/cazetv4/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 4" tvg-name="CAZÉ TV 4" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 4 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/cazetv4/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 5" tvg-name="CAZÉ TV 5" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 5
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/cazetv5/index.m3u8
+#EXTINF:-1 tvg-id="CAZÉ TV 6" tvg-name="CAZÉ TV 6" tvg-logo="https://embedcanaisdetv.com/images/cazetv.png" group-title="Esportes Ao Vivo",CAZÉ TV 6
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/cazetv6/index.m3u8
+#EXTINF:-1 tvg-id="COMBATE" tvg-name="COMBATE" tvg-logo="https://embedcanaisdetv.com/images/combate.png" group-title="Esportes Ao Vivo",COMBATE (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/combate/index.m3u8
+#EXTINF:-1 tvg-id="COMBATE" tvg-name="COMBATE" tvg-logo="https://embedcanaisdetv.com/images/combate.png" group-title="Esportes Ao Vivo",COMBATE (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/COMBATE%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="COMBATE" tvg-name="COMBATE" tvg-logo="https://embedcanaisdetv.com/images/combate.png" group-title="Esportes Ao Vivo",COMBATE (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/a1b0a4b27846ee9c24d7c0a99e075f80/error.txt
+#EXTINF:-1 tvg-id="COMBATE" tvg-name="COMBATE" tvg-logo="https://embedcanaisdetv.com/images/combate.png" group-title="Esportes Ao Vivo",COMBATE (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/combate/index.m3u8
+#EXTINF:-1 tvg-id="COMBATE" tvg-name="COMBATE" tvg-logo="https://embedcanaisdetv.com/images/combate.png" group-title="Esportes Ao Vivo",COMBATE (Fonte 5 · Brasil IPTV)
+http://143.14.134.107/167/index.m3u8
+#EXTINF:-1 tvg-id="DAZN" tvg-name="DAZN" tvg-logo="https://embedcanaisdetv.com/images/dazn.png" group-title="Esportes Ao Vivo",DAZN
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/dazn/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+" tvg-name="DISNEY+" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+" tvg-name="DISNEY+" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+" tvg-name="DISNEY+" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/fd95544f673b80de5c9c670026ba7264/error.txt
+#EXTINF:-1 tvg-id="DISNEY+ 2" tvg-name="DISNEY+ 2" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 2
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus02/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 3" tvg-name="DISNEY+ 3" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 3 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus03/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 3" tvg-name="DISNEY+ 3" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 3 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus03/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 4" tvg-name="DISNEY+ 4" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 4 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus04/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 4" tvg-name="DISNEY+ 4" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 4 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus04/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 5" tvg-name="DISNEY+ 5" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 5 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus05/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 5" tvg-name="DISNEY+ 5" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 5 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus05/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 6" tvg-name="DISNEY+ 6" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 6 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus06/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 6" tvg-name="DISNEY+ 6" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 6 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus06/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 7" tvg-name="DISNEY+ 7" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 7 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus07/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 7" tvg-name="DISNEY+ 7" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 7 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus07/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 8" tvg-name="DISNEY+ 8" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 8 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus08/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 8" tvg-name="DISNEY+ 8" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 8 (Fonte 2 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/disneyplus08/index.m3u8
+#EXTINF:-1 tvg-id="DISNEY+ 9" tvg-name="DISNEY+ 9" tvg-logo="https://embedcanaisdetv.com/images/disneyplus.png" group-title="Esportes Ao Vivo",DISNEY+ 9
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/disneyplus09/index.m3u8
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/espn/index.m3u8
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g6/VIVO%205%20TV/index.m3u8
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN (Fonte 3 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event24/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN (Fonte 4 · SAIMO TV)
+http://181.78.197.59:8000/play/a07z/index.m3u8
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN (Fonte 5 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/97dcbe60546b5f629c6734eefa5e59d7/error.txt
+#EXTINF:-1 tvg-id="ESPN" tvg-name="ESPN" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN (Fonte 6 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/espn/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 2" tvg-name="ESPN 2" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 2 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/espn2/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 2" tvg-name="ESPN 2" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 2 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/VIVO%206%20TV/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 2" tvg-name="ESPN 2" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 2 (Fonte 3 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event25/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="ESPN 2" tvg-name="ESPN 2" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 2 (Fonte 4 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/d0d6059b6c83db8c2fda0030a771312e/error.txt
+#EXTINF:-1 tvg-id="ESPN 2" tvg-name="ESPN 2" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 2 (Fonte 5 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/espn2/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/espn3/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/VIVO%207%20TV/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 3 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event26/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 4 · SAIMO TV)
+http://181.78.197.59:8000/play/a081/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 5 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/b8ae10a28262e19e25301bf30a71ae2b/error.txt
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 6 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/espn3/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 3" tvg-name="ESPN 3" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 3 (Fonte 7 · Brasil IPTV)
+http://190.83.2.182:8090/ESPN3/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 4" tvg-name="ESPN 4" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 4 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/espn4/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 4" tvg-name="ESPN 4" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 4 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g8/VIVO%208%20TV/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 4" tvg-name="ESPN 4" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 4 (Fonte 3 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event27/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="ESPN 4" tvg-name="ESPN 4" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 4 (Fonte 4 · SAIMO TV)
+http://181.78.197.59:8000/play/a07n/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 5" tvg-name="ESPN 5" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 5 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/espn5/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 5" tvg-name="ESPN 5" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 5 (Fonte 2 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event28/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="ESPN 5" tvg-name="ESPN 5" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 5 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/bfefc525d40eaf5bd5bc78fc894a996b/error.txt
+#EXTINF:-1 tvg-id="ESPN 6" tvg-name="ESPN 6" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 6 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/espn6/index.m3u8
+#EXTINF:-1 tvg-id="ESPN 6" tvg-name="ESPN 6" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 6 (Fonte 2 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event23/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="ESPN 6" tvg-name="ESPN 6" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 6 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/28b9fb7d970043f5cdf415eed1c9465f/error.txt
+#EXTINF:-1 tvg-id="ESPN 6" tvg-name="ESPN 6" tvg-logo="https://embedcanaisdetv.com/images/espn.png" group-title="Esportes Ao Vivo",ESPN 6 (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/espn6/index.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/getv/index.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/ge%20tv%20TV/index.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 3 · SAIMO TV)
+https://amg00716-globo-amg00716c1-tcl-br-9495.playouts.now.amagi.tv/playlist1080p.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 4 · SAIMO TV)
+https://proxylinkurl.wored85282.workers.dev/https://amg00716-globo-amg00716c1-tcl-br-9495.playouts.now.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 5 · SAIMO TV)
+https://amg00716-globo-amg00716c1-tcl-br-9495.playouts.now.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 6 · SAIMO TV)
+https://dfr80qz435crc.cloudfront.net/EFGH/Amagi/Globo/GE_Fast_BR/GE_Fast.m3u8
+#EXTINF:-1 tvg-id="GE TV" tvg-name="GE TV" tvg-logo="https://embedcanaisdetv.com/images/getv.png" group-title="Esportes Ao Vivo",GE TV (Fonte 7 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/getv/index.m3u8
+#EXTINF:-1 tvg-id="MAX" tvg-name="MAX" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/max/index.m3u8
+#EXTINF:-1 tvg-id="MAX" tvg-name="MAX" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/bf81550c0bb054578f8ad87e4238161c/error.txt
+#EXTINF:-1 tvg-id="MAX 2" tvg-name="MAX 2" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX 2 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/max02/index.m3u8
+#EXTINF:-1 tvg-id="MAX 2" tvg-name="MAX 2" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX 2 (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/cd06f9b683e46b13d175d6f4d0dc3409/error.txt
+#EXTINF:-1 tvg-id="MAX 3" tvg-name="MAX 3" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX 3
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/max03/index.m3u8
+#EXTINF:-1 tvg-id="MAX 4" tvg-name="MAX 4" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX 4
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/max04/index.m3u8
+#EXTINF:-1 tvg-id="MAX 5" tvg-name="MAX 5" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX 5
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/max05/index.m3u8
+#EXTINF:-1 tvg-id="MAX 6" tvg-name="MAX 6" tvg-logo="https://embedcanaisdetv.com/images/max.png" group-title="Esportes Ao Vivo",MAX 6
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/max06/index.m3u8
+#EXTINF:-1 tvg-id="N SPORTS" tvg-name="N SPORTS" tvg-logo="https://embedcanaisdetv.com/images/nsports.png" group-title="Esportes Ao Vivo",N SPORTS (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/nsports/index.m3u8
+#EXTINF:-1 tvg-id="N SPORTS" tvg-name="N SPORTS" tvg-logo="https://embedcanaisdetv.com/images/nsports.png" group-title="Esportes Ao Vivo",N SPORTS (Fonte 2 · Brasil IPTV)
+https://ogc-nsprt-tcl-roku-syndication.otteravision.com/ogc/nsprt/nsprt.m3u8
+#EXTINF:-1 tvg-id="NOSSO FUTEBOL" tvg-name="NOSSO FUTEBOL" tvg-logo="https://embedcanaisdetv.com/images/nossofutebol.png" group-title="Esportes Ao Vivo",NOSSO FUTEBOL
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/nossofutebol/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+" tvg-name="PARAMOUNT+" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+" tvg-name="PARAMOUNT+" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/09e042367d8d8126a0f8cd1100a27a4d/error.txt
+#EXTINF:-1 tvg-id="PARAMOUNT+ 2" tvg-name="PARAMOUNT+ 2" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 2
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus02/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 3" tvg-name="PARAMOUNT+ 3" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 3
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus03/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 4" tvg-name="PARAMOUNT+ 4" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 4 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus04/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 4" tvg-name="PARAMOUNT+ 4" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 4 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g1/Paramount%2B%204%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 4" tvg-name="PARAMOUNT+ 4" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 4 (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/paramountplus04/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 5" tvg-name="PARAMOUNT+ 5" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 5
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus05/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 6" tvg-name="PARAMOUNT+ 6" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 6
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus06/index.m3u8
+#EXTINF:-1 tvg-id="PARAMOUNT+ 7" tvg-name="PARAMOUNT+ 7" tvg-logo="https://embedcanaisdetv.com/images/paramountplus.png" group-title="Esportes Ao Vivo",PARAMOUNT+ 7
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/paramountplus07/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE CLUBES" tvg-name="PREMIERE CLUBES" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE CLUBES (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiereclubes/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE CLUBES" tvg-name="PREMIERE CLUBES" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE CLUBES (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/05551c40ad8874ff9c3a566d31108e8c/error.txt
+#EXTINF:-1 tvg-id="PREMIERE CLUBES" tvg-name="PREMIERE CLUBES" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE CLUBES (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/premiereclubes/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 2" tvg-name="PREMIERE 2" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 2 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere2/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 2" tvg-name="PREMIERE 2" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 2 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g5/PREMIERE%202%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 2" tvg-name="PREMIERE 2" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 2 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/ed2fe7b5cb48b3dddc233d83de59622e/error.txt
+#EXTINF:-1 tvg-id="PREMIERE 3" tvg-name="PREMIERE 3" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 3 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere3/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 3" tvg-name="PREMIERE 3" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 3 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g8/PREMIERE%203%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 4" tvg-name="PREMIERE 4" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 4 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere4/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 4" tvg-name="PREMIERE 4" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 4 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/PREMIERE%204%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 4" tvg-name="PREMIERE 4" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 4 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/64dbbd0bfce8f0877adc5adff793aaf4/error.txt
+#EXTINF:-1 tvg-id="PREMIERE 4" tvg-name="PREMIERE 4" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 4 (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/premiere4/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 5" tvg-name="PREMIERE 5" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 5 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere5/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 5" tvg-name="PREMIERE 5" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 5 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/PREMIERE%205%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 5" tvg-name="PREMIERE 5" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 5 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/3a4f17146f5612606d38b506388e3f6b/error.txt
+#EXTINF:-1 tvg-id="PREMIERE 5" tvg-name="PREMIERE 5" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 5 (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/premiere5/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 6" tvg-name="PREMIERE 6" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 6 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere6/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 6" tvg-name="PREMIERE 6" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 6 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/PREMIERE%206%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 7" tvg-name="PREMIERE 7" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 7 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere7/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 7" tvg-name="PREMIERE 7" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 7 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g7/PREMIERE%207%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 7" tvg-name="PREMIERE 7" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 7 (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/premiere7/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 8" tvg-name="PREMIERE 8" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 8 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/premiere8/index.m3u8
+#EXTINF:-1 tvg-id="PREMIERE 8" tvg-name="PREMIERE 8" tvg-logo="https://embedcanaisdetv.com/images/premiere.png" group-title="Esportes Ao Vivo",PREMIERE 8 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g3/PREMIERE%208%20TV/index.m3u8
+#EXTINF:-1 tvg-id="PRIME VIDEO" tvg-name="PRIME VIDEO" tvg-logo="https://embedcanaisdetv.com/images/amazonprimevideo.png" group-title="Esportes Ao Vivo",PRIME VIDEO
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/amazonprimevideo/index.m3u8
+#EXTINF:-1 tvg-id="PRIME VIDEO 2" tvg-name="PRIME VIDEO 2" tvg-logo="https://embedcanaisdetv.com/images/amazonprimevideo.png" group-title="Esportes Ao Vivo",PRIME VIDEO 2
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/amazonprimevideo02/index.m3u8
+#EXTINF:-1 tvg-id="PRIME VIDEO 3" tvg-name="PRIME VIDEO 3" tvg-logo="https://embedcanaisdetv.com/images/amazonprimevideo.png" group-title="Esportes Ao Vivo",PRIME VIDEO 3
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/amazonprimevideo03/index.m3u8
+#EXTINF:-1 tvg-id="PRIME VIDEO 4" tvg-name="PRIME VIDEO 4" tvg-logo="https://embedcanaisdetv.com/images/amazonprimevideo.png" group-title="Esportes Ao Vivo",PRIME VIDEO 4
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/amazonprimevideo04/index.m3u8
+#EXTINF:-1 tvg-id="PRIME VIDEO 5" tvg-name="PRIME VIDEO 5" tvg-logo="https://embedcanaisdetv.com/images/amazonprimevideo.png" group-title="Esportes Ao Vivo",PRIME VIDEO 5
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/amazonprimevideo05/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV" tvg-name="SPORTV" tvg-logo="https://embedcanaisdetv.com/images/sportv.png" group-title="Esportes Ao Vivo",SPORTV (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/sportv/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV" tvg-name="SPORTV" tvg-logo="https://embedcanaisdetv.com/images/sportv.png" group-title="Esportes Ao Vivo",SPORTV (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g8/SporTV%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV" tvg-name="SPORTV" tvg-logo="https://embedcanaisdetv.com/images/sportv.png" group-title="Esportes Ao Vivo",SPORTV (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/8eb8f9609fb8c4f697d81e142dae827a/error.txt
+#EXTINF:-1 tvg-id="SPORTV" tvg-name="SPORTV" tvg-logo="https://embedcanaisdetv.com/images/sportv.png" group-title="Esportes Ao Vivo",SPORTV (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/sportv/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 2" tvg-name="SPORTV 2" tvg-logo="https://embedcanaisdetv.com/images/sportv2.png" group-title="Esportes Ao Vivo",SPORTV 2 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/sportv2/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 2" tvg-name="SPORTV 2" tvg-logo="https://embedcanaisdetv.com/images/sportv2.png" group-title="Esportes Ao Vivo",SPORTV 2 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g6/SporTV2%20HD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 2" tvg-name="SPORTV 2" tvg-logo="https://embedcanaisdetv.com/images/sportv2.png" group-title="Esportes Ao Vivo",SPORTV 2 (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/sportv2/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 2" tvg-name="SPORTV 2" tvg-logo="https://embedcanaisdetv.com/images/sportv2.png" group-title="Esportes Ao Vivo",SPORTV 2 (Fonte 4 · Brasil IPTV)
+http://195.178.110.110/sportv2/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 3" tvg-name="SPORTV 3" tvg-logo="https://embedcanaisdetv.com/images/sportv3.png" group-title="Esportes Ao Vivo",SPORTV 3 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/sportv3/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 3" tvg-name="SPORTV 3" tvg-logo="https://embedcanaisdetv.com/images/sportv3.png" group-title="Esportes Ao Vivo",SPORTV 3 (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g5/SporTV3%20TV/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 3" tvg-name="SPORTV 3" tvg-logo="https://embedcanaisdetv.com/images/sportv3.png" group-title="Esportes Ao Vivo",SPORTV 3 (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/c83eff412e15919abac72f56987b600d/error.txt
+#EXTINF:-1 tvg-id="SPORTV 3" tvg-name="SPORTV 3" tvg-logo="https://embedcanaisdetv.com/images/sportv3.png" group-title="Esportes Ao Vivo",SPORTV 3 (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/sportv3/index.m3u8
+#EXTINF:-1 tvg-id="SPORTV 3" tvg-name="SPORTV 3" tvg-logo="https://embedcanaisdetv.com/images/sportv3.png" group-title="Esportes Ao Vivo",SPORTV 3 (Fonte 5 · Brasil IPTV)
+http://195.178.110.110/sportv3/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET" tvg-name="SPORTYNET" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/sportynet/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET" tvg-name="SPORTYNET" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/881bd483fd19876386ac1ec45cc5fff7/error.txt
+#EXTINF:-1 tvg-id="SPORTYNET" tvg-name="SPORTYNET" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/sportynet1/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET" tvg-name="SPORTYNET" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET (Fonte 4 · SAIMO TV)
+https://live.lixe.net/hls/g6/Sportynet%20TV/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET" tvg-name="SPORTYNET" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET (Fonte 5 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/f6f771b01ead19be0c82cc5c77de55b8/error.txt
+#EXTINF:-1 tvg-id="SPORTYNET" tvg-name="SPORTYNET" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET (Fonte 6 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/sportynet/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET 2" tvg-name="SPORTYNET 2" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET 2 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/sportynet2/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET 2" tvg-name="SPORTYNET 2" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET 2 (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/8756e6e25ff5e85e0413b6ecaf22896e/error.txt
+#EXTINF:-1 tvg-id="SPORTYNET 2" tvg-name="SPORTYNET 2" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET 2 (Fonte 3 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/sportynet2/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET 3" tvg-name="SPORTYNET 3" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET 3 (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/sportynet3/index.m3u8
+#EXTINF:-1 tvg-id="SPORTYNET 3" tvg-name="SPORTYNET 3" tvg-logo="https://vipcanais.net/images/sportynet.png" group-title="Esportes Ao Vivo",SPORTYNET 3 (Fonte 2 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/df98e3573121890852d7f29d9dbb98c0/error.txt
+#EXTINF:-1 tvg-id="TNT" tvg-name="TNT" tvg-logo="https://embedcanaisdetv.com/images/tnt.png" group-title="Esportes Ao Vivo",TNT (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/tnt/index.m3u8
+#EXTINF:-1 tvg-id="TNT" tvg-name="TNT" tvg-logo="https://embedcanaisdetv.com/images/tnt.png" group-title="Esportes Ao Vivo",TNT (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g3/TNT%20UHD%20TV/index.m3u8
+#EXTINF:-1 tvg-id="TNT" tvg-name="TNT" tvg-logo="https://embedcanaisdetv.com/images/tnt.png" group-title="Esportes Ao Vivo",TNT (Fonte 3 · SAIMO TV)
+https://eitvplay.appmembers.com.br/event64/index.m3u8?token=jzFQQe9OVYP1ycd5Cqe0Av7tzx6QRtgJ
+#EXTINF:-1 tvg-id="TNT" tvg-name="TNT" tvg-logo="https://embedcanaisdetv.com/images/tnt.png" group-title="Esportes Ao Vivo",TNT (Fonte 4 · SAIMO TV)
+https://net11.sattvgo.com.br/TNT/index.m3u8?token=RGnYBgq1dxRk5Eur690t0mpVo01rfWpPLxrMx
+#EXTINF:-1 tvg-id="TNT" tvg-name="TNT" tvg-logo="https://embedcanaisdetv.com/images/tnt.png" group-title="Esportes Ao Vivo",TNT (Fonte 5 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/f0ef02094812e719d1f96e9d41a68213/error.txt
+#EXTINF:-1 tvg-id="XSPORTS" tvg-name="XSPORTS" tvg-logo="https://embedcanaisdetv.com/images/xsports.png" group-title="Esportes Ao Vivo",XSPORTS (Fonte 1 · Ghost IPTV (Oficial))
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0
+https://d1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz/xsports/index.m3u8
+#EXTINF:-1 tvg-id="XSPORTS" tvg-name="XSPORTS" tvg-logo="https://embedcanaisdetv.com/images/xsports.png" group-title="Esportes Ao Vivo",XSPORTS (Fonte 2 · SAIMO TV)
+https://live.lixe.net/hls/g2/VIVO%209%20TV/index.m3u8
+#EXTINF:-1 tvg-id="XSPORTS" tvg-name="XSPORTS" tvg-logo="https://embedcanaisdetv.com/images/xsports.png" group-title="Esportes Ao Vivo",XSPORTS (Fonte 3 · SAIMO TV)
+https://e8d009afe4d01e7c84830c60fbfe5ec6.sv-nl-02-cloudfront-net.lat/stream/c9a9b95301d2c1e093d0f15554475132/error.txt
+#EXTINF:-1 tvg-id="XSPORTS" tvg-name="XSPORTS" tvg-logo="https://embedcanaisdetv.com/images/xsports.png" group-title="Esportes Ao Vivo",XSPORTS (Fonte 4 · SAIMO TV)
+#EXTVLCOPT:http-referrer=https://playerembedcanais.site/
+#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36
+https://d1-ywppjexvlyulasvmgzjdftfjikth2311oq80soveui6lkbi2iza2zf.cdn12embed.xyz/xsports/index.m3u8

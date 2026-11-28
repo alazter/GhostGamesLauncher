@@ -16,6 +16,108 @@
 
 ## 📌 Histórico Estruturado de Alterações
 
+### [27/11/2026 às 06:37] — Congelamento Automático de Capas Animadas (WebP, GIF e APNG) Quando a Janela do Ghost Perde Foco ou Fica Sobreposta (`animatedImageDetector.ts`, `images_cache.ts`, `animatedCoverFreeze.ts`, `CachedImage/index.tsx`)
+
+- **📅 Data e Hora**: 27/11/2026 às 06:37
+- **🎯 Título / Funcionalidade**: Otimização de CPU/GPU Congelando Capas Animadas da Biblioteca em um Frame Estático Quando Outro Software Está Focado ou Sobreposto à Janela do Ghost
+- **💡 Motivação**: O usuário percebeu que capas animadas na Biblioteca (WebP animado, GIF, APNG) continuavam rodando sua animação em segundo plano mesmo quando outro software estava focado ou sobreposto ao Ghost, consumindo CPU/GPU continuamente.
+- **🛠️ O que foi feito**:
+  1. **Detector Binário Ultra-Rápido de Animação (`src/backend/animatedImageDetector.ts`)**:
+     - `isAnimatedImageBuffer(buffer, mime)` inspeciona cabeçalhos/chunks binários (<0,05ms, sem decodificar pixels) identificando com precisão WebP animado (`VP8X` bit `0x02` / chunk `ANIM`), APNG (chunk `acTL` antes de `IDAT`) e GIF multi-frame (>=2 Image Descriptors).
+  2. **Suporte a `HEAD`, `X-Ghost-Animated` e CORS Seguro em `imagecache://` (`src/backend/images_cache.ts`)**:
+     - Adicionada detecção de magic bytes `GIF87a`/`GIF89a`, flag `animated` cacheada em `MemoryCacheEntry`, cabeçalhos `Access-Control-Allow-Origin: *`, `Access-Control-Expose-Headers: X-Ghost-Animated`, `X-Ghost-Animated: 1|0` e suporte zero-body para probes `HEAD` (nunca disparando download remoto para imagens não cacheadas).
+  3. **Congelamento Instantâneo em Segundo Plano (`src/frontend/helpers/animatedCoverFreeze.ts`, `src/frontend/components/UI/CachedImage/index.tsx`)**:
+     - Singleton global `subscribeWindowActivity` monitora `window.blur`, `window.focus` e `document.visibilitychange`.
+     - Ao perder foco (outro software focado, janela sobreposta, Alt+Tab, jogo aberto ou minimizado), `<CachedImage>` verifica em ~0,1ms via `HEAD` (com cache de 2000 URLs) se a imagem visível é realmente animada; para imagens estáticas (JPG, PNG/WebP estáticos, SVG), faz **zero trabalho**.
+     - Apenas para capas animadas, captura 1 único frame estático (WebP single-frame preservando transparência, em cache LRU de até 150 entradas com `URL.revokeObjectURL` automático) e substitui o `src` do `<img>` sem alterar dimensões, proporção (`173/275` — Regra Canônica 62 preservada) nem causar piscada. Ao retornar o foco ao Ghost, retoma a animação em 0ms.
+  4. **Testes Unitários (`src/backend/__tests__/animatedImageDetector.test.ts`)**:
+     - 6/6 testes Jest aprovados cobrindo WebP animado/estático, APNG/PNG estático, GIF animado/estático e JPEG.
+- **📂 Arquivos Alterados**:
+  - `src/backend/animatedImageDetector.ts` (novo)
+  - `src/backend/__tests__/animatedImageDetector.test.ts` (novo)
+  - `src/backend/images_cache.ts`
+  - `src/frontend/helpers/animatedCoverFreeze.ts` (novo)
+  - `src/frontend/components/UI/CachedImage/index.tsx`
+- **🚀 Benefício & Impacto**:
+  - Elimina o consumo contínuo de CPU/GPU das capas animadas sempre que o usuário está focado em outro programa, jogando ou com uma janela sobreposta ao Ghost, sem alterar em nada o tamanho/layout das capas e com retomada instantânea ao focar novamente.
+
+---
+
+### [27/11/2026 às 06:02] — Substituição do Ícone 'X' (Fechar) por Seta 'Voltar' (`faArrowLeft`) na Janela de Escolha de Capa (`SteamGridDBPicker`) ao Adicionar/Editar Jogo
+
+- **📅 Data e Hora**: 27/11/2026 às 06:02
+- **🎯 Título / Funcionalidade**: Substituição do Ícone 'X' (Fechar) por Seta 'Voltar' (`faArrowLeft`) na Janela de Escolha de Capa (`SteamGridDBPicker`) ao Adicionar/Editar Jogo
+- **💡 Motivação**: O usuário relatou que, ao adicionar um jogo e clicar na capa para escolher uma arte na janela do `SteamGridDBPicker`, o botão superior direito exibia um ícone `X` (`faTimes`) em vez de uma seta de voltar, induzindo o usuário a achar que clicar nele fecharia toda a janela de adicionar jogo em vez de retornar para a tela anterior (*"quando eu estou adicionando um jogo e clico para adicionar uma capa para o jogo a proxima janela para escolher uma capa para o jogo que será adicionado possui o X de fechar a janela porém era pra ser uma seta voltar pois o x induz o usuario que se eu apertar ele fecha toda a janela e nao que vai voltar para a janela de adicionar jogo poderia arrumar isso"*).
+- **🛠️ O que foi feito**:
+  - Em `src/frontend/components/UI/SteamGridDBPicker/index.tsx`, o botão `.SteamGridDBPicker__close-btn` no cabeçalho da seleção de capas foi atualizado do ícone `faTimes` (`X`) para `faArrowLeft` (seta voltar `←`), com `aria-label="back"` e tooltip `title={t('button.back', 'Voltar')}`, deixando claro que a ação retorna para a tela de Adicionar/Configurar Jogo (`setSgdbTarget(null)`).
+- **📝 O que foi alterado**:
+  - `src/frontend/components/UI/SteamGridDBPicker/index.tsx`: Substituído `<FontAwesomeIcon icon={faTimes} />` por `<FontAwesomeIcon icon={faArrowLeft} />`, atualizado `aria-label="back"` e removido o import não utilizado `faTimes`.
+- **📂 Arquivos Alterados**:
+  - `src/frontend/components/UI/SteamGridDBPicker/index.tsx`
+  - `alterações.md`
+- **🚀 Benefício & Impacto**:
+  - Ergonomia e clareza imediata no fluxo de adicionar e editar jogos: o usuário identifica visualmente que o botão retorna para a tela de Adicionar Jogo sem fechar o modal principal. Regra Canônica 62 preservada.
+
+---
+
+### [27/11/2026 às 05:59] — Correção de Adição Manual de Softwares/Jogos que Compartilham o Mesmo Executável (`Longshot Launcher` vs `Zelda Ocarina of Time`) e Retorno do `app_name` Real em `addNewApp`
+
+- **📅 Data e Hora**: 27/11/2026 às 05:59
+- **🎯 Título / Funcionalidade**: Coexistência de Cards Manuais com Mesmo Executável (`allowDuplicateExecutable`) e Conversão de `addNewApp` para Handler Assíncrono Retornando o `app_name` Efetivo
+- **💡 Motivação**: O usuário relatou não conseguir adicionar o software **"Longshot Launcher"** (`Longshot Launcher.lnk` → `LongshotLauncher.exe`) na loja **Softwares**. A investigação revelou que o atalho `Zelda Ocarina of Time.lnk` já cadastrado na loja **Nintendo Switch** (`5ivBpDcRXo3iFMGfYT2XX5`) apontava para o **mesmo executável** (`LongshotLauncher.exe --play`). Como `SideloadLibraryManager.addNewApp` deduplicava rigidamente apenas por `normExe === valExe` e era fire-and-forget (`addListener` retornando `void`), cada tentativa sobrescrevia/renomeava o card existente do Zelda na loja **Nintendo Switch** enquanto `SideloadDialog` gravava a atribuição de loja (**Softwares**) sob um ID descartado/órfão.
+- **🛠️ O que foi feito**:
+  1. **Suporte a Coexistência de Títulos Diferentes com Mesmo Executável (`src/backend/storeManagers/sideload/library.ts`, `src/common/types.ts`)**:
+     - Adicionada propriedade opcional `allowDuplicateExecutable?: boolean` em `GameInfo`, enviada automaticamente como `true` pelo `SideloadDialog` quando `!editMode` (adição manual de novo jogo/software).
+     - Em `SideloadLibraryManager.addNewApp`, quando `allowDuplicateExecutable` é `true` e o título digitado pelo usuário é diferente de um card existente, o backend cria um novo card independente mesmo que ambos apontem para o mesmo `.exe` (como `LongshotLauncher.exe`, emuladores ou launchers multi-jogos), sem sobrescrever o jogo existente. O scanner automático mantém a deduplicação por executável intacta.
+  2. **Conversão de `addNewApp` para Handler IPC Retornando o `app_name` Salvo (`main.ts`, `preload/api/library.ts`, `common/types/ipc.ts`, `SideloadDialog/index.tsx`)**:
+     - `addNewApp` agora usa `addHandler` / `makeHandlerInvoker` e retorna o `app_name` efetivamente salvo (`game.app_name`).
+     - `SideloadDialog.handleInstall()` aguarda `savedAppName = await window.api.addNewApp(...)` e grava `GamesConfig` e `heroic_game_assignments` (loja selecionada) sempre sob `savedAppName`, eliminando atribuições órfãs e condições de corrida com `refreshLibrary`.
+  3. **Testes Unitários (`src/backend/storeManagers/sideload/__tests__/library.test.ts`)**:
+     - Adicionados 2 testes validando coexistência de `"Zelda Ocarina of Time"` e `"Longshot Launcher"` no mesmo `LongshotLauncher.exe` e retorno do `app_name` existente quando título e executável coincidem.
+- **📂 Arquivos Alterados**:
+  - `src/common/types.ts`
+  - `src/common/types/ipc.ts`
+  - `src/preload/api/library.ts`
+  - `src/backend/main.ts`
+  - `src/backend/storeManagers/sideload/library.ts`
+  - `src/frontend/screens/Library/components/InstallModal/SideloadDialog/index.tsx`
+  - `src/backend/storeManagers/sideload/__tests__/library.test.ts`
+- **🚀 Benefício & Impacto**:
+  - Softwares/launchers e jogos que compartilham o mesmo `.exe` (como `Longshot Launcher` e `Zelda Ocarina of Time`, ou jogos via emuladores) podem ser adicionados normalmente em suas respectivas lojas sem sobrescrever cards existentes nem gerar IDs órfãos em `heroic_game_assignments`.
+
+---
+
+### [24/11/2026 às 08:25] — Backup & Restauração Condicional Automática de Fontes & Listas M3U do Ghost IPTV dentro do Alazterflix
+
+- **📅 Data e Hora**: 24/11/2026 às 08:25
+- **🎯 Título / Funcionalidade**: Inclusão Condicional Automática no Backup (`.GhostBackup` & Nuvem) e Restauração 100% Funcional das Fontes & Listas M3U do Ghost IPTV dentro do Alazterflix
+- **💡 Motivação**: O usuário solicitou adicionar ao backup do Ghost Games Launcher as **Fontes & Listas Cadastradas (M3U)** do Ghost IPTV dentro do Alazterflix, de forma **automática e estritamente condicional**: somente incluir/restaurar quando **tanto o plugin Alazterflix quanto o addon Ghost IPTV estiverem instalados** e houver fontes/listas cadastradas pelo usuário; caso contrário, o backup ignora completamente. Ao restaurar o backup, as listas M3U devem ficar imediatamente instaladas e funcionais.
+- **🛠️ O que foi feito**:
+  1. **Módulo Dedicado de Backup/Restauração Condicional (`src/backend/backup/ghostIptvBackup.ts`)**:
+     - `areAlazterflixAndGhostIptvInstalled()`: verifica na pasta `plugins/` do usuário se tanto o Alazterflix (`com.ghost.alazterflix` / `com.ghost.cinema`) quanto o Ghost IPTV (`com.ghost.iptv`) estão instalados.
+     - `collectGhostIptvBackupData()`: coleta `addons.json` (com fallback automático para diretórios ativos do servidor), arquivos M3U customizados/enviados em `plugins/com.ghost.iptv/custom_m3u/*.m3u` (tetos seguros de 5 MB/arquivo e 15 MB globais) e playlists/EPG nativas do Alazterflix; ignora a fonte nativa embutida `org.meufutebol` na checagem e retorna `undefined` se os plugins não estiverem instalados ou se não houver nenhuma fonte/lista cadastrada pelo usuário.
+     - `restoreGhostIptvBackupData()`: restaura atomicamente (`.tmp` + `renameSync`) `addons.json`, `custom_m3u/*.m3u` (com validação anti-path-traversal e reescrita automática da porta local do servidor `/api/addons/m3u/...`) e playlists nativas apenas quando ambos os plugins estão instalados no destino.
+  2. **Persistência Canônica e Endpoints Completos no Servidor Local (`src/backend/plugins/ghostIptvServer.ts`)**:
+     - Centralizada a gravação atômica de `addons.json` em `%APPDATA%\ghost\plugins\com.ghost.iptv\addons.json` e arquivos M3U em `custom_m3u/`, com leitura prioritária do caminho canônico e cabeçalho `Cache-Control: no-cache, no-store, must-revalidate`.
+     - Implementados no servidor local os endpoints `/api/addons/toggle`, `/api/addons/edit`, `/api/addons/upload`, `/api/addons/save-m3u` e `GET /api/addons/m3u/<id>.m3u`, além de preservação de credenciais Xtream (`username`, `password`, `resolved_url`) em `POST /api/addons`.
+  3. **Integração no Backup, Restauração e Reload ao Vivo (`backupHelper.ts`, `main.ts`, `localStorageSnapshot.ts`, `localStorageBackup.ts`, `BackupRestoreSettings.tsx`, `Alazterflix/index.tsx`)**:
+     - `getBackupPayload()` só embute `ghostIptvSources`/`ghostIptvAddons` e chaves `localStorage` de TV quando as condições forem atendidas; caso contrário, omite completamente.
+     - `importGhostBackup` restaura via `restoreGhostIptvBackupData()`, e `BackupRestoreSettings` dispara `ghostTvPlaylistsChanged`, recarregando imediatamente o iframe do Ghost IPTV em `Alazterflix/index.tsx` para hidratar e ativar todas as listas M3U restauradas sem reiniciar o launcher.
+- **📂 Arquivos Alterados**:
+  - `src/backend/backup/ghostIptvBackup.ts` (novo)
+  - `src/backend/backup/__tests__/ghostIptvBackup.test.ts` (novo)
+  - `src/backend/plugins/ghostIptvServer.ts`
+  - `src/backend/backup/backupHelper.ts`
+  - `src/backend/main.ts`
+  - `src/backend/backup/localStorageSnapshot.ts`
+  - `src/frontend/utils/localStorageBackup.ts`
+  - `src/frontend/screens/Settings/components/BackupRestoreSettings.tsx`
+  - `src/frontend/screens/Alazterflix/index.tsx`
+- **🚀 Benefício & Impacto**:
+  - Todas as listas M3U, fontes Xtream/Saimo e arquivos `.m3u` cadastrados no Ghost IPTV agora acompanham automaticamente o `.GhostBackup` e o Backup em Nuvem quando Alazterflix + Ghost IPTV estão instalados e configurados, sendo restaurados imediatamente funcionais no destino — e 100% ignorados para usuários sem os plugins ou sem listas cadastradas. 30/30 testes Jest aprovados e `pnpm run codecheck` com 0 erros.
+
+---
+
 ### [22/11/2026 às 03:20] — Slide Horizontal por Clique e Arraste com o Mouse (Zero Scrollbar) e Blindagem Anti-Colisão de Nomes na Barra de Lojas (Personalização & Biblioteca)
 
 - **📅 Data e Hora**: 22/11/2026 às 03:20

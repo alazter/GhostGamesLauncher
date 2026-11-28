@@ -7,6 +7,11 @@ import { userDataPath } from '../constants/paths'
 import { join } from 'path'
 import { existsSync, readFileSync, readdirSync, lstatSync } from 'graceful-fs'
 import { getReleaseArchive } from '../releases/archive'
+import {
+  collectGhostIptvBackupData,
+  GhostIptvBackupData
+} from './ghostIptvBackup'
+import { getGhostIptvAddonsFallbackPaths } from '../plugins/ghostIptvServer'
 
 export async function getBackupPayload(): Promise<any> {
   const settings = (configStore.get_nodefault('settings') || {}) as any
@@ -161,12 +166,16 @@ export async function getBackupPayload(): Promise<any> {
     }
   } catch {}
 
-  let ghostIptvAddons: any = null
+  // Fontes & Listas Cadastradas do Ghost IPTV (dentro do Alazterflix):
+  // Regra condicional automática: só inclui no backup se TANTO o plugin Alazterflix QUANTO o addon Ghost IPTV
+  // estiverem instalados E houver pelo menos 1 fonte/lista cadastrada pelo usuário; caso contrário, ignora.
+  let ghostIptvSources: GhostIptvBackupData | undefined
   try {
-    const iptvAddonsPath = join(userDataPath, 'plugins', 'com.ghost.iptv', 'web', 'addons.json')
-    if (existsSync(iptvAddonsPath)) {
-      ghostIptvAddons = JSON.parse(readFileSync(iptvAddonsPath, 'utf8').replace(/^\uFEFF/, '').trim())
-    }
+    ghostIptvSources = collectGhostIptvBackupData({
+      userDataPath,
+      extraAddonsCandidatePaths: getGhostIptvAddonsFallbackPaths(),
+      pluginsData
+    })
   } catch {}
 
   let pluginsState: any = null
@@ -220,8 +229,20 @@ export async function getBackupPayload(): Promise<any> {
     }
   } catch {}
 
+  // Se Alazterflix + Ghost IPTV não estiverem instalados ou não houver fontes/listas,
+  // remove chaves de listas IPTV do snapshot de localStorage para ignorar completamente.
+  const rawLocalStorageData: Record<string, string> = {
+    ...(settings.localStorageBackup || {})
+  }
+  if (!ghostIptvSources) {
+    delete rawLocalStorageData.ghost_alazterflix_tv_playlists
+    delete rawLocalStorageData.ghost_alazterflix_tv_epg_sources
+    delete rawLocalStorageData.ghost_alazterflix_tv_favorites
+    delete rawLocalStorageData.ghost_alazterflix_tv_epg_assignments
+  }
+
   // Exclude sensitive or temporary keys if any, though settings is generally fine
-  return {
+  const payload: Record<string, any> = {
     version: '0.0.9-alpha',
     exportedAt: new Date().toISOString(),
     settings,
@@ -239,15 +260,21 @@ export async function getBackupPayload(): Promise<any> {
     blacklist: await getBlacklist(),
     playtimes: tsStore.raw_store || {},
     // Get the synced localStorage data saved under settings
-    localStorageData: settings.localStorageBackup || {},
+    localStorageData: rawLocalStorageData,
     releaseArchive: await (await getReleaseArchive()).export(),
     externalGames: externalGamesBackup,
     pluginsData,
-    ghostIptvAddons,
     pluginsState,
     sourceEnginesState,
     sourceSettings,
     stremioData
   }
+
+  if (ghostIptvSources) {
+    payload.ghostIptvSources = ghostIptvSources
+    payload.ghostIptvAddons = ghostIptvSources.addons
+  }
+
+  return payload
 }
 

@@ -371,23 +371,25 @@ export default function SideloadDialog({
       : (restored.art_square || heroUrl || fallbackImage)
     const finalTitle = title || restored.title || t('sideload.field.title', 'Title')
 
-    window.api.addNewApp({
-      runner: 'sideload',
-      app_name,
-      title: finalTitle,
-      install: {
-        executable: selectedExe,
-        platform: gameInfo.install?.platform ?? platformToInstall
-      },
-      art_cover: finalCover,
-      is_installed: Boolean(hasExecutable || gameUrl || (!gameInfo.accountProvider && gameInfo.is_installed)),
-      art_square: finalSquare,
-      canRunOffline: true,
-      browserUrl: gameUrl,
-      customUserAgent,
-      launchFullScreen
-    })
-    const gameSettings = await getGameSettings(app_name, 'sideload')
+    const savedAppName =
+      (await window.api.addNewApp({
+        runner: 'sideload',
+        app_name,
+        title: finalTitle,
+        install: {
+          executable: selectedExe,
+          platform: gameInfo.install?.platform ?? platformToInstall
+        },
+        art_cover: finalCover,
+        is_installed: Boolean(hasExecutable || gameUrl || (!gameInfo.accountProvider && gameInfo.is_installed)),
+        art_square: finalSquare,
+        canRunOffline: true,
+        browserUrl: gameUrl,
+        customUserAgent,
+        launchFullScreen,
+        allowDuplicateExecutable: !editMode
+      })) || app_name
+    const gameSettings = await getGameSettings(savedAppName, 'sideload')
     if (gameSettings) {
       const updatedConfig: any = {
         ...gameSettings,
@@ -399,7 +401,7 @@ export default function SideloadDialog({
         updatedConfig.wineCrossoverBottle = crossoverBottle
       }
       window.api.writeConfig({
-        appName: app_name,
+        appName: savedAppName,
         config: updatedConfig
       })
     }
@@ -408,9 +410,9 @@ export default function SideloadDialog({
       const rawAssignments = localStorage.getItem('heroic_game_assignments') || '{}'
       const assignments = JSON.parse(rawAssignments)
       if (selectedStoreId && selectedStoreId !== 'none') {
-        assignments[app_name] = selectedStoreId
+        assignments[savedAppName] = selectedStoreId
       } else {
-        delete assignments[app_name]
+        delete assignments[savedAppName]
       }
       localStorage.setItem('heroic_game_assignments', JSON.stringify(assignments))
       window.dispatchEvent(new Event('gameAssignmentsChanged'))

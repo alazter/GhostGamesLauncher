@@ -5,7 +5,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faSpinner,
   faSearch,
-  faTimes,
   faArrowLeft
 } from '@fortawesome/free-solid-svg-icons'
 import CachedImage from 'frontend/components/UI/CachedImage'
@@ -236,10 +235,10 @@ export default function SteamGridDBPicker({
         {!hideCloseButton && (
           <button
             type="button"
-            aria-label="close"
+            aria-label="back"
             className="SteamGridDBPicker__close-btn dialog-close-button"
             onClick={onClose}
-            title={t('button.back', 'Go Back')}
+            title={t('button.back', 'Voltar')}
             style={{
               background: 'transparent',
               backgroundColor: 'transparent',
@@ -250,7 +249,7 @@ export default function SteamGridDBPicker({
               cursor: 'pointer'
             }}
           >
-            <FontAwesomeIcon icon={faTimes} style={{ fontSize: '18px' }} />
+            <FontAwesomeIcon icon={faArrowLeft} style={{ fontSize: '18px' }} />
           </button>
         )}
       </div>

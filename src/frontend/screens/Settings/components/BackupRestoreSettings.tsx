@@ -86,6 +86,7 @@ export const BackupRestoreSettings: React.FC = () => {
           window.dispatchEvent(new Event('heroicSettingsChanged'))
           window.dispatchEvent(new Event('customBgChanged'))
         }
+        window.dispatchEvent(new Event('ghostTvPlaylistsChanged'))
         setMessage({ type: 'success', text: 'Backup e biblioteca restaurados com sucesso!' })
       } else if (res.error && res.error !== 'Importação cancelada.') {
         setMessage({ type: 'error', text: res.error })
@@ -162,6 +163,7 @@ export const BackupRestoreSettings: React.FC = () => {
             window.dispatchEvent(new Event('heroicSettingsChanged'))
             window.dispatchEvent(new Event('customBgChanged'))
           }
+          window.dispatchEvent(new Event('ghostTvPlaylistsChanged'))
           ;(configStore as any).set('backup.lastModified', Date.now())
           ;(configStore as any).delete('backup.lastError')
           window.dispatchEvent(new Event('backupStateChanged'))

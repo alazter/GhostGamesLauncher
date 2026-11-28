@@ -5,6 +5,11 @@ import path from 'node:path'
 import { app } from 'electron'
 import { logInfo, logError, LogPrefix } from 'backend/logger'
 import { engineVersionGt } from './enginePolicy'
+import {
+  getGhostIptvCanonicalAddonsPath,
+  getGhostIptvCustomM3uDir,
+  sanitizeM3uEntryId
+} from '../backup/ghostIptvBackup'
 
 const DEFAULT_PORT = 8888
 const DEFAULT_UA =
@@ -351,6 +356,109 @@ function findDataFile(webDir: string, relCandidates: string[]): string | null {
   return null
 }
 
+export function getGhostIptvAddonsFallbackPaths(): string[] {
+  const webDir = resolveWebDirectory()
+  const found = findDataFile(webDir, ['addons.json'])
+  const candidates = [
+    found,
+    path.join(webDir, 'addons.json'),
+    path.join(webDir, '..', 'addons.json'),
+    path.join(LOCAL_DEV_ROOT, 'addons.json'),
+    path.join(LOCAL_DEV_ROOT, 'web', 'addons.json')
+  ]
+  return candidates.filter((p): p is string => Boolean(p))
+}
+
+function getCanonicalAddonsPath(webDir: string): string {
+  try {
+    return getGhostIptvCanonicalAddonsPath(app.getPath('userData'))
+  } catch {
+    return path.join(webDir, 'addons.json')
+  }
+}
+
+function getCanonicalCustomM3uDir(webDir: string): string {
+  try {
+    return getGhostIptvCustomM3uDir(app.getPath('userData'))
+  } catch {
+    return path.join(webDir, '..', 'custom_m3u')
+  }
+}
+
+function readCurrentAddons(webDir: string): any[] {
+  const canonicalPath = getCanonicalAddonsPath(webDir)
+  const candidates = [canonicalPath, findDataFile(webDir, ['addons.json'])]
+  for (const filePath of candidates) {
+    if (!filePath) continue
+    try {
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        const parsed = JSON.parse(
+          fs.readFileSync(filePath, 'utf-8').replace(/^\uFEFF/, '').trim() || '[]'
+        )
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch {}
+  }
+  return []
+}
+
+function writeCurrentAddons(webDir: string, addons: any[]): void {
+  const canonicalPath = getCanonicalAddonsPath(webDir)
+  fs.mkdirSync(path.dirname(canonicalPath), { recursive: true })
+  const tmpPath = `${canonicalPath}.tmp`
+  const serialized = JSON.stringify(addons, null, 2)
+  try {
+    fs.writeFileSync(tmpPath, serialized, 'utf-8')
+    fs.renameSync(tmpPath, canonicalPath)
+  } catch {
+    fs.writeFileSync(canonicalPath, serialized, 'utf-8')
+  }
+}
+
+function readRequestJsonBody(
+  req: http.IncomingMessage,
+  maxBytes = 20 * 1024 * 1024
+): Promise<any> {
+  return new Promise((resolveBody, rejectBody) => {
+    const chunks: Buffer[] = []
+    let total = 0
+    req.on('data', (chunk: Buffer | string) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      total += buf.length
+      if (total > maxBytes) {
+        rejectBody(new Error('Payload too large'))
+        req.destroy()
+        return
+      }
+      chunks.push(buf)
+    })
+    req.on('end', () => {
+      try {
+        const raw = Buffer.concat(chunks).toString('utf-8').trim()
+        resolveBody(raw ? JSON.parse(raw) : {})
+      } catch (err) {
+        rejectBody(err)
+      }
+    })
+    req.on('error', rejectBody)
+  })
+}
+
+function sendJsonNoCache(
+  res: http.ServerResponse,
+  statusCode: number,
+  payload: unknown
+): void {
+  const out = Buffer.from(JSON.stringify(payload), 'utf-8')
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': out.length,
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-cache, no-store, must-revalidate'
+  })
+  res.end(out)
+}
+
 function resolveChannelStreamFromCache(
   webDir: string,
   rawId: string
@@ -518,17 +626,33 @@ function proxyM3u8(
         'd1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz'
       )
     }
-    const parsed = new URL(targetUrl)
+    const parsed = new URL(targetUrl.replace(/ /g, '%20'))
+    const isEmbedCdn =
+      targetUrl.includes('cdn8embed.xyz') || targetUrl.includes('cdn10embed.xyz')
+    const hdrs: Record<string, string> = {
+      'User-Agent':
+        customHeaders?.ua ||
+        (isEmbedCdn
+          ? DEFAULT_UA
+          : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15'),
+      Accept: '*/*'
+    }
+    if (customHeaders?.referer) {
+      hdrs.Referer = customHeaders.referer
+      try {
+        const refU = new URL(customHeaders.referer)
+        hdrs.Origin = `${refU.protocol}//${refU.host}`
+      } catch {}
+    } else if (isEmbedCdn) {
+      hdrs.Referer = DEFAULT_REF
+      hdrs.Origin = DEFAULT_REF
+    }
     const options: https.RequestOptions = {
       protocol: parsed.protocol,
       hostname: parsed.hostname,
       port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
       path: parsed.pathname + parsed.search,
-      headers: {
-        'User-Agent': customHeaders?.ua || DEFAULT_UA,
-        Referer: customHeaders?.referer || DEFAULT_REF,
-        Origin: customHeaders?.origin || DEFAULT_REF
-      },
+      headers: hdrs,
       rejectUnauthorized: false
     }
 
@@ -570,32 +694,46 @@ function proxyM3u8(
         const lines = m3u8Text.split(/\r?\n/)
         const rewritten: string[] = []
 
+        const extraQ =
+          (customHeaders?.referer
+            ? `&referer=${encodeURIComponent(customHeaders.referer)}`
+            : '') +
+          (customHeaders?.ua
+            ? `&ua=${encodeURIComponent(customHeaders.ua)}`
+            : '')
+
         for (let line of lines) {
           const s = line.trim()
           if (!s) continue
           if (s.startsWith('#')) {
-            if (s.startsWith('#EXT-X-KEY:') && s.includes('URI="')) {
+            if (
+              (s.startsWith('#EXT-X-KEY:') ||
+                s.startsWith('#EXT-X-MEDIA:') ||
+                s.startsWith('#EXT-X-MAP:')) &&
+              s.includes('URI="')
+            ) {
               const uStart = s.indexOf('URI="') + 5
               const uEnd = s.indexOf('"', uStart)
               if (uEnd !== -1) {
                 const keyUrl = s.substring(uStart, uEnd)
-                const absKey = keyUrl.startsWith('http')
-                  ? keyUrl
-                  : baseCdn + keyUrl
-                const proxiedKey = `${baseUrl}/ts?url=${encodeURIComponent(absKey)}`
+                const absKey = new URL(keyUrl, targetUrl).toString()
+                const route = absKey.toLowerCase().includes('.m3u8')
+                  ? 'sub.m3u8'
+                  : 'ts'
+                const proxiedKey = `${baseUrl}/${route}?url=${encodeURIComponent(absKey)}${extraQ}`
                 line = s.substring(0, uStart) + proxiedKey + s.substring(uEnd)
               }
             }
             rewritten.push(line)
           } else {
-            const absUrl = s.startsWith('http') ? s : baseCdn + s
-            if (s.includes('.m3u8')) {
+            const absUrl = new URL(s, targetUrl).toString()
+            if (absUrl.toLowerCase().includes('.m3u8')) {
               rewritten.push(
-                `${baseUrl}/sub.m3u8?url=${encodeURIComponent(absUrl)}`
+                `${baseUrl}/sub.m3u8?url=${encodeURIComponent(absUrl)}${extraQ}`
               )
             } else {
               rewritten.push(
-                `${baseUrl}/ts?url=${encodeURIComponent(absUrl)}`
+                `${baseUrl}/ts?url=${encodeURIComponent(absUrl)}${extraQ}`
               )
             }
           }
@@ -634,7 +772,11 @@ function proxyM3u8(
   }
 }
 
-function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
+function proxyTsSegment(
+  targetUrl: string,
+  res: http.ServerResponse,
+  customHeaders?: { ua?: string; referer?: string; range?: string }
+): void {
   try {
     if (targetUrl.includes('cdn10embed.xyz')) {
       targetUrl = targetUrl.replace(
@@ -642,17 +784,36 @@ function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
         'd1-ywppjexvlyulasvmgzjdftfjikth0711oq80soveui6lkbi2iza2zf.cdn8embed.xyz'
       )
     }
-    const parsed = new URL(targetUrl)
+    const parsed = new URL(targetUrl.replace(/ /g, '%20'))
+    const isEmbedCdn =
+      targetUrl.includes('cdn8embed.xyz') || targetUrl.includes('cdn10embed.xyz')
+    const hdrs: Record<string, string> = {
+      'User-Agent':
+        customHeaders?.ua ||
+        (isEmbedCdn
+          ? DEFAULT_UA
+          : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15'),
+      Accept: '*/*'
+    }
+    if (customHeaders?.referer) {
+      hdrs.Referer = customHeaders.referer
+      try {
+        const refU = new URL(customHeaders.referer)
+        hdrs.Origin = `${refU.protocol}//${refU.host}`
+      } catch {}
+    } else if (isEmbedCdn) {
+      hdrs.Referer = DEFAULT_REF
+      hdrs.Origin = DEFAULT_REF
+    }
+    if (customHeaders?.range) {
+      hdrs.Range = customHeaders.range
+    }
     const options: https.RequestOptions = {
       protocol: parsed.protocol,
       hostname: parsed.hostname,
       port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
       path: parsed.pathname + parsed.search,
-      headers: {
-        'User-Agent': DEFAULT_UA,
-        Referer: DEFAULT_REF,
-        Origin: DEFAULT_REF
-      },
+      headers: hdrs,
       rejectUnauthorized: false
     }
 
@@ -666,7 +827,7 @@ function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
         const nextUrl = upstreamRes.headers.location.startsWith('http')
           ? upstreamRes.headers.location
           : new URL(upstreamRes.headers.location, targetUrl).toString()
-        proxyTsSegment(nextUrl, res)
+        proxyTsSegment(nextUrl, res, customHeaders)
         return
       }
 
@@ -685,7 +846,7 @@ function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
       }
 
       const headers: Record<string, string | number> = {
-        'Content-Type': 'video/mp2t',
+        'Content-Type': String(upstreamRes.headers['content-type'] || 'video/mp2t'),
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
         'Access-Control-Allow-Headers': '*'
@@ -693,8 +854,14 @@ function proxyTsSegment(targetUrl: string, res: http.ServerResponse): void {
       if (upstreamRes.headers['content-length']) {
         headers['Content-Length'] = upstreamRes.headers['content-length']
       }
+      if (upstreamRes.headers['content-range']) {
+        headers['Content-Range'] = upstreamRes.headers['content-range']
+      }
+      if (upstreamRes.headers['accept-ranges']) {
+        headers['Accept-Ranges'] = upstreamRes.headers['accept-ranges']
+      }
 
-      res.writeHead(200, headers)
+      res.writeHead(upstreamRes.statusCode === 206 ? 206 : 200, headers)
       res.on('close', () => {
         upstreamRes.destroy()
         req.destroy()
@@ -783,7 +950,9 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
           ) {
             const targetUrl = query.get('url')
             if (targetUrl) {
-              proxyM3u8(targetUrl, baseUrl, res)
+              const refQ = query.get('referer') || undefined
+              const uaQ = query.get('ua') || undefined
+              proxyM3u8(targetUrl, baseUrl, res, { referer: refQ, ua: uaQ })
               return
             }
           }
@@ -813,7 +982,17 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
           if (pathname === '/ts' || pathname === '/segment') {
             const targetUrl = query.get('url')
             if (targetUrl) {
-              proxyTsSegment(targetUrl, res)
+              const refQ = query.get('referer') || undefined
+              const uaQ = query.get('ua') || undefined
+              const rangeHdr =
+                typeof req.headers.range === 'string'
+                  ? req.headers.range
+                  : undefined
+              proxyTsSegment(targetUrl, res, {
+                referer: refQ,
+                ua: uaQ,
+                range: rangeHdr
+              })
               return
             }
           }
@@ -991,93 +1170,351 @@ export function startGhostIptvServer(): Promise<{ port: number; url: string }> {
             return
           }
 
-          if (pathname === '/api/addons') {
-            const addonsFile =
-              findDataFile(webDir, ['addons.json']) ||
-              path.join(webDir, 'addons.json')
-            if (req.method === 'GET') {
-              const data = fs.existsSync(addonsFile)
-                ? fs.readFileSync(addonsFile)
-                : Buffer.from('[]', 'utf-8')
+          if (pathname.startsWith('/api/addons/m3u/') && req.method === 'GET') {
+            const rawName = decodeURIComponent(
+              pathname.slice('/api/addons/m3u/'.length)
+            )
+            const safeId = sanitizeM3uEntryId(rawName)
+            const customM3uDir = path.resolve(getCanonicalCustomM3uDir(webDir))
+            const targetFile = safeId
+              ? path.resolve(customM3uDir, `${safeId}.m3u`)
+              : ''
+            if (
+              targetFile &&
+              targetFile.startsWith(customM3uDir + path.sep) &&
+              fs.existsSync(targetFile) &&
+              fs.statSync(targetFile).isFile()
+            ) {
+              const buf = fs.readFileSync(targetFile)
               res.writeHead(200, {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Content-Length': data.length,
-                'Access-Control-Allow-Origin': '*'
+                'Content-Type': 'application/x-mpegurl; charset=utf-8',
+                'Content-Length': buf.length,
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
               })
-              res.end(data)
+              res.end(buf)
+              return
+            }
+            res.writeHead(404, {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'Access-Control-Allow-Origin': '*'
+            })
+            res.end('M3U file not found')
+            return
+          }
+
+          if (pathname === '/api/addons/toggle' && req.method === 'POST') {
+            readRequestJsonBody(req)
+              .then((data) => {
+                const aid = String(data?.id || '').trim()
+                if (!aid) {
+                  sendJsonNoCache(res, 400, {
+                    status: 'error',
+                    message: 'ID da fonte não informado.'
+                  })
+                  return
+                }
+                const existing = readCurrentAddons(webDir)
+                let target = existing.find((a) => String(a?.id) === aid)
+                if (target) {
+                  target.enabled = target.enabled === false
+                } else if (aid === 'org.meufutebol') {
+                  target = {
+                    id: 'org.meufutebol',
+                    name: 'Ghost IPTV',
+                    source_type: 'builtin',
+                    enabled: false
+                  }
+                  existing.unshift(target)
+                } else {
+                  sendJsonNoCache(res, 404, {
+                    status: 'error',
+                    message: 'Fonte não encontrada.'
+                  })
+                  return
+                }
+                writeCurrentAddons(webDir, existing)
+                sendJsonNoCache(res, 200, {
+                  status: 'success',
+                  addon: target,
+                  addons: existing,
+                  channels_count: 68,
+                  base_channels: 68,
+                  custom_channels: 0
+                })
+              })
+              .catch((err: any) => {
+                sendJsonNoCache(res, 400, {
+                  status: 'error',
+                  message: err?.message || 'Bad Request'
+                })
+              })
+            return
+          }
+
+          if (pathname === '/api/addons/edit' && req.method === 'POST') {
+            readRequestJsonBody(req)
+              .then((data) => {
+                const aid = String(data?.id || '').trim()
+                if (!aid) {
+                  sendJsonNoCache(res, 400, {
+                    status: 'error',
+                    message: 'ID da fonte não informado.'
+                  })
+                  return
+                }
+                const existing = readCurrentAddons(webDir)
+                const idx = existing.findIndex((a) => String(a?.id) === aid)
+                if (idx < 0) {
+                  sendJsonNoCache(res, 404, {
+                    status: 'error',
+                    message: 'Fonte não encontrada.'
+                  })
+                  return
+                }
+                const current = existing[idx]
+                const updated = {
+                  ...current,
+                  name:
+                    typeof data.name === 'string' && data.name.trim()
+                      ? data.name.trim()
+                      : current.name,
+                  manifest_url:
+                    typeof data.manifest_url === 'string' &&
+                    data.manifest_url.trim()
+                      ? data.manifest_url.trim()
+                      : current.manifest_url,
+                  group_override:
+                    typeof data.group_override === 'string'
+                      ? data.group_override.trim()
+                      : current.group_override,
+                  username:
+                    typeof data.username === 'string'
+                      ? data.username.trim()
+                      : current.username,
+                  password:
+                    typeof data.password === 'string'
+                      ? data.password.trim()
+                      : current.password
+                }
+                existing[idx] = updated
+                writeCurrentAddons(webDir, existing)
+                sendJsonNoCache(res, 200, {
+                  status: 'success',
+                  addon: updated,
+                  addons: existing
+                })
+              })
+              .catch((err: any) => {
+                sendJsonNoCache(res, 400, {
+                  status: 'error',
+                  message: err?.message || 'Bad Request'
+                })
+              })
+            return
+          }
+
+          if (pathname === '/api/addons/upload' && req.method === 'POST') {
+            readRequestJsonBody(req, 20 * 1024 * 1024)
+              .then((data) => {
+                const content = String(data?.content || '')
+                if (!content.trim()) {
+                  sendJsonNoCache(res, 400, {
+                    status: 'error',
+                    message: 'Arquivo M3U vazio.'
+                  })
+                  return
+                }
+                const existing = readCurrentAddons(webDir)
+                const id = `custom_m3u_${Date.now()}`
+                const safeId = sanitizeM3uEntryId(id)
+                const customM3uDir = path.resolve(
+                  getCanonicalCustomM3uDir(webDir)
+                )
+                fs.mkdirSync(customM3uDir, { recursive: true })
+                const m3uFilePath = path.resolve(customM3uDir, `${safeId}.m3u`)
+                if (!m3uFilePath.startsWith(customM3uDir + path.sep)) {
+                  sendJsonNoCache(res, 400, {
+                    status: 'error',
+                    message: 'ID inválido.'
+                  })
+                  return
+                }
+                fs.writeFileSync(`${m3uFilePath}.tmp`, content, 'utf-8')
+                fs.renameSync(`${m3uFilePath}.tmp`, m3uFilePath)
+
+                const extCount = (content.match(/^#EXTINF:/gm) || []).length
+                const urlCount = (content.match(/^https?:\/\//gm) || []).length
+                const addedChannels = Math.max(extCount, urlCount)
+                const fileName = String(data?.filename || 'lista.m3u').trim()
+                const cleanGroup = String(data?.group || '').trim()
+                const cleanName =
+                  String(data?.name || '').trim() ||
+                  cleanGroup ||
+                  fileName.replace(/\.m3u8?$/i, '') ||
+                  `Lista M3U ${existing.length + 1}`
+
+                const localM3uUrl = `http://127.0.0.1:${activePort}/api/addons/m3u/${safeId}.m3u`
+                const newAddon = {
+                  id: safeId,
+                  name: cleanName,
+                  manifest_url: localM3uUrl,
+                  resolved_url: localM3uUrl,
+                  enabled: true,
+                  group_override: cleanGroup,
+                  source_type: 'm3u_file',
+                  channels_count: addedChannels
+                }
+                existing.push(newAddon)
+                writeCurrentAddons(webDir, existing)
+                sendJsonNoCache(res, 200, {
+                  status: 'success',
+                  addon: newAddon,
+                  addons: existing,
+                  added_channels: addedChannels,
+                  channels_count: 68 + addedChannels
+                })
+              })
+              .catch((err: any) => {
+                sendJsonNoCache(res, 400, {
+                  status: 'error',
+                  message: err?.message || 'Erro ao importar arquivo M3U.'
+                })
+              })
+            return
+          }
+
+          if (pathname === '/api/addons/save-m3u' && req.method === 'POST') {
+            readRequestJsonBody(req, 20 * 1024 * 1024)
+              .then((data) => {
+                const aid = String(data?.id || '').trim()
+                const content = String(data?.content || '')
+                const safeId = sanitizeM3uEntryId(aid)
+                if (!safeId || !content.trim()) {
+                  sendJsonNoCache(res, 400, {
+                    status: 'error',
+                    message: 'Dados inválidos para salvar M3U.'
+                  })
+                  return
+                }
+                const customM3uDir = path.resolve(
+                  getCanonicalCustomM3uDir(webDir)
+                )
+                fs.mkdirSync(customM3uDir, { recursive: true })
+                const m3uFilePath = path.resolve(customM3uDir, `${safeId}.m3u`)
+                if (!m3uFilePath.startsWith(customM3uDir + path.sep)) {
+                  sendJsonNoCache(res, 400, {
+                    status: 'error',
+                    message: 'ID inválido.'
+                  })
+                  return
+                }
+                fs.writeFileSync(`${m3uFilePath}.tmp`, content, 'utf-8')
+                fs.renameSync(`${m3uFilePath}.tmp`, m3uFilePath)
+
+                const existing = readCurrentAddons(webDir)
+                const localM3uUrl = `http://127.0.0.1:${activePort}/api/addons/m3u/${safeId}.m3u`
+                const idx = existing.findIndex((a) => String(a?.id) === aid)
+                if (idx >= 0 && aid !== 'org.meufutebol') {
+                  existing[idx] = {
+                    ...existing[idx],
+                    resolved_url: localM3uUrl
+                  }
+                  writeCurrentAddons(webDir, existing)
+                }
+                sendJsonNoCache(res, 200, {
+                  status: 'success',
+                  url: localM3uUrl
+                })
+              })
+              .catch((err: any) => {
+                sendJsonNoCache(res, 400, {
+                  status: 'error',
+                  message: err?.message || 'Erro ao salvar M3U.'
+                })
+              })
+            return
+          }
+
+          if (pathname === '/api/addons') {
+            if (req.method === 'GET') {
+              const existing = readCurrentAddons(webDir)
+              sendJsonNoCache(res, 200, existing)
               return
             }
             if (req.method === 'POST') {
-              let bodyStr = ''
-              req.on('data', (chunk) => {
-                bodyStr += chunk.toString()
-              })
-              req.on('end', () => {
-                try {
-                  const data = JSON.parse(bodyStr || '{}')
-                  const existing = fs.existsSync(addonsFile)
-                    ? JSON.parse(fs.readFileSync(addonsFile, 'utf-8'))
-                    : []
-                  const newAddon = {
-                    id: `custom_${existing.length + 1}`,
-                    name:
-                      data.name || `Lista M3U / Addon ${existing.length + 1}`,
-                    manifest_url: String(data.manifest_url || '').trim(),
-                    enabled: true,
-                    group_override: String(
-                      data.group || 'Esportes Ao Vivo'
-                    ).trim()
+              readRequestJsonBody(req)
+                .then((data) => {
+                  const existing = readCurrentAddons(webDir)
+                  const rawUrl = String(data.manifest_url || '').trim()
+                  const username = String(data.username || '').trim()
+                  const password = String(data.password || '').trim()
+                  const groupOverride = String(
+                    data.group || data.group_override || ''
+                  ).trim()
+                  let resolvedUrl = rawUrl
+                  if (
+                    rawUrl &&
+                    username &&
+                    password &&
+                    !/get\.php/i.test(rawUrl)
+                  ) {
+                    const base = rawUrl.replace(/\/+$/, '')
+                    resolvedUrl = `${base}/get.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&type=m3u_plus&output=ts`
                   }
+                  const newAddon: Record<string, any> = {
+                    id: `custom_${Date.now()}`,
+                    name:
+                      String(data.name || '').trim() ||
+                      groupOverride ||
+                      `Lista M3U / Addon ${existing.length + 1}`,
+                    manifest_url: rawUrl,
+                    enabled: true,
+                    group_override: groupOverride
+                  }
+                  if (resolvedUrl && resolvedUrl !== rawUrl) {
+                    newAddon.resolved_url = resolvedUrl
+                  }
+                  if (username) newAddon.username = username
+                  if (password) newAddon.password = password
                   existing.push(newAddon)
-                  fs.writeFileSync(
-                    addonsFile,
-                    JSON.stringify(existing, null, 2),
-                    'utf-8'
-                  )
-                  const out = Buffer.from(
-                    JSON.stringify({ status: 'success', addon: newAddon }),
-                    'utf-8'
-                  )
-                  res.writeHead(200, {
-                    'Content-Type': 'application/json; charset=utf-8',
-                    'Content-Length': out.length,
-                    'Access-Control-Allow-Origin': '*'
+                  writeCurrentAddons(webDir, existing)
+                  sendJsonNoCache(res, 200, {
+                    status: 'success',
+                    addon: newAddon,
+                    addons: existing
                   })
-                  res.end(out)
-                } catch (err: any) {
+                })
+                .catch((err: any) => {
                   res.writeHead(400, { 'Content-Type': 'text/plain' })
                   res.end(err?.message || 'Bad Request')
-                }
-              })
+                })
               return
             }
             if (req.method === 'DELETE') {
               const id = query.get('id') || ''
-              if (fs.existsSync(addonsFile)) {
-                try {
-                  const existing = JSON.parse(
-                    fs.readFileSync(addonsFile, 'utf-8')
-                  )
-                  const filtered = Array.isArray(existing)
-                    ? existing.filter((a: any) => a?.id !== id)
-                    : []
-                  fs.writeFileSync(
-                    addonsFile,
-                    JSON.stringify(filtered, null, 2),
-                    'utf-8'
-                  )
-                } catch {}
+              const existing = readCurrentAddons(webDir)
+              const filtered = existing.filter((a: any) => String(a?.id) !== id)
+              writeCurrentAddons(webDir, filtered)
+              const safeId = sanitizeM3uEntryId(id)
+              if (safeId) {
+                const customM3uDir = path.resolve(
+                  getCanonicalCustomM3uDir(webDir)
+                )
+                const m3uFile = path.resolve(customM3uDir, `${safeId}.m3u`)
+                if (
+                  m3uFile.startsWith(customM3uDir + path.sep) &&
+                  fs.existsSync(m3uFile)
+                ) {
+                  try {
+                    fs.unlinkSync(m3uFile)
+                  } catch {}
+                }
               }
-              const out = Buffer.from(
-                JSON.stringify({ status: 'success' }),
-                'utf-8'
-              )
-              res.writeHead(200, {
-                'Content-Type': 'application/json; charset=utf-8',
-                'Content-Length': out.length,
-                'Access-Control-Allow-Origin': '*'
+              sendJsonNoCache(res, 200, {
+                status: 'success',
+                addons: filtered
               })
-              res.end(out)
               return
             }
           }

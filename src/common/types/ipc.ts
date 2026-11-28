@@ -142,7 +142,6 @@ interface SyncIPCFunctions {
   showItemInFolder: (item: string) => void
   clipboardWriteText: (text: string) => void
   processShortcut: (combination: string) => void
-  addNewApp: (args: GameInfo) => void
   updateSideloadedApps: (apps: GameInfo[]) => void
   showLogFileInFolder: (args: GetLogFileArgs) => void
   addShortcut: (appName: string, runner: Runner, fromMenu: boolean) => void
@@ -230,6 +229,7 @@ export interface StorageDrive {
 
 // ts-prune-ignore-next
 interface AsyncIPCFunctions {
+  addNewApp: (args: GameInfo) => Promise<string>
   getConnectedAccounts: () => Promise<ConnectedAccountStatus[]>
   connectAccount: (provider: AccountProvider) => Promise<AccountResult>
   syncAccount: (provider: AccountProvider) => Promise<AccountResult>

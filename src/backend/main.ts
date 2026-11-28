@@ -1650,9 +1650,24 @@ addHandler('importGhostBackup', async (event, fileContent?: string) => {
         }
       }
 
-      if (Array.isArray(backupData.ghostIptvAddons)) {
-        const iptvAddonsPath = path.resolve(userDataPath, 'plugins', 'com.ghost.iptv', 'web', 'addons.json')
-        writeAtomicJson(iptvAddonsPath, backupData.ghostIptvAddons)
+      if (backupData.ghostIptvSources || Array.isArray(backupData.ghostIptvAddons)) {
+        try {
+          const { restoreGhostIptvBackupData } = await import('./backup/ghostIptvBackup')
+          const { getGhostIptvServerPort } = await import('./plugins/ghostIptvServer')
+          const iptvRestoreRes = restoreGhostIptvBackupData({
+            userDataPath,
+            backupData,
+            serverPort: getGhostIptvServerPort()
+          })
+          if (iptvRestoreRes.restored) {
+            logInfo(
+              `[Backup] Fontes & Listas do Ghost IPTV restauradas (${iptvRestoreRes.addonsCount} fontes, ${iptvRestoreRes.customM3uCount} arquivos M3U, ${iptvRestoreRes.nativePlaylistsCount} playlists nativas).`,
+              LogPrefix.Backend
+            )
+          }
+        } catch (iptvErr) {
+          logWarning(['Failed to restore Ghost IPTV sources from backup:', iptvErr], LogPrefix.Backend)
+        }
       }
 
       if (backupData.pluginsState && typeof backupData.pluginsState === 'object') {
@@ -2518,7 +2533,7 @@ addListener('setTitleBarOverlay', (e, args) => {
   }
 })
 
-addListener('addNewApp', (e, args) =>
+addHandler('addNewApp', (_e, args) =>
   libraryManagerMap['sideload'].addNewApp(args)
 )
 addHandler('scanInstalledGames', () => scanInstalledGames())

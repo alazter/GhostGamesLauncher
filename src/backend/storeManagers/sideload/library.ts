@@ -29,8 +29,9 @@ export default class SideloadLibraryManager implements LibraryManager {
     is_installed,
     description,
     customUserAgent,
-    launchFullScreen
-  }: GameInfo): void {
+    launchFullScreen,
+    allowDuplicateExecutable
+  }: GameInfo): string {
     const current = libraryStore.get('games', [])
     const normTitle = (title || '').trim().toLowerCase()
     const cleanTargetTitle = (title || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -54,6 +55,22 @@ export default class SideloadLibraryManager implements LibraryManager {
         return true
       }
 
+      const valTitleNorm = (value.title || '').trim().toLowerCase()
+      const valTitleClean = (value.title || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const titleMatches =
+        value.runner === 'sideload' &&
+        ((Boolean(normTitle) && valTitleNorm === normTitle) ||
+          (Boolean(cleanTargetTitle) &&
+            cleanTargetTitle.length > 2 &&
+            valTitleClean === cleanTargetTitle))
+
+      // Se o usuário estiver adicionando manualmente um novo app/software com título diferente
+      // (ex.: "Longshot Launcher" compartilhando o mesmo .exe de "Zelda Ocarina of Time", ou emuladores),
+      // não sobrescrever o card existente — permite coexistência de cards distintos.
+      if (allowDuplicateExecutable && !titleMatches) {
+        return false
+      }
+
       // Se o ID for diferente (novo card sendo adicionado), só deve coincidir se for REALMENTE o mesmo jogo:
       const valExe = value.install?.executable
         ? value.install.executable.trim().toLowerCase().replace(/\\/g, '/')
@@ -73,15 +90,6 @@ export default class SideloadLibraryManager implements LibraryManager {
       }
 
       // 4. Coincidência de título para itens do runner sideload
-      const valTitleNorm = (value.title || '').trim().toLowerCase()
-      const valTitleClean = (value.title || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const titleMatches =
-        value.runner === 'sideload' &&
-        ((Boolean(normTitle) && valTitleNorm === normTitle) ||
-          (Boolean(cleanTargetTitle) &&
-            cleanTargetTitle.length > 2 &&
-            valTitleClean === cleanTargetTitle))
-
       if (titleMatches) {
         // Se o título for idêntico, só considera o mesmo se estiver na mesma pasta ou não tiver pasta definida
         const valDirNorm = value.folder_name ? value.folder_name.toLowerCase() : undefined
@@ -199,7 +207,7 @@ export default class SideloadLibraryManager implements LibraryManager {
     // Registra a instalação no ExternalGames e vincula à loja do manifesto
     if (computedIsInstalled && executable && exeFileExists) {
       try {
-        void ExternalGames.getInstance().getOrCreateInstallation(app_name, game).then(() => {
+        void ExternalGames.getInstance().getOrCreateInstallation(game.app_name, game).then(() => {
           if (manifestData) {
             const piratasSources = ['anker', 'steamrip', 'online-fix', 'ankergames']
             const isPiratasEligible = piratasSources.some((s) =>
@@ -212,13 +220,13 @@ export default class SideloadLibraryManager implements LibraryManager {
           }
         })
       } catch (err) {
-        logWarning(`Erro ao registrar instalação Ghost para ${app_name}: ${err}`)
+        logWarning(`Erro ao registrar instalação Ghost para ${game.app_name}: ${err}`)
       }
     }
 
     sendFrontendMessage('refreshLibrary', 'sideload')
 
-    return
+    return game.app_name
   }
 
   installState() {

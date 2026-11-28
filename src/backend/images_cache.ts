@@ -9,6 +9,7 @@ import { createHash } from 'crypto'
 import { join } from 'path'
 import { protocol, net, ipcMain } from 'electron'
 import { appFolder } from './constants/paths'
+import { isAnimatedImageBuffer } from './animatedImageDetector'
 
 const imagesCachePath = join(appFolder, 'images-cache')
 const cachedHashes = new Set<string>()
@@ -21,6 +22,25 @@ export const clearImageCacheNegative = () => {
 interface MemoryCacheEntry {
   buffer: Buffer
   mime: string
+  animated: boolean
+}
+
+const createImageResponse = (
+  buffer: Buffer,
+  mime: string,
+  animated: boolean,
+  isHead: boolean
+): Response => {
+  const headers = new Headers()
+  headers.set('Content-Type', mime)
+  headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+  headers.set('Access-Control-Allow-Origin', '*')
+  headers.set('Access-Control-Expose-Headers', 'X-Ghost-Animated')
+  headers.set('X-Ghost-Animated', animated ? '1' : '0')
+  return new Response(isHead ? null : buffer, {
+    status: 200,
+    headers
+  })
 }
 
 const memoryCache = new Map<string, MemoryCacheEntry>()
@@ -106,6 +126,13 @@ const detectMimeType = (url: string, buffer?: Buffer): string => {
       return 'image/webp'
     }
     if (
+      buffer.length >= 6 &&
+      (buffer.subarray(0, 6).toString('latin1') === 'GIF89a' ||
+        buffer.subarray(0, 6).toString('latin1') === 'GIF87a')
+    ) {
+      return 'image/gif'
+    }
+    if (
       buffer.subarray(0, 4).toString('utf8') === '<svg' ||
       buffer.subarray(0, 5).toString('utf8') === '<?xml'
     ) {
@@ -154,6 +181,7 @@ const getForwardHeaders = (request: Request): Record<string, string> => {
 }
 
 const getImageFromCache = async (request: Request): Promise<Response> => {
+  const isHead = (request.method || 'GET').toUpperCase() === 'HEAD'
   const url = request.url
   let cleanUrl = url
   if (cleanUrl.startsWith('imagecache://localhost/')) {
@@ -169,22 +197,19 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
 
   // 1. Instant negative cache check (0ms for known 404s)
   if (failedUrls.has(realUrl)) {
-    return new Response('File not found', {
+    return new Response(isHead ? null : 'File not found', {
       status: 404,
-      headers: { 'Cache-Control': 'public, max-age=86400' }
+      headers: {
+        'Cache-Control': 'public, max-age=86400',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   }
 
   // 2. Check ultra-fast in-memory RAM cache (0ms latency)
   const memHit = memoryCache.get(memoryKey)
   if (memHit) {
-    const headers = new Headers()
-    headers.set('Content-Type', memHit.mime)
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-    return new Response(memHit.buffer, {
-      status: 200,
-      headers
-    })
+    return createImageResponse(memHit.buffer, memHit.mime, memHit.animated, isHead)
   }
 
   // 3. Local file path on disk
@@ -211,17 +236,15 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
       try {
         const buffer = await fsPromises.readFile(resolvedPath)
         const mime = detectMimeType(resolvedPath, buffer)
-        setMemoryCache(memoryKey, { buffer, mime })
+        const animated = isAnimatedImageBuffer(buffer, mime)
+        setMemoryCache(memoryKey, { buffer, mime, animated })
 
-        const headers = new Headers()
-        headers.set('Content-Type', mime)
-        headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-        return new Response(buffer, {
-          status: 200,
-          headers
-        })
+        return createImageResponse(buffer, mime, animated, isHead)
       } catch (err) {
-        return new Response('File read error', { status: 500 })
+        return new Response(isHead ? null : 'File read error', {
+          status: 500,
+          headers: { 'Access-Control-Allow-Origin': '*' }
+        })
       }
     }
     if (failedUrls.size >= 2000) {
@@ -229,7 +252,10 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
       if (oldestFailed) failedUrls.delete(oldestFailed)
     }
     failedUrls.add(realUrl)
-    return new Response('File not found', { status: 404 })
+    return new Response(isHead ? null : 'File not found', {
+      status: 404,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    })
   }
 
   // 4. Remote HTTP/HTTPS URL
@@ -239,13 +265,12 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
   // 4.1 Check memory cache by digest
   const digestMemHit = memoryCache.get(digest)
   if (digestMemHit) {
-    const headers = new Headers()
-    headers.set('Content-Type', digestMemHit.mime)
-    headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-    return new Response(digestMemHit.buffer, {
-      status: 200,
-      headers
-    })
+    return createImageResponse(
+      digestMemHit.buffer,
+      digestMemHit.mime,
+      digestMemHit.animated,
+      isHead
+    )
   }
 
   // 4.2 Hit from disk cache (asynchronous non-blocking read + populate memory cache)
@@ -254,18 +279,26 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
     try {
       const buffer = await fsPromises.readFile(cachePath)
       const mime = detectMimeType(realUrl, buffer)
-      setMemoryCache(digest, { buffer, mime })
+      const animated = isAnimatedImageBuffer(buffer, mime)
+      setMemoryCache(digest, { buffer, mime, animated })
 
-      const headers = new Headers()
-      headers.set('Content-Type', mime)
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-      return new Response(buffer, {
-        status: 200,
-        headers
-      })
+      return createImageResponse(buffer, mime, animated, isHead)
     } catch {
       // If reading cache failed, proceed to fetch
     }
+  }
+
+  // Probes HEAD nunca devem disparar downloads remotos se a imagem ainda não está em cache
+  if (isHead) {
+    return new Response(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Expose-Headers': 'X-Ghost-Animated',
+        'X-Ghost-Animated': '0',
+        'Cache-Control': 'no-cache'
+      }
+    })
   }
 
   // 4.3 Remote download with 15s network timeout and safe negative caching
@@ -329,7 +362,8 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
       const arrayBuf = await response.arrayBuffer()
       const buffer = Buffer.from(arrayBuf)
       const mime = detectMimeType(realUrl, buffer)
-      setMemoryCache(digest, { buffer, mime })
+      const animated = isAnimatedImageBuffer(buffer, mime)
+      setMemoryCache(digest, { buffer, mime, animated })
 
       // Save to disk cache asynchronously without blocking
       writeFile(cachePath, buffer, (err) => {
@@ -338,14 +372,7 @@ const getImageFromCache = async (request: Request): Promise<Response> => {
         }
       })
 
-      const headers = new Headers()
-      headers.set('Content-Type', mime)
-      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-
-      return new Response(buffer, {
-        status: 200,
-        headers
-      })
+      return createImageResponse(buffer, mime, animated, isHead)
     }
 
     // Only cache genuine 404 so subsequent requests respond in 0ms!

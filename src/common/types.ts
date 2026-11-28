@@ -238,6 +238,7 @@ export interface GameInfo {
   dlcList?: GameMetadataInner[]
   customUserAgent?: string
   launchFullScreen?: boolean
+  allowDuplicateExecutable?: boolean
   overrides?: {
     title?: string
     art_cover?: string
