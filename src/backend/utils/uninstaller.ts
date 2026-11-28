@@ -105,7 +105,8 @@ export const uninstallGameCallback = async (
   appName: string,
   runner: Runner,
   shouldRemovePrefix: boolean,
-  shouldRemoveSetting: boolean
+  shouldRemoveSetting: boolean,
+  deleteFiles = false
 ) => {
   sendGameStatusUpdate({
     appName,
@@ -114,12 +115,15 @@ export const uninstallGameCallback = async (
   })
 
   const game = libraryManagerMap[runner].getGame(appName)
-  const { title } = game.getGameInfo()
+  let title = appName
+  try {
+    title = game.getGameInfo()?.title || appName
+  } catch {}
 
   let uninstalled = false
 
   try {
-    await game.uninstall({ shouldRemovePrefix })
+    await game.uninstall({ shouldRemovePrefix, deleteFiles })
     uninstalled = true
   } catch (error) {
     notify({
@@ -175,6 +179,10 @@ export const bulkUninstallCallback = async (
         if (shouldRemovePrefix) {
           await removePrefix(app.appName, 'sideload')
         }
+        if (shouldRemoveSetting) {
+          removeSettingsAndLogs(app.appName)
+        }
+        removeFixFile(app.appName, 'sideload')
         removeShortcutsUtil(sideloadGame)
         removeRecentGame(app.appName)
         removeNonSteamGame(sideloadGame)
@@ -245,4 +253,26 @@ export const bulkUninstallCallback = async (
   })
 
   logInfo('Bulk uninstall finished', LogPrefix.Backend)
+}
+
+export const cleanupGameSettingsCallback = async (
+  _event: Event,
+  appName: string,
+  runner: Runner,
+  shouldRemovePrefix: boolean,
+  shouldRemoveSetting: boolean
+): Promise<void> => {
+  if (shouldRemovePrefix) {
+    try {
+      await removePrefix(appName, runner)
+    } catch {}
+  }
+  if (shouldRemoveSetting) {
+    try {
+      removeSettingsAndLogs(appName)
+    } catch {}
+  }
+  try {
+    removeFixFile(appName, runner)
+  } catch {}
 }

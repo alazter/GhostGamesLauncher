@@ -57,6 +57,11 @@ import GhostShieldSaveManager from 'frontend/components/UI/GhostShieldSaveManage
 import MoveGameModal from './MoveGameModal'
 import ExternalGameLink from 'frontend/screens/ExternalGames/GameLink'
 import { isPirateOrNonOfficialGame } from 'frontend/helpers/customStoreFiltering'
+import {
+  collectCandidateInstallDirectories,
+  resolveGameRootInstallDirectory,
+  sanitizeInstallPathString
+} from 'common/gameInstallDirectory'
 
 interface Props {
   game: GameInfo
@@ -374,11 +379,34 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   }, [game.app_name, game.runner])
 
   const effectiveInstallDirectory = useMemo(() => {
-    if (movedInstallPath) return movedInstallPath
-    if (game.install?.install_path) return game.install.install_path
-    if (game.folder_name) return game.folder_name
-    return ''
-  }, [movedInstallPath, game.install?.install_path, game.folder_name])
+    const effectiveTitle = game.overrides?.title || game.title
+    const candidates = collectCandidateInstallDirectories(
+      [movedInstallPath, game.install?.install_path, game.folder_name],
+      [sideloadExe, game.install?.executable],
+      effectiveTitle
+    )
+    if (candidates.length > 0) return candidates[0]
+    return (
+      resolveGameRootInstallDirectory(
+        movedInstallPath ||
+          game.install?.install_path ||
+          game.folder_name ||
+          '',
+        effectiveTitle
+      ) ||
+      sanitizeInstallPathString(
+        movedInstallPath || game.install?.install_path || game.folder_name
+      )
+    )
+  }, [
+    movedInstallPath,
+    game.install?.install_path,
+    game.folder_name,
+    sideloadExe,
+    game.install?.executable,
+    game.overrides?.title,
+    game.title
+  ])
 
   useEffect(() => {
     if (!showDeleteModal) return
@@ -394,6 +422,7 @@ export default function InlineGameSettings({ game, onClose }: Props) {
   const handleDeleteGameConfirmed = async () => {
     const appNameToDelete = game.app_name
     const runnerToDelete = game.runner
+    const persistedRootDir = effectiveInstallDirectory
 
     setShowDeleteModal(false)
     onClose()
@@ -418,9 +447,19 @@ export default function InlineGameSettings({ game, onClose }: Props) {
       const games = sideloadLibrary.get('games', [])
       const updatedGames = games.map((g) => {
         if (g.app_name === appNameToDelete) {
+          const cleanDir =
+            persistedRootDir ||
+            sanitizeInstallPathString(g.install?.install_path) ||
+            sanitizeInstallPathString(g.folder_name)
           return {
             ...g,
-            is_installed: true
+            is_installed: true,
+            folder_name: cleanDir || g.folder_name,
+            install: {
+              ...(g.install || {}),
+              install_path: cleanDir || g.install?.install_path,
+              executable: ''
+            }
           }
         }
         return g
@@ -431,6 +470,12 @@ export default function InlineGameSettings({ game, onClose }: Props) {
       ;(configStore as any).set('backup.lastModified', Date.now())
       window.dispatchEvent(new Event('backupStateChanged'))
       window.dispatchEvent(new Event('refreshLibrary'))
+      if (refreshLibrary) {
+        await refreshLibrary({
+          library: runnerToDelete,
+          runInBackground: false
+        })
+      }
 
       notify({
         title: 'Jogo Deletado do Computador',

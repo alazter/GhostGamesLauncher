@@ -1,0 +1,588 @@
+.bulkUninstallOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 15, 0.82);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+  animation: bulkFadeIn 0.16s ease-out;
+}
+
+@keyframes bulkFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bulkUninstallCard {
+  width: min(1160px, 94vw);
+  max-height: 92vh;
+  background: #131a20;
+  color: #f1f5f9;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  box-shadow: 0 0 28px rgba(0, 229, 255, 0.18), 0 24px 60px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bulkUninstallCard--danger {
+  border-color: rgba(255, 82, 82, 0.55);
+  box-shadow: 0 0 30px rgba(255, 82, 82, 0.24), 0 24px 60px rgba(0, 0, 0, 0.65);
+}
+
+.bulkUninstallHeader {
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.bulkUninstallHeader__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.bulkUninstallHeader__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 82, 82, 0.14);
+  border: 1px solid rgba(255, 82, 82, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff6b6b;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.bulkUninstallHeader__titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  min-width: 0;
+}
+
+.bulkUninstallHeader__titles h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.bulkUninstallHeader__meta {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.bulkUninstallHeader__meta strong.cyan {
+  color: #22d3ee;
+}
+
+.bulkUninstallHeader__meta strong.emerald {
+  color: #34d399;
+}
+
+/* Regra Canônica 12: botão fechar sem moldura */
+.bulkUninstallHeader__close {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, filter 0.2s ease;
+}
+
+.bulkUninstallHeader__close:hover:not(:disabled) {
+  color: #ff5252;
+  filter: drop-shadow(0 0 8px rgba(255, 82, 82, 0.85));
+}
+
+.bulkUninstallHeader__close:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bulkUninstallBody {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.bulkUninstallPresets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bulkPresetCard {
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.bulkPresetCard:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bulkPresetCard--cyan {
+  border-color: rgba(34, 211, 238, 0.75);
+  background: rgba(6, 182, 212, 0.12);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.14);
+}
+
+.bulkPresetCard--emerald {
+  border-color: rgba(52, 211, 153, 0.75);
+  background: rgba(16, 185, 129, 0.12);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.14);
+}
+
+.bulkPresetCard--red {
+  border-color: rgba(255, 82, 82, 0.75);
+  background: rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 18px rgba(255, 82, 82, 0.16);
+}
+
+.bulkPresetCard input[type='radio'] {
+  margin-top: 3px;
+  accent-color: #00e5ff;
+  transform: scale(1.1);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.bulkPresetCard--red input[type='radio'] {
+  accent-color: #ff5252;
+}
+
+.bulkPresetCard__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.bulkPresetCard__desc {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.bulkUninstallMainGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.bulkGamesPanel {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bulkPanelHeader {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.bulkPanelHeader__label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.bulkPanelHeader__label strong {
+  color: #22d3ee;
+}
+
+.bulkPanelHeader__action {
+  background: transparent;
+  border: none;
+  color: #22d3ee;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bulkPanelHeader__action:hover:not(:disabled) {
+  color: #67e8f9;
+  text-decoration: underline;
+}
+
+.bulkPanelHeader__tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.2);
+  color: #67e8f9;
+  font-weight: 600;
+}
+
+.bulkGamesList {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 310px;
+  max-height: 370px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.bulkGamesList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bulkGamesList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bulkGamesList::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+
+.bulkGameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.bulkGameRow:hover {
+  background: rgba(255, 255, 255, 0.085);
+}
+
+.bulkGameRow--unchecked {
+  opacity: 0.45;
+  background: transparent;
+  border-color: transparent;
+}
+
+.bulkGameRow--unchecked:hover {
+  opacity: 0.72;
+}
+
+.bulkGameRow__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.bulkGameRow__left input[type='checkbox'] {
+  accent-color: #00e5ff;
+  transform: scale(1.1);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.bulkUninstall__cover {
+  width: 40px;
+  height: 56px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+  background: #0b1016;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.bulkGameRow__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.bulkGameRow__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bulkGameRow__path {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bulkGameRow__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.bulkGameRow__drive {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(6, 182, 212, 0.15);
+  color: #67e8f9;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bulkGameRow__size {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #cbd5e1;
+  min-width: 64px;
+  text-align: right;
+}
+
+.bulkRightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.bulkOptionsCard {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bulkOptionsList {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bulkOptionRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #f1f5f9;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.bulkOptionRow:hover {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.bulkOptionRow input[type='checkbox'] {
+  accent-color: #00e5ff;
+  transform: scale(1.1);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.bulkOptionRow--danger input[type='checkbox'] {
+  accent-color: #ff5252;
+}
+
+.bulkOptionRow--emerald {
+  color: #6ee7b7;
+}
+
+.bulkSummaryBanner {
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.1);
+  color: #d1fae5;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.bulkSummaryBanner--danger {
+  border-color: rgba(255, 82, 82, 0.42);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fee2e2;
+}
+
+.bulkSummaryBanner--warning {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(245, 158, 11, 0.1);
+  color: #fef3c7;
+}
+
+.bulkProgressBox {
+  border-radius: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(8, 51, 68, 0.35);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bulkProgressBox__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #67e8f9;
+  font-weight: 600;
+}
+
+.bulkProgressBox__track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.bulkProgressBox__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22d3ee, #34d399);
+  transition: width 0.25s ease;
+}
+
+.bulkUninstallFooter {
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.bulkUninstallFooter__hint {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulkUninstallFooter__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.bulkBtnCancel {
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.bulkBtnCancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.bulkBtnCancel:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bulkBtnConfirm {
+  padding: 9px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.35);
+  transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+
+.bulkBtnConfirm:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.bulkBtnConfirm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .bulkUninstallPresets {
+    grid-template-columns: 1fr;
+  }
+  .bulkUninstallMainGrid {
+    grid-template-columns: 1fr;
+  }
+  .bulkGamesList {
+    min-height: 180px;
+    max-height: 220px;
+  }
+}

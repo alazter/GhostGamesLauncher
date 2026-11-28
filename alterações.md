@@ -16,6 +16,123 @@
 
 ## 📌 Histórico Estruturado de Alterações
 
+### [28/11/2026 às 05:03] — Nova Janela de Exclusão / Desinstalação em Massa na Edição em Massa (`BulkUninstallModal`, `GamesList/index.tsx`, `uninstaller.ts`, `main.ts`, `preload/api/library.ts`, `ipc.ts`)
+
+- **📅 Data e Hora**: 28/11/2026 às 05:03
+- **🎯 Título / Funcionalidade**: Refinamento Completo do Botão "Desinstalar" na Edição em Massa com Janela Interativa Horizontal (`1160px`), Mini-Capas, Cálculo Real de Espaço, 3 Modos Rápidos e 4 Opções Granulares
+- **💡 Motivação**: O botão "Desinstalar" da Edição em Massa anteriormente usava 3 caixas genéricas `window.confirm()` e não permitia escolher entre deletar arquivos mantendo capas/saves, remover da biblioteca arquivando dados ou apagar tudo. O usuário validou e aprovou o Mockup v5 (`1160px`, lista ampliada com mini-capas `40×56px`, 3 modos lado a lado e 4 checkboxes granulares).
+- **🛠️ O que foi feito**:
+  1. **Componente `BulkUninstallModal` (`src/frontend/components/UI/BulkUninstallModal/index.tsx` e `index.css`)**:
+     - Fiel 1:1 ao Mockup v5 aprovado pelo usuário (`width: min(1160px, 94vw)`, portal no `document.body`, botão fechar sem moldura Regra 12, fechamento por `Esc`, brilho dinâmico ciano/vermelho).
+     - **3 Modos Rápidos lado a lado**: `💿 Deletar do PC` (padrão, apaga pastas raiz e mantém capas como `"Arquivos indisponíveis"` + GhostShield), `🛡️ Remover (Salvar Dados)` (remove cards arquivando saves/capas) e `🔥 Apagar Tudo` (deleta arquivos, remove cards, limpa metadados, vínculos de loja, configurações, logs e prefixos).
+     - **Lista Ampliada de Jogos (`7fr`, altura `310px–370px`)**: Checkbox individual + `Marcar/Desmarcar todos`, miniatura real da capa via `<CachedImage>` (`40×56px`), título completo, pasta raiz resolvida (`collectCandidateInstallDirectories`), badge do Drive (`N:`, `E:`, `S:`) e cálculo assíncrono real do tamanho da pasta via `window.api.getGameFolderSize`.
+     - **4 Opções Granulares + Resumo Dinâmico + Progresso ao Vivo**: Permite combinar livremente *Excluir arquivos físicos do HD*, *Remover cards da Biblioteca*, *Manter Saves e Dados (GhostShield)* e *Apagar configurações, logs e prefixos*, com barra de progresso jogo a jogo.
+  2. **Integração na Edição em Massa (`GamesList/index.tsx`) e IPC `cleanupGameSettings` (`uninstaller.ts`, `main.ts`, `library.ts`, `ipc.ts`)**:
+     - Substituídos os 3 `window.confirm()` antigos em `handleBulkUninstall` pela abertura do `<BulkUninstallModal />`.
+     - Adicionado handler IPC `cleanupGameSettings` para limpeza opcional de configurações, logs e prefixos Wine/Proton mesmo sem remover o card da biblioteca.
+- **📂 Arquivos Alterados**:
+  - `src/frontend/components/UI/BulkUninstallModal/index.tsx` (novo)
+  - `src/frontend/components/UI/BulkUninstallModal/index.css` (novo)
+  - `src/frontend/screens/Library/components/GamesList/index.tsx`
+  - `src/backend/utils/uninstaller.ts`
+  - `src/backend/main.ts`
+  - `src/preload/api/library.ts`
+  - `src/common/types/ipc.ts`
+- **🚀 Benefício & Impacto**:
+  - Permite selecionar vários jogos na Edição em Massa (inclusive filtrando por HD!), revisar capas, pastas e tamanho total em GB a liberar, escolher exatamente o que excluir ou preservar no GhostShield e executar tudo em lote com barra de progresso ao vivo.
+
+---
+
+### [28/11/2026 às 04:40] — Filtro de Jogos por HD / Drive (Letra + Nome do Volume) na Biblioteca (`gameInstallDirectory.ts`, `drives.ts`, `storeFiltersStorage.ts`, `types.ts`, `LibraryContext.tsx`, `LibraryFilters/index.tsx`, `LibraryHeader/index.tsx`, `Library/index.tsx`)
+
+- **📅 Data e Hora**: 28/11/2026 às 04:40
+- **🎯 Título / Funcionalidade**: Novo Filtro por HD / Drive (`Drive: E — Nome do HD`, `Drive: N — Nome do HD`, etc.) no Menu de Filtros da Biblioteca
+- **💡 Motivação**: O usuário solicitou a inclusão de um filtro por HD no menu de filtros da Biblioteca para exibir jogos filtrados pelo HD em que estão instalados, mostrando a letra do drive somada ao nome do volume do HD.
+- **🛠️ O que foi feito**:
+  1. **Extração Universal de Drive do Jogo (`src/common/gameInstallDirectory.ts`)**:
+     - Adicionados `extractDriveLetterFromPath` e `extractGameDriveLetter`, que extraem a letra do drive (`C:`, `E:`, `G:`, `J:`, `N:`, `S:`, `T:`, etc.) de `install.install_path`, `install.executable` ou `folder_name` para jogos de qualquer loja/runner (Sideload/Piratas, Steam, Epic, GOG, Amazon, Zoom, Emuladores e Softwares).
+  2. **Suporte UTF-8 para Nomes de Volume com Acentos (`src/backend/utils/filesystem/drives.ts`)**:
+     - Adicionado `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8;` na consulta PowerShell `Get-CimInstance Win32_LogicalDisk` para que nomes de HD com acentos (ex.: `Gravação & Programas`) sejam retornados sem distorção.
+  3. **Seção "💾 Filtrar por HD / Drive" no Dropdown de Filtros e Pílula Ativa (`LibraryFilters/index.tsx`, `LibraryHeader/index.tsx`, `Library/index.tsx`, `storeFiltersStorage.ts`)**:
+     - Lista automaticamente todos os HDs que possuem jogos instalados no formato `Drive: E — NVME 2 Kingston (14)` com `ToggleSwitch` + botão `only` + botão `Todos`, permitindo selecionar um ou múltiplos HDs simultaneamente e resetar pelo botão `Reset`.
+     - Exibe uma pílula ciano clicável no `LibraryHeader` quando o filtro de HD está ativo (ex.: `💾 Drive: E (NVME 2 Kingston) ✕`) para limpar com 1 clique.
+     - Persistência por aba/loja via `selectedDrives` em `storeFiltersStorage.ts`.
+- **📂 Arquivos Alterados**:
+  - `src/common/gameInstallDirectory.ts`
+  - `src/backend/utils/filesystem/drives.ts`
+  - `src/frontend/helpers/storeFiltersStorage.ts`
+  - `src/frontend/types.ts`
+  - `src/frontend/screens/Library/LibraryContext.tsx`
+  - `src/frontend/components/UI/LibraryFilters/index.tsx`
+  - `src/frontend/screens/Library/components/LibraryHeader/index.tsx`
+  - `src/frontend/screens/Library/index.tsx`
+- **🚀 Benefício & Impacto**:
+  - Permite visualizar instantaneamente quais jogos estão em cada SSD/HD específico (com letra, nome real do volume e contagem de jogos), facilitando limpeza de espaço e organização por disco.
+
+---
+
+### [28/11/2026 às 04:26] — Remoção Automática de Jogos Deletados do Computador da Lista de Atualizações Pendentes (`externalGames.ts`, `pluginManager.ts`, `main.ts`, `GameCard/index.tsx`, `ActionIcons/index.tsx`, `LibraryHeader/index.tsx`, `Library/index.tsx`)
+
+- **📅 Data e Hora**: 28/11/2026 às 04:26
+- **🎯 Título / Funcionalidade**: Exclusão Imediata de Jogos Deletados (`"Arquivos indisponíveis"`) da Lista e Contadores de Atualizações Pendentes Sem Removê-los da Biblioteca do Ghost
+- **💡 Motivação**: Após o usuário deletar jogos pelo botão **"Deletar do Computador"** (ex.: *S.T.A.L.K.E.R. 2*, *Warhammer 40,000: Space Marine 2*, *inZOI*), os cards permaneciam corretamente na Biblioteca como `"Arquivos indisponíveis"`, mas continuavam aparecendo dentro do filtro **"Jogos com atualizações pendentes"** (`↓ N`), no badge da caveira e exibindo a faixa vermelha `UPDATE`.
+- **🛠️ O que foi feito**:
+  1. **Limpeza Imediata e Auto-Cura em `ExternalGames` (`src/backend/plugins/externalGames.ts`)**:
+     - Em `deleteInstallationAndFiles(appName, true)`, limpa imediatamente `installation.availableUpdate = undefined` e `installation.updateMessage = undefined` antes de salvar e disparar `external-games-updated`.
+     - Adicionado helper `isInstallationAvailableOnDisk(inst, libGame)` usado em `snapshot()` (limpando `availableUpdate` automaticamente para jogos sem executável no disco que não possuam job de atualização ativo) e em `recordUpdate()`.
+  2. **Bloqueio de Re-detecção no Polling e em `checkGameUpdates` (`src/backend/plugins/pluginManager.ts`, `src/backend/main.ts`)**:
+     - `pollExternalUpdates` pula jogos sem executável físico no disco (`!item.executable || !existsSync(item.executable)`), evitando que jogos deletados voltem para a lista de updates pendentes na verificação diária ou manual.
+     - `checkGameUpdates` só inclui jogos externos com `inst.executable && existsSync(inst.executable)`.
+  3. **Sincronização Instantânea no Frontend (`GameCard/index.tsx`, `ActionIcons/index.tsx`, `LibraryHeader/index.tsx`, `Library/index.tsx`)**:
+     - `GameCard`: `showUpdateBadge` exige `!notAvailable` (nunca exibe a faixa `UPDATE` em cards `"Arquivos indisponíveis"`).
+     - `ActionIcons`: contador da caveira conta apenas instalações com `Boolean(i.availableUpdate) && Boolean(i.executable)`.
+     - `LibraryHeader` e `Library`: filtro `showUpdatesOnly` e contador `pendingUpdatesGames` exigem `runner !== 'sideload' || Boolean(install?.executable)`, removendo instantaneamente a capa da lista de atualizações pendentes enquanto preserva o card na Biblioteca.
+- **📂 Arquivos Alterados**:
+  - `src/backend/plugins/externalGames.ts`
+  - `src/backend/plugins/pluginManager.ts`
+  - `src/backend/main.ts`
+  - `src/frontend/screens/Library/components/GameCard/index.tsx`
+  - `src/frontend/components/UI/ActionIcons/index.tsx`
+  - `src/frontend/screens/Library/components/LibraryHeader/index.tsx`
+  - `src/frontend/screens/Library/index.tsx`
+  - `src/backend/plugins/__tests__/externalGames.test.ts`
+- **🚀 Benefício & Impacto**:
+  - Assim que um jogo é deletado do computador, sua capa sai imediatamente da lista de jogos com atualizações pendentes e dos contadores de update, permanecendo intacta na Biblioteca do Ghost como `"Arquivos indisponíveis"`.
+
+---
+
+### [28/11/2026 às 03:30] — Correção Definitiva dos Botões "Deletar do Computador" e "Remover da Biblioteca" (`gameInstallDirectory.ts`, `externalGames.ts`, `sideload/games.ts`, `sideload/library.ts`, `uninstaller.ts`, `InlineGameSettings/index.tsx`, `UninstallModal/index.tsx`, `GameCard/index.tsx`)
+
+- **📅 Data e Hora**: 28/11/2026 às 03:30
+- **🎯 Título / Funcionalidade**: Correção Completa da Exclusão de Arquivos Físicos ("Deletar do Computador") e Remoção de Cards ("Remover da Biblioteca") na Biblioteca do Ghost
+- **💡 Motivação**: O usuário relatou que ao usar o botão **"Deletar do Computador"** nas configurações do jogo na Biblioteca, os arquivos físicos do jogo não eram deletados e continuavam no disco, e solicitou também uma auditoria e correção completa do botão **"Remover da Biblioteca"** para garantir que ambos os botões e todas as suas opções funcionem com 100% de precisão.
+- **🛠️ O que foi feito**:
+  1. **Resolução Inteligente da Pasta Raiz do Jogo e Sanitização de Caminhos (`src/common/gameInstallDirectory.ts`)**:
+     - Criado o utilitário compartilhado `gameInstallDirectory.ts` com `sanitizeInstallPathString` (remove aspas residuais `"..."` vindas do *"Copiar como caminho"* do Windows), `GAMES_LIBRARY_CONTAINER_NAMES` (identifica containers de biblioteca como `Alazter Games`, `Jogos`, `Games`, `Gog`, `GOG Games`, `Steamfix`, `Origin Backups`, `Decompiladores`, `Emuladores`, `steamapps\common` e resolve deterministicamente a pasta filha direta logo abaixo do container — ex.: `N:\Alazter Games\Gran Turismo 7\Launcher` → `N:\Alazter Games\Gran Turismo 7`), `resolveGameRootInstallDirectory` (sobe automaticamente de subpastas técnicas/binárias/versão como `Launcher`, `Exe`, `windows_content`, `bin`, `pc`, `win64`, `client_pc\root\bin\pc`, `stable\v3.2.0` e pastas wrapper duplicadas até a pasta raiz real do jogo, parando estritamente antes de containers protegidos), `collectCandidateInstallDirectories` e `isProtectedSystemOrContainerDir`.
+  2. **Correção das 3 Causas Raízes do Botão "Deletar do Computador" (`src/backend/plugins/externalGames.ts`, `src/frontend/screens/Library/components/InlineGameSettings/index.tsx`)**:
+     - **Causa A (Aspas residuais e candidato único sem fallback)**: `deleteInstallationAndFiles` pegava apenas o primeiro `candidateDir` sem remover aspas (`"\"T:\\Jogos\\..."`), fazendo `existsSync` retornar `false` e pular silenciosamente a exclusão enquanto retornava `{ success: true }`. Agora coleta todos os candidatos (`installation.directory`, `install_path`, `folder_name`, `dirname(executable)`), sanitiza aspas, resolve a pasta raiz real do jogo e valida no disco.
+     - **Causa B (Exclusão apenas da subpasta do `.exe`)**: Jogos cujo executável ficava em subpastas (`Launcher\RyGT7.exe`, `client_pc\root\bin\pc`, `stable\v3.2.0`) tinham apenas a subpasta apontada em vez da pasta raiz do jogo. Agora `resolveGameRootInstallDirectory` garante a exclusão da pasta raiz completa do jogo (encerrando antes qualquer processo aberto do jogo e usando `rm(..., { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })` + verificação pós-exclusão `!existsSync`).
+     - **Causa C (Frontend sobrescrevendo `sideloadLibrary` com o `executable` antigo)**: Após o backend limpar `install.executable = ''`, `InlineGameSettings/index.tsx` regravava `sideloadLibrary.set('games', updatedGames)` mantendo `...g` com o `g.install.executable` antigo em memória. Agora o frontend também limpa `install: { ...g.install, install_path: cleanDir, executable: '' }` e chama `refreshLibrary`.
+  3. **Correção Completa do Botão "Remover da Biblioteca" (`src/frontend/components/UI/UninstallModal/index.tsx`, `src/backend/storeManagers/sideload/games.ts`, `src/backend/utils/uninstaller.ts`, `src/frontend/screens/Library/components/GameCard/index.tsx`)**:
+     - Em `UninstallModal/index.tsx`: `window.api.uninstall` agora é chamado **antes** de remover o jogo do `sideloadLibrary` no frontend, e em `SideloadGame.uninstall` (`sideload/games.ts`), `removeShortcutsUtil(this)` e `removeNonSteamGame(this)` são executados **antes** de `libraryStore.set('games', current)`, garantindo que `this.getGameInfo()` ainda encontre o jogo para remover atalhos da Área de Trabalho, Menu Iniciar e Steam.
+     - Em `UninstallModal/index.tsx`: `archiveGameData` agora recebe `gameInfo.install?.install_path || gameInfo.folder_name` (preservando o diretório no modo *"Manter Saves e Dados"*); no modo *"Remover e Apagar Todos os Dados"*, limpa também `heroic_game_assignments[appName]`, `clearAvailabilityCache` e chama `refreshLibrary` do `ContextProvider`, além de fechar imediatamente o painel `InlineGameSettings`.
+     - Em `GameCard/index.tsx`: O item **"Remover da Biblioteca"** no menu de contexto do botão direito agora permanece visível e funcional mesmo quando o jogo está com `"Arquivos indisponíveis"` (`!isInstalled`).
+- **📂 Arquivos Alterados**:
+  - `src/common/gameInstallDirectory.ts` (novo)
+  - `src/backend/plugins/externalGames.ts`
+  - `src/backend/storeManagers/sideload/games.ts`
+  - `src/backend/storeManagers/sideload/library.ts`
+  - `src/backend/utils/uninstaller.ts`
+  - `src/frontend/screens/Library/components/InlineGameSettings/index.tsx`
+  - `src/frontend/components/UI/UninstallModal/index.tsx`
+  - `src/frontend/screens/Library/components/GameCard/index.tsx`
+  - `src/backend/plugins/__tests__/externalGames.test.ts`
+- **🚀 Benefício & Impacto**:
+  - **"Deletar do Computador"** exclui de fato 100% da pasta raiz do jogo no disco (mesmo com subpastas de binários/launchers ou caminhos com aspas), mantendo o card na biblioteca como `"Arquivos indisponíveis"` com capas e saves intactos.
+  - **"Remover da Biblioteca"** funciona de ponta a ponta tanto no modo *"Manter Saves e Dados"* quanto em *"Remover e Apagar Todos os Dados"*, limpando atalhos, registros, caches e atualizando a Biblioteca instantaneamente.
+
+---
+
 ### [27/11/2026 às 06:37] — Congelamento Automático de Capas Animadas (WebP, GIF e APNG) Quando a Janela do Ghost Perde Foco ou Fica Sobreposta (`animatedImageDetector.ts`, `images_cache.ts`, `animatedCoverFreeze.ts`, `CachedImage/index.tsx`)
 
 - **📅 Data e Hora**: 27/11/2026 às 06:37

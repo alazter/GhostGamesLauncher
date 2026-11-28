@@ -1,5 +1,7 @@
 import * as wrappedPackages from '../wrappedPackage'
+import { existsSync } from 'fs'
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'fs/promises'
+import { resolveGameRootInstallDirectory } from 'common/gameInstallDirectory'
 const fsPromises = jest.requireActual<typeof import('fs/promises')>('fs/promises')
 import { tmpdir } from 'os'
 import { join, dirname } from 'path'
@@ -1675,4 +1677,79 @@ it('retries extraction of a completed direct package after restart without a sec
   expect(await restarted.action({ type: 'resume', jobId: result.jobId! })).toEqual({ success: true })
   expect(restarted.snapshot().jobs[0].status).toBe('ready')
   expect(direct).toHaveBeenCalledTimes(1)
+})
+
+it('deletes the full root game folder even when directory has stray quotes or executable lives inside nested launcher/bin subfolders', async () => {
+  const containerDir = join(root, 'Alazter Games')
+  const gameRootDir = join(containerDir, 'Gran Turismo 7')
+  const launcherDir = join(gameRootDir, 'Launcher')
+  const exePath = join(launcherDir, 'RyGT7.exe')
+  const dataFile = join(gameRootDir, 'game_data.pak')
+
+  await mkdir(launcherDir, { recursive: true })
+  await writeFile(exePath, 'gt7-binary')
+  await writeFile(dataFile, 'gt7-assets')
+
+  games = [
+    {
+      app_name: 'gt7-sideload',
+      title: 'Gran Turismo 7',
+      runner: 'sideload',
+      folder_name: `"${launcherDir}`,
+      install: {
+        executable: exePath,
+        install_path: `"${launcherDir}"`,
+        platform: 'Windows',
+        is_dlc: false
+      },
+      is_installed: true
+    }
+  ] as any[]
+
+  ;(service as any).state.installations.push({
+    id: 'inst-gt7',
+    appName: 'gt7-sideload',
+    directory: `"${launcherDir}`,
+    executable: exePath,
+    installedAt: new Date().toISOString(),
+    availableUpdate: {
+      id: 'gt7-update',
+      title: 'Gran Turismo 7',
+      providerId: 'anker',
+      version: 'v2.0'
+    },
+    updateMessage: 'Atualização disponível',
+    game: {
+      id: 'gt7-sideload',
+      title: 'Gran Turismo 7',
+      providerId: 'anker'
+    }
+  })
+
+  expect(resolveGameRootInstallDirectory(`"${launcherDir}`, 'Gran Turismo 7')).toBe(gameRootDir)
+
+  const res = await service.deleteInstallationAndFiles('gt7-sideload', true)
+  expect(res.success).toBe(true)
+
+  // A pasta raiz do jogo ("Gran Turismo 7") e todos os arquivos devem ter sido deletados do disco,
+  // mas a pasta-mãe protegida ("Alazter Games") deve permanecer intacta!
+  expect(existsSync(gameRootDir)).toBe(false)
+  expect(existsSync(containerDir)).toBe(true)
+
+  // O card permanece na biblioteca com executable vazio ("Arquivos indisponíveis"), pasta raiz limpa
+  // e SEM atualização pendente (removido automaticamente da lista de atualizações pendentes)
+  expect(games).toHaveLength(1)
+  expect((games[0] as any).is_installed).toBe(true)
+  expect((games[0] as any).install.executable).toBe('')
+  expect((games[0] as any).folder_name).toBe(gameRootDir)
+  const instAfterDelete = service.snapshot().installations.find((i) => i.appName === 'gt7-sideload')
+  expect(instAfterDelete).toBeDefined()
+  expect(instAfterDelete?.availableUpdate).toBeUndefined()
+  expect(instAfterDelete?.updateMessage).toBeUndefined()
+
+  // E ao chamar deleteInstallationAndFiles com deleteFiles = false ("Remover da Biblioteca"), remove de ambos
+  const removeRes = await service.deleteInstallationAndFiles('gt7-sideload', false)
+  expect(removeRes.success).toBe(true)
+  expect(games).toHaveLength(0)
+  expect(service.snapshot().installations.find((i) => i.appName === 'gt7-sideload')).toBeUndefined()
 })

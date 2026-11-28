@@ -18,6 +18,7 @@ import fallBackImage from 'frontend/assets/heroic_card.jpg'
 import { getStoreName } from 'frontend/helpers'
 import { DEFAULT_GHOST_CUSTOM_STORES } from 'frontend/helpers/defaultCustomStores'
 import { useRemovingGamesStore } from 'frontend/state/removingGamesStore'
+import BulkUninstallModal from 'frontend/components/UI/BulkUninstallModal'
 import useVirtualLibrary from './useVirtualLibrary'
 
 interface Props {
@@ -54,6 +55,7 @@ const GamesList = ({
   const [isDuplicatesMode, setIsDuplicatesMode] = useState(false)
   const [massEditTab, setMassEditTab] = useState<'library' | 'hidden'>('library')
   const [selectedGames, setSelectedGames] = useState<GameInfo[]>([])
+  const [showBulkUninstallModal, setShowBulkUninstallModal] = useState(false)
   const [selectedHiddenGames, setSelectedHiddenGames] = useState<string[]>([])
   const [selectedStore, setSelectedStore] = useState<string>('')
   const [activeStoreFilter, setActiveStoreFilter] = useState<string | null>(
@@ -370,83 +372,20 @@ const GamesList = ({
     setSelectedHiddenGames([])
   }
 
-  const handleBulkUninstall = async () => {
+  const handleBulkUninstall = () => {
     if (selectedGames.length === 0) return
-    const confirmUninstall = window.confirm(
-      `Deseja realmente desinstalar/remover da biblioteca o(s) ${selectedGames.length} jogo(s) selecionado(s)?`
-    )
-    if (!confirmUninstall) return
-
-    const shouldRemovePrefix = window.confirm(
-      `Deseja remover também os arquivos de prefixo (Wineprefix) dos jogos selecionados (se existirem)?`
-    )
-    const shouldRemoveSetting = window.confirm(
-      `Deseja remover também as configurações e logs dos jogos selecionados?`
-    )
-
-    const appsToUninstall = selectedGames.map((g) => ({
-      appName: g.app_name,
-      runner: g.runner
-    }))
-
-    appsToUninstall.forEach(({ appName }) => {
-      useRemovingGamesStore.getState().startRemoval(appName, 'removing')
-    })
-
-    try {
-      window.api.logInfo(`handleBulkUninstall: Iniciando desinstalação de ${selectedGames.length} jogo(s)`)
-
-      await window.api.bulkUninstall(
-        appsToUninstall,
-        shouldRemovePrefix,
-        shouldRemoveSetting
-      )
-
-      const storeGamesToHide = selectedGames
-        .filter((g) => g.runner !== 'sideload')
-        .map((g) => {
-          const override = gameOverrides?.[g.app_name]
-          const activeArtCover =
-            override?.art_cover !== undefined
-              ? override.art_cover
-              : g.overrides?.art_cover ?? g.art_cover
-          const activeArtSquare =
-            override?.art_square !== undefined
-              ? override.art_square
-              : g.overrides?.art_square ?? g.art_square
-
-          return {
-            appName: g.app_name,
-            title: override?.title || g.overrides?.title || g.title,
-            runner: g.runner,
-            art_cover: activeArtCover,
-            art_square: activeArtSquare
-          }
-        })
-
-      if (storeGamesToHide.length > 0) {
-        hiddenGames.addMultiple(storeGamesToHide)
-      }
-
-      window.dispatchEvent(
-        new CustomEvent('heroicToggleMassEdit', { detail: { active: false } })
-      )
-      window.dispatchEvent(
-        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
-      )
-    } catch (err) {
-      window.api.logError(`Error during bulk uninstall: ${String(err)}`)
-    } finally {
-      setTimeout(() => {
-        appsToUninstall.forEach(({ appName }) => {
-          useRemovingGamesStore.getState().finishRemoval(appName)
-        })
-      }, 500)
-    }
+    setShowBulkUninstallModal(true)
   }
 
   return (
     <>
+      {showBulkUninstallModal && selectedGames.length > 0 && (
+        <BulkUninstallModal
+          games={selectedGames}
+          onClose={() => setShowBulkUninstallModal(false)}
+          onCompleted={() => setSelectedGames([])}
+        />
+      )}
       {isMassEditMode && (
         <div
           style={{

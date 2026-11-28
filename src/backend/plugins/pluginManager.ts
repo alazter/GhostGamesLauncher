@@ -197,6 +197,8 @@ export class PluginManager {
         .installations.filter((item) => {
           if (!item.appName || EXCLUDED_PIRATAS_APP_NAMES.has(item.appName))
             return false
+          // Não verificar updates para jogos deletados do computador ("Arquivos indisponíveis")
+          if (!item.executable || !existsSync(item.executable)) return false
           return (
             Boolean(item.game?.providerId) ||
             Boolean(item.game?.pageUrl) ||

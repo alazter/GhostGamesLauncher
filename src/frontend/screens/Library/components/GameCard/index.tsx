@@ -530,9 +530,15 @@ const GameCard = ({
       icon: <PlaylistRemove />
     },
     {
-      label: t('button.uninstall'),
+      label:
+        isSideloaded || !isInstalled
+          ? t('button.remove_from_library', 'Remover da Biblioteca')
+          : t('button.uninstall'),
       onclick: onUninstallClick,
-      show: isInstalled && !isUpdating && !isPlaying,
+      show:
+        (isSideloaded || isInstalled || Boolean(gameInfo.accountProvider)) &&
+        !isUpdating &&
+        !isPlaying,
       icon: <DeleteForever />
     }
   ]
@@ -558,7 +564,7 @@ const GameCard = ({
     hasUpdate && !isUpdating && !isQueued && !notAvailable
 
   const showSettingsButton = isInstalled && !isUninstalling && !isBrowserGame
-  const showUpdateBadge = hasUpdate && !isUpdating && !isQueued
+  const showUpdateBadge = hasUpdate && !isUpdating && !isQueued && !notAvailable
 
   return (
     <div>

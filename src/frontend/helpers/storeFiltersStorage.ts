@@ -17,6 +17,7 @@ export interface StoreFilterSettings {
   showAlphabetFilter: boolean
   alphabetFilterLetter: string | null
   showPlaytestsAndDemos: boolean
+  selectedDrives: string[]
 }
 
 export const DEFAULT_STORE_FILTER_SETTINGS: StoreFilterSettings = {
@@ -35,7 +36,8 @@ export const DEFAULT_STORE_FILTER_SETTINGS: StoreFilterSettings = {
   sortByNewlyAdded: false,
   showAlphabetFilter: true,
   alphabetFilterLetter: null,
-  showPlaytestsAndDemos: false
+  showPlaytestsAndDemos: false,
+  selectedDrives: []
 }
 
 export function getStoreFilterStorageKey(storeId: string | null): string {
@@ -84,7 +86,8 @@ export function loadStoreFilterSettings(storeId: string | null): StoreFilterSett
         sortByNewlyAdded: JSON.parse(localStorage.getItem('sortByNewlyAdded') || 'false') as boolean,
         showAlphabetFilter: JSON.parse(localStorage.getItem('showAlphabetFilter') || 'true') as boolean,
         alphabetFilterLetter: null,
-        showPlaytestsAndDemos: localStorage.getItem('heroic_show_playtests_demos') === 'true'
+        showPlaytestsAndDemos: localStorage.getItem('heroic_show_playtests_demos') === 'true',
+        selectedDrives: JSON.parse(localStorage.getItem('heroic_selected_drives') || '[]') as string[]
       }
     } catch {}
   }
@@ -155,6 +158,9 @@ export function saveStoreFilterSettings(
     }
     if (settings.showPlaytestsAndDemos !== undefined) {
       localStorage.setItem('heroic_show_playtests_demos', String(settings.showPlaytestsAndDemos))
+    }
+    if (settings.selectedDrives !== undefined) {
+      localStorage.setItem('heroic_selected_drives', JSON.stringify(settings.selectedDrives))
     }
   } else if (settings.showUpdatesOnly !== undefined) {
     localStorage.setItem('show_updates_only', JSON.stringify(settings.showUpdatesOnly))

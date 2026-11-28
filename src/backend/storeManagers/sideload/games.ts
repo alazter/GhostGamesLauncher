@@ -33,6 +33,10 @@ import {
 import { stopBeforeLaunchScript } from 'backend/launcher'
 import { Game, InstallResult, RemoveArgs } from 'common/types/game_manager'
 import { removePrefix } from 'backend/utils/uninstaller'
+import {
+  collectCandidateInstallDirectories,
+  isProtectedSystemOrContainerDir
+} from 'common/gameInstallDirectory'
 import { removeRecentGame } from 'backend/recent_games/recent_games'
 import { isLinux, isMac, isWindows } from 'backend/constants/environment'
 import { removeNonSteamGame } from 'backend/shortcuts/nonesteamgame/nonesteamgame'
@@ -174,6 +178,18 @@ export default class SideloadGame implements Game {
     const title = gameInfo?.title || this.id
     const executable = gameInfo?.install?.executable
 
+    // Remove atalhos e registro da Steam ANTES de remover o jogo do libraryStore,
+    // pois removeShortcutsUtil e removeNonSteamGame consultam this.getGameInfo()
+    try {
+      await removeShortcutsUtil(this)
+    } catch {}
+    try {
+      removeRecentGame(this.id)
+    } catch {}
+    try {
+      await removeNonSteamGame(this)
+    } catch {}
+
     if (shouldRemovePrefix) {
       try {
         removePrefix(this.id, 'sideload')
@@ -185,51 +201,44 @@ export default class SideloadGame implements Game {
     } catch {}
     sendFrontendMessage('refreshLibrary', 'sideload')
 
-    if (deleteFiles && executable !== undefined && existsSync(executable)) {
+    if (deleteFiles) {
       try {
-        const targetDir = resolve(dirname(executable))
-        const parentDir = dirname(targetDir)
-        const lowerDir = targetDir.toLowerCase()
+        const candidateDirs = collectCandidateInstallDirectories(
+          [gameInfo?.install?.install_path, gameInfo?.folder_name],
+          [executable],
+          title
+        )
         const home = homedir().toLowerCase()
-        const forbiddenNames = new Set([
-          'desktop',
-          'downloads',
-          'documents',
-          'documentos',
-          'appdata',
-          'windows',
-          'program files',
-          'program files (x86)',
-          'users',
-          'usuarios',
-          'jogos',
-          'games',
-          'alazter games'
-        ])
-        const folderBase = basename(targetDir).toLowerCase()
-        if (
-          targetDir !== parentDir &&
-          !forbiddenNames.has(folderBase) &&
-          lowerDir !== home &&
-          lowerDir !== join(home, 'desktop') &&
-          lowerDir !== join(home, 'downloads') &&
-          lowerDir !== join(home, 'documents')
-        ) {
-          rmSync(targetDir, { recursive: true })
-        } else {
-          logWarning(
-            `[SideloadGame] Exclusão bloqueada por segurança para pasta protegida/raiz: ${targetDir}`,
-            LogPrefix.Backend
-          )
+        for (const candidate of candidateDirs) {
+          if (!existsSync(candidate)) continue
+          const targetDir = resolve(candidate)
+          const parentDir = dirname(targetDir)
+          const lowerDir = targetDir.toLowerCase()
+          if (
+            targetDir !== parentDir &&
+            !isProtectedSystemOrContainerDir(targetDir) &&
+            lowerDir !== home &&
+            lowerDir !== join(home, 'desktop') &&
+            lowerDir !== join(home, 'downloads') &&
+            lowerDir !== join(home, 'documents')
+          ) {
+            rmSync(targetDir, {
+              recursive: true,
+              force: true,
+              maxRetries: 3,
+              retryDelay: 150
+            })
+          } else {
+            logWarning(
+              `[SideloadGame] Exclusão bloqueada por segurança para pasta protegida/raiz: ${targetDir}`,
+              LogPrefix.Backend
+            )
+          }
         }
       } catch {}
     }
 
     notify({ title, body: i18next.t('notify.uninstalled') })
-
-    removeShortcutsUtil(this)
-    removeRecentGame(this.id)
-    removeNonSteamGame(this)
 
     sendGameStatusUpdate({
       appName: this.id,

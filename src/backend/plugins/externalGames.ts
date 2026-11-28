@@ -1,4 +1,10 @@
 import { externalErrorMessage } from 'common/externalErrors'
+import {
+  collectCandidateInstallDirectories,
+  isProtectedSystemOrContainerDir,
+  resolveGameRootInstallDirectory,
+  sanitizeInstallPathString
+} from 'common/gameInstallDirectory'
 import { downloadProgress } from './downloadProgress'
 import { confirmDirectDownloadLearning } from './directDownloadLearning'
 import { rangedDownload } from './rangedDownload'
@@ -591,12 +597,39 @@ export class ExternalGames {
     notifyExternalQueueChanged()
   }
 
+  private isInstallationAvailableOnDisk(
+    inst: ExternalInstallation,
+    libGame?: GameInfo
+  ): boolean {
+    const exe = sanitizeInstallPathString(
+      libGame?.install?.executable || inst.executable || ''
+    )
+    return Boolean(exe && existsSync(exe))
+  }
+
   recordUpdate(id: string, update?: GhostSearchResult, message?: string) {
     const installation = this.state.installations.find((item) => item.id === id)
     if (installation) {
-      const confirmed = !update || isNewerGameRelease(installedReleaseCandidate(installation.game), update).isNewer
+      const games = libraryStore.get('games', [])
+      const libGame = games.find((g) => g.app_name === installation.appName)
+      const isAvailableOnDisk = this.isInstallationAvailableOnDisk(
+        installation,
+        libGame
+      )
+      if (!isAvailableOnDisk) {
+        installation.availableUpdate = undefined
+        installation.updateMessage = undefined
+        this.save()
+        return
+      }
+      const confirmed =
+        !update ||
+        isNewerGameRelease(installedReleaseCandidate(installation.game), update)
+          .isNewer
       installation.availableUpdate = confirmed ? update : undefined
-      installation.updateMessage = confirmed ? message : 'A fonte não confirmou uma versão mais recente do jogo.'
+      installation.updateMessage = confirmed
+        ? message
+        : 'A fonte não confirmou uma versão mais recente do jogo.'
       this.save()
     }
   }
@@ -1240,23 +1273,84 @@ export class ExternalGames {
         }
       }
 
+      let libraryChanged = false
       for (const inst of this.state.installations) {
         const libGame = games.find((g: any) => g.app_name === inst.appName)
+        const gameTitle = libGame?.title || inst.game?.title || inst.appName
+        const cleanInstDir = resolveGameRootInstallDirectory(
+          inst.directory,
+          gameTitle
+        )
+        if (cleanInstDir && cleanInstDir !== inst.directory) {
+          inst.directory = cleanInstDir
+          stateChanged = true
+        }
         if (libGame) {
-          const libExecutable = libGame.install?.executable || ''
-          const libDir =
+          const libExecutable = sanitizeInstallPathString(
+            libGame.install?.executable || ''
+          )
+          const rawLibDir =
             libGame.install?.install_path ||
             libGame.folder_name ||
             (libExecutable ? dirname(libExecutable) : '')
+          const libDir = resolveGameRootInstallDirectory(rawLibDir, gameTitle)
           if (libDir && libDir !== inst.directory) {
             inst.directory = libDir
             stateChanged = true
           }
-          if (libExecutable && libExecutable !== inst.executable && existsSync(libExecutable)) {
+          if (libDir) {
+            if (libGame.folder_name !== libDir) {
+              libGame.folder_name = libDir
+              libraryChanged = true
+            }
+            if (
+              libGame.install &&
+              libGame.install.install_path &&
+              libGame.install.install_path !== libDir
+            ) {
+              libGame.install.install_path = libDir
+              libraryChanged = true
+            }
+          }
+          if (
+            libExecutable &&
+            libExecutable !== inst.executable &&
+            existsSync(libExecutable)
+          ) {
             inst.executable = libExecutable
+            stateChanged = true
+          } else if (
+            !libExecutable &&
+            inst.executable &&
+            !existsSync(sanitizeInstallPathString(inst.executable))
+          ) {
+            inst.executable = ''
             stateChanged = true
           }
         }
+
+        // Jogos deletados do computador ("Arquivos indisponíveis") não devem permanecer na lista
+        // de atualizações pendentes, exceto se houver um job de atualização/reinstalação ativo no momento.
+        const hasActiveJobForInst = this.state.jobs.some(
+          (job) =>
+            job.installationId === inst.id &&
+            ['queued', 'downloading', 'extracting', 'installing', 'paused'].includes(
+              job.status
+            )
+        )
+        if (
+          inst.availableUpdate &&
+          !hasActiveJobForInst &&
+          !this.isInstallationAvailableOnDisk(inst, libGame)
+        ) {
+          inst.availableUpdate = undefined
+          inst.updateMessage = undefined
+          stateChanged = true
+        }
+      }
+
+      if (libraryChanged) {
+        libraryStore.set('games', games)
       }
 
       if (stateChanged) {
@@ -1294,7 +1388,10 @@ export class ExternalGames {
   removeInstallation(idOrAppName: string): boolean {
     const before = this.state.installations.length
     this.state.installations = this.state.installations.filter(
-      (item) => item.id !== idOrAppName && item.appName !== idOrAppName
+      (item) =>
+        item.id !== idOrAppName &&
+        item.appName !== idOrAppName &&
+        item.game?.id !== idOrAppName
     )
     if (this.state.installations.length !== before) {
       this.save()
@@ -3257,48 +3354,116 @@ export class ExternalGames {
   ): Promise<ExternalActionResult> {
     try {
       const installation = this.state.installations.find(
-        (item) => item.appName === appName || item.id === appName
+        (item) =>
+          item.appName === appName ||
+          item.id === appName ||
+          item.game?.id === appName
       )
       const games = libraryStore.get('games', [])
       const libraryGame = games.find((g) => g.app_name === appName)
+      const gameTitle =
+        libraryGame?.title || installation?.game?.title || appName
 
-      const candidateDir =
-        installation?.directory ||
-        libraryGame?.install?.install_path ||
-        (installation?.executable ? dirname(installation.executable) : null) ||
-        (libraryGame?.install?.executable ? dirname(libraryGame.install.executable) : null)
+      const candidateDirs = collectCandidateInstallDirectories(
+        [
+          installation?.directory,
+          libraryGame?.install?.install_path,
+          libraryGame?.folder_name
+        ],
+        [installation?.executable, libraryGame?.install?.executable],
+        gameTitle
+      )
+
+      const existingCandidateDir = candidateDirs.find((dir) => existsSync(dir))
+      const resolvedRootDir =
+        existingCandidateDir ||
+        candidateDirs[0] ||
+        resolveGameRootInstallDirectory(
+          installation?.directory ||
+            libraryGame?.install?.install_path ||
+            libraryGame?.folder_name ||
+            '',
+          gameTitle
+        )
 
       if (deleteFiles) {
-        if (candidateDir && existsSync(candidateDir)) {
-          const resolved = resolve(candidateDir)
-          const home = resolve(app.getPath('home'))
-          const rootDir = resolve('/')
-          const windowsDir = process.env.SystemRoot ? resolve(process.env.SystemRoot) : null
-          const progFiles = process.env.ProgramFiles ? resolve(process.env.ProgramFiles) : null
-          const progFilesX86 = process.env['ProgramFiles(x86)'] ? resolve(process.env['ProgramFiles(x86)']) : null
+        if (!candidateDirs.length && !resolvedRootDir) {
+          throw new Error(
+            'Diretório de instalação do jogo não pôde ser identificado para exclusão.'
+          )
+        }
 
-          // Proteção estrita contra exclusão de pastas críticas do sistema
+        // Encerra o processo do jogo caso esteja em execução para liberar locks de arquivo no Windows
+        try {
+          const { default: SideloadGame } = await import(
+            '../storeManagers/sideload/games'
+          )
+          await new SideloadGame(appName).stop()
+        } catch {}
+
+        const home = resolve(app.getPath('home'))
+        const rootDir = resolve('/')
+        const windowsDir = process.env.SystemRoot
+          ? resolve(process.env.SystemRoot)
+          : null
+        const progFiles = process.env.ProgramFiles
+          ? resolve(process.env.ProgramFiles)
+          : null
+        const progFilesX86 = process.env['ProgramFiles(x86)']
+          ? resolve(process.env['ProgramFiles(x86)'])
+          : null
+
+        const validateSafeTarget = (targetPath: string) => {
+          const resolved = resolve(targetPath)
           if (
+            isProtectedSystemOrContainerDir(resolved) ||
             resolved === home ||
             resolved === rootDir ||
             dirname(resolved) === resolved ||
-            (windowsDir && (resolved === windowsDir || inside(windowsDir, resolved))) ||
+            (windowsDir &&
+              (resolved === windowsDir || inside(windowsDir, resolved))) ||
             (progFiles && resolved === progFiles) ||
             (progFilesX86 && resolved === progFilesX86)
           ) {
-            throw new Error('Diretório crítico ou protegido do sistema não pode ser excluído.')
+            throw new Error(
+              `Diretório crítico ou pasta raiz protegida não pode ser excluída (${resolved}).`
+            )
           }
+          return resolved
+        }
 
-          await rm(resolved, { recursive: true, force: true }).catch((err) => {
-            throw new Error(`Falha ao excluir arquivos do disco: ${err instanceof Error ? err.message : String(err)}`)
+        const existingTargets = candidateDirs.filter((dir) => existsSync(dir))
+        for (const target of existingTargets) {
+          if (!existsSync(target)) continue
+          const safeResolved = validateSafeTarget(target)
+          await rm(safeResolved, {
+            recursive: true,
+            force: true,
+            maxRetries: 5,
+            retryDelay: 200
+          }).catch((err) => {
+            throw new Error(
+              `Falha ao excluir arquivos do disco: ${
+                err instanceof Error ? err.message : String(err)
+              }`
+            )
           })
+
+          if (existsSync(safeResolved)) {
+            throw new Error(
+              `Não foi possível excluir todos os arquivos de "${safeResolved}". Verifique se o jogo ou outro programa está aberto.`
+            )
+          }
         }
       }
 
       if (!deleteFiles) {
         // Remover da biblioteca: limpa o registro de instalação e remove de libraryStore
         this.state.installations = this.state.installations.filter(
-          (item) => item.appName !== appName && item.id !== appName
+          (item) =>
+            item.appName !== appName &&
+            item.id !== appName &&
+            item.game?.id !== appName
         )
         libraryStore.set(
           'games',
@@ -3310,20 +3475,34 @@ export class ExternalGames {
         // Como os arquivos foram apagados do disco, existsSync(executable) retorna false,
         // e o Ghost exibe a capa com o status canônico "Arquivos indisponíveis"!
         // Mantemos o registro da instalação para preservar permanentemente o caminho do diretório!
+        const persistedDir =
+          resolvedRootDir ||
+          sanitizeInstallPathString(installation?.directory) ||
+          sanitizeInstallPathString(libraryGame?.install?.install_path) ||
+          sanitizeInstallPathString(libraryGame?.folder_name)
+
         if (installation) {
+          if (persistedDir) {
+            installation.directory = persistedDir
+          }
           installation.executable = ''
+          installation.availableUpdate = undefined
+          installation.updateMessage = undefined
         }
         if (libraryGame) {
           libraryGame.is_installed = true
-          if (candidateDir) {
-            libraryGame.folder_name = candidateDir
+          if (persistedDir) {
+            libraryGame.folder_name = persistedDir
             libraryGame.install = {
               ...(libraryGame.install || {}),
-              install_path: candidateDir,
+              install_path: persistedDir,
               executable: ''
             }
           } else if (libraryGame.install) {
-            libraryGame.install.executable = ''
+            libraryGame.install = {
+              ...libraryGame.install,
+              executable: ''
+            }
           }
           libraryStore.set('games', games)
         }
@@ -3331,6 +3510,7 @@ export class ExternalGames {
 
       this.save()
       sendFrontendMessage('external-games-updated', this.snapshot())
+      sendFrontendMessage('refreshLibrary', 'sideload')
       return { success: true }
     } catch (error) {
       return {

@@ -65,7 +65,9 @@ export default React.memo(function ActionIcons({
       setScopeInfo(getUpdateCheckScopeInfo())
       if (window.api?.externalGamesState) {
         const state = await window.api.externalGamesState()
-        const count = (state?.installations || []).filter((i: any) => Boolean(i.availableUpdate)).length
+        const count = (state?.installations || []).filter(
+          (i: any) => Boolean(i.availableUpdate) && Boolean(i.executable)
+        ).length
         setPiratasUpdatesCount(count)
       }
     } catch {}

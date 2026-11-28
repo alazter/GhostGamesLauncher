@@ -38,7 +38,10 @@ export default function LibraryFilters() {
     sortByMostPlayed,
     setSortByMostPlayed,
     showPlaytestsAndDemos,
-    setShowPlaytestsAndDemos
+    setShowPlaytestsAndDemos,
+    selectedDrives = [],
+    setSelectedDrives,
+    availableDrives = []
   } = useContext(LibraryContext)
 
   const [customStores, setCustomStores] = useState<CustomStore[]>(() => {
@@ -141,6 +144,46 @@ export default function LibraryFilters() {
     setPlatformsFilters(newFilters)
   }
 
+  const toggleDriveFilter = (driveLetter: string) => {
+    if (!setSelectedDrives) return
+    const normalized = driveLetter.toUpperCase()
+    const isActive = selectedDrives.some((d) => d.toUpperCase() === normalized)
+    if (isActive) {
+      setSelectedDrives(
+        selectedDrives.filter((d) => d.toUpperCase() !== normalized)
+      )
+    } else {
+      setSelectedDrives([...selectedDrives, normalized])
+    }
+  }
+
+  const setDriveOnly = (driveLetter: string) => {
+    if (!setSelectedDrives) return
+    setSelectedDrives([driveLetter.toUpperCase()])
+  }
+
+  const driveToggle = (drive: { letter: string; label: string; count: number }) => {
+    const cleanLetter = drive.letter.replace(/:$/, '').toUpperCase()
+    const isChecked = selectedDrives.some(
+      (d) => d.toUpperCase() === drive.letter.toUpperCase()
+    )
+    const displayLabel = drive.label
+      ? `Drive: ${cleanLetter} — ${drive.label} (${drive.count})`
+      : `Drive: ${cleanLetter} (${drive.count})`
+    const toggle = (
+      <ToggleSwitch
+        key={`drive-${drive.letter}`}
+        htmlId={`drive-filter-${cleanLetter}`}
+        handleChange={() => toggleDriveFilter(drive.letter)}
+        value={isChecked}
+        title={displayLabel}
+      />
+    )
+    return toggleWithOnly(`drive-${drive.letter}`, toggle, () =>
+      setDriveOnly(drive.letter)
+    )
+  }
+
   const setStoreOnly = (selectedStoreId: string) => {
     const newFilters: StoresFilters = {}
     customStores.forEach((s) => {
@@ -241,8 +284,10 @@ export default function LibraryFilters() {
     if (setSortByNewlyAdded) setSortByNewlyAdded(false)
     setShowHiddenDuplicates(false)
     if (setShowPlaytestsAndDemos) setShowPlaytestsAndDemos(false)
+    if (setSelectedDrives) setSelectedDrives([])
     localStorage.removeItem('heroic_show_hidden_duplicates')
     localStorage.removeItem('heroic_show_playtests_demos')
+    localStorage.removeItem('heroic_selected_drives')
     window.dispatchEvent(new Event('heroicDuplicatesChanged'))
     window.dispatchEvent(new Event('heroicPlaytestsFilterChanged'))
   }
@@ -269,6 +314,38 @@ export default function LibraryFilters() {
       {platformToggle('linux')}
       {platformToggle('mac')}
       {platformToggle('browser')}
+      {availableDrives.length > 0 && (
+        <>
+          <hr />
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: 'rgba(0, 229, 255, 0.85)',
+              padding: '2px 4px 4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px'
+            }}
+          >
+            <span>💾 Filtrar por HD / Drive</span>
+            {selectedDrives.length > 0 && setSelectedDrives && (
+              <button
+                type="button"
+                className="only"
+                onClick={() => setSelectedDrives([])}
+                style={{ fontSize: '10px', opacity: 0.9 }}
+              >
+                Todos
+              </button>
+            )}
+          </div>
+          {availableDrives.map((drive) => driveToggle(drive))}
+        </>
+      )}
       <hr />
       <ToggleSwitch
         key="show-hidden"

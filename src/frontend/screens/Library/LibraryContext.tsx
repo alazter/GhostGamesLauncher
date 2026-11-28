@@ -53,7 +53,10 @@ const initialContext: LibraryContextType = {
   showNewlyAddedOnly: false,
   setShowNewlyAddedOnly: () => null,
   sortByMostPlayed: false,
-  setSortByMostPlayed: () => null
+  setSortByMostPlayed: () => null,
+  selectedDrives: [],
+  setSelectedDrives: () => null,
+  availableDrives: []
 }
 
 export default createContext(initialContext)

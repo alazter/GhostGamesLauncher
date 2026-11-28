@@ -373,6 +373,12 @@ interface AsyncIPCFunctions {
     shouldRemovePrefix: boolean,
     shouldRemoveSetting: boolean
   ) => Promise<void>
+  cleanupGameSettings: (
+    appName: string,
+    runner: Runner,
+    shouldRemovePrefix: boolean,
+    shouldRemoveSetting: boolean
+  ) => Promise<void>
   repair: (appName: string, runner: Runner) => Promise<void>
   moveInstall: (
     args: MoveGameArgs

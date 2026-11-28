@@ -37,6 +37,8 @@ import {
   navigateVirtualLibrary
 } from './components/GamesList/libraryNavigation'
 import { FavouriteGame, GameInfo, HiddenGame, Runner } from 'common/types'
+import type { StorageDrive } from 'common/types/ipc'
+import { extractGameDriveLetter } from 'common/gameInstallDirectory'
 import ErrorComponent from 'frontend/components/UI/ErrorComponent'
 import LibraryHeader from './components/LibraryHeader'
 import {
@@ -1276,6 +1278,41 @@ export default memo(function Library(): JSX.Element {
     setShowUpdatesOnly(value)
   }
 
+  const [selectedDrives, setSelectedDrives] = useState<string[]>(
+    initialStoreSettings.selectedDrives || []
+  )
+  const handleSetSelectedDrives = (drives: string[]) => {
+    const normalized = Array.from(
+      new Set(drives.map((d) => d.trim().toUpperCase()).filter(Boolean))
+    )
+    saveStoreFilterSettings(activeStoreFilterRef.current, {
+      selectedDrives: normalized
+    })
+    setSelectedDrives(normalized)
+  }
+
+  const [storageDrives, setStorageDrives] = useState<StorageDrive[]>([])
+  useEffect(() => {
+    let active = true
+    const fetchDrives = async () => {
+      try {
+        if (window.api?.getAvailableStorageDrives) {
+          const list = await window.api.getAvailableStorageDrives()
+          if (active && Array.isArray(list)) {
+            setStorageDrives(list)
+          }
+        }
+      } catch {}
+    }
+    void fetchDrives()
+    const onRefresh = () => void fetchDrives()
+    window.addEventListener('refreshLibrary', onRefresh)
+    return () => {
+      active = false
+      window.removeEventListener('refreshLibrary', onRefresh)
+    }
+  }, [])
+
   const [showCategories, setShowCategories] = useState(false)
 
   // ====================================================================
@@ -1484,6 +1521,7 @@ export default memo(function Library(): JSX.Element {
       setShowAlphabetFilter(storeSettings.showAlphabetFilter)
       setAlphabetFilterLetter(storeSettings.alphabetFilterLetter)
       setShowPlaytestsAndDemos(storeSettings.showPlaytestsAndDemos)
+      setSelectedDrives(storeSettings.selectedDrives || [])
 
       if (storeFilter) {
         setShowUnclassifiedOnly(false)
@@ -2078,6 +2116,16 @@ export default memo(function Library(): JSX.Element {
             : Boolean(game.is_installed)
         )
       }
+
+      if (selectedDrives.length > 0) {
+        const activeDriveSet = new Set(
+          selectedDrives.map((d) => d.toUpperCase())
+        )
+        library = library.filter((game) => {
+          const drive = extractGameDriveLetter(game)
+          return Boolean(drive && activeDriveSet.has(drive.toUpperCase()))
+        })
+      }
     }
 
     try {
@@ -2161,18 +2209,15 @@ export default memo(function Library(): JSX.Element {
       }
 
       if (showUpdatesOnly) {
+        const isUpdatableGame = (game: GameInfo) =>
+          Boolean(game.is_installed) &&
+          (game.runner !== 'sideload' || Boolean(game.install?.executable)) &&
+          gameUpdates.includes(game.app_name)
         const hasUpdatableInScope =
           gameUpdates.length > 0 &&
-          library.some(
-            (game) =>
-              Boolean(game.is_installed) &&
-              gameUpdates.includes(game.app_name) &&
-              matchesStoreScope(game)
-          )
+          library.some((game) => isUpdatableGame(game) && matchesStoreScope(game))
         if (hasUpdatableInScope) {
-          library = library.filter(
-            (game) => Boolean(game.is_installed) && gameUpdates.includes(game.app_name)
-          )
+          library = library.filter((game) => isUpdatableGame(game))
         }
       }
 
@@ -2214,8 +2259,43 @@ export default memo(function Library(): JSX.Element {
     makeLibrary,
     showPlaytestsAndDemos,
     activeStoreFilter,
-    assignments
+    assignments,
+    selectedDrives
   ])
+
+  const availableDrives = useMemo(() => {
+    const driveLabelMap = new Map<string, string>()
+    for (const d of storageDrives) {
+      if (d?.letter) {
+        driveLabelMap.set(
+          d.letter.toUpperCase(),
+          (d.label || '').trim() || 'Disco Local'
+        )
+      }
+    }
+
+    const driveCounts = new Map<string, number>()
+    for (const game of makeLibrary()) {
+      const letter = extractGameDriveLetter(game)
+      if (!letter) continue
+      const key = letter.toUpperCase()
+      driveCounts.set(key, (driveCounts.get(key) || 0) + 1)
+    }
+
+    // Inclui todos os HDs com jogos + qualquer HD que esteja selecionado no filtro
+    const letters = new Set<string>([
+      ...driveCounts.keys(),
+      ...selectedDrives.map((d) => d.toUpperCase())
+    ])
+
+    return Array.from(letters)
+      .sort((a, b) => a.localeCompare(b))
+      .map((letter) => ({
+        letter,
+        label: driveLabelMap.get(letter) || 'Disco Local',
+        count: driveCounts.get(letter) || 0
+      }))
+  }, [storageDrives, makeLibrary, selectedDrives])
 
   useEffect(() => {
     if (!showUpdatesOnly && !showNewlyAddedOnly) return
@@ -2281,6 +2361,7 @@ export default memo(function Library(): JSX.Element {
         fullGamesForAlphabetFilter.some(
           (game) =>
             Boolean(game.is_installed) &&
+            (game.runner !== 'sideload' || Boolean(game.install?.executable)) &&
             gameUpdates.includes(game.app_name) &&
             matchesStoreScope(game)
         )
@@ -2655,7 +2736,10 @@ export default memo(function Library(): JSX.Element {
         setAlphabetFilterLetter: handleSetAlphabetFilterLetter,
         showUnclassifiedOnly,
         showPlaytestsAndDemos,
-        setShowPlaytestsAndDemos: handleSetShowPlaytestsAndDemos
+        setShowPlaytestsAndDemos: handleSetShowPlaytestsAndDemos,
+        selectedDrives,
+        setSelectedDrives: handleSetSelectedDrives,
+        availableDrives
       }}
     >
       <div

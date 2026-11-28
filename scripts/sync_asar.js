@@ -21,7 +21,9 @@ if (fs.existsSync(asarPath)) {
       fs.copyFileSync(src, dst);
     }
   }
-  cp('build', path.join(tmpDir, 'build'));
+  const dstBuild = path.join(tmpDir, 'build');
+  if (fs.existsSync(dstBuild)) fs.rmSync(dstBuild, { recursive: true, force: true });
+  cp('build', dstBuild);
 
   console.log('Packing asar...');
   execSync(`npx asar pack "${tmpDir}" "${asarPath}"`, { stdio: 'inherit' });

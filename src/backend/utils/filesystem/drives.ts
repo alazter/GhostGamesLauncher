@@ -61,7 +61,7 @@ async function getVolumeLabels(): Promise<Record<string, string>> {
   if (process.platform === 'win32') {
     try {
       const psCommand =
-        'Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, VolumeName | ConvertTo-Json'
+        '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, VolumeName | ConvertTo-Json'
       const { stdout } = await execAsync(
         `powershell -NoProfile -Command "${psCommand}"`,
         {

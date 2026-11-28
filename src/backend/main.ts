@@ -107,7 +107,11 @@ import {
 
 import { Path } from './schemas'
 
-import { uninstallGameCallback, bulkUninstallCallback } from './utils/uninstaller'
+import {
+  uninstallGameCallback,
+  bulkUninstallCallback,
+  cleanupGameSettingsCallback
+} from './utils/uninstaller'
 import { handleProtocol, shouldHideWindowForProtocolArgs } from './protocol'
 import {
   init as initLogger,
@@ -1166,7 +1170,12 @@ addHandler('checkGameUpdates', async (e, force?: boolean): Promise<string[]> => 
         const { ExternalGames } = await import('./plugins/externalGames')
         const externalInstallations = ExternalGames.getInstance().snapshot().installations
         for (const inst of externalInstallations) {
-          if (inst.availableUpdate && inst.appName) {
+          if (
+            inst.availableUpdate &&
+            inst.appName &&
+            inst.executable &&
+            existsSync(inst.executable)
+          ) {
             oldGames.push(inst.appName)
           }
         }
@@ -2087,6 +2096,7 @@ addListener('showItemInFolder', async (e, item) => showItemInFolder(item))
 
 addHandler('uninstall', uninstallGameCallback)
 addHandler('bulkUninstall', bulkUninstallCallback)
+addHandler('cleanupGameSettings', cleanupGameSettingsCallback)
 
 addHandler('repair', async (event, appName, runner) => {
   if (!isOnline()) {

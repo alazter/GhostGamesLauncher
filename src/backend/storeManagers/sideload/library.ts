@@ -11,6 +11,7 @@ import { LibraryManager } from 'common/types/game_manager'
 import SideloadGame from './games'
 import { findManifestForExecutable } from 'backend/plugins/ghostManifest'
 import { ExternalGames } from 'backend/plugins/externalGames'
+import { sanitizeInstallPathString } from 'common/gameInstallDirectory'
 
 export default class SideloadLibraryManager implements LibraryManager {
   init = () => Promise.resolve()
@@ -22,7 +23,7 @@ export default class SideloadLibraryManager implements LibraryManager {
   addNewApp({
     app_name,
     title,
-    install: { executable, platform },
+    install: { executable: rawExecutable, platform },
     art_cover,
     art_square,
     browserUrl,
@@ -32,6 +33,7 @@ export default class SideloadLibraryManager implements LibraryManager {
     launchFullScreen,
     allowDuplicateExecutable
   }: GameInfo): string {
+    const executable = sanitizeInstallPathString(rawExecutable) || rawExecutable
     const current = libraryStore.get('games', [])
     const normTitle = (title || '').trim().toLowerCase()
     const cleanTargetTitle = (title || '').toLowerCase().replace(/[^a-z0-9]/g, '')

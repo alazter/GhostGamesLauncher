@@ -36,7 +36,10 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     sortByMostPlayed,
     storesFilters,
     filterText,
-    showPlaytestsAndDemos
+    showPlaytestsAndDemos,
+    selectedDrives = [],
+    setSelectedDrives,
+    availableDrives = []
   } = useContext(LibraryContext)
 
   const { gameUpdates } = useContext(ContextProvider)
@@ -57,10 +60,15 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
     return candidateGames.filter((g) => isGameRecentlyAdded(g.app_name, g.runner, newGamesMap))
   }, [candidateGames, newGamesMap])
 
-  // Jogos instalados com atualização pendente
+  // Jogos instalados (e com arquivos disponíveis no disco) com atualização pendente
   const pendingUpdatesGames = useMemo(() => {
     if (!gameUpdates || gameUpdates.length === 0) return []
-    return candidateGames.filter((g) => g.is_installed && gameUpdates.includes(g.app_name))
+    return candidateGames.filter(
+      (g) =>
+        g.is_installed &&
+        (g.runner !== 'sideload' || Boolean(g.install?.executable)) &&
+        gameUpdates.includes(g.app_name)
+    )
   }, [candidateGames, gameUpdates])
 
   useEffect(() => {
@@ -405,6 +413,47 @@ export default memo(function LibraryHeader({ list, fullList }: Props) {
                   {pendingUpdatesGames.length}
                 </span>
               </div>
+            )}
+
+            {/* PÍLULA DE FILTRO DE HD ATIVO (Clique para limpar) */}
+            {selectedDrives.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedDrives?.([])}
+                title="Clique para limpar o filtro de HD"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  height: '24px',
+                  padding: '0 9px',
+                  borderRadius: '14px',
+                  background: 'rgba(0, 229, 255, 0.14)',
+                  border: '1px solid rgba(0, 229, 255, 0.45)',
+                  color: '#00e5ff',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span>💾</span>
+                <span>
+                  {selectedDrives
+                    .map((letter) => {
+                      const info = availableDrives.find(
+                        (d) => d.letter.toUpperCase() === letter.toUpperCase()
+                      )
+                      const cleanLetter = letter.replace(/:$/, '').toUpperCase()
+                      return info?.label
+                        ? `Drive: ${cleanLetter} (${info.label})`
+                        : `Drive: ${cleanLetter}`
+                    })
+                    .join(', ')}
+                </span>
+                <span style={{ opacity: 0.75, marginLeft: '2px' }}>✕</span>
+              </button>
             )}
 
             {showFavourites

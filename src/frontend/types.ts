@@ -304,6 +304,13 @@ export interface LibraryContextType {
   setShowNewlyAddedOnly?: (value: boolean) => void
   sortByMostPlayed?: boolean
   setSortByMostPlayed?: (value: boolean) => void
+  selectedDrives?: string[]
+  setSelectedDrives?: (drives: string[]) => void
+  availableDrives?: Array<{
+    letter: string
+    label: string
+    count: number
+  }>
 }
 
 export interface GameContextType {

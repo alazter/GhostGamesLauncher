@@ -16,6 +16,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShieldAlt, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import { archiveGameData, removeArchivedGameData } from 'frontend/helpers/archivedGameData'
 import { gameOverridesStore, sideloadLibrary, configStore } from 'frontend/helpers/electronStores'
+import { clearAvailabilityCache } from 'frontend/hooks/constants'
 import { notify } from 'frontend/helpers'
 
 interface UninstallModalProps {
@@ -43,7 +44,8 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
   const [showUninstallModal, setShowUninstallModal] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
-  const { installingEpicGame, libraryStatus, hiddenGames } = useContext(ContextProvider)
+  const { installingEpicGame, libraryStatus, hiddenGames, refreshLibrary } =
+    useContext(ContextProvider)
   const [gameTitle, setGameTitle] = useState('')
 
   const isGameRunning = libraryStatus.find(
@@ -95,26 +97,55 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
 
   const handleRemoveSideload = async (keepData: boolean) => {
     onClose()
+    window.dispatchEvent(
+      new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+    )
     useRemovingGamesStore.getState().startRemoval(appName, 'removing')
     try {
-      const gameInfo = await window.api.getGameInfo(appName, 'sideload')
+      const currentGames = sideloadLibrary.get('games', [])
+      const localGame = currentGames.find((g) => g.app_name === appName)
+      const gameInfo =
+        (await window.api.getGameInfo(appName, 'sideload')) || localGame
+
       if (keepData && gameInfo) {
         const curOverrides = gameOverridesStore.get('overrides', {})[appName]
-        archiveGameData(gameInfo, curOverrides, gameInfo.install?.install_path)
+        const installDir =
+          gameInfo.install?.install_path || gameInfo.folder_name
+        archiveGameData(gameInfo, curOverrides, installDir)
       } else {
-        removeArchivedGameData(appName, gameTitle)
+        removeArchivedGameData(appName, gameTitle || gameInfo?.title)
         const overrides = gameOverridesStore.get('overrides', {})
-        delete overrides[appName]
-        gameOverridesStore.set('overrides', overrides)
+        if (overrides[appName]) {
+          delete overrides[appName]
+          gameOverridesStore.set('overrides', overrides)
+        }
+        try {
+          const rawAssign = window.localStorage.getItem(
+            'heroic_game_assignments'
+          )
+          if (rawAssign) {
+            const assignments = JSON.parse(rawAssign)
+            if (assignments && appName in assignments) {
+              delete assignments[appName]
+              window.localStorage.setItem(
+                'heroic_game_assignments',
+                JSON.stringify(assignments)
+              )
+              window.dispatchEvent(new Event('gameAssignmentsChanged'))
+            }
+          }
+        } catch {}
       }
 
-      // Remove the game from sideloadLibrary
-      const current = sideloadLibrary.get('games', [])
-      const filtered = current.filter((g) => g.app_name !== appName)
-      sideloadLibrary.set('games', filtered)
-
-      // Sync backend
+      // Executa o uninstall no backend ANTES de remover de sideloadLibrary no frontend
+      // para que SideloadGame.uninstall consiga ler gameInfo e remover atalhos da Área de Trabalho/Menu Iniciar/Steam
       await window.api.uninstall(appName, 'sideload', false, !keepData)
+
+      // Garante remoção definitiva no store sincronizado do frontend
+      const latestGames = sideloadLibrary.get('games', [])
+      const filtered = latestGames.filter((g) => g.app_name !== appName)
+      sideloadLibrary.set('games', filtered)
+      clearAvailabilityCache(appName, 'sideload')
 
       if (location.pathname.match(/gamepage/)) {
         navigate('/#library')
@@ -123,10 +154,10 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
       ;(configStore as any).set('backup.lastModified', Date.now())
       window.dispatchEvent(new Event('backupStateChanged'))
       window.dispatchEvent(new Event('refreshLibrary'))
-      window.dispatchEvent(
-        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
-      )
       storage.removeItem(appName)
+      if (refreshLibrary) {
+        await refreshLibrary({ library: 'sideload', runInBackground: false })
+      }
 
       notify({
         title: keepData ? 'Jogo Removido (Dados Salvos)' : 'Jogo Removido',
@@ -153,6 +184,9 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
       return
     }
     onClose()
+    window.dispatchEvent(
+      new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
+    )
     useRemovingGamesStore.getState().startRemoval(appName, 'removing')
 
     try {
@@ -166,11 +200,11 @@ const UninstallModal: React.FC<UninstallModalProps> = function ({
           deleteSettingsChecked
         )
       }
-
-      window.dispatchEvent(
-        new CustomEvent('heroicSelectGameInline', { detail: { gameInfo: null } })
-      )
+      clearAvailabilityCache(appName, runner)
       storage.removeItem(appName)
+      if (refreshLibrary) {
+        await refreshLibrary({ library: runner, runInBackground: false })
+      }
     } finally {
       setTimeout(() => {
         useRemovingGamesStore.getState().finishRemoval(appName)
